@@ -18,11 +18,11 @@ import AppLayout from '../../layouts/AppLayout.astro';
     <div class="flex-1 flex flex-col items-center justify-center px-4 gap-6">
       <div class="relative w-full max-w-sm">
         <div id="reader" class="scanner-reader w-full aspect-[3/4] rounded-2xl overflow-hidden border-2 border-indigo-500/50 bg-navy-800"></div>
-        <div class="pointer-events-none absolute inset-4 rounded-2xl border-2 border-white/70 shadow-[0_0_0_999px_rgba(2,6,23,0.22)]"></div>
+        <div class="pointer-events-none absolute inset-3 rounded-2xl border border-white/45 shadow-[0_0_24px_rgba(99,102,241,0.35)]"></div>
       </div>
       <div class="text-center">
         <p class="text-slate-200 text-sm font-medium">Scannez directement avec la caméra</p>
-        <p id="scanner-status" class="text-slate-400 text-sm mt-1">Autorisez la caméra puis pointez le QR code du Wallet.</p>
+        <p id="scanner-status" class="text-slate-400 text-sm mt-1">Autorisez la caméra puis placez le QR code dans l’image.</p>
         <div id="camera-help" class="hidden mt-4 rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-4 text-left">
           <p class="text-amber-200 text-sm font-semibold">Autorisation caméra nécessaire</p>
           <p id="camera-help-text" class="text-amber-100/80 text-xs mt-1 leading-relaxed">
@@ -144,13 +144,16 @@ import AppLayout from '../../layouts/AppLayout.astro';
   const scanner = new Html5Qrcode('reader', false);
   let scannerStarting = false;
   const scanConfig = {
-    fps: 12,
+    fps: 20,
     qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-      const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-      const size = Math.floor(Math.min(minEdge * 0.86, 360));
-      return { width: size, height: size };
+      // Zone de scan large : le QR n'a pas besoin d'être exactement centré.
+      return {
+        width: Math.floor(viewfinderWidth * 0.94),
+        height: Math.floor(viewfinderHeight * 0.88),
+      };
     },
     aspectRatio: 3 / 4,
+    disableFlip: true,
     experimentalFeatures: {
       useBarCodeDetectorIfSupported: true,
     },
@@ -183,8 +186,9 @@ import AppLayout from '../../layouts/AppLayout.astro';
       stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: 'environment' },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          focusMode: { ideal: 'continuous' },
         },
         audio: false,
       });
@@ -227,22 +231,27 @@ import AppLayout from '../../layouts/AppLayout.astro';
             ? { deviceId: { exact: rearCameraId } }
             : {
                 facingMode: { ideal: 'environment' },
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
+                width: { ideal: 1920 },
+                height: { ideal: 1080 },
+                focusMode: { ideal: 'continuous' },
               },
           scanConfig,
           handleScan,
           () => {},
         );
-        setScannerStatus('Pointez la caméra vers le QR code de la carte Wallet.');
+        setScannerStatus('Placez le QR code dans l’image, même s’il n’est pas parfaitement centré.');
       } catch {
         await scanner.start(
-          { facingMode: 'environment' },
+          {
+            facingMode: 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
           scanConfig,
           handleScan,
           () => {},
         );
-        setScannerStatus('Pointez la caméra vers le QR code de la carte Wallet.');
+        setScannerStatus('Placez le QR code dans l’image, même s’il n’est pas parfaitement centré.');
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Caméra indisponible.';
@@ -261,7 +270,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
     if (!scannerPaused) return;
     scannerPaused = false;
     scanner.resume();
-    setScannerStatus('Pointez la caméra vers le QR code de la carte Wallet.');
+    setScannerStatus('Placez le QR code dans l’image, même s’il n’est pas parfaitement centré.');
   }
 
   async function handleScan(decodedText: string) {

@@ -482,14 +482,30 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     chooseGoogleBtn.disabled = true;
     chooseGoogleBtn.textContent = 'Redirection vers Google...';
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/register`,
-      },
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/register`,
+          skipBrowserRedirect: true,
+        },
+      });
 
-    if (error) {
+      if (error) throw error;
+      if (!data.url) throw new Error('Redirection Google indisponible.');
+
+      const probe = await fetch(data.url, {
+        redirect: 'manual',
+        credentials: 'include',
+      }).catch(() => null);
+
+      if (probe && probe.status >= 400) {
+        const payload = await probe.json().catch(() => ({}));
+        throw new Error(payload.msg ?? payload.error_description ?? 'Inscription Google indisponible.');
+      }
+
+      window.location.assign(data.url);
+    } catch (error) {
       setStep('method');
       showMessage(accessErrorMsg, getReadableError(error, 'Impossible de démarrer la connexion Google.'));
       chooseGoogleBtn.disabled = false;

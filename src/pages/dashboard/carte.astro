@@ -393,11 +393,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   const supabase = createClient(import.meta.env.PUBLIC_SUPABASE_URL, import.meta.env.PUBLIC_SUPABASE_ANON_KEY);
   const API = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
+  const PUBLIC_SITE_URL = (import.meta.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
   const setupMode = new URLSearchParams(window.location.search).get('setup') === '1';
 
   let carteId: string | null = null;
   let logoUrl = '', stripUrl = '', tamponIconUrl = '', tamponEmoji = '';
   let isGradient = false;
+
+  function publicCardUrl(id: string) {
+    return `${PUBLIC_SITE_URL}/carte/${id}`;
+  }
 
   if (setupMode) {
     document.getElementById('setup-banner')!.classList.remove('hidden');
@@ -777,7 +782,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         ['default','emoji','custom'].forEach(v=>document.getElementById(`tampon-mode-${v}-label`)!.style.cssText=v==='custom'?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent');
       }
       updatePreview();
-      const pu=`${window.location.origin}/carte/${data.id}`;
+      const pu=publicCardUrl(data.id);
       document.getElementById('public-link-banner')!.classList.remove('hidden');
       document.getElementById('public-link-url')!.textContent=pu;
       document.getElementById('qr-section')!.classList.remove('hidden');
@@ -822,7 +827,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const res=carteId?await authFetch(`/api/cartes/${carteId}`,{method:'PATCH',body:JSON.stringify(payload)}):await authFetch('/api/cartes',{method:'POST',body:JSON.stringify(payload)});
       if(!res.ok)throw new Error((await res.json()).error??'Erreur');
       const{data}=await res.json();
-      if(!carteId){carteId=data.id;const pu=`${window.location.origin}/carte/${data.id}`;document.getElementById('public-link-banner')!.classList.remove('hidden');document.getElementById('public-link-url')!.textContent=pu;}
+      if(!carteId){carteId=data.id;const pu=publicCardUrl(data.id);document.getElementById('public-link-banner')!.classList.remove('hidden');document.getElementById('public-link-url')!.textContent=pu;}
       suc.textContent=!hadExistingCard&&setupMode?'Carte créée avec succès. Vous pouvez maintenant la partager.':'Carte enregistrée avec succès !';suc.classList.remove('hidden');
       if (setupMode && !hadExistingCard) {
         document.getElementById('setup-banner')!.classList.add('hidden');

@@ -142,6 +142,13 @@ const firebasePushConfig = {
   const API = apiBase;
   const apiUrl = (path) => `${API}${path}`;
   const pushConfig = firebasePushConfig;
+  const isPushConfigured = Boolean(
+    pushConfig?.apiKey
+    && pushConfig?.projectId
+    && pushConfig?.messagingSenderId
+    && pushConfig?.appId
+    && pushConfig?.vapidKey
+  );
 
   // ── Checkbox consentement ────────────────────────────────────────
   let pushConsent = false;
@@ -149,7 +156,21 @@ const firebasePushConfig = {
   const consentCheck = document.getElementById('consent-check');
   const consentIcon = document.getElementById('consent-check-icon');
 
+  if (!isPushConfigured) {
+    const consentText = consentBox.querySelector('p.text-slate-400');
+    if (consentText) {
+      consentText.textContent = 'Les notifications sont en cours de configuration. Vous pourrez les activer prochainement.';
+    }
+    consentBox.style.opacity = '0.6';
+    consentBox.style.cursor = 'not-allowed';
+  }
+
   consentBox.addEventListener('click', () => {
+    if (!isPushConfigured) {
+      showError('Les notifications push ne sont pas encore configurées pour ce site.');
+      return;
+    }
+
     pushConsent = !pushConsent;
     document.getElementById('consent-value').value = String(pushConsent);
     if (pushConsent) {
@@ -332,7 +353,7 @@ const firebasePushConfig = {
       const res = await fetch(apiUrl('/api/clients'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ carte_id: carteId, nom, telephone, push_consent: pushConsent }),
+        body: JSON.stringify({ carte_id: carteId, nom, telephone, push_consent: pushConsent && isPushConfigured }),
       });
 
       const data = await res.json();

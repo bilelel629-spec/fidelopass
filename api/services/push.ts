@@ -48,8 +48,15 @@ export async function sendPushNotification(
       const response = await messaging.sendEachForMulticast({
         tokens: batch,
         notification: { title, body },
+        data: {
+          title,
+          body,
+          url: '/',
+          icon: '/favicon.svg',
+        },
         webpush: {
           notification: { title, body, icon: '/favicon.svg' },
+          fcmOptions: { link: '/' },
         },
       });
       successCount += response.successCount;

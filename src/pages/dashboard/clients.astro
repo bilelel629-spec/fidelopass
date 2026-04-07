@@ -66,7 +66,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             </tr>
           </thead>
           <tbody>
-            ${data.map((c: { nom: string | null; email: string | null; telephone: string | null; points_actuels: number; tampons_actuels: number; derniere_visite: string | null; push_enabled: boolean }) => `
+            ${data.map((c: { nom: string | null; email: string | null; telephone: string | null; points_actuels: number; tampons_actuels: number; derniere_visite: string | null; push_enabled: boolean; fcm_token: string | null }) => `
               <tr class="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
                 <td class="px-6 py-4">
                   <div class="font-medium text-white text-sm">${escapeHtml(c.nom ?? 'Anonyme')}</div>
@@ -79,9 +79,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                   ${c.derniere_visite ? new Date(c.derniere_visite).toLocaleDateString('fr-FR') : '—'}
                 </td>
                 <td class="px-6 py-4">
-                  ${c.push_enabled
-                    ? '<span class="badge badge-success">Activé</span>'
-                    : '<span class="badge bg-white/10 text-slate-400">Non</span>'
+                  ${c.push_enabled && c.fcm_token
+                    ? '<span class="badge badge-success">Prêt</span>'
+                    : c.push_enabled
+                      ? '<span class="badge bg-amber-500/10 text-amber-300">Token manquant</span>'
+                      : '<span class="badge bg-white/10 text-slate-400">Non</span>'
                   }
                 </td>
               </tr>

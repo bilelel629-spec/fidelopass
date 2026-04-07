@@ -51,7 +51,18 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('push', (event) => {
   let payload = { title: 'FidéliPass', body: 'Nouvelle notification', icon: '/favicon.svg' };
   try {
-    if (event.data) payload = { ...payload, ...event.data.json() };
+    if (event.data) {
+      const data = event.data.json();
+      payload = {
+        ...payload,
+        ...data.data,
+        ...data.notification,
+        ...data,
+        title: data.notification?.title ?? data.data?.title ?? data.title ?? payload.title,
+        body: data.notification?.body ?? data.data?.body ?? data.body ?? payload.body,
+        icon: data.notification?.icon ?? data.data?.icon ?? data.icon ?? payload.icon,
+      };
+    }
   } catch {
     if (event.data) payload.body = event.data.text();
   }

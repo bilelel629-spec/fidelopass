@@ -96,7 +96,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Erreur');
 
-      successMsg.textContent = `Notification envoyée à ${data.nb_delivrees} client(s) sur ${data.nb_destinataires} notifiable(s).`;
+      successMsg.textContent = data.nb_destinataires === 0
+        ? 'Aucun client n’a encore un token push valide. Vérifiez la configuration Firebase puis demandez aux clients de réactiver les notifications sur leur carte.'
+        : `Notification envoyée à ${data.nb_delivrees} client(s) sur ${data.nb_destinataires} notifiable(s).`;
       successMsg.classList.remove('hidden');
       form.reset();
       charCount.textContent = '0';
@@ -123,14 +125,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         return;
       }
 
-      container.innerHTML = data.map((n: { titre: string; message: string; nb_destinataires: number; created_at: string }) => `
+      container.innerHTML = data.map((n: { titre: string; message: string; nb_destinataires: number; nb_delivrees: number | null; created_at: string }) => `
         <div class="border-b border-white/5 pb-3 last:border-0 last:pb-0">
           <div class="flex items-start justify-between gap-2">
             <div>
               <p class="text-white text-sm font-medium">${escapeHtml(n.titre)}</p>
               <p class="text-slate-400 text-xs mt-0.5">${escapeHtml(n.message)}</p>
             </div>
-            <span class="badge badge-info shrink-0">${n.nb_destinataires}</span>
+            <span class="badge badge-info shrink-0">${n.nb_delivrees ?? 0}/${n.nb_destinataires}</span>
           </div>
           <p class="text-slate-500 text-xs mt-1">${new Date(n.created_at).toLocaleString('fr-FR')}</p>
         </div>

@@ -108,14 +108,17 @@ clientsRoutes.post('/', async (c) => {
   }
 
   if (existingClient) {
+    const nextFcmToken = parsed.data.fcm_token ?? existingClient.fcm_token;
+    const pushEnabled = Boolean(nextFcmToken) && (parsed.data.push_consent || existingClient.push_enabled);
+
     const { data: updatedClient, error: updateError } = await db
       .from('clients')
       .update({
         nom: parsed.data.nom,
         telephone: normalizedPhone,
         email: parsed.data.email ?? existingClient.email,
-        fcm_token: parsed.data.fcm_token ?? existingClient.fcm_token,
-        push_enabled: parsed.data.push_consent || existingClient.push_enabled,
+        fcm_token: nextFcmToken,
+        push_enabled: pushEnabled,
         updated_at: new Date().toISOString(),
       })
       .eq('id', existingClient.id)
@@ -138,7 +141,7 @@ clientsRoutes.post('/', async (c) => {
       telephone: normalizedPhone,
       email: parsed.data.email ?? null,
       fcm_token: parsed.data.fcm_token ?? null,
-      push_enabled: parsed.data.push_consent,
+      push_enabled: parsed.data.push_consent && Boolean(parsed.data.fcm_token),
     })
     .select()
     .single();

@@ -1,0 +1,602 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Inscription sécurisée — FideloPass"
+  description="Validez votre clé d'accès puis inscrivez-vous par email ou avec Google."
+>
+  <div class="min-h-screen overflow-hidden px-4 py-12 relative">
+    <div class="absolute inset-0 pointer-events-none">
+      <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[46rem] h-[46rem] rounded-full blur-3xl opacity-30" style="background:radial-gradient(circle,#6366f1 0%,rgba(15,23,42,0) 70%)"></div>
+      <div class="absolute top-40 -left-24 w-80 h-80 rounded-full blur-3xl opacity-25" style="background:radial-gradient(circle,#0ea5e9 0%,rgba(15,23,42,0) 70%)"></div>
+      <div class="absolute bottom-0 right-0 w-96 h-96 rounded-full blur-3xl opacity-20" style="background:radial-gradient(circle,#f59e0b 0%,rgba(15,23,42,0) 70%)"></div>
+    </div>
+
+    <div class="relative max-w-6xl mx-auto grid lg:grid-cols-[0.95fr_1.05fr] gap-8 items-center">
+      <section class="card p-8 sm:p-10">
+        <a href="/" class="font-display font-bold text-2xl text-white inline-flex items-center gap-1">
+          Fidéli<span style="color:#818cf8">Pass</span>
+        </a>
+
+        <div class="badge badge-info mt-6 mb-4">Accès privé</div>
+        <h1 class="font-display text-4xl sm:text-5xl font-bold text-white leading-tight">
+          Ouvrez votre espace commerçant avec un vrai parcours de vérification.
+        </h1>
+        <p class="text-slate-300 text-base sm:text-lg leading-relaxed mt-5 max-w-xl">
+          La clé d’accès valide d’abord votre droit d’entrée. Ensuite, vous choisissez librement entre une inscription par code email ou une connexion Google.
+        </p>
+
+        <div class="grid sm:grid-cols-3 gap-3 mt-8">
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p class="text-xs uppercase tracking-[0.24em] text-slate-500">Étape 1</p>
+            <p class="text-white font-semibold mt-2">Clé d’accès</p>
+            <p class="text-slate-400 text-sm mt-1">Réserve la création de comptes aux personnes autorisées.</p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p class="text-xs uppercase tracking-[0.24em] text-slate-500">Étape 2</p>
+            <p class="text-white font-semibold mt-2">Email ou Google</p>
+            <p class="text-slate-400 text-sm mt-1">Choisissez votre mode d’inscription après validation de la clé.</p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p class="text-xs uppercase tracking-[0.24em] text-slate-500">Étape 3</p>
+            <p class="text-white font-semibold mt-2">Onboarding guidé</p>
+            <p class="text-slate-400 text-sm mt-1">Création du commerce puis accès direct à l’éditeur complet.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card p-6 sm:p-8">
+        <div class="flex items-center justify-between gap-3 mb-6">
+          <div>
+            <p class="text-slate-400 text-sm">Inscription</p>
+            <h2 class="font-display text-2xl font-bold text-white mt-1">Créer mon compte</h2>
+          </div>
+          <div class="flex items-center gap-2">
+            <div id="progress-1" class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background:#6366f1">1</div>
+            <div class="w-9 h-px bg-white/10"></div>
+            <div id="progress-2" class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-slate-500 border border-white/10">2</div>
+            <div class="w-9 h-px bg-white/10"></div>
+            <div id="progress-3" class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-slate-500 border border-white/10">3</div>
+          </div>
+        </div>
+
+        <div id="access-step">
+          <form id="access-form" class="flex flex-col gap-4">
+            <div>
+              <label class="label" for="usage-key">Clé d’utilisation</label>
+              <input id="usage-key" type="text" class="input" placeholder="Entrez la clé d’accès" required autocomplete="one-time-code" />
+            </div>
+
+            <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-400">
+              Une fois la clé validée, vous pourrez choisir votre mode d’inscription.
+            </div>
+
+            <div id="access-error-msg" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"></div>
+            <div id="access-success-msg" class="hidden text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3"></div>
+
+            <button type="submit" id="access-btn" class="btn-primary w-full py-3 mt-2">
+              Valider la clé d’accès
+            </button>
+          </form>
+        </div>
+
+        <div id="method-step" class="hidden">
+          <div class="rounded-2xl border border-indigo-400/20 bg-indigo-500/10 px-4 py-4 mb-5">
+            <p class="text-white font-medium">Clé validée</p>
+            <p class="text-slate-300 text-sm mt-1">
+              Choisissez maintenant votre mode d’inscription.
+            </p>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-4">
+            <button id="choose-email-btn" type="button" class="rounded-2xl border border-white/10 bg-white/5 hover:bg-white/8 transition-colors p-5 text-left">
+              <p class="text-white font-semibold">Inscription par email</p>
+              <p class="text-slate-400 text-sm mt-2">Recevez un code de vérification puis définissez votre mot de passe.</p>
+            </button>
+
+            <button id="choose-google-btn" type="button" class="rounded-2xl border border-white/10 bg-white hover:bg-slate-100 transition-colors p-5 text-left text-slate-900">
+              <div class="flex items-center gap-3">
+                <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" aria-hidden="true">
+                  <path d="M21.56 10.74a9.55 9.55 0 0 0-.15-1.69H12v3.2h5.37a4.6 4.6 0 0 1-2 3.02v2.51h3.23c1.89-1.74 2.96-4.3 2.96-7.04z" fill="#4285F4"/>
+                  <path d="M12 22c2.7 0 4.96-.9 6.61-2.43l-3.23-2.51c-.9.6-2.04.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H3.08v2.6A10 10 0 0 0 12 22z" fill="#34A853"/>
+                  <path d="M6.41 13.9A6 6 0 0 1 6.09 12c0-.66.11-1.3.32-1.9V7.5H3.08A10 10 0 0 0 2 12c0 1.61.38 3.13 1.08 4.5l3.33-2.6z" fill="#FBBC05"/>
+                  <path d="M12 5.88c1.47 0 2.79.5 3.82 1.5l2.86-2.86A9.96 9.96 0 0 0 12 2 10 10 0 0 0 3.08 7.5l3.33 2.6C7.2 7.64 9.4 5.88 12 5.88z" fill="#EA4335"/>
+                </svg>
+                <p class="font-semibold">Continuer avec Google</p>
+              </div>
+              <p class="text-slate-600 text-sm mt-2">Connectez-vous avec Google puis passez directement à votre onboarding.</p>
+            </button>
+          </div>
+
+          <div class="flex gap-3 mt-4">
+            <button id="method-back-btn" type="button" class="btn-secondary w-full py-3">Modifier la clé</button>
+          </div>
+        </div>
+
+        <div id="email-step" class="hidden">
+          <div class="rounded-2xl border border-indigo-400/20 bg-indigo-500/10 px-4 py-4 mb-5">
+            <p class="text-white font-medium">Inscription par email</p>
+            <p class="text-slate-300 text-sm mt-1">Recevez un code puis confirmez votre adresse email.</p>
+          </div>
+
+          <form id="register-form" class="flex flex-col gap-4">
+            <div>
+              <label class="label" for="email">Email professionnel</label>
+              <input id="email" type="email" class="input" placeholder="vous@commerce.fr" required autocomplete="email" />
+            </div>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label class="label" for="password">Mot de passe</label>
+                <input id="password" type="password" class="input" placeholder="Minimum 8 caractères" minlength="8" required autocomplete="new-password" />
+              </div>
+              <div>
+                <label class="label" for="confirm">Confirmer</label>
+                <input id="confirm" type="password" class="input" placeholder="••••••••" minlength="8" required autocomplete="new-password" />
+              </div>
+            </div>
+
+            <div id="error-msg" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"></div>
+
+            <div class="flex gap-3">
+              <button id="email-back-btn" type="button" class="btn-secondary py-3 px-5">Retour</button>
+              <button type="submit" id="request-code-btn" class="btn-primary flex-1 py-3">
+                Recevoir mon code de vérification
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div id="verify-step" class="hidden">
+          <div class="rounded-2xl border border-indigo-400/20 bg-indigo-500/10 px-4 py-4 mb-5">
+            <p class="text-white font-medium">Code envoyé</p>
+            <p class="text-slate-300 text-sm mt-1">
+              Entrez le code reçu sur <span id="verify-email" class="text-white font-medium"></span>.
+            </p>
+          </div>
+
+          <form id="verify-form" class="flex flex-col gap-4">
+            <div>
+              <label class="label" for="verification-code">Code de vérification</label>
+              <input id="verification-code" type="text" class="input text-center text-lg tracking-[0.28em] font-mono" placeholder="12345678" inputmode="numeric" autocomplete="one-time-code" maxlength="8" required />
+            </div>
+
+            <div id="verify-error-msg" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"></div>
+            <div id="verify-success-msg" class="hidden text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3"></div>
+
+            <button type="submit" id="verify-btn" class="btn-primary w-full py-3">
+              Vérifier et activer mon compte
+            </button>
+          </form>
+
+          <div class="flex flex-col sm:flex-row gap-3 mt-4">
+            <button type="button" id="resend-btn" class="btn-secondary flex-1 py-3">Renvoyer le code</button>
+            <button type="button" id="change-email-btn" class="btn-secondary flex-1 py-3">Modifier mes informations</button>
+          </div>
+        </div>
+
+        <p class="text-center text-slate-500 text-sm mt-6">
+          Déjà un compte ?
+          <a href="/login" class="text-indigo-400 hover:text-indigo-300 transition-colors ml-1">Se connecter</a>
+        </p>
+      </section>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  import { createClient } from '@supabase/supabase-js';
+
+  type PendingRegistration = {
+    email: string;
+    password: string;
+    usageKey: string;
+  };
+
+  type RegistrationResponse = {
+    message?: string;
+    requires_email_verification?: boolean;
+  };
+
+  const supabase = createClient(
+    import.meta.env.PUBLIC_SUPABASE_URL,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+  );
+
+  const API = (import.meta.env.PUBLIC_API_URL ?? '').trim();
+  const LOCAL_REGISTER_ACCESS_KEY = (import.meta.env.PUBLIC_REGISTER_ACCESS_KEY ?? 'Fidelopass3.0').trim();
+  const PENDING_STORAGE_KEY = 'fidelopass.pending-registration';
+  const ACCESS_STORAGE_KEY = 'fidelopass.register-access';
+
+  const accessStep = document.getElementById('access-step') as HTMLDivElement;
+  const methodStep = document.getElementById('method-step') as HTMLDivElement;
+  const emailStep = document.getElementById('email-step') as HTMLDivElement;
+  const verifyStep = document.getElementById('verify-step') as HTMLDivElement;
+
+  const accessForm = document.getElementById('access-form') as HTMLFormElement;
+  const registerForm = document.getElementById('register-form') as HTMLFormElement;
+  const verifyForm = document.getElementById('verify-form') as HTMLFormElement;
+
+  const accessBtn = document.getElementById('access-btn') as HTMLButtonElement;
+  const requestCodeBtn = document.getElementById('request-code-btn') as HTMLButtonElement;
+  const verifyBtn = document.getElementById('verify-btn') as HTMLButtonElement;
+
+  const chooseEmailBtn = document.getElementById('choose-email-btn') as HTMLButtonElement;
+  const chooseGoogleBtn = document.getElementById('choose-google-btn') as HTMLButtonElement;
+  const methodBackBtn = document.getElementById('method-back-btn') as HTMLButtonElement;
+  const emailBackBtn = document.getElementById('email-back-btn') as HTMLButtonElement;
+  const resendBtn = document.getElementById('resend-btn') as HTMLButtonElement;
+  const changeEmailBtn = document.getElementById('change-email-btn') as HTMLButtonElement;
+
+  const accessErrorMsg = document.getElementById('access-error-msg') as HTMLDivElement;
+  const accessSuccessMsg = document.getElementById('access-success-msg') as HTMLDivElement;
+  const errorMsg = document.getElementById('error-msg') as HTMLDivElement;
+  const verifyErrorMsg = document.getElementById('verify-error-msg') as HTMLDivElement;
+  const verifySuccessMsg = document.getElementById('verify-success-msg') as HTMLDivElement;
+  const verifyEmail = document.getElementById('verify-email') as HTMLSpanElement;
+  const verificationCodeInput = document.getElementById('verification-code') as HTMLInputElement;
+
+  const progress1 = document.getElementById('progress-1') as HTMLDivElement;
+  const progress2 = document.getElementById('progress-2') as HTMLDivElement;
+  const progress3 = document.getElementById('progress-3') as HTMLDivElement;
+
+  function apiUrl(path: string) {
+    return `${API}${path}`;
+  }
+
+  function setProgress(step: 1 | 2 | 3) {
+    const activeStyle = 'background:#6366f1;color:white;border:none';
+    const idleStyle = 'background:transparent;color:#64748b;border:1px solid rgba(255,255,255,0.1)';
+    progress1.style.cssText = step >= 1 ? activeStyle : idleStyle;
+    progress2.style.cssText = step >= 2 ? activeStyle : idleStyle;
+    progress3.style.cssText = step >= 3 ? activeStyle : idleStyle;
+  }
+
+  function hideMessages() {
+    accessErrorMsg.classList.add('hidden');
+    accessSuccessMsg.classList.add('hidden');
+    errorMsg.classList.add('hidden');
+    verifyErrorMsg.classList.add('hidden');
+    verifySuccessMsg.classList.add('hidden');
+  }
+
+  function showMessage(target: HTMLDivElement, message: string) {
+    target.textContent = message;
+    target.classList.remove('hidden');
+  }
+
+  function normalizeEmail(email: string) {
+    return email.trim().toLowerCase();
+  }
+
+  function getReadableError(error: unknown, fallback: string) {
+    if (error instanceof Error && error.message === 'Failed to fetch') {
+      return 'API locale indisponible. Fallback Supabase utilise en direct pour continuer le test.';
+    }
+    if (error instanceof Error && /rate limit|too many requests|email rate limit exceeded/i.test(error.message)) {
+      return 'La limite d’envoi d’emails Supabase a ete atteinte. Attendez un peu avant de reessayer, ou configurez un SMTP personnalise pour supprimer cette limite de test.';
+    }
+    if (error instanceof Error && /déjà confirmée|already confirmed|compte existe déjà/i.test(error.message)) {
+      return 'Cette adresse email est déjà confirmée. Connectez-vous pour continuer, ou utilisez une autre adresse email.';
+    }
+    if (error instanceof Error && /expired|invalid/i.test(error.message)) {
+      return 'Le code est invalide ou expiré. Demandez un nouveau code, ou utilisez le lien de confirmation présent dans l’email.';
+    }
+    return error instanceof Error ? error.message : fallback;
+  }
+
+  function saveAccessKey(value: string) {
+    sessionStorage.setItem(ACCESS_STORAGE_KEY, value);
+  }
+
+  function loadAccessKey() {
+    return sessionStorage.getItem(ACCESS_STORAGE_KEY) ?? '';
+  }
+
+  function clearAccessKey() {
+    sessionStorage.removeItem(ACCESS_STORAGE_KEY);
+  }
+
+  function savePendingRegistration(data: PendingRegistration) {
+    sessionStorage.setItem(PENDING_STORAGE_KEY, JSON.stringify(data));
+  }
+
+  function loadPendingRegistration(): PendingRegistration | null {
+    const raw = sessionStorage.getItem(PENDING_STORAGE_KEY);
+    if (!raw) return null;
+
+    try {
+      const parsed = JSON.parse(raw) as Partial<PendingRegistration>;
+      if (!parsed.email || !parsed.password || !parsed.usageKey) return null;
+      return { email: parsed.email, password: parsed.password, usageKey: parsed.usageKey };
+    } catch {
+      return null;
+    }
+  }
+
+  function clearPendingRegistration() {
+    sessionStorage.removeItem(PENDING_STORAGE_KEY);
+  }
+
+  function setStep(step: 'access' | 'method' | 'email' | 'verify', email?: string) {
+    hideMessages();
+    accessStep.classList.toggle('hidden', step !== 'access');
+    methodStep.classList.toggle('hidden', step !== 'method');
+    emailStep.classList.toggle('hidden', step !== 'email');
+    verifyStep.classList.toggle('hidden', step !== 'verify');
+
+    if (step === 'access') setProgress(1);
+    if (step === 'method' || step === 'email') setProgress(2);
+    if (step === 'verify') setProgress(3);
+
+    if (step === 'verify' && email) {
+      verifyEmail.textContent = email;
+      verificationCodeInput.focus();
+    }
+  }
+
+  async function sendCodeWithSupabase(email: string, password: string, usageKey: string, mode: 'request' | 'resend'): Promise<RegistrationResponse> {
+    if (usageKey.trim() !== LOCAL_REGISTER_ACCESS_KEY) {
+      throw new Error('Clé d’utilisation invalide.');
+    }
+
+    const { data, error } = mode === 'resend'
+      ? await supabase.auth.resend({ type: 'signup', email })
+      : await supabase.auth.signUp({ email, password });
+    if (error) throw new Error(error.message ?? 'Impossible d’envoyer le code de vérification.');
+    return {
+      requires_email_verification: mode === 'resend' ? true : !data.session && !data.user?.email_confirmed_at,
+      message: mode === 'resend'
+        ? 'Nouveau code envoyé. Vérifiez votre boîte mail.'
+        : (!data.session && !data.user?.email_confirmed_at
+          ? 'Code envoyé. Vérifiez votre boîte mail.'
+          : 'Compte créé. Connexion en cours.'),
+    };
+  }
+
+  async function requestRegistrationCode(email: string, password: string, usageKey: string, mode: 'request' | 'resend'): Promise<RegistrationResponse> {
+    const endpoint = mode === 'request' ? '/api/auth/register/request-code' : '/api/auth/register/resend-code';
+
+    try {
+      const response = await fetch(apiUrl(endpoint), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, usage_key: usageKey }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok && data.code === 'EMAIL_ALREADY_CONFIRMED') {
+        const { data: authState } = await supabase.auth.getSession();
+        if (authState.session) {
+          clearPendingRegistration();
+          await redirectAfterAuth();
+          return data;
+        }
+      }
+      if (!response.ok) throw new Error(data.error ?? 'Impossible d’envoyer le code.');
+      return data;
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message === 'Failed to fetch') {
+        return sendCodeWithSupabase(email, password, usageKey, mode);
+      }
+      throw error;
+    }
+  }
+
+  async function verifyEmailOtp(email: string, token: string) {
+    return supabase.auth.verifyOtp({
+      email,
+      token,
+      type: 'email',
+    });
+  }
+
+  async function redirectAfterAuth() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.href = '/login';
+      return;
+    }
+
+    const check = await fetch(apiUrl('/api/commerces/me'), {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+    }).then((response) => response.json()).catch(() => ({}));
+
+    clearAccessKey();
+    window.location.href = check.data?.nom ? '/dashboard' : '/onboarding';
+  }
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    await redirectAfterAuth();
+  }
+
+  supabase.auth.onAuthStateChange((_event, nextSession) => {
+    if (!nextSession) return;
+    clearPendingRegistration();
+    void redirectAfterAuth();
+  });
+
+  const savedAccessKey = loadAccessKey();
+  const pendingRegistration = loadPendingRegistration();
+
+  if (pendingRegistration) {
+    setStep('verify', pendingRegistration.email);
+  } else if (savedAccessKey) {
+    (document.getElementById('usage-key') as HTMLInputElement).value = savedAccessKey;
+    setStep('method');
+  } else {
+    setStep('access');
+  }
+
+  accessForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    hideMessages();
+
+    const usageKey = (document.getElementById('usage-key') as HTMLInputElement).value.trim();
+    accessBtn.disabled = true;
+    accessBtn.textContent = 'Validation...';
+
+    try {
+      if (usageKey !== LOCAL_REGISTER_ACCESS_KEY) {
+        throw new Error('Clé d’utilisation invalide.');
+      }
+
+      saveAccessKey(usageKey);
+      showMessage(accessSuccessMsg, 'Clé validée. Choisissez votre mode d’inscription.');
+      setStep('method');
+    } catch (error: unknown) {
+      showMessage(accessErrorMsg, getReadableError(error, 'Impossible de valider la clé.'));
+    } finally {
+      accessBtn.disabled = false;
+      accessBtn.textContent = 'Valider la clé d’accès';
+    }
+  });
+
+  chooseEmailBtn.addEventListener('click', () => {
+    setStep('email');
+  });
+
+  chooseGoogleBtn.addEventListener('click', async () => {
+    hideMessages();
+
+    const usageKey = loadAccessKey();
+    if (usageKey !== LOCAL_REGISTER_ACCESS_KEY) {
+      setStep('access');
+      showMessage(accessErrorMsg, 'Validez d’abord la clé d’accès.');
+      return;
+    }
+
+    chooseGoogleBtn.disabled = true;
+    chooseGoogleBtn.textContent = 'Redirection vers Google...';
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/register`,
+      },
+    });
+
+    if (error) {
+      setStep('method');
+      showMessage(accessErrorMsg, error.message ?? 'Impossible de démarrer la connexion Google.');
+      chooseGoogleBtn.disabled = false;
+      chooseGoogleBtn.innerHTML = `<div class="flex items-center gap-3"><svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" aria-hidden="true"><path d="M21.56 10.74a9.55 9.55 0 0 0-.15-1.69H12v3.2h5.37a4.6 4.6 0 0 1-2 3.02v2.51h3.23c1.89-1.74 2.96-4.3 2.96-7.04z" fill="#4285F4"/><path d="M12 22c2.7 0 4.96-.9 6.61-2.43l-3.23-2.51c-.9.6-2.04.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H3.08v2.6A10 10 0 0 0 12 22z" fill="#34A853"/><path d="M6.41 13.9A6 6 0 0 1 6.09 12c0-.66.11-1.3.32-1.9V7.5H3.08A10 10 0 0 0 2 12c0 1.61.38 3.13 1.08 4.5l3.33-2.6z" fill="#FBBC05"/><path d="M12 5.88c1.47 0 2.79.5 3.82 1.5l2.86-2.86A9.96 9.96 0 0 0 12 2 10 10 0 0 0 3.08 7.5l3.33 2.6C7.2 7.64 9.4 5.88 12 5.88z" fill="#EA4335"/></svg><p class="font-semibold">Continuer avec Google</p></div><p class="text-slate-600 text-sm mt-2">Connectez-vous avec Google puis passez directement à votre onboarding.</p>`;
+    }
+  });
+
+  methodBackBtn.addEventListener('click', () => {
+    clearAccessKey();
+    setStep('access');
+  });
+
+  emailBackBtn.addEventListener('click', () => {
+    setStep('method');
+  });
+
+  registerForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    hideMessages();
+
+    const usageKey = loadAccessKey();
+    const email = normalizeEmail((document.getElementById('email') as HTMLInputElement).value);
+    const password = (document.getElementById('password') as HTMLInputElement).value;
+    const confirm = (document.getElementById('confirm') as HTMLInputElement).value;
+
+    if (password !== confirm) {
+      showMessage(errorMsg, 'Les mots de passe ne correspondent pas.');
+      return;
+    }
+
+    requestCodeBtn.disabled = true;
+    requestCodeBtn.textContent = 'Envoi du code...';
+
+    try {
+      const data = await requestRegistrationCode(email, password, usageKey, 'request');
+      if (data.requires_email_verification === false) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) throw new Error(signInError.message ?? 'Compte créé, mais connexion impossible.');
+        clearPendingRegistration();
+        showMessage(accessSuccessMsg, data.message ?? 'Compte créé. Redirection...');
+        await redirectAfterAuth();
+        return;
+      }
+
+      savePendingRegistration({ email, password, usageKey });
+      setStep('verify', email);
+      showMessage(verifySuccessMsg, data.message ?? 'Code envoyé. Vérifiez votre boîte mail.');
+    } catch (error: unknown) {
+      showMessage(errorMsg, getReadableError(error, 'Une erreur est survenue.'));
+    } finally {
+      requestCodeBtn.disabled = false;
+      requestCodeBtn.textContent = 'Recevoir mon code de vérification';
+    }
+  });
+
+  verifyForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    hideMessages();
+
+    const pending = loadPendingRegistration();
+    if (!pending) {
+      setStep('access');
+      showMessage(accessErrorMsg, 'La session de vérification a expiré. Recommencez l’inscription.');
+      return;
+    }
+
+    const token = verificationCodeInput.value.replace(/\D+/g, '').trim();
+    if (token.length < 6) {
+      showMessage(verifyErrorMsg, 'Entrez le code reçu par email.');
+      return;
+    }
+
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = 'Vérification...';
+
+    try {
+      const { error: otpError } = await verifyEmailOtp(pending.email, token);
+      if (otpError) throw new Error(otpError.message ?? 'Code invalide ou expiré.');
+
+      clearPendingRegistration();
+      showMessage(verifySuccessMsg, 'Adresse email confirmée. Redirection...');
+      await redirectAfterAuth();
+    } catch (error: unknown) {
+      showMessage(verifyErrorMsg, getReadableError(error, 'Une erreur est survenue.'));
+    } finally {
+      verifyBtn.disabled = false;
+      verifyBtn.textContent = 'Vérifier et activer mon compte';
+    }
+  });
+
+  resendBtn.addEventListener('click', async () => {
+    hideMessages();
+    const pending = loadPendingRegistration();
+    if (!pending) {
+      setStep('access');
+      showMessage(accessErrorMsg, 'Recommencez l’inscription pour recevoir un nouveau code.');
+      return;
+    }
+
+    resendBtn.disabled = true;
+    resendBtn.textContent = 'Renvoi...';
+
+    try {
+      const data = await requestRegistrationCode(pending.email, pending.password, pending.usageKey, 'resend');
+      showMessage(verifySuccessMsg, data.message ?? 'Nouveau code envoyé.');
+    } catch (error: unknown) {
+      showMessage(verifyErrorMsg, getReadableError(error, 'Impossible de renvoyer le code.'));
+    } finally {
+      resendBtn.disabled = false;
+      resendBtn.textContent = 'Renvoyer le code';
+    }
+  });
+
+  changeEmailBtn.addEventListener('click', async () => {
+    clearPendingRegistration();
+    verificationCodeInput.value = '';
+    setStep('email');
+    await supabase.auth.signOut().catch(() => undefined);
+  });
+</script>

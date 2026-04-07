@@ -1,0 +1,164 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+---
+
+<AppLayout title="Scanner — FideloPass">
+  <div class="h-screen flex flex-col">
+    <!-- Header -->
+    <div class="flex items-center gap-3 px-4 pt-6 pb-4 border-b border-white/10">
+      <a href="/app" class="text-slate-400 hover:text-white transition-colors">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+      </a>
+      <h1 class="font-display font-bold text-white">Scanner la carte</h1>
+    </div>
+
+    <!-- Zone scanner -->
+    <div class="flex-1 flex flex-col items-center justify-center px-4 gap-6">
+      <div id="reader" class="w-full max-w-xs rounded-2xl overflow-hidden border-2 border-indigo-500/50"></div>
+      <p class="text-slate-400 text-sm text-center">Pointez vers le QR code sur la carte Wallet du client</p>
+    </div>
+
+    <!-- Résultat scan -->
+    <div id="scan-result" class="hidden fixed inset-0 bg-navy-900/95 backdrop-blur-sm flex flex-col items-center justify-center px-6 z-50">
+      <div class="card w-full max-w-sm p-6 text-center">
+        <div id="result-icon" class="text-5xl mb-4">👤</div>
+        <h2 id="result-nom" class="font-display font-bold text-xl text-white mb-1">—</h2>
+        <p id="result-solde" class="text-slate-400 text-sm mb-6">—</p>
+
+        <div class="flex gap-3 mb-4">
+          <button id="btn-tampon" class="btn-primary flex-1 py-4 flex flex-col items-center">
+            <span class="text-2xl mb-1">🔖</span>
+            <span class="text-sm">+1 tampon</span>
+          </button>
+          <button id="btn-points" class="btn-secondary flex-1 py-4 flex flex-col items-center">
+            <span class="text-2xl mb-1">⭐</span>
+            <span class="text-sm">+points</span>
+          </button>
+        </div>
+
+        <button id="btn-close" class="btn-secondary w-full py-3">Annuler</button>
+      </div>
+    </div>
+  </div>
+</AppLayout>
+
+<script>
+  import { Html5QrcodeScanner } from 'html5-qrcode';
+  import confetti from 'canvas-confetti';
+  import { authFetch } from '../../lib/api';
+
+  let currentClientId: string | null = null;
+  let currentClientRecompenses = 0;
+
+  const scanner = new Html5QrcodeScanner('reader', {
+    fps: 10,
+    qrbox: { width: 250, height: 250 },
+    aspectRatio: 1,
+  }, false);
+
+  scanner.render(async (decodedText) => {
+    scanner.pause();
+
+    try {
+      // Le QR contient l'ID client
+      const clientId = decodedText.trim();
+      const res = await authFetch(`/api/clients/${clientId}`);
+      if (!res.ok) throw new Error('Client introuvable');
+
+      const { data } = await res.json();
+      currentClientId = clientId;
+      currentClientRecompenses = data.recompenses_obtenues ?? 0;
+
+      document.getElementById('result-nom')!.textContent = data.nom ?? 'Client anonyme';
+      document.getElementById('result-solde')!.textContent =
+        data.tampons_actuels !== undefined
+          ? `${data.tampons_actuels} tampons — ${data.recompenses_obtenues} récompense(s)`
+          : `${data.points_actuels} points`;
+
+      document.getElementById('scan-result')!.classList.remove('hidden');
+
+      // Feedback haptique
+      if (navigator.vibrate) navigator.vibrate(100);
+    } catch {
+      alert('QR code non reconnu. Réessayez.');
+      scanner.resume();
+    }
+  }, () => {});
+
+  // Bouton +1 tampon
+  document.getElementById('btn-tampon')!.addEventListener('click', async () => {
+    if (!currentClientId) return;
+    await addTransaction('ajout_tampon', 1);
+  });
+
+  // Bouton +points
+  document.getElementById('btn-points')!.addEventListener('click', async () => {
+    if (!currentClientId) return;
+    const valeur = prompt('Nombre de points à ajouter :');
+    if (!valeur || isNaN(Number(valeur))) return;
+    await addTransaction('ajout_points', parseInt(valeur));
+  });
+
+  async function addTransaction(type: string, valeur: number) {
+    try {
+      const res = await authFetch('/api/transactions', {
+        method: 'POST',
+        body: JSON.stringify({ client_id: currentClientId, type, valeur }),
+      });
+
+      if (!res.ok) throw new Error();
+
+      const data = await res.json();
+
+      // Feedback positif
+      if (navigator.vibrate) navigator.vibrate([50, 50, 100]);
+
+      // Confetti si récompense obtenue (dernier tampon ou points atteints)
+      const newRecompenses: number = data.client?.recompenses_obtenues ?? currentClientRecompenses;
+      if (newRecompenses > currentClientRecompenses) {
+        fireRewardConfetti();
+      }
+
+      closeResult();
+    } catch {
+      alert('Erreur lors de l\'ajout. Réessayez.');
+    }
+  }
+
+  function fireRewardConfetti() {
+    const duration = 2500;
+    const end = Date.now() + duration;
+
+    const frame = () => {
+      confetti({
+        particleCount: 4,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0, y: 0.7 },
+        colors: ['#6366f1', '#a78bfa', '#f59e0b', '#10b981', '#ef4444'],
+        zIndex: 9999,
+      });
+      confetti({
+        particleCount: 4,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1, y: 0.7 },
+        colors: ['#6366f1', '#a78bfa', '#f59e0b', '#10b981', '#ef4444'],
+        zIndex: 9999,
+      });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    };
+    frame();
+  }
+
+  function closeResult() {
+    document.getElementById('scan-result')!.classList.add('hidden');
+    currentClientId = null;
+    currentClientRecompenses = 0;
+    scanner.resume();
+  }
+
+  document.getElementById('btn-close')!.addEventListener('click', closeResult);
+</script>

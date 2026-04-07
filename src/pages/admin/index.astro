@@ -1,0 +1,138 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Vue globale — Admin FideloPass" activeNav="overview">
+  <div class="mb-8">
+    <h1 class="font-display text-2xl font-bold text-white">Vue globale</h1>
+    <p class="text-slate-400 text-sm mt-1">Statistiques de la plateforme FideloPass</p>
+  </div>
+
+  <!-- Stats globales -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="stat-card">
+      <span class="text-slate-400 text-xs uppercase tracking-wide">Commerces</span>
+      <span id="stat-commerces" class="font-mono text-3xl font-bold text-white">—</span>
+    </div>
+    <div class="stat-card">
+      <span class="text-slate-400 text-xs uppercase tracking-wide">Cartes actives</span>
+      <span id="stat-cartes" class="font-mono text-3xl font-bold text-white">—</span>
+    </div>
+    <div class="stat-card">
+      <span class="text-slate-400 text-xs uppercase tracking-wide">Clients totaux</span>
+      <span id="stat-clients" class="font-mono text-3xl font-bold text-white">—</span>
+    </div>
+    <div class="stat-card">
+      <span class="text-slate-400 text-xs uppercase tracking-wide">Transactions</span>
+      <span id="stat-transactions" class="font-mono text-3xl font-bold text-white">—</span>
+    </div>
+  </div>
+
+  <!-- Liste commerces récents -->
+  <div class="card p-6">
+    <h2 class="font-display font-bold text-white mb-4">Derniers commerces inscrits</h2>
+    <div id="recent-commerces">
+      <p class="text-slate-500 text-sm">Chargement...</p>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  async function authFetch(url: string, opts: RequestInit = {}) {
+    const { supabase } = await import('../../lib/supabase');
+    const { data: { session } } = await supabase.auth.getSession();
+    return fetch(url, {
+      ...opts,
+      headers: {
+        ...(opts.headers ?? {}),
+        Authorization: `Bearer ${session?.access_token ?? ''}`,
+        'Content-Type': 'application/json',
+      },
+    });
+  }
+
+  async function loadStats() {
+    try {
+      const res = await authFetch(`${import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001'}/api/admin/stats`);
+      if (!res.ok) return;
+      const data = await res.json();
+      document.getElementById('stat-commerces')!.textContent = String(data.totalCommerces ?? 0);
+      document.getElementById('stat-cartes')!.textContent = String(data.totalCartes ?? 0);
+      document.getElementById('stat-clients')!.textContent = String(data.totalClients ?? 0);
+      document.getElementById('stat-transactions')!.textContent = String(data.totalTransactions ?? 0);
+    } catch { /* silencieux */ }
+  }
+
+  async function loadRecentCommerces() {
+    const container = document.getElementById('recent-commerces')!;
+    try {
+      const res = await authFetch(`${import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001'}/api/admin/commerces`);
+      if (!res.ok) throw new Error();
+      const { data } = await res.json();
+
+      if (!data?.length) {
+        container.innerHTML = '<p class="text-slate-500 text-sm">Aucun commerce inscrit.</p>';
+        return;
+      }
+
+      container.innerHTML = `
+        <table class="w-full">
+          <thead class="border-b border-white/10">
+            <tr class="text-left">
+              <th class="px-4 py-3 text-slate-400 text-xs uppercase tracking-wide">Commerce</th>
+              <th class="px-4 py-3 text-slate-400 text-xs uppercase tracking-wide">Clients</th>
+              <th class="px-4 py-3 text-slate-400 text-xs uppercase tracking-wide">Statut</th>
+              <th class="px-4 py-3 text-slate-400 text-xs uppercase tracking-wide">Inscrit le</th>
+              <th class="px-4 py-3 text-slate-400 text-xs uppercase tracking-wide">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(data as Array<{ id: string; nom: string; email: string | null; clients: unknown[]; actif: boolean; created_at: string }>)
+              .slice(0, 20)
+              .map((c) => `
+              <tr class="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
+                <td class="px-4 py-4">
+                  <p class="text-white text-sm font-medium">${c.nom}</p>
+                  <p class="text-slate-500 text-xs">${c.email ?? '—'}</p>
+                </td>
+                <td class="px-4 py-4 font-mono text-indigo-400 text-sm">${(c.clients as unknown[]).length}</td>
+                <td class="px-4 py-4">
+                  ${c.actif
+                    ? '<span class="badge badge-success">Actif</span>'
+                    : '<span class="badge badge-danger">Inactif</span>'
+                  }
+                </td>
+                <td class="px-4 py-4 text-slate-400 text-sm">
+                  ${new Date(c.created_at).toLocaleDateString('fr-FR')}
+                </td>
+                <td class="px-4 py-4">
+                  <button
+                    onclick="toggleCommerce('${c.id}', ${!c.actif})"
+                    class="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-slate-300 hover:bg-white/10 transition-colors"
+                  >${c.actif ? 'Désactiver' : 'Activer'}</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    } catch {
+      container.innerHTML = '<p class="text-red-400 text-sm">Erreur lors du chargement.</p>';
+    }
+  }
+
+  async function toggleCommerce(id: string, actif: boolean) {
+    try {
+      await authFetch(
+        `${import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001'}/api/admin/commerces/${id}`,
+        { method: 'PATCH', body: JSON.stringify({ actif }) },
+      );
+      loadRecentCommerces();
+    } catch { /* silencieux */ }
+  }
+
+  (window as unknown as Record<string, unknown>).toggleCommerce = toggleCommerce;
+
+  loadStats();
+  loadRecentCommerces();
+</script>

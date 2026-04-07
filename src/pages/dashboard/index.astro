@@ -1,0 +1,96 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Dashboard — FideloPass" activeNav="dashboard">
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="font-display text-2xl font-bold text-white">Tableau de bord</h1>
+      <p class="text-slate-400 text-sm mt-1">Vue d'ensemble de votre activité</p>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="stat-card">
+      <span class="text-slate-400 text-xs uppercase tracking-wide">Clients totaux</span>
+      <span id="stat-clients" class="font-mono text-3xl font-bold text-white">—</span>
+      <span class="text-emerald-400 text-xs">Ce mois-ci</span>
+    </div>
+    <div class="stat-card">
+      <span class="text-slate-400 text-xs uppercase tracking-wide">Scans aujourd'hui</span>
+      <span id="stat-scans" class="font-mono text-3xl font-bold text-white">—</span>
+      <span class="text-slate-500 text-xs">Transactions</span>
+    </div>
+    <div class="stat-card">
+      <span class="text-slate-400 text-xs uppercase tracking-wide">Récompenses offertes</span>
+      <span id="stat-recompenses" class="font-mono text-3xl font-bold text-white">—</span>
+      <span class="text-slate-500 text-xs">Total</span>
+    </div>
+    <div class="stat-card">
+      <span class="text-slate-400 text-xs uppercase tracking-wide">Push activés</span>
+      <span id="stat-push" class="font-mono text-3xl font-bold text-white">—</span>
+      <span class="text-slate-500 text-xs">Clients notifiables</span>
+    </div>
+  </div>
+
+  <!-- Activité récente -->
+  <div class="card p-6">
+    <h2 class="font-display font-bold text-white mb-4">Activité récente</h2>
+    <div id="recent-transactions" class="flex flex-col gap-3">
+      <p class="text-slate-500 text-sm">Chargement...</p>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script>
+  import { authFetch } from '../../lib/api';
+
+  // Chargement des stats via l'API
+  async function loadStats() {
+    try {
+      const res = await authFetch('/api/dashboard/stats');
+      if (!res.ok) return;
+      const data = await res.json();
+
+      document.getElementById('stat-clients')!.textContent = String(data.totalClients ?? 0);
+      document.getElementById('stat-scans')!.textContent = String(data.scansAujourdhui ?? 0);
+      document.getElementById('stat-recompenses')!.textContent = String(data.totalRecompenses ?? 0);
+      document.getElementById('stat-push')!.textContent = String(data.clientsPushActifs ?? 0);
+    } catch {
+      // silencieux — les tirets restent affichés
+    }
+  }
+
+  async function loadRecentTransactions() {
+    try {
+      const res = await authFetch('/api/transactions?limit=5');
+      if (!res.ok) return;
+      const { data } = await res.json();
+      const container = document.getElementById('recent-transactions')!;
+
+      if (!data?.length) {
+        container.innerHTML = '<p class="text-slate-500 text-sm">Aucune transaction pour le moment.</p>';
+        return;
+      }
+
+      container.innerHTML = data.map((t: { type: string; valeur: number; created_at: string }) => `
+        <div class="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+          <div class="flex items-center gap-3">
+            <span class="w-2 h-2 rounded-full ${t.type === 'ajout_tampon' ? 'bg-indigo-400' : t.type === 'ajout_points' ? 'bg-cyan-400' : 'bg-emerald-400'}"></span>
+            <span class="text-slate-300 text-sm capitalize">${t.type.replace('_', ' ')}</span>
+          </div>
+          <div class="flex items-center gap-4">
+            <span class="font-mono text-sm text-white">+${t.valeur}</span>
+            <span class="text-slate-500 text-xs">${new Date(t.created_at).toLocaleDateString('fr-FR')}</span>
+          </div>
+        </div>
+      `).join('');
+    } catch {
+      // silencieux
+    }
+  }
+
+  loadStats();
+  loadRecentTransactions();
+</script>

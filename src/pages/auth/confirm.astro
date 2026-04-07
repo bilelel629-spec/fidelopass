@@ -1,0 +1,95 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Confirmation du compte — FideloPass">
+  <div class="min-h-screen flex items-center justify-center px-4 py-12">
+    <div class="card w-full max-w-lg p-8">
+      <div class="text-center">
+        <a href="/" class="font-display font-bold text-2xl text-white inline-flex items-center gap-1">
+          Fidéli<span style="color:#818cf8">Pass</span>
+        </a>
+        <h1 class="font-display text-3xl font-bold text-white mt-6">
+          Confirmation de votre compte
+        </h1>
+        <p id="confirm-message" class="text-slate-300 mt-4 leading-relaxed">
+          Validation en cours...
+        </p>
+        <div id="confirm-error" class="hidden mt-6 text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"></div>
+        <a
+          id="confirm-login-link"
+          href="/login"
+          class="hidden mt-6 inline-flex items-center justify-center btn-primary px-6 py-3"
+        >
+          Aller à la connexion
+        </a>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  import { createClient } from '@supabase/supabase-js';
+
+  const supabase = createClient(
+    import.meta.env.PUBLIC_SUPABASE_URL,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+  );
+
+  const message = document.getElementById('confirm-message') as HTMLParagraphElement;
+  const errorBox = document.getElementById('confirm-error') as HTMLDivElement;
+  const loginLink = document.getElementById('confirm-login-link') as HTMLAnchorElement;
+
+  function apiUrl(path: string) {
+    const API = (import.meta.env.PUBLIC_API_URL ?? '').trim();
+    return `${API}${path}`;
+  }
+
+  async function redirectAfterAuth() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.href = '/login';
+      return;
+    }
+
+    const check = await fetch(apiUrl('/api/commerces/me'), {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+    }).then((response) => response.json()).catch(() => ({}));
+
+    window.location.href = check.data?.nom ? '/dashboard' : '/onboarding';
+  }
+
+  async function confirmFromEmailLink() {
+    const params = new URLSearchParams(window.location.search);
+    const tokenHash = params.get('token_hash');
+    const rawType = params.get('type') ?? 'email';
+    const type = (rawType === 'signup' ? 'email' : rawType) as 'email' | 'recovery' | 'invite' | 'email_change';
+
+    if (!tokenHash) {
+      message.textContent = 'Lien incomplet. Demandez un nouvel email de confirmation.';
+      loginLink.classList.remove('hidden');
+      return;
+    }
+
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type,
+    });
+
+    if (error) {
+      message.textContent = 'Impossible de confirmer votre compte.';
+      errorBox.textContent = error.message ?? 'Le lien de confirmation est invalide ou expiré.';
+      errorBox.classList.remove('hidden');
+      loginLink.classList.remove('hidden');
+      return;
+    }
+
+    message.textContent = 'Compte confirmé. Redirection...';
+    await redirectAfterAuth();
+  }
+
+  await confirmFromEmailLink();
+</script>

@@ -1,0 +1,95 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Connexion — FideloPass">
+  <div class="min-h-screen flex items-center justify-center px-4">
+    <div class="w-full max-w-sm">
+      <div class="text-center mb-8">
+        <a href="/" class="font-display font-bold text-2xl text-white">
+          Fidéli<span style="color:#818cf8">Pass</span>
+        </a>
+        <p class="text-slate-400 mt-2 text-sm">Connectez-vous à votre espace commerçant</p>
+      </div>
+
+      <div class="card p-6">
+        <form id="login-form" class="flex flex-col gap-4">
+          <div>
+            <label class="label" for="email">Email</label>
+            <input id="email" type="email" class="input" placeholder="vous@commerce.fr" required autocomplete="email" />
+          </div>
+          <div>
+            <label class="label" for="password">Mot de passe</label>
+            <input id="password" type="password" class="input" placeholder="••••••••" required autocomplete="current-password" />
+          </div>
+          <div class="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-slate-400">
+            Les nouveaux comptes doivent d’abord confirmer leur email avec le code reçu lors de l’inscription.
+          </div>
+          <div id="error-msg" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"></div>
+          <button type="submit" class="btn-primary w-full py-3 mt-2">Se connecter</button>
+        </form>
+      </div>
+
+      <p class="text-center text-slate-500 text-sm mt-6">
+        Pas encore de compte ?
+        <a href="/register" class="text-indigo-400 hover:text-indigo-300 transition-colors ml-1">S'inscrire</a>
+      </p>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  import { createClient } from '@supabase/supabase-js';
+
+  const supabase = createClient(
+    import.meta.env.PUBLIC_SUPABASE_URL,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+  );
+
+  const form = document.getElementById('login-form') as HTMLFormElement;
+  const errorMsg = document.getElementById('error-msg') as HTMLDivElement;
+
+  function apiUrl(path: string) {
+    const API = (import.meta.env.PUBLIC_API_URL ?? '').trim();
+    return `${API}${path}`;
+  }
+
+  async function redirectAfterAuth() {
+    const { data: { session: s } } = await supabase.auth.getSession();
+    const check = await fetch(apiUrl('/api/commerces/me'), {
+      headers: { Authorization: `Bearer ${s?.access_token}`, 'Content-Type': 'application/json' },
+    }).then(r => r.json()).catch(() => ({}));
+    window.location.href = check.data?.nom ? '/dashboard' : '/onboarding';
+  }
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    await redirectAfterAuth();
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorMsg.classList.add('hidden');
+
+    const email = (document.getElementById('email') as HTMLInputElement).value;
+    const password = (document.getElementById('password') as HTMLInputElement).value;
+    const btn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+    btn.disabled = true;
+    btn.textContent = 'Connexion...';
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      const message = error.message?.toLowerCase?.() ?? '';
+      errorMsg.textContent = message.includes('email not confirmed')
+        ? 'Confirmez d’abord votre adresse email avec le code reçu lors de l’inscription.'
+        : 'Email ou mot de passe incorrect.';
+      errorMsg.classList.remove('hidden');
+      btn.disabled = false;
+      btn.textContent = 'Se connecter';
+      return;
+    }
+
+    await redirectAfterAuth();
+  });
+</script>

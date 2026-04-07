@@ -1,0 +1,41 @@
+---
+import '../styles/global.css';
+import DashboardNav from '../components/dashboard/DashboardNav.astro';
+
+interface Props {
+  title?: string;
+  activeNav?: string;
+}
+
+const { title = 'Dashboard — FideloPass', activeNav = '' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title}</title>
+  </head>
+  <body class="min-h-screen bg-navy-900 text-slate-50 antialiased">
+    <div class="flex h-screen overflow-hidden">
+      <DashboardNav activeNav={activeNav} />
+      <main class="flex-1 overflow-y-auto">
+        <div class="p-6 md:p-8 max-w-7xl mx-auto">
+          <slot />
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
+
+<script>
+  import { createClient } from '@supabase/supabase-js';
+  const supabase = createClient(
+    import.meta.env.PUBLIC_SUPABASE_URL,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+  );
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) window.location.replace('/login');
+</script>

@@ -1,0 +1,96 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Clients — FideloPass" activeNav="clients">
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="font-display text-2xl font-bold text-white">Clients</h1>
+      <p class="text-slate-400 text-sm mt-1">Gérez votre base de clients fidèles</p>
+    </div>
+  </div>
+
+  <!-- Barre de recherche -->
+  <div class="mb-6">
+    <input
+      id="search"
+      type="search"
+      class="input max-w-sm"
+      placeholder="Rechercher un client..."
+    />
+  </div>
+
+  <!-- Liste clients -->
+  <div class="card overflow-hidden">
+    <div id="clients-list">
+      <p class="text-slate-500 text-sm p-6">Chargement...</p>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script>
+  import { authFetch } from '../../lib/api';
+
+  async function loadClients(search = '') {
+    const container = document.getElementById('clients-list')!;
+    try {
+      const params = new URLSearchParams();
+      if (search) params.set('search', search);
+      const res = await authFetch(`/api/clients?${params}`);
+      if (!res.ok) throw new Error();
+      const { data } = await res.json();
+
+      if (!data?.length) {
+        container.innerHTML = '<p class="text-slate-500 text-sm p-6">Aucun client trouvé.</p>';
+        return;
+      }
+
+      container.innerHTML = `
+        <table class="w-full">
+          <thead class="border-b border-white/10">
+            <tr class="text-left">
+              <th class="px-6 py-3 text-slate-400 text-xs uppercase tracking-wide font-medium">Client</th>
+              <th class="px-6 py-3 text-slate-400 text-xs uppercase tracking-wide font-medium">Points / Tampons</th>
+              <th class="px-6 py-3 text-slate-400 text-xs uppercase tracking-wide font-medium">Dernière visite</th>
+              <th class="px-6 py-3 text-slate-400 text-xs uppercase tracking-wide font-medium">Push</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map((c: { nom: string | null; email: string | null; telephone: string | null; points_actuels: number; tampons_actuels: number; derniere_visite: string | null; push_enabled: boolean }) => `
+              <tr class="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
+                <td class="px-6 py-4">
+                  <div class="font-medium text-white text-sm">${c.nom ?? 'Anonyme'}</div>
+                  <div class="text-slate-500 text-xs">${c.email ?? c.telephone ?? '—'}</div>
+                </td>
+                <td class="px-6 py-4">
+                  <span class="font-mono text-sm text-indigo-400">${c.points_actuels || c.tampons_actuels}</span>
+                </td>
+                <td class="px-6 py-4 text-slate-400 text-sm">
+                  ${c.derniere_visite ? new Date(c.derniere_visite).toLocaleDateString('fr-FR') : '—'}
+                </td>
+                <td class="px-6 py-4">
+                  ${c.push_enabled
+                    ? '<span class="badge badge-success">Activé</span>'
+                    : '<span class="badge bg-white/10 text-slate-400">Non</span>'
+                  }
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    } catch {
+      container.innerHTML = '<p class="text-red-400 text-sm p-6">Erreur lors du chargement.</p>';
+    }
+  }
+
+  loadClients();
+
+  let searchTimeout: ReturnType<typeof setTimeout>;
+  document.getElementById('search')!.addEventListener('input', (e) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      loadClients((e.target as HTMLInputElement).value);
+    }, 300);
+  });
+</script>

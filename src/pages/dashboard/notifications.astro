@@ -1,0 +1,134 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Notifications — FideloPass" activeNav="notifications">
+  <div class="mb-8">
+    <h1 class="font-display text-2xl font-bold text-white">Notifications push</h1>
+    <p class="text-slate-400 text-sm mt-1">Envoyez des messages à tous vos clients</p>
+  </div>
+
+  <div class="grid lg:grid-cols-2 gap-6">
+    <!-- Formulaire d'envoi -->
+    <div class="card p-6">
+      <h2 class="font-display font-bold text-white mb-4">Nouvelle notification</h2>
+      <form id="notif-form" class="flex flex-col gap-4">
+        <div>
+          <label class="label" for="titre">Titre</label>
+          <input id="titre" type="text" class="input" placeholder="Ex: Offre du weekend !" maxlength="50" required />
+        </div>
+        <div>
+          <label class="label" for="message">Message</label>
+          <textarea
+            id="message"
+            class="input resize-none h-24"
+            placeholder="Ex: -20% sur tout le magasin ce samedi uniquement 🎉"
+            maxlength="150"
+            required
+          ></textarea>
+          <span class="text-slate-500 text-xs mt-1 block text-right">
+            <span id="char-count">0</span>/150
+          </span>
+        </div>
+
+        <div id="error-msg" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"></div>
+        <div id="success-msg" class="hidden text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3"></div>
+
+        <button type="submit" class="btn-primary py-3">
+          Envoyer à tous les clients
+        </button>
+      </form>
+    </div>
+
+    <!-- Historique -->
+    <div class="card p-6">
+      <h2 class="font-display font-bold text-white mb-4">Historique</h2>
+      <div id="notif-history" class="flex flex-col gap-3">
+        <p class="text-slate-500 text-sm">Chargement...</p>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script>
+  import { authFetch } from '../../lib/api';
+
+  // Compteur de caractères
+  const messageInput = document.getElementById('message') as HTMLTextAreaElement;
+  const charCount = document.getElementById('char-count')!;
+  messageInput.addEventListener('input', () => {
+    charCount.textContent = String(messageInput.value.length);
+  });
+
+  // Envoi de notification
+  const form = document.getElementById('notif-form') as HTMLFormElement;
+  const errorMsg = document.getElementById('error-msg') as HTMLDivElement;
+  const successMsg = document.getElementById('success-msg') as HTMLDivElement;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorMsg.classList.add('hidden');
+    successMsg.classList.add('hidden');
+
+    const titre = (document.getElementById('titre') as HTMLInputElement).value;
+    const message = messageInput.value;
+    const btn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+
+    btn.disabled = true;
+    btn.textContent = 'Envoi en cours...';
+
+    try {
+      const res = await authFetch('/api/notifications', {
+        method: 'POST',
+        body: JSON.stringify({ titre, message }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Erreur');
+
+      successMsg.textContent = `Notification envoyée à ${data.nb_destinataires} client(s).`;
+      successMsg.classList.remove('hidden');
+      form.reset();
+      charCount.textContent = '0';
+      loadHistory();
+    } catch (err: unknown) {
+      errorMsg.textContent = err instanceof Error ? err.message : 'Erreur lors de l\'envoi.';
+      errorMsg.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Envoyer à tous les clients';
+    }
+  });
+
+  // Chargement historique
+  async function loadHistory() {
+    const container = document.getElementById('notif-history')!;
+    try {
+      const res = await authFetch('/api/notifications?limit=10');
+      if (!res.ok) throw new Error();
+      const { data } = await res.json();
+
+      if (!data?.length) {
+        container.innerHTML = '<p class="text-slate-500 text-sm">Aucune notification envoyée.</p>';
+        return;
+      }
+
+      container.innerHTML = data.map((n: { titre: string; message: string; nb_destinataires: number; created_at: string }) => `
+        <div class="border-b border-white/5 pb-3 last:border-0 last:pb-0">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <p class="text-white text-sm font-medium">${n.titre}</p>
+              <p class="text-slate-400 text-xs mt-0.5">${n.message}</p>
+            </div>
+            <span class="badge badge-info shrink-0">${n.nb_destinataires}</span>
+          </div>
+          <p class="text-slate-500 text-xs mt-1">${new Date(n.created_at).toLocaleString('fr-FR')}</p>
+        </div>
+      `).join('');
+    } catch {
+      container.innerHTML = '<p class="text-red-400 text-sm">Erreur lors du chargement.</p>';
+    }
+  }
+
+  loadHistory();
+</script>

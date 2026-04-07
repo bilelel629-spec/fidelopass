@@ -1,0 +1,294 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const proofItems = [
+  'Apple Wallet et Google Wallet',
+  'Scan QR en boutique',
+  'Géolocalisation intelligente',
+  'Notifications push ciblées',
+];
+
+const featureCards = [
+  {
+    eyebrow: 'Acquisition',
+    title: 'Transformez un QR code en carte active',
+    description: 'Le client scanne, remplit ses informations, puis ajoute sa carte à son Wallet sans installer une application lourde.',
+  },
+  {
+    eyebrow: 'Fidélisation',
+    title: 'Tampons ou points, selon votre métier',
+    description: 'Boulangerie, salon, coffee shop, concept store : choisissez le programme le plus naturel pour votre clientèle.',
+  },
+  {
+    eyebrow: 'Distribution',
+    title: 'Une présence native sur le téléphone',
+    description: 'Votre carte reste accessible dans le Wallet, au bon moment, avec mise à jour des points et rappels contextuels.',
+  },
+  {
+    eyebrow: 'Personnalisation',
+    title: 'Une carte qui ressemble à votre marque',
+    description: 'Logo, bannière, couleurs, typographie, patterns et style Apple / Google sont pensés pour un rendu plus premium.',
+  },
+  {
+    eyebrow: 'Pilotage',
+    title: 'Un dashboard simple pour l’équipe',
+    description: 'Suivez vos clients, vos passages, vos récompenses et vos campagnes depuis un tableau de bord clair.',
+  },
+  {
+    eyebrow: 'Croissance',
+    title: 'Prêt pour une vraie commercialisation',
+    description: 'Le socle est pensé pour sortir du prototype et évoluer vers un produit vendable à des commerces exigeants.',
+  },
+];
+
+const steps = [
+  {
+    index: '01',
+    title: 'Créez votre univers de carte',
+    description: 'Définissez le programme de fidélité, le rendu visuel et le message géolocalisé.',
+  },
+  {
+    index: '02',
+    title: 'Diffusez votre lien ou QR code',
+    description: 'Les clients rejoignent votre programme depuis une page mobile pensée pour convertir rapidement.',
+  },
+  {
+    index: '03',
+    title: 'Scannez, récompensez, relancez',
+    description: 'Chaque passage devient une interaction traçable, avec mise à jour de la carte dans le Wallet.',
+  },
+];
+
+const differentiators = [
+  'Carte visible directement dans le Wallet du client',
+  'Rappels contextuels quand le client repasse près du commerce',
+  'Expérience plus moderne qu’une carte papier ou un tampon physique',
+  'Configuration complète côté commerçant, sans développement custom à chaque fois',
+];
+---
+
+<BaseLayout
+  title="FideloPass — Cartes de fidélité Wallet pour commerces ambitieux"
+  description="Créez une carte de fidélité Apple Wallet et Google Wallet avec un rendu premium, un onboarding mobile et un dashboard prêt à être commercialisé."
+>
+  <div class="relative overflow-hidden">
+    <div class="absolute inset-0 pointer-events-none">
+      <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[70rem] h-[70rem] rounded-full blur-3xl opacity-25" style="background:radial-gradient(circle,#6366f1 0%,rgba(10,15,30,0) 62%)"></div>
+      <div class="absolute top-32 -left-20 w-96 h-96 rounded-full blur-3xl opacity-20" style="background:radial-gradient(circle,#0ea5e9 0%,rgba(10,15,30,0) 68%)"></div>
+      <div class="absolute bottom-0 right-0 w-[32rem] h-[32rem] rounded-full blur-3xl opacity-15" style="background:radial-gradient(circle,#f59e0b 0%,rgba(10,15,30,0) 65%)"></div>
+      <div class="absolute inset-0 opacity-[0.08]" style="background-image:linear-gradient(rgba(255,255,255,0.09) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.09) 1px, transparent 1px); background-size: 100px 100px;"></div>
+    </div>
+
+    <nav class="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
+      <a href="/" class="font-display font-bold text-2xl text-white">
+        Fidéli<span class="text-indigo-400">Pass</span>
+      </a>
+      <div class="hidden md:flex items-center gap-6 text-sm text-slate-400">
+        <a href="#fonctionnement" class="hover:text-white transition-colors">Fonctionnement</a>
+        <a href="#avantages" class="hover:text-white transition-colors">Avantages</a>
+        <a href="#cta" class="hover:text-white transition-colors">Lancer le projet</a>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="/login" class="btn-secondary text-sm">Connexion</a>
+        <a href="/register" class="btn-primary text-sm">Créer mon accès</a>
+      </div>
+    </nav>
+
+    <section class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-20 lg:pb-28">
+      <div class="grid lg:grid-cols-[1.05fr_0.95fr] gap-10 lg:gap-12 items-center">
+        <div>
+          <div class="badge badge-info mb-5">Plateforme de fidélité Wallet-first</div>
+          <h1 class="font-display text-5xl sm:text-6xl lg:text-7xl font-bold text-white leading-[0.94] max-w-4xl">
+            Une fidélité qui vit déjà
+            <span class="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-sky-300 to-amber-200">
+              dans le téléphone du client
+            </span>
+          </h1>
+          <p class="text-slate-300 text-lg sm:text-xl leading-relaxed max-w-2xl mt-6">
+            FideloPass remplace la carte papier par une expérience Apple Wallet et Google Wallet plus fluide, plus mémorable et beaucoup plus simple à piloter pour les commerces.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-4 mt-8">
+            <a href="/register" class="btn-primary px-8 py-3.5 text-base">Créer mon compte commerçant</a>
+            <a href="#fonctionnement" class="btn-secondary px-8 py-3.5 text-base">Voir le parcours produit</a>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-3 mt-8 max-w-2xl">
+            {proofItems.map((item) => (
+              <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 flex items-center gap-3">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.5)]"></span>
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div class="relative">
+          <div class="absolute -inset-6 rounded-[2rem] blur-2xl opacity-30" style="background:linear-gradient(135deg,rgba(99,102,241,0.45),rgba(14,165,233,0.12),rgba(245,158,11,0.2))"></div>
+          <div class="relative grid gap-5 lg:ml-4">
+            <div class="rounded-[2rem] border border-white/10 bg-slate-950/65 backdrop-blur-xl p-5 shadow-2xl">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">Aperçu Wallet</p>
+                  <p class="text-white font-semibold mt-2">Carte Fidélité Maison Aure</p>
+                </div>
+                <div class="rounded-full px-3 py-1 text-xs font-medium text-amber-200 border border-amber-300/20 bg-amber-300/10">
+                  4 / 8 passages
+                </div>
+              </div>
+
+              <div class="rounded-[1.5rem] overflow-hidden border border-white/10">
+                <div class="p-5" style="background:linear-gradient(145deg,#111827,#312e81 55%,#0f766e)">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                      <div class="w-11 h-11 rounded-2xl bg-white/15 border border-white/10 flex items-center justify-center text-lg">☕</div>
+                      <div>
+                        <p class="text-white font-semibold text-sm">Maison Aure</p>
+                        <p class="text-slate-200/70 text-xs">Carte de fidélité café</p>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <p class="text-white/60 text-[11px] uppercase tracking-[0.22em]">Tampons</p>
+                      <p class="text-white font-mono font-bold">4/8</p>
+                    </div>
+                  </div>
+
+                  <div class="mt-5 rounded-[1.25rem] bg-black/20 border border-white/8 p-4">
+                    <div class="grid grid-cols-4 gap-3">
+                      {Array.from({ length: 8 }).map((_, index) => (
+                        <div class="aspect-square rounded-full border-2 flex items-center justify-center text-sm" style={index < 4 ? 'background:#f59e0b;border-color:#f59e0b;color:white;' : 'border-color:rgba(255,255,255,0.18);color:rgba(255,255,255,0.4);'}>
+                          {index < 4 ? '✓' : '•'}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div class="mt-5 rounded-[1rem] bg-white px-4 py-3 text-center">
+                    <div class="h-14 rounded-lg" style="background:repeating-linear-gradient(90deg,#111 0,#111 3px,transparent 3px,transparent 7px);"></div>
+                    <p class="text-slate-400 text-xs mt-2">Identifiant client</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-5">
+              <div class="rounded-[1.75rem] border border-white/10 bg-white/5 backdrop-blur-xl p-5">
+                <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">Dashboard</p>
+                <p class="text-white font-semibold mt-2">Vue commerçant</p>
+                <div class="space-y-3 mt-5">
+                  <div class="rounded-2xl bg-white/5 border border-white/8 p-3">
+                    <p class="text-slate-400 text-xs">Cartes actives</p>
+                    <p class="text-white text-2xl font-semibold mt-1">248</p>
+                  </div>
+                  <div class="rounded-2xl bg-white/5 border border-white/8 p-3">
+                    <p class="text-slate-400 text-xs">Passages cette semaine</p>
+                    <p class="text-white text-2xl font-semibold mt-1">67</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="rounded-[1.75rem] border border-white/10 bg-white/5 backdrop-blur-xl p-5">
+                <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">Pourquoi ça marche</p>
+                <div class="space-y-3 mt-5">
+                  <div class="rounded-2xl border border-emerald-400/15 bg-emerald-400/8 p-3">
+                    <p class="text-emerald-300 font-medium text-sm">Ajout immédiat</p>
+                    <p class="text-slate-300 text-sm mt-1">Le client garde la carte là où il consulte déjà ses billets et cartes d’embarquement.</p>
+                  </div>
+                  <div class="rounded-2xl border border-sky-400/15 bg-sky-400/8 p-3">
+                    <p class="text-sky-300 font-medium text-sm">Mises à jour visibles</p>
+                    <p class="text-slate-300 text-sm mt-1">Les points et tampons évoluent sans friction après le scan en boutique.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="avantages" class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pb-20">
+      <div class="grid xl:grid-cols-[0.8fr_1.2fr] gap-8 items-start">
+        <div class="card p-7">
+          <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">Pourquoi maintenant</p>
+          <h2 class="font-display text-3xl sm:text-4xl font-bold text-white mt-4">
+            Une base plus sérieuse qu’une landing “démo”.
+          </h2>
+          <p class="text-slate-400 leading-relaxed mt-4">
+            Si le service a vocation à être commercialisé, la vitrine doit déjà raconter une proposition claire : acquisition mobile, fidélité visible, usage concret en boutique et configuration réellement exploitable.
+          </p>
+
+          <div class="rounded-3xl border border-white/10 bg-slate-950/50 p-5 mt-6">
+            <p class="text-white font-semibold">Ce que FideloPass apporte par rapport à une carte papier</p>
+            <div class="space-y-3 mt-4">
+              {differentiators.map((item) => (
+                <div class="flex items-start gap-3 text-sm text-slate-300">
+                  <span class="mt-1 w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
+          {featureCards.map((card) => (
+            <article class="card p-6 h-full">
+              <p class="text-slate-500 text-xs uppercase tracking-[0.28em]">{card.eyebrow}</p>
+              <h3 class="font-display text-xl font-bold text-white mt-4 leading-tight">{card.title}</h3>
+              <p class="text-slate-400 text-sm leading-relaxed mt-3">{card.description}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section id="fonctionnement" class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pb-20">
+      <div class="card p-7 sm:p-8 lg:p-10">
+        <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-10">
+          <div>
+            <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">Parcours produit</p>
+            <h2 class="font-display text-3xl sm:text-4xl font-bold text-white mt-4">Un flux lisible pour le commerçant comme pour le client.</h2>
+          </div>
+          <p class="text-slate-400 max-w-xl text-sm sm:text-base">
+            L’objectif n’est pas seulement de “générer un pass”, mais d’orchestrer un cycle complet : inscription, ajout au Wallet, scan en point de vente et retour en boutique.
+          </p>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-5">
+          {steps.map((step) => (
+            <div class="rounded-[1.75rem] border border-white/10 bg-white/5 p-6">
+              <div class="font-mono text-xs tracking-[0.35em] text-indigo-300">{step.index}</div>
+              <h3 class="font-display text-2xl font-bold text-white mt-4">{step.title}</h3>
+              <p class="text-slate-400 leading-relaxed mt-3">{step.description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section id="cta" class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pb-20">
+      <div class="rounded-[2rem] border border-white/10 p-8 sm:p-10 lg:p-12" style="background:linear-gradient(135deg,rgba(30,41,59,0.9),rgba(49,46,129,0.82),rgba(15,118,110,0.55))">
+        <div class="grid lg:grid-cols-[1fr_auto] gap-8 items-center">
+          <div>
+            <p class="text-slate-300 text-sm uppercase tracking-[0.3em]">Lancement</p>
+            <h2 class="font-display text-3xl sm:text-4xl font-bold text-white mt-4">
+              Construisez dès maintenant une base crédible pour la commercialisation.
+            </h2>
+            <p class="text-slate-200/85 text-base sm:text-lg leading-relaxed mt-4 max-w-2xl">
+              Le projet a maintenant intérêt à raconter un produit, pas seulement une maquette. L’étape suivante consiste à sécuriser l’accès, affiner l’onboarding et pousser la personnalisation pour un rendu vraiment vendable.
+            </p>
+          </div>
+
+          <div class="flex flex-col sm:flex-row lg:flex-col gap-3">
+            <a href="/register" class="btn-primary px-8 py-3.5 text-base">Créer mon accès</a>
+            <a href="/login" class="btn-secondary px-8 py-3.5 text-base">Accéder au dashboard</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="relative z-10 border-t border-white/5 py-8 px-4 sm:px-6 text-center text-slate-500 text-sm">
+      <p>© {new Date().getFullYear()} FideloPass — conçu pour des programmes de fidélité Wallet plus ambitieux.</p>
+    </footer>
+  </div>
+</BaseLayout>

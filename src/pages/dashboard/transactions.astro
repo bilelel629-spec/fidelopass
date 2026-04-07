@@ -1,0 +1,82 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Transactions — FideloPass" activeNav="transactions">
+  <div class="mb-8">
+    <h1 class="font-display text-2xl font-bold text-white">Transactions</h1>
+    <p class="text-slate-400 text-sm mt-1">Historique de tous les scans et ajouts de points</p>
+  </div>
+
+  <div class="card overflow-hidden">
+    <div id="transactions-list">
+      <p class="text-slate-500 text-sm p-6">Chargement...</p>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script>
+  import { authFetch } from '../../lib/api';
+
+  async function loadTransactions() {
+    const container = document.getElementById('transactions-list')!;
+    try {
+      const res = await authFetch('/api/transactions?limit=50');
+      if (!res.ok) throw new Error();
+      const { data } = await res.json();
+
+      if (!data?.length) {
+        container.innerHTML = '<p class="text-slate-500 text-sm p-6">Aucune transaction pour le moment.</p>';
+        return;
+      }
+
+      const typeLabel: Record<string, string> = {
+        ajout_points: 'Points ajoutés',
+        ajout_tampon: 'Tampon ajouté',
+        recompense: 'Récompense',
+        reset: 'Reset',
+      };
+      const typeBadge: Record<string, string> = {
+        ajout_points: 'badge-info',
+        ajout_tampon: 'badge-info',
+        recompense: 'badge-success',
+        reset: 'badge-warning',
+      };
+
+      container.innerHTML = `
+        <table class="w-full">
+          <thead class="border-b border-white/10">
+            <tr class="text-left">
+              <th class="px-6 py-3 text-slate-400 text-xs uppercase tracking-wide font-medium">Type</th>
+              <th class="px-6 py-3 text-slate-400 text-xs uppercase tracking-wide font-medium">Valeur</th>
+              <th class="px-6 py-3 text-slate-400 text-xs uppercase tracking-wide font-medium">Avant / Après</th>
+              <th class="px-6 py-3 text-slate-400 text-xs uppercase tracking-wide font-medium">Note</th>
+              <th class="px-6 py-3 text-slate-400 text-xs uppercase tracking-wide font-medium">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map((t: { type: string; valeur: number; points_avant: number | null; points_apres: number | null; note: string | null; created_at: string }) => `
+              <tr class="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
+                <td class="px-6 py-4">
+                  <span class="badge ${typeBadge[t.type] ?? 'badge-info'}">${typeLabel[t.type] ?? t.type}</span>
+                </td>
+                <td class="px-6 py-4 font-mono text-white text-sm">+${t.valeur}</td>
+                <td class="px-6 py-4 font-mono text-slate-400 text-sm">
+                  ${t.points_avant ?? '—'} → ${t.points_apres ?? '—'}
+                </td>
+                <td class="px-6 py-4 text-slate-400 text-sm">${t.note ?? '—'}</td>
+                <td class="px-6 py-4 text-slate-400 text-sm">
+                  ${new Date(t.created_at).toLocaleString('fr-FR')}
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    } catch {
+      container.innerHTML = '<p class="text-red-400 text-sm p-6">Erreur lors du chargement.</p>';
+    }
+  }
+
+  loadTransactions();
+</script>

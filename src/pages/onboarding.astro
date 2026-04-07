@@ -1,0 +1,181 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Bienvenue — FideloPass">
+  <div class="min-h-screen px-4 py-12 relative overflow-hidden">
+    <div class="absolute inset-0 pointer-events-none">
+      <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[44rem] h-[44rem] rounded-full blur-3xl opacity-25" style="background:radial-gradient(circle,#6366f1 0%,rgba(15,23,42,0) 70%)"></div>
+      <div class="absolute bottom-0 right-0 w-96 h-96 rounded-full blur-3xl opacity-20" style="background:radial-gradient(circle,#14b8a6 0%,rgba(15,23,42,0) 70%)"></div>
+    </div>
+
+    <div class="relative max-w-6xl mx-auto grid lg:grid-cols-[1.05fr_0.95fr] gap-8 items-start">
+      <section class="card p-7 sm:p-8">
+        <div class="flex items-center justify-between gap-3 mb-6">
+          <div>
+            <span class="font-display font-bold text-3xl text-white">Fidéli<span style="color:#818cf8">Pass</span></span>
+            <h1 class="font-display text-3xl sm:text-4xl font-bold text-white mt-4">Bienvenue, on prépare votre univers de marque.</h1>
+          </div>
+          <div class="hidden sm:flex items-center gap-2">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background:#6366f1">1</div>
+            <div class="w-10 h-px bg-white/10"></div>
+            <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-slate-500 border border-white/10">2</div>
+          </div>
+        </div>
+
+        <p class="text-slate-300 text-base leading-relaxed max-w-2xl">
+          Première étape : on enregistre votre commerce. Ensuite, on vous envoie directement dans l’éditeur complet de carte, avec toutes les options de personnalisation déjà disponibles dans le dashboard.
+        </p>
+
+        <form id="commerce-form" class="flex flex-col gap-4 mt-8">
+          <div>
+            <label class="label" for="nom">Nom du commerce *</label>
+            <input id="nom" type="text" class="input" placeholder="Ma boulangerie, Mon salon, Mon concept store..." required />
+          </div>
+          <div>
+            <label class="label" for="adresse">Adresse complète</label>
+            <input id="adresse" type="text" class="input" placeholder="12 rue de la Paix, 75001 Paris" />
+            <p class="text-slate-500 text-xs mt-1">Utilisée pour la géolocalisation et le message sur écran verrouillé.</p>
+          </div>
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="label" for="telephone">Téléphone</label>
+              <input id="telephone" type="tel" class="input" placeholder="06 12 34 56 78" />
+            </div>
+            <div>
+              <label class="label" for="email-commerce">Email de contact</label>
+              <input id="email-commerce" type="email" class="input" placeholder="contact@moncommerce.fr" />
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
+            <p class="text-white font-medium text-sm">Ce qui vous attend ensuite</p>
+            <div class="grid sm:grid-cols-2 gap-3 mt-3 text-sm">
+              <div class="rounded-xl border border-white/8 bg-slate-950/40 p-3">
+                <p class="text-white font-medium">Editeur complet</p>
+                <p class="text-slate-400 mt-1">Logo, bannière, couleurs, gradients, patterns, typographies et style Wallet.</p>
+              </div>
+              <div class="rounded-xl border border-white/8 bg-slate-950/40 p-3">
+                <p class="text-white font-medium">Carte prête à partager</p>
+                <p class="text-slate-400 mt-1">Lien public, QR code, Apple Wallet, Google Wallet et géolocalisation.</p>
+              </div>
+            </div>
+          </div>
+
+          <div id="error-commerce" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"></div>
+
+          <button type="submit" id="btn-commerce" class="btn-primary w-full py-3 mt-2">
+            Continuer vers l’éditeur complet
+          </button>
+        </form>
+      </section>
+
+      <aside class="card p-7 sm:p-8">
+        <div class="badge badge-info mb-4">Etape 2</div>
+        <h2 class="font-display text-2xl font-bold text-white">Votre carte sera configurée dans l’éditeur avancé.</h2>
+        <p class="text-slate-400 leading-relaxed mt-4">
+          On évite désormais la version simplifiée. Après cette étape, vous arriverez directement sur la page de création complète pour construire une carte plus sérieuse et plus commercialisable.
+        </p>
+
+        <div class="space-y-3 mt-6">
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p class="text-white font-medium">Identité visuelle</p>
+            <p class="text-slate-400 text-sm mt-1">Logo, bannière, icône de tampon et aperçu Apple / Google Wallet en direct.</p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p class="text-white font-medium">Programme fidélité</p>
+            <p class="text-slate-400 text-sm mt-1">Points ou tampons, récompense, label client, code-barres et message géolocalisé.</p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p class="text-white font-medium">Personnalisation avancée</p>
+            <p class="text-slate-400 text-sm mt-1">Dégradés, patterns, polices, alignement et style de la bannière.</p>
+          </div>
+        </div>
+
+        <div class="rounded-3xl p-5 mt-6 border border-white/10" style="background:linear-gradient(145deg,rgba(99,102,241,0.18),rgba(15,23,42,0.35))">
+          <p class="text-slate-300 text-sm">Conseil</p>
+          <p class="text-white font-semibold mt-1">Commencez simple, puis affinez.</p>
+          <p class="text-slate-400 text-sm mt-2">
+            Même si vous n’avez pas encore votre logo ou votre bannière finale, vous pouvez créer la première version puis revenir l’améliorer ensuite.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  import { createClient } from '@supabase/supabase-js';
+
+  const supabase = createClient(
+    import.meta.env.PUBLIC_SUPABASE_URL,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+  );
+
+  const API = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
+
+  async function getToken(): Promise<string> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.replace('/login');
+      return '';
+    }
+    return session.access_token;
+  }
+
+  async function api(path: string, opts: RequestInit = {}) {
+    const token = await getToken();
+    const response = await fetch(`${API}${path}`, {
+      ...opts,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...(opts.headers ?? {}),
+      },
+    });
+    return response.json();
+  }
+
+  const [existingCommerce, existingCarte] = await Promise.all([
+    api('/api/commerces/me'),
+    api('/api/cartes'),
+  ]);
+
+  if (existingCommerce.data?.nom) {
+    window.location.replace(existingCarte.data?.id ? '/dashboard' : '/dashboard/carte?setup=1');
+  }
+
+  const commerceForm = document.getElementById('commerce-form') as HTMLFormElement;
+  const errorCommerce = document.getElementById('error-commerce') as HTMLDivElement;
+  const button = document.getElementById('btn-commerce') as HTMLButtonElement;
+
+  commerceForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    errorCommerce.classList.add('hidden');
+
+    button.disabled = true;
+    button.textContent = 'Enregistrement...';
+
+    const payload = {
+      nom: (document.getElementById('nom') as HTMLInputElement).value,
+      adresse: (document.getElementById('adresse') as HTMLInputElement).value || null,
+      telephone: (document.getElementById('telephone') as HTMLInputElement).value || null,
+      email: (document.getElementById('email-commerce') as HTMLInputElement).value || null,
+    };
+
+    const data = await api('/api/commerces', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+
+    if (data.error) {
+      errorCommerce.textContent = data.error;
+      errorCommerce.classList.remove('hidden');
+      button.disabled = false;
+      button.textContent = 'Continuer vers l’éditeur complet';
+      return;
+    }
+
+    window.location.href = '/dashboard/carte?setup=1';
+  });
+</script>

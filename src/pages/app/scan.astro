@@ -23,6 +23,15 @@ import AppLayout from '../../layouts/AppLayout.astro';
       <div class="text-center">
         <p class="text-slate-200 text-sm font-medium">Scannez directement avec la caméra</p>
         <p id="scanner-status" class="text-slate-400 text-sm mt-1">Autorisez la caméra puis pointez le QR code du Wallet.</p>
+        <div id="camera-help" class="hidden mt-4 rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-4 text-left">
+          <p class="text-amber-200 text-sm font-semibold">Autorisation caméra nécessaire</p>
+          <p id="camera-help-text" class="text-amber-100/80 text-xs mt-1 leading-relaxed">
+            Autorisez la caméra pour scanner directement la carte du client.
+          </p>
+          <button id="btn-camera-permission" type="button" class="btn-primary w-full py-3 mt-3">
+            Autoriser la caméra
+          </button>
+        </div>
       </div>
     </div>
 
@@ -76,7 +85,11 @@ import AppLayout from '../../layouts/AppLayout.astro';
   let scannerPaused = false;
 
   const scannerStatus = document.getElementById('scanner-status')!;
+  const cameraHelp = document.getElementById('camera-help')!;
+  const cameraHelpText = document.getElementById('camera-help-text')!;
+  const cameraPermissionBtn = document.getElementById('btn-camera-permission') as HTMLButtonElement;
   const scanner = new Html5Qrcode('reader', false);
+  let scannerStarting = false;
   const scanConfig = {
     fps: 12,
     qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
@@ -94,38 +107,100 @@ import AppLayout from '../../layouts/AppLayout.astro';
     scannerStatus.textContent = message;
   }
 
-  async function startScanner() {
-    scannerPaused = false;
-    setScannerStatus('Ouverture de la caméra...');
+  function showCameraHelp(message: string) {
+    cameraHelpText.textContent = message;
+    cameraHelp.classList.remove('hidden');
+  }
 
+  function hideCameraHelp() {
+    cameraHelp.classList.add('hidden');
+  }
+
+  function stopTracks(stream: MediaStream | null) {
+    stream?.getTracks().forEach((track) => track.stop());
+  }
+
+  async function requestCameraPermission() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error('Ce navigateur ne permet pas l’accès caméra. Ouvrez le scanner dans Safari ou Chrome.');
+    }
+
+    let stream: MediaStream | null = null;
     try {
-      await scanner.start(
-        {
-          facingMode: { exact: 'environment' },
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: 'environment' },
           width: { ideal: 1280 },
           height: { ideal: 720 },
         },
-        scanConfig,
-        handleScan,
-        () => {},
-      );
-      setScannerStatus('Pointez la caméra vers le QR code de la carte Wallet.');
-    } catch {
+        audio: false,
+      });
+    } finally {
+      stopTracks(stream);
+    }
+  }
+
+  async function getRearCameraId() {
+    if (!navigator.mediaDevices?.enumerateDevices) return null;
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cameras = devices.filter((device) => device.kind === 'videoinput');
+    if (!cameras.length) return null;
+
+    const rearCamera = cameras.find((camera) => {
+      const label = camera.label.toLowerCase();
+      return label.includes('back')
+        || label.includes('rear')
+        || label.includes('environment')
+        || label.includes('arrière')
+        || label.includes('arriere');
+    });
+
+    return rearCamera?.deviceId ?? cameras[cameras.length - 1]?.deviceId ?? null;
+  }
+
+  async function startScanner({ fromUserAction = false } = {}) {
+    if (scannerStarting) return;
+    scannerStarting = true;
+    scannerPaused = false;
+    hideCameraHelp();
+    setScannerStatus('Ouverture de la caméra...');
+
+    try {
+      await requestCameraPermission();
+      const rearCameraId = await getRearCameraId();
       try {
         await scanner.start(
-          {
-            facingMode: 'environment',
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
+          rearCameraId
+            ? { deviceId: { exact: rearCameraId } }
+            : {
+                facingMode: { ideal: 'environment' },
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+              },
           scanConfig,
           handleScan,
           () => {},
         );
         setScannerStatus('Pointez la caméra vers le QR code de la carte Wallet.');
       } catch {
-        setScannerStatus('Caméra indisponible. Autorisez la caméra dans le navigateur puis rechargez la page.');
+        await scanner.start(
+          { facingMode: 'environment' },
+          scanConfig,
+          handleScan,
+          () => {},
+        );
+        setScannerStatus('Pointez la caméra vers le QR code de la carte Wallet.');
       }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Caméra indisponible.';
+      setScannerStatus('Caméra non autorisée.');
+      showCameraHelp(
+        fromUserAction
+          ? `${message} Si vous avez refusé, activez la caméra dans les réglages du navigateur puis rechargez la page.`
+          : 'Touchez “Autoriser la caméra”, puis acceptez la demande du navigateur.'
+      );
+    } finally {
+      scannerStarting = false;
     }
   }
 
@@ -264,5 +339,6 @@ import AppLayout from '../../layouts/AppLayout.astro';
   }
 
   document.getElementById('btn-close')!.addEventListener('click', closeResult);
+  cameraPermissionBtn.addEventListener('click', () => startScanner({ fromUserAction: true }));
   startScanner();
 </script>

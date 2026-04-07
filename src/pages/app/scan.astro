@@ -16,8 +16,15 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
     <!-- Zone scanner -->
     <div class="flex-1 flex flex-col items-center justify-center px-4 gap-6">
-      <div id="reader" class="w-full max-w-xs rounded-2xl overflow-hidden border-2 border-indigo-500/50"></div>
-      <p class="text-slate-400 text-sm text-center">Pointez vers le QR code sur la carte Wallet du client</p>
+      <div class="relative w-full max-w-xs">
+        <div id="reader" class="w-full aspect-square rounded-2xl overflow-hidden border-2 border-indigo-500/50 bg-navy-800"></div>
+        <div class="pointer-events-none absolute inset-6 rounded-2xl border-2 border-white/70 shadow-[0_0_0_999px_rgba(2,6,23,0.28)]"></div>
+      </div>
+      <div class="text-center">
+        <p class="text-slate-200 text-sm font-medium">Scannez directement avec la caméra</p>
+        <p id="scanner-status" class="text-slate-400 text-sm mt-1">Autorisez la caméra puis pointez le QR code du Wallet.</p>
+        <button id="btn-restart-scanner" class="hidden btn-secondary mt-4 px-4 py-2 text-sm">Relancer la caméra</button>
+      </div>
     </div>
 
     <!-- Résultat scan -->
@@ -45,21 +52,68 @@ import AppLayout from '../../layouts/AppLayout.astro';
 </AppLayout>
 
 <script>
-  import { Html5QrcodeScanner } from 'html5-qrcode';
+  import { Html5Qrcode } from 'html5-qrcode';
   import confetti from 'canvas-confetti';
   import { authFetch } from '../../lib/api';
 
   let currentClientId: string | null = null;
   let currentClientRecompenses = 0;
+  let scannerPaused = false;
 
-  const scanner = new Html5QrcodeScanner('reader', {
+  const scannerStatus = document.getElementById('scanner-status')!;
+  const restartScannerBtn = document.getElementById('btn-restart-scanner')!;
+  const scanner = new Html5Qrcode('reader', false);
+  const scanConfig = {
     fps: 10,
-    qrbox: { width: 250, height: 250 },
+    qrbox: { width: 240, height: 240 },
     aspectRatio: 1,
-  }, false);
+  };
 
-  scanner.render(async (decodedText) => {
+  function setScannerStatus(message: string, canRetry = false) {
+    scannerStatus.textContent = message;
+    restartScannerBtn.classList.toggle('hidden', !canRetry);
+  }
+
+  async function startScanner() {
+    scannerPaused = false;
+    restartScannerBtn.classList.add('hidden');
+    setScannerStatus('Ouverture de la caméra...');
+
+    try {
+      await scanner.start(
+        { facingMode: { exact: 'environment' } },
+        scanConfig,
+        handleScan,
+        () => {},
+      );
+      setScannerStatus('Pointez la caméra vers le QR code de la carte Wallet.');
+    } catch {
+      try {
+        await scanner.start(
+          { facingMode: 'environment' },
+          scanConfig,
+          handleScan,
+          () => {},
+        );
+        setScannerStatus('Pointez la caméra vers le QR code de la carte Wallet.');
+      } catch {
+        setScannerStatus('Caméra indisponible. Vérifiez l’autorisation caméra du navigateur puis réessayez.', true);
+      }
+    }
+  }
+
+  function resumeScanner() {
+    if (!scannerPaused) return;
+    scannerPaused = false;
+    scanner.resume();
+    setScannerStatus('Pointez la caméra vers le QR code de la carte Wallet.');
+  }
+
+  async function handleScan(decodedText: string) {
+    if (scannerPaused) return;
+    scannerPaused = true;
     scanner.pause();
+    setScannerStatus('QR code détecté...');
 
     try {
       // Le QR contient l'ID client
@@ -83,9 +137,9 @@ import AppLayout from '../../layouts/AppLayout.astro';
       if (navigator.vibrate) navigator.vibrate(100);
     } catch {
       alert('QR code non reconnu. Réessayez.');
-      scanner.resume();
+      resumeScanner();
     }
-  }, () => {});
+  }
 
   // Bouton +1 tampon
   document.getElementById('btn-tampon')!.addEventListener('click', async () => {
@@ -157,8 +211,10 @@ import AppLayout from '../../layouts/AppLayout.astro';
     document.getElementById('scan-result')!.classList.add('hidden');
     currentClientId = null;
     currentClientRecompenses = 0;
-    scanner.resume();
+    resumeScanner();
   }
 
+  restartScannerBtn.addEventListener('click', startScanner);
   document.getElementById('btn-close')!.addEventListener('click', closeResult);
+  startScanner();
 </script>

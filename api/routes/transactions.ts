@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { updateGooglePassObject } from '../services/google-wallet';
+import { pushApplePassUpdate } from '../services/apple-wallet';
 
 export const transactionsRoutes = new Hono();
 
@@ -139,6 +140,23 @@ transactionsRoutes.post('/', async (c) => {
         recompenses_obtenues: recompensesObtenues,
       },
     ).catch((err) => console.error('[Google Wallet update]', err));
+  }
+
+  if (client.apple_pass_serial) {
+    db.from('apple_pass_registrations')
+      .select('push_token, pass_type_identifier')
+      .eq('client_id', parsed.data.client_id)
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('[Apple Wallet registrations]', error);
+          return;
+        }
+
+        for (const registration of data ?? []) {
+          pushApplePassUpdate(registration.push_token, registration.pass_type_identifier)
+            .catch((err) => console.error('[Apple Wallet push]', err));
+        }
+      });
   }
 
   return c.json({

@@ -139,6 +139,23 @@ export interface Database {
         };
         Update: Partial<Pick<Database['public']['Tables']['notifications']['Row'], 'nb_delivrees'>>;
       };
+      apple_pass_registrations: {
+        Row: {
+          id: string;
+          client_id: string;
+          device_library_identifier: string;
+          pass_type_identifier: string;
+          push_token: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['apple_pass_registrations']['Row'], 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['apple_pass_registrations']['Insert']>;
+      };
     };
   };
 }

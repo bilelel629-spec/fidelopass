@@ -67,17 +67,66 @@ async function loadApplePassByClient(serialNumber: string) {
 walletRoutes.post('/apple/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber', async (c) => {
   const serialNumber = c.req.param('serialNumber') ?? '';
   if (!isValidApplePassAuth(c, serialNumber)) return c.body(null, 401);
+  const deviceLibraryIdentifier = c.req.param('deviceLibraryIdentifier') ?? '';
+  const passTypeIdentifier = c.req.param('passTypeIdentifier') ?? '';
+  const body = await c.req.json().catch(() => ({}));
+  const pushToken = typeof body.pushToken === 'string' ? body.pushToken : '';
+  if (!pushToken) return c.json({ error: 'pushToken manquant' }, 400);
+
+  const db = createServiceClient();
+  const { error } = await db
+    .from('apple_pass_registrations')
+    .upsert({
+      client_id: serialNumber,
+      device_library_identifier: deviceLibraryIdentifier,
+      pass_type_identifier: passTypeIdentifier,
+      push_token: pushToken,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'client_id,device_library_identifier,pass_type_identifier' });
+
+  if (error) {
+    console.error('[Apple Wallet register]', error);
+    return c.json({ error: 'Registration impossible' }, 500);
+  }
+
   return c.body(null, 201);
 });
 
 walletRoutes.delete('/apple/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber', async (c) => {
   const serialNumber = c.req.param('serialNumber') ?? '';
   if (!isValidApplePassAuth(c, serialNumber)) return c.body(null, 401);
+  const deviceLibraryIdentifier = c.req.param('deviceLibraryIdentifier') ?? '';
+  const passTypeIdentifier = c.req.param('passTypeIdentifier') ?? '';
+
+  await createServiceClient()
+    .from('apple_pass_registrations')
+    .delete()
+    .eq('client_id', serialNumber)
+    .eq('device_library_identifier', deviceLibraryIdentifier)
+    .eq('pass_type_identifier', passTypeIdentifier);
+
   return c.body(null, 200);
 });
 
 walletRoutes.get('/apple/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier', async (c) => {
-  return c.json({ serialNumbers: [], lastUpdated: new Date().toISOString() });
+  const deviceLibraryIdentifier = c.req.param('deviceLibraryIdentifier') ?? '';
+  const passTypeIdentifier = c.req.param('passTypeIdentifier') ?? '';
+
+  const { data, error } = await createServiceClient()
+    .from('apple_pass_registrations')
+    .select('client_id')
+    .eq('device_library_identifier', deviceLibraryIdentifier)
+    .eq('pass_type_identifier', passTypeIdentifier);
+
+  if (error) {
+    console.error('[Apple Wallet list registrations]', error);
+    return c.json({ error: 'Impossible de lister les passes' }, 500);
+  }
+
+  return c.json({
+    serialNumbers: (data ?? []).map((row) => row.client_id),
+    lastUpdated: new Date().toISOString(),
+  });
 });
 
 walletRoutes.get('/apple/v1/passes/:passTypeIdentifier/:serialNumber', async (c) => {

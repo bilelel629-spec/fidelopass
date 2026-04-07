@@ -3,6 +3,7 @@ import { readFileSync, mkdirSync, writeFileSync, rmSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { tmpdir } from 'os';
 import { randomUUID } from 'crypto';
+import { connect } from 'http2';
 import sharp from 'sharp';
 import { generateStripImage } from './strip-generator';
 
@@ -237,4 +238,50 @@ export async function generateApplePass(carte: CarteData, client: ClientData): P
   } finally {
     rmSync(tmpPassDir, { recursive: true, force: true });
   }
+}
+
+export async function pushApplePassUpdate(pushToken: string, passTypeIdentifier: string): Promise<void> {
+  const cert = readSecretFileOrEnv('signer.pem', 'APPLE_SIGNER_CERT_PEM');
+  const key = readSecretFileOrEnv('key.pem', 'APPLE_SIGNER_KEY_PEM');
+  const endpoint = process.env.APPLE_APNS_ENDPOINT ?? 'https://api.push.apple.com';
+
+  await new Promise<void>((resolvePromise, reject) => {
+    const session = connect(endpoint, { cert, key });
+    const chunks: Buffer[] = [];
+    let status = 0;
+    let settled = false;
+
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      session.close();
+      if (error) reject(error);
+      else resolvePromise();
+    };
+
+    session.on('error', finish);
+
+    const request = session.request({
+      ':method': 'POST',
+      ':path': `/3/device/${pushToken}`,
+      'apns-topic': passTypeIdentifier,
+      'apns-priority': '10',
+      'apns-push-type': 'alert',
+    });
+
+    request.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+    request.on('response', (headers) => {
+      status = Number(headers[':status'] ?? 0);
+    });
+    request.on('end', () => {
+      if (status >= 200 && status < 300) {
+        finish();
+        return;
+      }
+      const body = Buffer.concat(chunks).toString('utf8');
+      finish(new Error(`APNs Wallet update failed (${status}) ${body}`));
+    });
+    request.on('error', finish);
+    request.end('{}');
+  });
 }

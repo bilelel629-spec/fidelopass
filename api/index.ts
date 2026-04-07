@@ -15,10 +15,21 @@ import { dashboardRoutes } from './routes/dashboard';
 import { uploadRoutes } from './routes/upload';
 
 const app = new Hono();
+const appUrl = process.env.APP_URL ?? 'http://localhost:4321';
+const allowedOrigins = [
+  appUrl,
+  'https://www.fidelopass.com',
+  'https://fidelopass.com',
+  'https://fidelopass-web-production.up.railway.app',
+  'http://localhost:4321',
+].filter(Boolean);
 
 app.use('*', logger());
 app.use('*', cors({
-  origin: [process.env.APP_URL ?? 'http://localhost:4321'],
+  origin: (origin) => {
+    if (!origin) return null;
+    return allowedOrigins.includes(origin) ? origin : null;
+  },
   credentials: true,
 }));
 

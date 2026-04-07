@@ -23,7 +23,6 @@ import AppLayout from '../../layouts/AppLayout.astro';
       <div class="text-center">
         <p class="text-slate-200 text-sm font-medium">Scannez directement avec la caméra</p>
         <p id="scanner-status" class="text-slate-400 text-sm mt-1">Autorisez la caméra puis pointez le QR code du Wallet.</p>
-        <button id="btn-restart-scanner" class="hidden btn-secondary mt-4 px-4 py-2 text-sm">Relancer la caméra</button>
       </div>
     </div>
 
@@ -61,7 +60,6 @@ import AppLayout from '../../layouts/AppLayout.astro';
   let scannerPaused = false;
 
   const scannerStatus = document.getElementById('scanner-status')!;
-  const restartScannerBtn = document.getElementById('btn-restart-scanner')!;
   const scanner = new Html5Qrcode('reader', false);
   const scanConfig = {
     fps: 10,
@@ -69,14 +67,12 @@ import AppLayout from '../../layouts/AppLayout.astro';
     aspectRatio: 1,
   };
 
-  function setScannerStatus(message: string, canRetry = false) {
+  function setScannerStatus(message: string) {
     scannerStatus.textContent = message;
-    restartScannerBtn.classList.toggle('hidden', !canRetry);
   }
 
   async function startScanner() {
     scannerPaused = false;
-    restartScannerBtn.classList.add('hidden');
     setScannerStatus('Ouverture de la caméra...');
 
     try {
@@ -97,7 +93,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
         );
         setScannerStatus('Pointez la caméra vers le QR code de la carte Wallet.');
       } catch {
-        setScannerStatus('Caméra indisponible. Vérifiez l’autorisation caméra du navigateur puis réessayez.', true);
+        setScannerStatus('Caméra indisponible. Autorisez la caméra dans le navigateur puis rechargez la page.');
       }
     }
   }
@@ -214,7 +210,6 @@ import AppLayout from '../../layouts/AppLayout.astro';
     resumeScanner();
   }
 
-  restartScannerBtn.addEventListener('click', startScanner);
   document.getElementById('btn-close')!.addEventListener('click', closeResult);
   startScanner();
 </script>

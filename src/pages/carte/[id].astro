@@ -111,6 +111,7 @@ const firebasePushConfig = {
         </div>
       </div>
 
+      <div id="success-msg" class="hidden mb-3 text-emerald-300 text-sm bg-emerald-500/10 border border-emerald-400/20 rounded-xl px-4 py-3 text-center"></div>
       <div id="error-msg" class="hidden mb-3 text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-center"></div>
 
       <!-- Boutons Wallet -->
@@ -165,10 +166,49 @@ const firebasePushConfig = {
   // ── Validation ───────────────────────────────────────────────────
   function showError(msg) {
     const el = document.getElementById('error-msg');
+    document.getElementById('success-msg').classList.add('hidden');
     el.textContent = msg;
     el.classList.remove('hidden');
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
+
+  function showSuccess(msg) {
+    const el = document.getElementById('success-msg');
+    document.getElementById('error-msg').classList.add('hidden');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function rememberWalletRedirect(provider) {
+    try {
+      localStorage.setItem('fidelopass_wallet_redirect', JSON.stringify({
+        provider,
+        startedAt: Date.now(),
+      }));
+    } catch {
+      // Le message de retour est un bonus, l'ajout Wallet ne doit pas en dépendre.
+    }
+  }
+
+  function showWalletReturnMessage() {
+    try {
+      const raw = localStorage.getItem('fidelopass_wallet_redirect');
+      if (!raw) return;
+      const state = JSON.parse(raw);
+      const isFresh = Date.now() - Number(state.startedAt) < 10 * 60 * 1000;
+      if (!isFresh) {
+        localStorage.removeItem('fidelopass_wallet_redirect');
+        return;
+      }
+      localStorage.removeItem('fidelopass_wallet_redirect');
+      showSuccess('Si vous avez confirmé dans Wallet, votre carte a bien été ajoutée.');
+    } catch {
+      localStorage.removeItem('fidelopass_wallet_redirect');
+    }
+  }
+
+  window.addEventListener('pageshow', showWalletReturnMessage);
 
   function hideError() {
     document.getElementById('error-msg').classList.add('hidden');
@@ -402,6 +442,8 @@ const firebasePushConfig = {
 
     try {
       const client = await ensureClient();
+      showSuccess('Carte prête. Apple Wallet va s’ouvrir pour finaliser l’ajout.');
+      rememberWalletRedirect('apple');
       redirecting = true;
       window.location.assign(apiUrl(`/api/wallet/apple/${carteId}?client_id=${encodeURIComponent(client.id)}`));
     } catch (err) {
@@ -436,6 +478,8 @@ const firebasePushConfig = {
       }
 
       const { saveUrl } = await res.json();
+      showSuccess('Carte prête. Google Wallet va s’ouvrir pour finaliser l’ajout.');
+      rememberWalletRedirect('google');
       redirecting = true;
       window.location.assign(saveUrl);
     } catch (err) {

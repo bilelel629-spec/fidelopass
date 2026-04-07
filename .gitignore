@@ -43,3 +43,6 @@ logs/
 # Cache
 .cache/
 .parcel-cache/
+
+# Local assistant config
+.CLAUDE/

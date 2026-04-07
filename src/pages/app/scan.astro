@@ -17,7 +17,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
     <!-- Zone scanner -->
     <div class="flex-1 flex flex-col items-center justify-center px-4 gap-6">
       <div class="relative w-full max-w-sm">
-        <div id="reader" class="w-full aspect-[3/4] rounded-2xl overflow-hidden border-2 border-indigo-500/50 bg-navy-800"></div>
+        <div id="reader" class="scanner-reader w-full aspect-[3/4] rounded-2xl overflow-hidden border-2 border-indigo-500/50 bg-navy-800"></div>
         <div class="pointer-events-none absolute inset-4 rounded-2xl border-2 border-white/70 shadow-[0_0_0_999px_rgba(2,6,23,0.22)]"></div>
       </div>
       <div class="text-center">
@@ -74,6 +74,59 @@ import AppLayout from '../../layouts/AppLayout.astro';
     </div>
   </div>
 </AppLayout>
+
+<style is:global>
+  .scanner-reader {
+    position: relative !important;
+    display: block !important;
+    contain: layout paint !important;
+    line-height: 0 !important;
+  }
+
+  .scanner-reader * {
+    box-sizing: border-box !important;
+  }
+
+  .scanner-reader > div,
+  .scanner-reader #reader__scan_region {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  .scanner-reader video {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    object-fit: cover !important;
+    border-radius: 1rem !important;
+  }
+
+  .scanner-reader canvas {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .scanner-reader #reader__dashboard,
+  .scanner-reader #reader__header_message,
+  .scanner-reader #reader__camera_permission_button,
+  .scanner-reader #reader__camera_selection,
+  .scanner-reader #reader__dashboard_section_csr,
+  .scanner-reader #reader__dashboard_section_fsr,
+  .scanner-reader #reader__dashboard_section_swaplink,
+  .scanner-reader #reader__dashboard_section {
+    display: none !important;
+  }
+</style>
 
 <script>
   import { Html5Qrcode } from 'html5-qrcode';

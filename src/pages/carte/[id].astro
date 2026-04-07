@@ -1,6 +1,10 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 const { id } = Astro.params;
+const apiBase = (
+  import.meta.env.PUBLIC_API_URL
+  ?? (import.meta.env.PROD ? 'https://api.fidelopass.com' : 'http://localhost:3001')
+).replace(/\/$/, '');
 ---
 
 <BaseLayout title="Ajouter à mon Wallet — FideloPass">
@@ -125,8 +129,8 @@ const { id } = Astro.params;
   </div>
 </BaseLayout>
 
-<script define:vars={{ carteId: id }}>
-  const API = (import.meta.env.PUBLIC_API_URL ?? '').replace(/\/$/, '');
+<script define:vars={{ carteId: id, apiBase }}>
+  const API = apiBase;
   const apiUrl = (path) => `${API}${path}`;
 
   // ── Checkbox consentement ────────────────────────────────────────

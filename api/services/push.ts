@@ -6,6 +6,9 @@ function getFirebaseApp(): admin.app.App {
   if (firebaseApp) return firebaseApp;
 
   if (!admin.apps.length) {
+    if (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_PRIVATE_KEY || !process.env.FIREBASE_CLIENT_EMAIL) {
+      throw new Error('Configuration Firebase Admin manquante');
+    }
     firebaseApp = admin.initializeApp({
       credential: admin.credential.cert({
         projectId: process.env.FIREBASE_PROJECT_ID,

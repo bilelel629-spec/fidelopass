@@ -15,14 +15,16 @@ const { title = 'Dashboard — FideloPass', activeNav = '' } = Astro.props;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
   </head>
   <body class="min-h-screen bg-navy-900 text-slate-50 antialiased">
-    <div class="flex h-screen overflow-hidden">
+    <div class="flex min-h-screen lg:h-screen overflow-hidden">
       <DashboardNav activeNav={activeNav} />
-      <main class="flex-1 overflow-y-auto">
-        <div class="p-6 md:p-8 max-w-7xl mx-auto">
+      <main class="flex-1 min-w-0 overflow-y-auto pb-24 lg:pb-0">
+        <div class="p-4 sm:p-6 md:p-8 pt-20 lg:pt-8 max-w-7xl mx-auto">
           <slot />
         </div>
       </main>

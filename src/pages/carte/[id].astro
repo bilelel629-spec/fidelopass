@@ -5,6 +5,14 @@ const apiBase = (
   import.meta.env.PUBLIC_API_URL
   ?? (import.meta.env.PROD ? 'https://api.fidelopass.com' : 'http://localhost:3001')
 ).replace(/\/$/, '');
+const firebasePushConfig = {
+  apiKey: import.meta.env.PUBLIC_FIREBASE_API_KEY ?? '',
+  authDomain: import.meta.env.PUBLIC_FIREBASE_AUTH_DOMAIN ?? '',
+  projectId: import.meta.env.PUBLIC_FIREBASE_PROJECT_ID ?? '',
+  messagingSenderId: import.meta.env.PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? '',
+  appId: import.meta.env.PUBLIC_FIREBASE_APP_ID ?? '',
+  vapidKey: import.meta.env.PUBLIC_FIREBASE_VAPID_KEY ?? '',
+};
 ---
 
 <BaseLayout title="Ajouter à mon Wallet — FideloPass">
@@ -129,9 +137,10 @@ const apiBase = (
   </div>
 </BaseLayout>
 
-<script define:vars={{ carteId: id, apiBase }}>
+<script define:vars={{ carteId: id, apiBase, firebasePushConfig }}>
   const API = apiBase;
   const apiUrl = (path) => `${API}${path}`;
+  const pushConfig = firebasePushConfig;
 
   // ── Checkbox consentement ────────────────────────────────────────
   let pushConsent = false;
@@ -290,6 +299,11 @@ const apiBase = (
       if (!res.ok) throw new Error(data.error ?? 'Erreur lors de la création');
 
       walletClient = data.data;
+      if (pushConsent) {
+        await registerPushToken(walletClient.id).catch((error) => {
+          console.warn('[push registration]', error);
+        });
+      }
       return walletClient;
     })();
 
@@ -298,6 +312,53 @@ const apiBase = (
     } finally {
       walletClientPromise = null;
     }
+  }
+
+  async function registerPushToken(clientId) {
+    const required = ['apiKey', 'projectId', 'messagingSenderId', 'appId', 'vapidKey'];
+    const missing = required.some((key) => !pushConfig?.[key]);
+    if (missing) {
+      console.warn('[push] Firebase public config missing');
+      return null;
+    }
+
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      console.warn('[push] notifications unavailable in this browser');
+      return null;
+    }
+
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return null;
+
+    const [{ initializeApp, getApps }, { getMessaging, getToken }] = await Promise.all([
+      import('firebase/app'),
+      import('firebase/messaging'),
+    ]);
+
+    const app = getApps().find((existing) => existing.name === 'fidelopass-client')
+      ?? initializeApp({
+        apiKey: pushConfig.apiKey,
+        authDomain: pushConfig.authDomain,
+        projectId: pushConfig.projectId,
+        messagingSenderId: pushConfig.messagingSenderId,
+        appId: pushConfig.appId,
+      }, 'fidelopass-client');
+
+    const registration = await navigator.serviceWorker.register('/sw.js');
+    const token = await getToken(getMessaging(app), {
+      vapidKey: pushConfig.vapidKey,
+      serviceWorkerRegistration: registration,
+    });
+
+    if (!token) return null;
+
+    await fetch(apiUrl(`/api/clients/${clientId}/fcm`), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fcm_token: token }),
+    });
+
+    return token;
   }
 
   // ── Confetti récompense ──────────────────────────────────────────

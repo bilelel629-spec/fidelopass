@@ -51,6 +51,11 @@ export interface Database {
           gradient_angle: number | null;
           pattern_type: string | null;
           tampon_emoji: string | null;
+          police: string | null;
+          police_taille: number | null;
+          police_gras: boolean | null;
+          texte_alignement: string | null;
+          strip_plein_largeur: boolean | null;
           pass_type_id: string | null;
           qr_code_url: string | null;
           actif: boolean;

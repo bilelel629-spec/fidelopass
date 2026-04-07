@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
+import { updateGooglePassObject } from '../services/google-wallet';
 
 export const transactionsRoutes = new Hono();
 
@@ -63,14 +64,14 @@ transactionsRoutes.post('/', async (c) => {
 
   const { data: client, error: clientError } = await db
     .from('clients')
-    .select('*, cartes(type, tampons_total, points_recompense, recompense_description)')
+    .select('*, cartes(id, nom, type, tampons_total, points_recompense, recompense_description, couleur_fond, logo_url, strip_url, barcode_type, label_client, commerces(nom, logo_url))')
     .eq('id', parsed.data.client_id)
     .eq('commerce_id', commerce.id)
     .single();
 
   if (clientError || !client) return c.json({ error: 'Client introuvable' }, 404);
 
-  const carte = (client as typeof client & { cartes: { type: string; tampons_total: number; points_recompense: number } }).cartes;
+  const carte = (client as typeof client & { cartes: { type: string; tampons_total: number; points_recompense: number; [key: string]: unknown } }).cartes;
   const avantPoints = client.points_actuels;
   const avantTampons = client.tampons_actuels;
 
@@ -125,6 +126,19 @@ transactionsRoutes.post('/', async (c) => {
 
   if (updateResult.error || transactionResult.error) {
     return c.json({ error: 'Erreur lors de l\'enregistrement' }, 500);
+  }
+
+  if (client.google_pass_id) {
+    updateGooglePassObject(
+      client.google_pass_id,
+      carte as Parameters<typeof updateGooglePassObject>[1],
+      {
+        ...client,
+        points_actuels: newPoints,
+        tampons_actuels: newTampons,
+        recompenses_obtenues: recompensesObtenues,
+      },
+    ).catch((err) => console.error('[Google Wallet update]', err));
   }
 
   return c.json({

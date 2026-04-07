@@ -21,7 +21,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   </div>
 
   <!-- Liste clients -->
-  <div class="card overflow-hidden">
+  <div class="card overflow-x-auto">
     <div id="clients-list">
       <p class="text-slate-500 text-sm p-6">Chargement...</p>
     </div>
@@ -30,6 +30,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
 <script>
   import { authFetch } from '../../lib/api';
+
+  function escapeHtml(value: unknown) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;',
+    }[char] ?? char));
+  }
 
   async function loadClients(search = '') {
     const container = document.getElementById('clients-list')!;
@@ -59,8 +69,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             ${data.map((c: { nom: string | null; email: string | null; telephone: string | null; points_actuels: number; tampons_actuels: number; derniere_visite: string | null; push_enabled: boolean }) => `
               <tr class="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
                 <td class="px-6 py-4">
-                  <div class="font-medium text-white text-sm">${c.nom ?? 'Anonyme'}</div>
-                  <div class="text-slate-500 text-xs">${c.email ?? c.telephone ?? '—'}</div>
+                  <div class="font-medium text-white text-sm">${escapeHtml(c.nom ?? 'Anonyme')}</div>
+                  <div class="text-slate-500 text-xs">${escapeHtml(c.email ?? c.telephone ?? '—')}</div>
                 </td>
                 <td class="px-6 py-4">
                   <span class="font-mono text-sm text-indigo-400">${c.points_actuels || c.tampons_actuels}</span>

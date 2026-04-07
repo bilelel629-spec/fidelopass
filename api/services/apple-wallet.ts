@@ -67,6 +67,19 @@ function readSecretFileOrEnv(filename: string, envName: string): Buffer {
   return readFileSync(resolve(process.cwd(), 'certs', filename));
 }
 
+function getAppleWebServiceUrl(): string | null {
+  const explicit = process.env.APPLE_WEB_SERVICE_URL ?? process.env.API_URL ?? process.env.PUBLIC_API_URL;
+  if (explicit) {
+    const url = explicit.replace(/\/$/, '');
+    return url.endsWith('/api/wallet/apple') ? url : `${url}/api/wallet/apple`;
+  }
+
+  const appUrl = process.env.APP_URL?.replace(/\/$/, '');
+  if (!appUrl?.startsWith('https://')) return null;
+
+  return `${appUrl.replace('https://www.', 'https://api.').replace('https://fidelopass.com', 'https://api.fidelopass.com')}/api/wallet/apple`;
+}
+
 async function fetchImageBuffer(url: string): Promise<Buffer | null> {
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
@@ -106,6 +119,7 @@ export async function generateApplePass(carte: CarteData, client: ClientData): P
     backgroundColor: hexToRgb(carte.couleur_fond),
     labelColor: hexToRgb(carte.couleur_accent),
     logoText: carte.commerces.nom,
+    authenticationToken: client.id,
     storeCard: {
       // headerFields : coin supérieur droit (solde)
       headerFields: [
@@ -143,6 +157,11 @@ export async function generateApplePass(carte: CarteData, client: ClientData): P
       ],
     },
   };
+
+  const webServiceURL = getAppleWebServiceUrl();
+  if (webServiceURL) {
+    passJson.webServiceURL = webServiceURL;
+  }
 
   // Code-barres
   if (barcodeType !== 'NONE') {

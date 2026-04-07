@@ -3,7 +3,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 ---
 
 <AppLayout title="Scanner — FideloPass">
-  <div class="h-screen flex flex-col items-center justify-center px-6">
+  <div class="min-h-[100dvh] flex flex-col items-center justify-center px-6 py-10">
     <div class="text-center mb-10">
       <span class="font-display font-bold text-3xl text-white">Fidéli<span class="text-indigo-400">Pass</span></span>
       <p class="text-slate-400 text-sm mt-2">Espace commerçant</p>
@@ -16,5 +16,15 @@ import AppLayout from '../../layouts/AppLayout.astro';
       </svg>
       Scanner un client
     </a>
+
+    <div class="card w-full max-w-xs p-4 mt-5 text-left">
+      <p class="text-white font-semibold text-sm">Ajouter comme application</p>
+      <p class="text-slate-400 text-xs leading-relaxed mt-2">
+        Sur iPhone : ouvrez cette page dans Safari, touchez le bouton de partage, puis “Sur l’écran d’accueil”.
+      </p>
+      <p class="text-slate-400 text-xs leading-relaxed mt-2">
+        Sur Android : ouvrez le menu du navigateur, puis “Installer l’application” ou “Ajouter à l’écran d’accueil”.
+      </p>
+    </div>
   </div>
 </AppLayout>

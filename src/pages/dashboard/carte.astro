@@ -225,6 +225,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <!-- Typographie -->
       <div class="card p-6">
         <h2 class="font-display font-bold text-white mb-5 flex items-center gap-2"><span class="text-lg">✍️</span> Typographie</h2>
+        <div class="rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-100 leading-relaxed mb-5">
+          Apple et Google Wallet limitent une partie de la typographie réelle. Ces réglages pilotent surtout l’aperçu et nos visuels générés ; les champs natifs Wallet peuvent rester normalisés par Apple/Google.
+        </div>
         <label class="label mb-3 block">Police d'écriture</label>
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-5">
           {[
@@ -707,9 +710,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     // Google
     const gb=document.getElementById('g-strip-bg')!; gb.style.background=bg;
     const gp=document.getElementById('g-pattern-overlay')!; gp.style.backgroundImage=pat.image; gp.style.backgroundSize=pat.size;
-    const gv=document.getElementById('google-preview')!; gv.style.fontFamily=ff; gv.style.fontWeight=fw;
+    const gv=document.getElementById('google-preview')!; gv.style.fontFamily=ff; gv.style.fontSize=fs; gv.style.fontWeight=fw;
 
     document.getElementById('g-card-name')!.textContent=nom;
+    (document.getElementById('g-card-name') as HTMLElement).style.textAlign=align;
     document.getElementById('g-recompense')!.textContent=recompense;
     document.getElementById('g-label-client')!.textContent=labelClient.toUpperCase();
     document.getElementById('g-type-lbl')!.textContent=type==='tampons'?'Tampons':'Points';

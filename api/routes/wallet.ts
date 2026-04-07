@@ -46,6 +46,67 @@ async function loadWalletContext(
   return { db, carte, client } as const;
 }
 
+function isValidApplePassAuth(c: Context, serialNumber: string) {
+  const auth = c.req.header('Authorization') ?? '';
+  return auth === `ApplePass ${serialNumber}`;
+}
+
+async function loadApplePassByClient(serialNumber: string) {
+  const db = createServiceClient();
+  const { data: client } = await db
+    .from('clients')
+    .select('*, cartes(*, commerces(id, nom, logo_url, latitude, longitude, rayon_geo))')
+    .eq('id', serialNumber)
+    .single();
+
+  if (!client?.cartes) return { db, client: null, carte: null } as const;
+  const { cartes, ...clientData } = client as typeof client & { cartes: unknown };
+  return { db, client: clientData, carte: cartes } as const;
+}
+
+walletRoutes.post('/apple/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber', async (c) => {
+  const serialNumber = c.req.param('serialNumber') ?? '';
+  if (!isValidApplePassAuth(c, serialNumber)) return c.body(null, 401);
+  return c.body(null, 201);
+});
+
+walletRoutes.delete('/apple/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber', async (c) => {
+  const serialNumber = c.req.param('serialNumber') ?? '';
+  if (!isValidApplePassAuth(c, serialNumber)) return c.body(null, 401);
+  return c.body(null, 200);
+});
+
+walletRoutes.get('/apple/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier', async (c) => {
+  return c.json({ serialNumbers: [], lastUpdated: new Date().toISOString() });
+});
+
+walletRoutes.get('/apple/v1/passes/:passTypeIdentifier/:serialNumber', async (c) => {
+  const serialNumber = c.req.param('serialNumber') ?? '';
+  if (!isValidApplePassAuth(c, serialNumber)) return c.body(null, 401);
+
+  const { carte, client } = await loadApplePassByClient(serialNumber);
+  if (!carte || !client) return c.json({ error: 'Pass introuvable' }, 404);
+
+  try {
+    const passBuffer = await generateApplePass(
+      carte as Parameters<typeof generateApplePass>[0],
+      client as Parameters<typeof generateApplePass>[1],
+    );
+
+    return new Response(new Uint8Array(passBuffer), {
+      headers: {
+        'Content-Type': 'application/vnd.apple.pkpass',
+        'Content-Disposition': 'inline; filename="fidelite.pkpass"',
+        'Cache-Control': 'no-store',
+        'Last-Modified': new Date().toUTCString(),
+      },
+    });
+  } catch (err) {
+    console.error('[Apple Wallet update pass]', err);
+    return c.json({ error: 'Erreur lors de la génération du pass' }, 500);
+  }
+});
+
 /** POST /api/wallet/apple/:carteId — Génère un .pkpass Apple Wallet */
 const appleWalletHandler = async (c: Context) => {
   const carteId = c.req.param('carteId');
@@ -73,7 +134,7 @@ const appleWalletHandler = async (c: Context) => {
 
     await db.from('clients').update({ apple_pass_serial: client.id }).eq('id', client.id);
 
-    return new Response(passBuffer, {
+    return new Response(new Uint8Array(passBuffer), {
       headers: {
         'Content-Type': 'application/vnd.apple.pkpass',
         'Content-Disposition': 'inline; filename="fidelite.pkpass"',

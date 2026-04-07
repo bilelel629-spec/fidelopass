@@ -3,7 +3,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 ---
 
 <AppLayout title="Scanner — FideloPass">
-  <div class="h-screen flex flex-col">
+  <div class="min-h-[100dvh] flex flex-col">
     <!-- Header -->
     <div class="flex items-center gap-3 px-4 pt-6 pb-4 border-b border-white/10">
       <a href="/app" class="text-slate-400 hover:text-white transition-colors">
@@ -16,9 +16,9 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
     <!-- Zone scanner -->
     <div class="flex-1 flex flex-col items-center justify-center px-4 gap-6">
-      <div class="relative w-full max-w-xs">
-        <div id="reader" class="w-full aspect-square rounded-2xl overflow-hidden border-2 border-indigo-500/50 bg-navy-800"></div>
-        <div class="pointer-events-none absolute inset-6 rounded-2xl border-2 border-white/70 shadow-[0_0_0_999px_rgba(2,6,23,0.28)]"></div>
+      <div class="relative w-full max-w-sm">
+        <div id="reader" class="w-full aspect-[3/4] rounded-2xl overflow-hidden border-2 border-indigo-500/50 bg-navy-800"></div>
+        <div class="pointer-events-none absolute inset-4 rounded-2xl border-2 border-white/70 shadow-[0_0_0_999px_rgba(2,6,23,0.22)]"></div>
       </div>
       <div class="text-center">
         <p class="text-slate-200 text-sm font-medium">Scannez directement avec la caméra</p>
@@ -44,7 +44,23 @@ import AppLayout from '../../layouts/AppLayout.astro';
           </button>
         </div>
 
+        <button id="btn-reward" class="hidden btn-secondary w-full py-3 mb-4 text-emerald-300 border-emerald-400/20 hover:bg-emerald-500/10">
+          Utiliser 1 récompense
+        </button>
+
         <button id="btn-close" class="btn-secondary w-full py-3">Annuler</button>
+      </div>
+    </div>
+
+    <div id="points-modal" class="hidden fixed inset-0 bg-navy-950/90 backdrop-blur-sm z-[60] flex items-center justify-center px-6">
+      <div class="card w-full max-w-xs p-5">
+        <h2 class="font-display font-bold text-white text-lg">Ajouter des points</h2>
+        <p class="text-slate-400 text-sm mt-1 mb-4">Entrez le nombre de points à créditer.</p>
+        <input id="points-value" type="number" min="1" step="1" inputmode="numeric" class="input text-center text-xl font-mono" placeholder="10" />
+        <div class="grid grid-cols-2 gap-3 mt-4">
+          <button id="btn-cancel-points" type="button" class="btn-secondary py-3">Annuler</button>
+          <button id="btn-confirm-points" type="button" class="btn-primary py-3">Ajouter</button>
+        </div>
       </div>
     </div>
   </div>
@@ -62,9 +78,16 @@ import AppLayout from '../../layouts/AppLayout.astro';
   const scannerStatus = document.getElementById('scanner-status')!;
   const scanner = new Html5Qrcode('reader', false);
   const scanConfig = {
-    fps: 10,
-    qrbox: { width: 240, height: 240 },
-    aspectRatio: 1,
+    fps: 12,
+    qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+      const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+      const size = Math.floor(Math.min(minEdge * 0.86, 360));
+      return { width: size, height: size };
+    },
+    aspectRatio: 3 / 4,
+    experimentalFeatures: {
+      useBarCodeDetectorIfSupported: true,
+    },
   };
 
   function setScannerStatus(message: string) {
@@ -77,7 +100,11 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
     try {
       await scanner.start(
-        { facingMode: { exact: 'environment' } },
+        {
+          facingMode: { exact: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
         scanConfig,
         handleScan,
         () => {},
@@ -86,7 +113,11 @@ import AppLayout from '../../layouts/AppLayout.astro';
     } catch {
       try {
         await scanner.start(
-          { facingMode: 'environment' },
+          {
+            facingMode: 'environment',
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
           scanConfig,
           handleScan,
           () => {},
@@ -126,6 +157,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
         data.tampons_actuels !== undefined
           ? `${data.tampons_actuels} tampons — ${data.recompenses_obtenues} récompense(s)`
           : `${data.points_actuels} points`;
+      const rewardBtn = document.getElementById('btn-reward')!;
+      rewardBtn.classList.toggle('hidden', currentClientRecompenses <= 0);
 
       document.getElementById('scan-result')!.classList.remove('hidden');
 
@@ -146,9 +179,29 @@ import AppLayout from '../../layouts/AppLayout.astro';
   // Bouton +points
   document.getElementById('btn-points')!.addEventListener('click', async () => {
     if (!currentClientId) return;
-    const valeur = prompt('Nombre de points à ajouter :');
-    if (!valeur || isNaN(Number(valeur))) return;
-    await addTransaction('ajout_points', parseInt(valeur));
+    document.getElementById('points-modal')!.classList.remove('hidden');
+    (document.getElementById('points-value') as HTMLInputElement).focus();
+  });
+
+  document.getElementById('btn-reward')!.addEventListener('click', async () => {
+    if (!currentClientId || currentClientRecompenses <= 0) return;
+    await addTransaction('recompense', 1);
+  });
+
+  document.getElementById('btn-cancel-points')!.addEventListener('click', () => {
+    document.getElementById('points-modal')!.classList.add('hidden');
+  });
+
+  document.getElementById('btn-confirm-points')!.addEventListener('click', async () => {
+    const input = document.getElementById('points-value') as HTMLInputElement;
+    const valeur = parseInt(input.value);
+    if (!Number.isFinite(valeur) || valeur < 1) {
+      input.focus();
+      return;
+    }
+    document.getElementById('points-modal')!.classList.add('hidden');
+    input.value = '';
+    await addTransaction('ajout_points', valeur);
   });
 
   async function addTransaction(type: string, valeur: number) {

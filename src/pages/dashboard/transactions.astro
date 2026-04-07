@@ -8,7 +8,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     <p class="text-slate-400 text-sm mt-1">Historique de tous les scans et ajouts de points</p>
   </div>
 
-  <div class="card overflow-hidden">
+  <div class="card overflow-x-auto">
     <div id="transactions-list">
       <p class="text-slate-500 text-sm p-6">Chargement...</p>
     </div>
@@ -17,6 +17,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
 <script>
   import { authFetch } from '../../lib/api';
+
+  function escapeHtml(value: unknown) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;',
+    }[char] ?? char));
+  }
 
   async function loadTransactions() {
     const container = document.getElementById('transactions-list')!;
@@ -64,7 +74,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                 <td class="px-6 py-4 font-mono text-slate-400 text-sm">
                   ${t.points_avant ?? '—'} → ${t.points_apres ?? '—'}
                 </td>
-                <td class="px-6 py-4 text-slate-400 text-sm">${t.note ?? '—'}</td>
+                <td class="px-6 py-4 text-slate-400 text-sm">${escapeHtml(t.note ?? '—')}</td>
                 <td class="px-6 py-4 text-slate-400 text-sm">
                   ${new Date(t.created_at).toLocaleString('fr-FR')}
                 </td>

@@ -53,6 +53,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 <script>
   import { authFetch } from '../../lib/api';
 
+  function escapeHtml(value: unknown) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;',
+    }[char] ?? char));
+  }
+
   // Compteur de caractères
   const messageInput = document.getElementById('message') as HTMLTextAreaElement;
   const charCount = document.getElementById('char-count')!;
@@ -86,7 +96,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Erreur');
 
-      successMsg.textContent = `Notification envoyée à ${data.nb_destinataires} client(s).`;
+      successMsg.textContent = `Notification envoyée à ${data.nb_delivrees} client(s) sur ${data.nb_destinataires} notifiable(s).`;
       successMsg.classList.remove('hidden');
       form.reset();
       charCount.textContent = '0';
@@ -117,8 +127,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <div class="border-b border-white/5 pb-3 last:border-0 last:pb-0">
           <div class="flex items-start justify-between gap-2">
             <div>
-              <p class="text-white text-sm font-medium">${n.titre}</p>
-              <p class="text-slate-400 text-xs mt-0.5">${n.message}</p>
+              <p class="text-white text-sm font-medium">${escapeHtml(n.titre)}</p>
+              <p class="text-slate-400 text-xs mt-0.5">${escapeHtml(n.message)}</p>
             </div>
             <span class="badge badge-info shrink-0">${n.nb_destinataires}</span>
           </div>

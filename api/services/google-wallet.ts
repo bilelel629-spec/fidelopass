@@ -26,6 +26,7 @@ interface ClientData {
   nom: string | null;
   points_actuels: number;
   tampons_actuels: number;
+  recompenses_obtenues?: number;
 }
 
 const GOOGLE_WALLET_API = 'https://walletobjects.googleapis.com/walletobjects/v1';
@@ -167,4 +168,42 @@ export async function generateGooglePass(
     objectId,
     saveUrl: `https://pay.google.com/gp/v/save/${token}`,
   };
+}
+
+export async function updateGooglePassObject(
+  objectId: string,
+  carte: CarteData,
+  client: ClientData,
+): Promise<void> {
+  const authClient = await getAuthClient();
+  const solde = carte.type === 'tampons'
+    ? `${client.tampons_actuels}/${carte.tampons_total}`
+    : String(client.points_actuels);
+
+  const requester = authClient as unknown as {
+    request: (opts: { url: string; method: string; data?: unknown }) => Promise<unknown>;
+  };
+
+  await requester.request({
+    url: `${GOOGLE_WALLET_API}/loyaltyObject/${objectId}`,
+    method: 'PATCH',
+    data: {
+      loyaltyPoints: {
+        label: (carte.label_client ?? 'Points').toUpperCase(),
+        balance: { string: solde },
+      },
+      textModulesData: [
+        {
+          header: 'Récompense',
+          body: carte.recompense_description ?? '—',
+          id: 'recompense',
+        },
+        {
+          header: 'Récompenses obtenues',
+          body: String(client.recompenses_obtenues ?? 0),
+          id: 'solde_actuel',
+        },
+      ],
+    },
+  });
 }

@@ -12,12 +12,22 @@ function normalizePhone(phone: string): string {
 /** GET /api/clients/:id — Récupère un client (utilisé par le scanner) */
 clientsRoutes.get('/:id', authMiddleware, async (c) => {
   const clientId = c.req.param('id');
+  const userId = c.get('userId') as string;
   const db = createServiceClient();
+
+  const { data: commerce } = await db
+    .from('commerces')
+    .select('id')
+    .eq('user_id', userId)
+    .single();
+
+  if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
 
   const { data, error } = await db
     .from('clients')
     .select('*, cartes(nom, type, tampons_total, points_recompense)')
     .eq('id', clientId)
+    .eq('commerce_id', commerce.id)
     .single();
 
   if (error || !data) return c.json({ error: 'Client introuvable' }, 404);

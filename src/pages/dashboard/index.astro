@@ -46,6 +46,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 <script>
   import { authFetch } from '../../lib/api';
 
+  function escapeHtml(value: unknown) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;',
+    }[char] ?? char));
+  }
+
   // Chargement des stats via l'API
   async function loadStats() {
     try {
@@ -78,7 +88,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <div class="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
           <div class="flex items-center gap-3">
             <span class="w-2 h-2 rounded-full ${t.type === 'ajout_tampon' ? 'bg-indigo-400' : t.type === 'ajout_points' ? 'bg-cyan-400' : 'bg-emerald-400'}"></span>
-            <span class="text-slate-300 text-sm capitalize">${t.type.replace('_', ' ')}</span>
+            <span class="text-slate-300 text-sm capitalize">${escapeHtml(t.type.replace('_', ' '))}</span>
           </div>
           <div class="flex items-center gap-4">
             <span class="font-mono text-sm text-white">+${t.valeur}</span>

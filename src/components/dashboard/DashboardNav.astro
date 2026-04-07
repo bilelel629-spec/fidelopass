@@ -14,7 +14,7 @@ const navItems = [
 ];
 ---
 
-<aside class="w-60 shrink-0 border-r border-white/5 flex flex-col h-full" style="background:#0a0f1e">
+<aside class="hidden lg:flex w-60 shrink-0 border-r border-white/5 flex-col h-full" style="background:#0a0f1e">
   <div class="px-6 py-5 border-b border-white/5">
     <a href="/dashboard" class="font-display font-bold text-lg text-white">
       Fidéli<span style="color:#818cf8">Pass</span>
@@ -46,6 +46,33 @@ const navItems = [
     </button>
   </div>
 </aside>
+
+<header class="lg:hidden fixed top-0 inset-x-0 z-40 border-b border-white/10 bg-navy-950/90 backdrop-blur-xl px-4 py-3 flex items-center justify-between">
+  <a href="/dashboard" class="font-display font-bold text-lg text-white">
+    Fidéli<span style="color:#818cf8">Pass</span>
+  </a>
+  <a href="/app" class="rounded-full bg-indigo-500/20 text-indigo-200 px-3 py-1.5 text-xs font-semibold">
+    Scanner
+  </a>
+</header>
+
+<nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-white/10 bg-navy-950/95 backdrop-blur-xl px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
+  <div class="grid grid-cols-5 gap-1">
+    {navItems.slice(0, 5).map(({ href, id, label, icon }) => (
+      <a
+        href={href}
+        class={`min-w-0 flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[0.68rem] transition-all
+          ${activeNav === id
+            ? 'bg-indigo-500/20 text-indigo-200 font-semibold'
+            : 'text-slate-400 hover:text-slate-200'
+          }`}
+      >
+        <span class="text-base leading-none">{icon}</span>
+        <span class="truncate max-w-full">{label}</span>
+      </a>
+    ))}
+  </div>
+</nav>
 
 <script>
   import { createClient } from '@supabase/supabase-js';

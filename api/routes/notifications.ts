@@ -71,7 +71,11 @@ notificationsRoutes.post('/', async (c) => {
 
   let nbDelivrees = 0;
   if (tokens.length > 0) {
-    nbDelivrees = await sendPushNotification(tokens, parsed.data.titre, parsed.data.message);
+    try {
+      nbDelivrees = await sendPushNotification(tokens, parsed.data.titre, parsed.data.message);
+    } catch (err) {
+      console.error('[notifications push]', err);
+    }
   }
 
   // Enregistre la notification

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fidelipass-v1';
+const CACHE_NAME = 'fidelipass-v2';
 const APP_SHELL = [
   '/app',
   '/app/scan',
@@ -24,7 +24,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// ── Fetch : cache-first pour l'app shell, network-first pour l'API ───────────
+// ── Fetch : network-first pour éviter de garder une vieille version après deploy ──
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -35,17 +35,15 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((response) => {
-        // Met en cache uniquement les ressources GET du même domaine
-        if (request.method === 'GET' && url.origin === self.location.origin) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-        }
-        return response;
-      }).catch(() => cached ?? new Response('Offline', { status: 503 }));
-    })
+    fetch(request).then((response) => {
+      if (request.method === 'GET' && url.origin === self.location.origin) {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+      }
+      return response;
+    }).catch(() =>
+      caches.match(request).then((cached) => cached ?? new Response('Offline', { status: 503 }))
+    )
   );
 });
 

@@ -27,7 +27,7 @@ const carteSchema = z.object({
   // Champs avancés (migration 003)
   couleur_fond_2: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable().optional(),
   gradient_angle: z.number().int().min(0).max(360).default(135),
-  pattern_type: z.enum(['none', 'dots', 'waves', 'grid']).default('none'),
+  pattern_type: z.enum(['none', 'dots', 'waves', 'grid', 'diagonal', 'confetti']).default('none'),
   tampon_emoji: z.string().max(8).nullable().optional(),
   // Typographie (migration 004)
   police: z.enum(['system', 'inter', 'playfair', 'bebas', 'nunito', 'mono']).default('system'),

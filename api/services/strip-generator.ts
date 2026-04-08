@@ -88,6 +88,23 @@ function patternOverlay(type: string, W: number, H: number, accent: string): str
         </pattern>
       </defs>
       <rect width="${W}" height="${H}" fill="url(#pat)"/>`;
+    case 'diagonal':
+      return `<defs>
+        <pattern id="pat" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+          <rect x="0" y="0" width="5" height="28" fill="rgba(${r},${g},${b},0.16)"/>
+        </pattern>
+      </defs>
+      <rect width="${W}" height="${H}" fill="url(#pat)"/>`;
+    case 'confetti':
+      return `<defs>
+        <pattern id="pat" x="0" y="0" width="54" height="54" patternUnits="userSpaceOnUse">
+          <circle cx="10" cy="12" r="3" fill="rgba(${r},${g},${b},0.18)"/>
+          <rect x="31" y="8" width="12" height="4" rx="2" transform="rotate(25 37 10)" fill="rgba(${r},${g},${b},0.16)"/>
+          <circle cx="42" cy="38" r="2.5" fill="rgba(${r},${g},${b},0.2)"/>
+          <rect x="14" y="36" width="10" height="4" rx="2" transform="rotate(-28 19 38)" fill="rgba(${r},${g},${b},0.15)"/>
+        </pattern>
+      </defs>
+      <rect width="${W}" height="${H}" fill="url(#pat)"/>`;
     default:
       return '';
   }

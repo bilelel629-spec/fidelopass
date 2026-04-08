@@ -30,6 +30,57 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     <div class="flex flex-col gap-5">
 
+      <!-- Modèles métier -->
+      <div class="card p-6">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">
+          <div>
+            <h2 class="font-display font-bold text-white flex items-center gap-2"><span class="text-lg">⚡</span> Modèles rapides</h2>
+            <p class="text-slate-400 text-sm mt-1">Choisissez un style de départ, puis ajustez les détails. Tout ici est compatible avec le rendu Wallet.</p>
+          </div>
+          <span class="text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-400/20 rounded-full px-3 py-1 w-fit">Recommandé pour démarrer</span>
+        </div>
+        <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
+          {[
+            {name:'Café cosy', icon:'☕', fond:'#2b1608', texte:'#fff7ed', accent:'#d97706', fond2:'#5f3214', pattern:'waves', stamp:'☕', type:'tampons', total:'10', reward:'1 boisson offerte', label:'Client', desc:'10 passages = 1 boisson offerte', message:'Votre café vous attend !'},
+            {name:'Restaurant', icon:'🍽️', fond:'#111827', texte:'#fff7ed', accent:'#f97316', fond2:'#7c2d12', pattern:'diagonal', stamp:'🍽️', type:'tampons', total:'8', reward:'1 dessert offert', label:'Table fidèle', desc:'Cumulez des tampons à chaque repas', message:'Une récompense vous attend au restaurant.'},
+            {name:'Institut beauté', icon:'✨', fond:'#4a102a', texte:'#fff1f2', accent:'#f472b6', fond2:'#831843', pattern:'confetti', stamp:'✨', type:'tampons', total:'6', reward:'-20% sur un soin', label:'Cliente', desc:'Votre carte privilège beauté', message:'Votre avantage beauté est disponible.'},
+            {name:'Barber shop', icon:'✂️', fond:'#0f172a', texte:'#f8fafc', accent:'#38bdf8', fond2:'#1e3a8a', pattern:'grid', stamp:'✂️', type:'tampons', total:'8', reward:'1 coupe offerte', label:'Client', desc:'Une coupe offerte après 8 passages', message:'Votre barber vous attend.'},
+            {name:'Boutique premium', icon:'🛍️', fond:'#030712', texte:'#fefce8', accent:'#d4af37', fond2:'#422006', pattern:'dots', stamp:'🛍️', type:'points', total:'10', reward:'10€ de réduction', label:'Membre', desc:'Cumulez des points à chaque achat', message:'Votre avantage fidélité est disponible en boutique.'},
+            {name:'Sport & coaching', icon:'🏆', fond:'#022c22', texte:'#ecfdf5', accent:'#22c55e', fond2:'#064e3b', pattern:'diagonal', stamp:'🏆', type:'points', total:'10', reward:'1 séance offerte', label:'Athlète', desc:'Transformez vos visites en récompenses', message:'Votre coach vous attend.'},
+          ].map((preset) => (
+            <button
+              type="button"
+              class="business-template-btn text-left rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:border-indigo-400/60 hover:bg-indigo-500/10 transition-all"
+              data-name={preset.name}
+              data-icon={preset.icon}
+              data-fond={preset.fond}
+              data-texte={preset.texte}
+              data-accent={preset.accent}
+              data-fond2={preset.fond2}
+              data-pattern={preset.pattern}
+              data-stamp={preset.stamp}
+              data-type={preset.type}
+              data-total={preset.total}
+              data-reward={preset.reward}
+              data-label={preset.label}
+              data-desc={preset.desc}
+              data-message={preset.message}
+            >
+              <div class="flex items-center gap-3">
+                <span class="text-2xl">{preset.icon}</span>
+                <div>
+                  <p class="text-white text-sm font-semibold">{preset.name}</p>
+                  <p class="text-slate-400 text-xs mt-0.5">{preset.reward}</p>
+                </div>
+              </div>
+              <div class="mt-3 h-10 rounded-xl border border-white/10" style={`background:linear-gradient(135deg,${preset.fond},${preset.fond2})`}>
+                <div class="h-full w-1/3 rounded-l-xl" style={`background:${preset.accent}`}></div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <!-- Identité visuelle -->
       <div class="card p-6">
         <h2 class="font-display font-bold text-white mb-5 flex items-center gap-2"><span class="text-lg">🖼️</span> Identité visuelle</h2>
@@ -66,7 +117,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             <div id="tampon-emoji-zone" class="hidden">
               <p class="text-slate-500 text-xs mb-1.5">Sélectionnez un emoji</p>
               <div class="grid grid-cols-6 gap-1">
-                {['☕','🍩','⭐','🎁','❤️','🏆','🍕','🎫','💎','🔥','🎉','✨','🍦','🥐','🛍️','🌟','🎵','🍰'].map(e => (
+                {['☕','🍩','⭐','🎁','❤️','🏆','🍕','🎫','💎','🔥','🎉','✨','🍦','🥐','🛍️','🌟','🎵','🍰','🍽️','✂️','💅','🏋️'].map(e => (
                   <button type="button" class="emoji-stamp-btn w-9 h-9 rounded-lg text-xl hover:bg-white/10 transition-all flex items-center justify-center border-2 border-transparent" data-emoji={e}>{e}</button>
                 ))}
               </div>
@@ -133,6 +184,31 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <div class="card p-6">
         <h2 class="font-display font-bold text-white mb-5 flex items-center gap-2"><span class="text-lg">🎴</span> Programme fidélité</h2>
         <div class="flex flex-col gap-4">
+          <div>
+            <label class="label mb-3 block">Formules prêtes à l'emploi</label>
+            <div class="grid sm:grid-cols-3 gap-2">
+              {[
+                {label:'10 achats = 1 offert', type:'tampons', total:'10', reward:'1 produit offert', points:'100', perEuro:'1'},
+                {label:'8 visites = cadeau', type:'tampons', total:'8', reward:'1 cadeau fidélité', points:'100', perEuro:'1'},
+                {label:'1€ = 1 point', type:'points', total:'10', reward:'5€ de réduction', points:'100', perEuro:'1'},
+                {label:'2€ = 1 point', type:'points', total:'10', reward:'10€ de réduction', points:'200', perEuro:'0.5'},
+                {label:'VIP rapide', type:'tampons', total:'5', reward:'1 avantage VIP', points:'100', perEuro:'1'},
+                {label:'Récompense premium', type:'points', total:'10', reward:'1 récompense premium', points:'500', perEuro:'1'},
+              ].map((preset) => (
+                <button
+                  type="button"
+                  class="program-preset-btn rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-left text-xs text-slate-300 hover:border-indigo-400/60 hover:text-white transition-all"
+                  data-type={preset.type}
+                  data-total={preset.total}
+                  data-reward={preset.reward}
+                  data-points={preset.points}
+                  data-per-euro={preset.perEuro}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div class="grid sm:grid-cols-2 gap-4">
             <div><label class="label" for="nom-carte">Nom de la carte *</label><input id="nom-carte" type="text" class="input" placeholder="Carte fidélité Ma Boutique" required /></div>
             <div><label class="label" for="label-client">Label membre</label><input id="label-client" type="text" class="input" placeholder="Client, Membre, VIP..." maxlength="30" /></div>
@@ -207,14 +283,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
 
         <label class="label mb-3 block">Pattern de fond <span class="text-slate-500 font-normal text-xs">(toute la carte)</span></label>
-        <div class="grid grid-cols-4 gap-2">
-          {[{value:'none',label:'Aucun'},{value:'dots',label:'Points'},{value:'grid',label:'Grille'},{value:'waves',label:'Vagues'}].map(({value,label})=>(
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {[{value:'none',label:'Aucun'},{value:'dots',label:'Points'},{value:'grid',label:'Grille'},{value:'waves',label:'Vagues'},{value:'diagonal',label:'Diagonales'},{value:'confetti',label:'Confetti'}].map(({value,label})=>(
             <label id={`pat-${value}-label`} class="cursor-pointer rounded-xl border-2 p-2.5 text-center transition-all" style={value==='none'?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent'}>
               <input type="radio" name="pattern_type" value={value} class="hidden" checked={value==='none'} />
               <div class="w-full h-8 rounded-lg mb-1.5 overflow-hidden relative" style="background:#1e293b">
                 {value==='dots'&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pd" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="4" cy="4" r="1.5" fill="rgba(99,102,241,0.5)"/></pattern></defs><rect width="100%" height="100%" fill="url(#pd)"/></svg>}
                 {value==='grid'&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pg" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M 8 0 L 0 0 0 8" fill="none" stroke="rgba(99,102,241,0.4)" stroke-width="0.5"/></pattern></defs><rect width="100%" height="100%" fill="url(#pg)"/></svg>}
                 {value==='waves'&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pw" width="16" height="8" patternUnits="userSpaceOnUse"><path d="M 0 4 Q 4 0 8 4 Q 12 8 16 4" fill="none" stroke="rgba(99,102,241,0.5)" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#pw)"/></svg>}
+                {value==='diagonal'&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pdiag" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="2" height="8" fill="rgba(99,102,241,0.42)"/></pattern></defs><rect width="100%" height="100%" fill="url(#pdiag)"/></svg>}
+                {value==='confetti'&&<svg class="absolute inset-0 w-full h-full"><circle cx="18%" cy="30%" r="3" fill="rgba(99,102,241,0.55)"/><rect x="58%" y="18%" width="14" height="4" rx="2" transform="rotate(20)" fill="rgba(99,102,241,0.45)"/><circle cx="72%" cy="72%" r="2.5" fill="rgba(99,102,241,0.6)"/><rect x="22%" y="70%" width="12" height="4" rx="2" transform="rotate(-25)" fill="rgba(99,102,241,0.4)"/></svg>}
               </div>
               <div class="text-white text-xs font-medium">{label}</div>
             </label>
@@ -226,8 +304,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <div class="card p-6">
         <h2 class="font-display font-bold text-white mb-5 flex items-center gap-2"><span class="text-lg">✍️</span> Typographie</h2>
         <div class="rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-100 leading-relaxed mb-5">
-          Apple et Google Wallet limitent une partie de la typographie réelle. Ces réglages pilotent surtout l’aperçu et nos visuels générés ; les champs natifs Wallet peuvent rester normalisés par Apple/Google.
+          Apple et Google Wallet n’acceptent pas les polices personnalisées libres. Pour éviter de promettre une personnalisation qui ne s’applique pas réellement, FideloPass utilise la typographie native Wallet, compatible et stable.
         </div>
+        <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <p class="text-white text-sm font-semibold">Typographie native Wallet</p>
+          <p class="text-slate-400 text-xs leading-relaxed mt-1">
+            Le rendu réel côté client garde la police Apple/Google. La personnalisation utile se fait donc sur les couleurs, la bannière, les tampons, les patterns, le programme et les messages.
+          </p>
+        </div>
+        <div class="hidden" aria-hidden="true">
         <label class="label mb-3 block">Police d'écriture</label>
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-5">
           {[
@@ -269,6 +354,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               ))}
             </div>
           </div>
+        </div>
         </div>
       </div>
 
@@ -568,6 +654,31 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   // Presets
+  function setInput(id: string, value: string) {
+    const input = document.getElementById(id) as HTMLInputElement | null;
+    if (!input) return;
+    input.value = value;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  function setRadio(name: string, value: string) {
+    const radio = document.querySelector(`input[name="${name}"][value="${value}"]`) as HTMLInputElement | null;
+    if (!radio) return;
+    radio.checked = true;
+    radio.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function ensureGradient(enabled: boolean) {
+    if (isGradient !== enabled) gradientToggle.click();
+  }
+
+  function selectEmojiStamp(emoji: string) {
+    setRadio('tampon_mode', 'emoji');
+    const button = Array.from(document.querySelectorAll('.emoji-stamp-btn'))
+      .find((btn) => (btn as HTMLElement).dataset.emoji === emoji) as HTMLElement | undefined;
+    if (button) button.click();
+  }
+
   document.querySelectorAll('.preset-btn').forEach(btn=>btn.addEventListener('click',()=>{
     const el=btn as HTMLElement;
     (document.getElementById('couleur-fond') as HTMLInputElement).value=el.dataset.fond!;
@@ -575,6 +686,42 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     (document.getElementById('couleur-accent') as HTMLInputElement).value=el.dataset.accent!;
     if(el.dataset.fond2){(document.getElementById('couleur-fond-2') as HTMLInputElement).value=el.dataset.fond2;if(!isGradient)gradientToggle.click();}
     updatePreview();
+  }));
+
+  document.querySelectorAll('.program-preset-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    const el=btn as HTMLElement;
+    setRadio('type', el.dataset.type ?? 'tampons');
+    setInput('tampons-total', el.dataset.total ?? '10');
+    setInput('points-par-euro', el.dataset.perEuro ?? '1');
+    setInput('points-recompense', el.dataset.points ?? '100');
+    setInput('recompense', el.dataset.reward ?? '');
+    updatePreview();
+  }));
+
+  document.querySelectorAll('.business-template-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    const el=btn as HTMLElement;
+    setInput('nom-carte', `Carte ${el.dataset.name ?? 'fidélité'}`);
+    setInput('description', el.dataset.desc ?? '');
+    setInput('recompense', el.dataset.reward ?? '');
+    setInput('label-client', el.dataset.label ?? 'Client');
+    setInput('message-geo', el.dataset.message ?? '');
+    setInput('couleur-fond', el.dataset.fond ?? '#0f172a');
+    setInput('couleur-texte', el.dataset.texte ?? '#ffffff');
+    setInput('couleur-accent', el.dataset.accent ?? '#6366f1');
+    ensureGradient(true);
+    setInput('couleur-fond-2', el.dataset.fond2 ?? '#6366f1');
+    setInput('gradient-angle', '135');
+    document.getElementById('gradient-angle-val')!.textContent='135°';
+    setRadio('pattern_type', el.dataset.pattern ?? 'none');
+    setRadio('type', el.dataset.type ?? 'tampons');
+    setInput('tampons-total', el.dataset.total ?? '10');
+    setInput('points-par-euro', '1');
+    setInput('points-recompense', el.dataset.type === 'points' ? '100' : '100');
+    setRadio('barcode_type', 'QR');
+    selectEmojiStamp(el.dataset.stamp ?? '✓');
+    updatePreview();
+    document.getElementById('success-msg')!.textContent='Modèle appliqué. Vous pouvez ajuster puis enregistrer.';
+    document.getElementById('success-msg')!.classList.remove('hidden');
   }));
 
   // Type
@@ -603,7 +750,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   // Pattern
   document.querySelectorAll('input[name="pattern_type"]').forEach(r=>r.addEventListener('change',()=>{
     const v=(document.querySelector('input[name="pattern_type"]:checked') as HTMLInputElement).value;
-    ['none','dots','grid','waves'].forEach(k=>document.getElementById(`pat-${k}-label`)!.style.cssText=k===v?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent');
+    ['none','dots','grid','waves','diagonal','confetti'].forEach(k=>document.getElementById(`pat-${k}-label`)!.style.cssText=k===v?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent');
     updatePreview();
   }));
 
@@ -620,6 +767,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     if(pt==='dots') return{image:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='12' cy='12' r='2' fill='rgba(${encodeURIComponent(rgb)},0.18)'/%3E%3C/svg%3E")`,size:'24px 24px'};
     if(pt==='grid') return{image:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M 24 0 L 0 0 0 24' fill='none' stroke='rgba(${encodeURIComponent(rgb)},0.15)' stroke-width='0.6'/%3E%3C/svg%3E")`,size:'24px 24px'};
     if(pt==='waves') return{image:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='24'%3E%3Cpath d='M 0 12 Q 12 0 24 12 Q 36 24 48 12' fill='none' stroke='rgba(${encodeURIComponent(rgb)},0.2)' stroke-width='1.2'/%3E%3C/svg%3E")`,size:'48px 24px'};
+    if(pt==='diagonal') return{image:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cdefs%3E%3Cpattern id='p' width='28' height='28' patternUnits='userSpaceOnUse' patternTransform='rotate(35)'%3E%3Crect width='5' height='28' fill='rgba(${encodeURIComponent(rgb)},0.16)'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='28' height='28' fill='url(%23p)'/%3E%3C/svg%3E")`,size:'28px 28px'};
+    if(pt==='confetti') return{image:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='54' height='54'%3E%3Ccircle cx='10' cy='12' r='3' fill='rgba(${encodeURIComponent(rgb)},0.18)'/%3E%3Crect x='31' y='8' width='12' height='4' rx='2' transform='rotate(25 37 10)' fill='rgba(${encodeURIComponent(rgb)},0.16)'/%3E%3Ccircle cx='42' cy='38' r='2.5' fill='rgba(${encodeURIComponent(rgb)},0.2)'/%3E%3Crect x='14' y='36' width='10' height='4' rx='2' transform='rotate(-28 19 38)' fill='rgba(${encodeURIComponent(rgb)},0.15)'/%3E%3C/svg%3E")`,size:'54px 54px'};
     return{image:'none',size:'auto'};
   }
 
@@ -752,13 +901,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       function sr(name:string,val:string){const el=document.querySelector(`input[name="${name}"][value="${val}"]`) as HTMLInputElement;if(el)el.checked=true;}
       function sl(prefix:string,opts:string[],sel:string){opts.forEach(v=>document.getElementById(`${prefix}${v}-label`)!.style.cssText=v===sel?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent');}
 
-      const pt=data.pattern_type??'none'; sr('pattern_type',pt); sl('pat-',['none','dots','grid','waves'],pt);
-      const pol=data.police??'system'; sr('police',pol); sl('font-',['system','inter','playfair','bebas','nunito','mono'],pol);
-      if(data.police_taille!=null){set('police-taille',String(data.police_taille));document.getElementById('police-taille-val')!.textContent=`${data.police_taille}%`;}
-      const gv=data.police_gras?'true':'false'; sr('police_gras',gv);
-      document.getElementById('gras-off-label')!.style.cssText=!data.police_gras?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent';
-      document.getElementById('gras-on-label')!.style.cssText=data.police_gras?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent';
-      const av=data.texte_alignement??'left'; sr('texte_alignement',av);
+      const pt=data.pattern_type??'none'; sr('pattern_type',pt); sl('pat-',['none','dots','grid','waves','diagonal','confetti'],pt);
+      const pol='system'; sr('police',pol); sl('font-',['system','inter','playfair','bebas','nunito','mono'],pol);
+      set('police-taille','100'); document.getElementById('police-taille-val')!.textContent='100%';
+      const gv='false'; sr('police_gras',gv);
+      document.getElementById('gras-off-label')!.style.cssText='border-color:#6366f1;background:rgb(99 102 241/0.1)';
+      document.getElementById('gras-on-label')!.style.cssText='border-color:#334155;background:transparent';
+      const av='left'; sr('texte_alignement',av);
       ['left','center','right'].forEach(v=>document.getElementById(`align-${v}-label`)!.style.cssText=v===av?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent');
       applyStripStyle(!!data.strip_plein_largeur); if(data.strip_plein_largeur)sr('strip_style','full');
       const tp=data.type??'tampons'; sr('type',tp); applyTypeUI(tp);
@@ -823,8 +972,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       couleur_fond_2:isGradient?gi('couleur-fond-2'):null,
       gradient_angle:isGradient?parseInt(gi('gradient-angle')):135,
       pattern_type:v('pattern_type')||'none',tampon_emoji:tamponEmoji||null,
-      police:v('police')||'system',police_taille:parseInt(gi('police-taille'))||100,
-      police_gras:v('police_gras')==='true',texte_alignement:v('texte_alignement')||'left',
+      police:'system',police_taille:100,
+      police_gras:false,texte_alignement:'left',
       strip_plein_largeur:v('strip_style')==='full',
     };
     try{

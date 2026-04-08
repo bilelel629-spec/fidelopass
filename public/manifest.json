@@ -1,6 +1,6 @@
 {
-  "name": "FideloPass Scanner",
-  "short_name": "FideloPass",
+  "name": "Fidelopass Scanner",
+  "short_name": "Fidelopass",
   "description": "Scanner de cartes de fidélité",
   "start_url": "/app",
   "display": "standalone",
@@ -8,6 +8,12 @@
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "icons": [
+    {
+      "src": "/icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",

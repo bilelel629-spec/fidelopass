@@ -6,7 +6,7 @@ interface Props {
   activeNav?: string;
 }
 
-const { title = 'Admin — FideloPass', activeNav = '' } = Astro.props;
+const { title = 'Admin — Fidelopass', activeNav = '' } = Astro.props;
 
 const navItems = [
   { href: '/admin', id: 'overview', label: 'Vue globale', icon: '📊' },
@@ -19,6 +19,7 @@ const navItems = [
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
   </head>
@@ -27,8 +28,9 @@ const navItems = [
       <!-- Sidebar -->
       <aside class="w-60 shrink-0 bg-navy-950 border-r border-white/5 flex flex-col">
         <div class="px-6 py-5 border-b border-white/5">
-          <a href="/admin" class="font-display font-bold text-lg text-white">
-            Fidéli<span class="text-indigo-400">Pass</span>
+          <a href="/admin" class="flex items-center gap-2 text-white">
+            <img src="/logo-mark.svg" alt="" class="h-8 w-8 rounded-xl" />
+            <span class="font-display font-bold text-lg">Fidelopass</span>
             <span class="ml-2 badge badge-danger text-[10px]">ADMIN</span>
           </a>
         </div>

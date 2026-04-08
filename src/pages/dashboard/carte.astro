@@ -2,10 +2,7 @@
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
 ---
 
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght@400;700&family=Bebas+Neue&family=Nunito:wght@400;700&display=swap" rel="stylesheet" />
-
-<DashboardLayout title="Ma carte — FideloPass" activeNav="carte">
+<DashboardLayout title="Ma carte — Fidelopass" activeNav="carte">
   <div class="mb-8">
     <h1 class="font-display text-2xl font-bold text-white">Ma carte de fidélité</h1>
     <p class="text-slate-400 text-sm mt-1">Personnalisez l'apparence et le comportement de votre carte Wallet</p>
@@ -41,12 +38,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
         <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {[
-            {name:'Café cosy', icon:'☕', fond:'#2b1608', texte:'#fff7ed', accent:'#d97706', fond2:'#5f3214', pattern:'waves', stamp:'☕', type:'tampons', total:'10', reward:'1 boisson offerte', label:'Client', desc:'10 passages = 1 boisson offerte', message:'Votre café vous attend !'},
-            {name:'Restaurant', icon:'🍽️', fond:'#111827', texte:'#fff7ed', accent:'#f97316', fond2:'#7c2d12', pattern:'diagonal', stamp:'🍽️', type:'tampons', total:'8', reward:'1 dessert offert', label:'Table fidèle', desc:'Cumulez des tampons à chaque repas', message:'Une récompense vous attend au restaurant.'},
-            {name:'Institut beauté', icon:'✨', fond:'#4a102a', texte:'#fff1f2', accent:'#f472b6', fond2:'#831843', pattern:'confetti', stamp:'✨', type:'tampons', total:'6', reward:'-20% sur un soin', label:'Cliente', desc:'Votre carte privilège beauté', message:'Votre avantage beauté est disponible.'},
-            {name:'Barber shop', icon:'✂️', fond:'#0f172a', texte:'#f8fafc', accent:'#38bdf8', fond2:'#1e3a8a', pattern:'grid', stamp:'✂️', type:'tampons', total:'8', reward:'1 coupe offerte', label:'Client', desc:'Une coupe offerte après 8 passages', message:'Votre barber vous attend.'},
-            {name:'Boutique premium', icon:'🛍️', fond:'#030712', texte:'#fefce8', accent:'#d4af37', fond2:'#422006', pattern:'dots', stamp:'🛍️', type:'points', total:'10', reward:'10€ de réduction', label:'Membre', desc:'Cumulez des points à chaque achat', message:'Votre avantage fidélité est disponible en boutique.'},
-            {name:'Sport & coaching', icon:'🏆', fond:'#022c22', texte:'#ecfdf5', accent:'#22c55e', fond2:'#064e3b', pattern:'diagonal', stamp:'🏆', type:'points', total:'10', reward:'1 séance offerte', label:'Athlète', desc:'Transformez vos visites en récompenses', message:'Votre coach vous attend.'},
+            {name:'Café cosy', icon:'☕', fond:'#2b1608', texte:'#fff7ed', accent:'#d97706', fond2:'#5f3214', pattern:'waves', layout:'bottom', stamp:'☕', type:'tampons', total:'10', reward:'1 boisson offerte', label:'Client', desc:'10 passages = 1 boisson offerte', message:'Votre café vous attend !'},
+            {name:'Restaurant', icon:'🍽️', fond:'#111827', texte:'#fff7ed', accent:'#f97316', fond2:'#7c2d12', pattern:'diagonal', layout:'top', stamp:'🍽️', type:'tampons', total:'8', reward:'1 dessert offert', label:'Table fidèle', desc:'Cumulez des tampons à chaque repas', message:'Une récompense vous attend au restaurant.'},
+            {name:'Institut beauté', icon:'✨', fond:'#4a102a', texte:'#fff1f2', accent:'#f472b6', fond2:'#831843', pattern:'confetti', layout:'bottom', stamp:'✨', type:'tampons', total:'6', reward:'-20% sur un soin', label:'Cliente', desc:'Votre carte privilège beauté', message:'Votre avantage beauté est disponible.'},
+            {name:'Barber shop', icon:'✂️', fond:'#0f172a', texte:'#f8fafc', accent:'#38bdf8', fond2:'#1e3a8a', pattern:'grid', layout:'top', stamp:'✂️', type:'tampons', total:'8', reward:'1 coupe offerte', label:'Client', desc:'Une coupe offerte après 8 passages', message:'Votre barber vous attend.'},
+            {name:'Boutique premium', icon:'🛍️', fond:'#030712', texte:'#fefce8', accent:'#d4af37', fond2:'#422006', pattern:'dots', layout:'background', stamp:'🛍️', type:'points', total:'10', reward:'10€ de réduction', label:'Membre', desc:'Cumulez des points à chaque achat', message:'Votre avantage fidélité est disponible en boutique.'},
+            {name:'Sport & coaching', icon:'🏆', fond:'#022c22', texte:'#ecfdf5', accent:'#22c55e', fond2:'#064e3b', pattern:'diagonal', layout:'background', stamp:'🏆', type:'points', total:'10', reward:'1 séance offerte', label:'Athlète', desc:'Transformez vos visites en récompenses', message:'Votre coach vous attend.'},
           ].map((preset) => (
             <button
               type="button"
@@ -58,6 +55,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               data-accent={preset.accent}
               data-fond2={preset.fond2}
               data-pattern={preset.pattern}
+              data-layout={preset.layout}
               data-stamp={preset.stamp}
               data-type={preset.type}
               data-total={preset.total}
@@ -95,6 +93,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               </div>
               <input type="file" id="logo-file" accept="image/png,image/jpeg,image/webp" class="hidden" />
               <button type="button" id="logo-btn" class="btn-secondary text-xs py-1.5 px-3 w-full">Choisir</button>
+              <button type="button" id="logo-palette-btn" class="btn-secondary text-xs py-1.5 px-3 w-full text-emerald-300">Générer une palette</button>
               <input type="hidden" id="logo-url" />
               <p id="logo-loading" class="hidden text-indigo-400 text-xs">Upload...</p>
               <p class="text-slate-600 text-xs text-center leading-tight">PNG/JPG carré<br/>Recommandé : 120×120 px</p>
@@ -157,11 +156,28 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               <div>
                 <label class="text-slate-500 text-xs mb-1.5 block">Style de la bannière</label>
                 <div class="grid grid-cols-2 gap-1.5">
-                  <label id="strip-style-rounded-label" class="cursor-pointer rounded-lg border-2 py-1.5 text-center text-xs transition-all" style="border-color:#6366f1;background:rgb(99 102 241/0.1);color:white">
-                    <input type="radio" name="strip_style" value="rounded" class="hidden" checked />⬜ Arrondi</label>
-                  <label id="strip-style-full-label" class="cursor-pointer rounded-lg border-2 py-1.5 text-center text-xs transition-all" style="border-color:#334155;background:transparent;color:#64748b">
-                    <input type="radio" name="strip_style" value="full" class="hidden" />▬ Pleine largeur</label>
+                  <label id="strip-style-rounded-label" class="cursor-pointer rounded-lg border-2 py-1.5 text-center text-xs transition-all" style="border-color:#334155;background:transparent;color:#64748b">
+                    <input type="radio" name="strip_style" value="rounded" class="hidden" />⬜ Arrondi</label>
+                  <label id="strip-style-full-label" class="cursor-pointer rounded-lg border-2 py-1.5 text-center text-xs transition-all" style="border-color:#6366f1;background:rgb(99 102 241/0.1);color:white">
+                    <input type="radio" name="strip_style" value="full" class="hidden" checked />▬ Pleine largeur</label>
                 </div>
+              </div>
+              <div>
+                <label class="text-slate-500 text-xs mb-1.5 block">Placement bannière / tampons</label>
+                <div class="grid grid-cols-3 gap-1.5">
+                  {[
+                    { value: 'background', label: 'Fond' },
+                    { value: 'top', label: 'Haut' },
+                    { value: 'bottom', label: 'Bas' },
+                  ].map(({ value, label }) => (
+                    <label id={`strip-layout-${value}-label`} class="cursor-pointer rounded-lg border-2 py-1.5 text-center transition-all text-xs"
+                      style={value==='background'?'border-color:#6366f1;background:rgb(99 102 241/0.1);color:white':'border-color:#334155;background:transparent;color:#64748b'}>
+                      <input type="radio" name="strip_layout" value={value} class="hidden" checked={value==='background'} />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                <p class="text-slate-600 text-xs mt-1 leading-tight">“Bas” place la bannière sous les tampons dans l’image Wallet générée.</p>
               </div>
               <div id="strip-position-zone" class="hidden">
                 <label class="text-slate-500 text-xs mb-1.5 block">Position de l'image</label>
@@ -233,6 +249,38 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             </div>
           </div>
           <div><label class="label" for="recompense">Récompense offerte *</label><input id="recompense" type="text" class="input" placeholder="Ex: 1 café offert, 5€ de réduction..." required /></div>
+          <div class="grid lg:grid-cols-2 gap-4">
+            <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <div class="flex items-center justify-between gap-3 mb-3">
+                <div>
+                  <p class="text-white text-sm font-semibold">Récompenses multiples</p>
+                  <p class="text-slate-500 text-xs mt-0.5">Ex : café offert au 5e tampon, -10% au 10e.</p>
+                </div>
+                <button id="add-reward-tier" type="button" class="btn-secondary text-xs py-1.5 px-3">Ajouter</button>
+              </div>
+              <div id="reward-tiers" class="flex flex-col gap-2"></div>
+            </div>
+            <div id="vip-tiers-card" class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <p class="text-white text-sm font-semibold">Paliers VIP points</p>
+              <p class="text-slate-500 text-xs mt-0.5 mb-3">Visible surtout pour les programmes à points.</p>
+              <div id="vip-tiers" class="flex flex-col gap-2"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Messages client -->
+      <div class="card p-6">
+        <h2 class="font-display font-bold text-white mb-5 flex items-center gap-2"><span class="text-lg">💬</span> Messages client</h2>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label class="label" for="welcome-message">Texte d’accueil public</label>
+            <input id="welcome-message" type="text" class="input" maxlength="180" placeholder="Bienvenue chez ..., créez votre carte fidélité en 10 secondes." />
+          </div>
+          <div>
+            <label class="label" for="success-message">Message après ajout Wallet</label>
+            <input id="success-message" type="text" class="input" maxlength="180" placeholder="Votre carte est prête, montrez-la à chaque passage." />
+          </div>
         </div>
       </div>
 
@@ -297,64 +345,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               <div class="text-white text-xs font-medium">{label}</div>
             </label>
           ))}
-        </div>
-      </div>
-
-      <!-- Typographie -->
-      <div class="card p-6">
-        <h2 class="font-display font-bold text-white mb-5 flex items-center gap-2"><span class="text-lg">✍️</span> Typographie</h2>
-        <div class="rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-100 leading-relaxed mb-5">
-          Apple et Google Wallet n’acceptent pas les polices personnalisées libres. Pour éviter de promettre une personnalisation qui ne s’applique pas réellement, FideloPass utilise la typographie native Wallet, compatible et stable.
-        </div>
-        <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-          <p class="text-white text-sm font-semibold">Typographie native Wallet</p>
-          <p class="text-slate-400 text-xs leading-relaxed mt-1">
-            Le rendu réel côté client garde la police Apple/Google. La personnalisation utile se fait donc sur les couleurs, la bannière, les tampons, les patterns, le programme et les messages.
-          </p>
-        </div>
-        <div class="hidden" aria-hidden="true">
-        <label class="label mb-3 block">Police d'écriture</label>
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-5">
-          {[
-            {value:'system',  label:'Système',  css:'system-ui,sans-serif',               preview:'Aa'},
-            {value:'inter',   label:'Inter',    css:"'Inter',sans-serif",                  preview:'Aa'},
-            {value:'playfair',label:'Élégant',  css:"'Playfair Display',Georgia,serif",    preview:'Aa'},
-            {value:'bebas',   label:'Impact',   css:"'Bebas Neue',Impact,sans-serif",      preview:'AA'},
-            {value:'nunito',  label:'Arrondi',  css:"'Nunito','Varela Round',sans-serif",  preview:'Aa'},
-            {value:'mono',    label:'Mono',     css:"'Courier New',monospace",             preview:'Aa'},
-          ].map(({value,label,css,preview})=>(
-            <label id={`font-${value}-label`} class="cursor-pointer rounded-xl border-2 p-3 text-center transition-all" style={value==='system'?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent'}>
-              <input type="radio" name="police" value={value} class="hidden" checked={value==='system'} />
-              <div class="text-white text-2xl mb-1 font-bold" style={`font-family:${css}`}>{preview}</div>
-              <div class="text-slate-400 text-xs">{label}</div>
-            </label>
-          ))}
-        </div>
-        <div class="grid sm:grid-cols-3 gap-4">
-          <div>
-            <div class="flex items-center justify-between mb-2"><label class="label">Taille</label><span id="police-taille-val" class="text-indigo-400 text-xs font-mono">100%</span></div>
-            <input id="police-taille" type="range" min="70" max="140" value="100" class="w-full accent-indigo-500" />
-            <div class="flex justify-between text-slate-600 text-xs mt-1"><span>Petit</span><span>Normal</span><span>Grand</span></div>
-          </div>
-          <div>
-            <label class="label mb-3 block">Graisse</label>
-            <div class="flex gap-2">
-              <label id="gras-off-label" class="flex-1 cursor-pointer rounded-xl border-2 p-2.5 text-center transition-all" style="border-color:#6366f1;background:rgb(99 102 241/0.1)"><input type="radio" name="police_gras" value="false" class="hidden" checked /><div class="text-white text-sm font-normal">Normal</div></label>
-              <label id="gras-on-label" class="flex-1 cursor-pointer rounded-xl border-2 p-2.5 text-center transition-all" style="border-color:#334155;background:transparent"><input type="radio" name="police_gras" value="true" class="hidden" /><div class="text-white text-sm font-bold">Gras</div></label>
-            </div>
-          </div>
-          <div>
-            <label class="label mb-3 block">Alignement</label>
-            <div class="flex gap-1.5">
-              {[{value:'left',icon:'⬅',label:'G.'},{value:'center',icon:'↔',label:'C.'},{value:'right',icon:'➡',label:'D.'}].map(({value,icon,label})=>(
-                <label id={`align-${value}-label`} class="flex-1 cursor-pointer rounded-xl border-2 p-2 text-center transition-all" style={value==='left'?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent'}>
-                  <input type="radio" name="texte_alignement" value={value} class="hidden" checked={value==='left'} />
-                  <div class="text-white text-sm">{icon}</div><div class="text-slate-400 text-xs">{label}</div>
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
         </div>
       </div>
 
@@ -488,6 +478,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   let carteId: string | null = null;
   let logoUrl = '', stripUrl = '', tamponIconUrl = '', tamponEmoji = '';
   let isGradient = false;
+  type RewardTier = { seuil: number; recompense: string };
+  type VipTier = { nom: string; seuil: number; avantage?: string };
 
   function publicCardUrl(id: string) {
     return `${PUBLIC_SITE_URL}/carte/${id}`;
@@ -497,12 +489,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     document.getElementById('setup-banner')!.classList.remove('hidden');
     document.getElementById('submit-btn')!.textContent = 'Créer ma première carte';
   }
-
-  const FONT_MAP: Record<string,string> = {
-    system:'system-ui,-apple-system,sans-serif', inter:"'Inter',sans-serif",
-    playfair:"'Playfair Display',Georgia,serif", bebas:"'Bebas Neue',Impact,sans-serif",
-    nunito:"'Nunito','Varela Round',sans-serif", mono:"'Courier New',monospace",
-  };
 
   async function uploadFile(file: File): Promise<string> {
     const {data:{session}} = await supabase.auth.getSession();
@@ -546,28 +532,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     updatePreview();
   });
 
-  // Police
-  (document.getElementById('police-taille') as HTMLInputElement).addEventListener('input',(e)=>{
-    document.getElementById('police-taille-val')!.textContent=`${(e.target as HTMLInputElement).value}%`;
-    updatePreview();
-  });
-  document.querySelectorAll('input[name="police"]').forEach(r=>r.addEventListener('change',()=>{
-    const v=(document.querySelector('input[name="police"]:checked') as HTMLInputElement).value;
-    ['system','inter','playfair','bebas','nunito','mono'].forEach(k=>document.getElementById(`font-${k}-label`)!.style.cssText=k===v?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent');
-    updatePreview();
-  }));
-  document.querySelectorAll('input[name="police_gras"]').forEach(r=>r.addEventListener('change',()=>{
-    const v=(document.querySelector('input[name="police_gras"]:checked') as HTMLInputElement).value;
-    document.getElementById('gras-off-label')!.style.cssText=v==='false'?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent';
-    document.getElementById('gras-on-label')!.style.cssText=v==='true'?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent';
-    updatePreview();
-  }));
-  document.querySelectorAll('input[name="texte_alignement"]').forEach(r=>r.addEventListener('change',()=>{
-    const v=(document.querySelector('input[name="texte_alignement"]:checked') as HTMLInputElement).value;
-    ['left','center','right'].forEach(k=>document.getElementById(`align-${k}-label`)!.style.cssText=k===v?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent');
-    updatePreview();
-  }));
-
   // Strip style
   function applyStripStyle(isFull: boolean) {
     const sz=document.getElementById('a-strip-zone')!;
@@ -577,6 +541,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     else{sz.style.cssText='';sz.classList.add('mx-3','mb-3','rounded-xl');sz.style.minHeight='120px';}
   }
   document.querySelectorAll('input[name="strip_style"]').forEach(r=>r.addEventListener('change',()=>applyStripStyle((document.querySelector('input[name="strip_style"]:checked') as HTMLInputElement).value==='full')));
+  document.querySelectorAll('input[name="strip_layout"]').forEach(r=>r.addEventListener('change',()=>{
+    const layout=(document.querySelector('input[name="strip_layout"]:checked') as HTMLInputElement).value;
+    ['background','top','bottom'].forEach(v=>{
+      const label=document.getElementById(`strip-layout-${v}-label`);
+      if(label) label.style.cssText=v===layout?'border-color:#6366f1;background:rgb(99 102 241/0.1);color:white':'border-color:#334155;background:transparent;color:#64748b';
+    });
+    updatePreview();
+  }));
 
   // Logo
   document.getElementById('logo-btn')!.addEventListener('click',()=>(document.getElementById('logo-file') as HTMLInputElement).click());
@@ -589,6 +561,82 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     ['logo-preview-img','preview-logo','g-logo'].forEach(id=>{const el=document.getElementById(id) as HTMLImageElement;if(url){el.src=url;el.classList.remove('hidden');}else el.classList.add('hidden');});
     ['logo-preview-icon','preview-logo-ph','g-logo-ph'].forEach(id=>document.getElementById(id)!.classList.toggle('hidden',!!url));
     (document.getElementById('logo-url') as HTMLInputElement).value=url;
+  }
+
+  document.getElementById('logo-palette-btn')!.addEventListener('click',async()=>{
+    const err=document.getElementById('error-msg') as HTMLDivElement;
+    err.classList.add('hidden');
+    if(!logoUrl){
+      err.textContent='Ajoutez d’abord un logo, puis générez une palette depuis ses couleurs.';
+      err.classList.remove('hidden');
+      return;
+    }
+    try{
+      const colors=await extractPaletteFromLogo(logoUrl);
+      setInput('couleur-fond', colors.background);
+      setInput('couleur-fond-2', colors.background2);
+      setInput('couleur-accent', colors.accent);
+      setInput('couleur-texte', colors.text);
+      ensureGradient(true);
+      updatePreview();
+    }catch{
+      err.textContent='Impossible de lire les couleurs du logo. Essayez avec une image PNG ou JPG différente.';
+      err.classList.remove('hidden');
+    }
+  });
+
+  async function extractPaletteFromLogo(url: string): Promise<{background:string;background2:string;accent:string;text:string}> {
+    const image=await new Promise<HTMLImageElement>((resolve,reject)=>{
+      const img=new Image();
+      img.crossOrigin='anonymous';
+      img.onload=()=>resolve(img);
+      img.onerror=reject;
+      img.src=url;
+    });
+    const canvas=document.createElement('canvas');
+    canvas.width=64; canvas.height=64;
+    const ctx=canvas.getContext('2d');
+    if(!ctx) throw new Error('Canvas indisponible');
+    ctx.drawImage(image,0,0,64,64);
+    const data=ctx.getImageData(0,0,64,64).data;
+    let r=0,g=0,b=0,count=0;
+    const vibrant:{r:number;g:number;b:number;score:number}[]=[];
+    for(let i=0;i<data.length;i+=4){
+      const alpha=data[i+3];
+      if(alpha<80) continue;
+      const cr=data[i], cg=data[i+1], cb=data[i+2];
+      const max=Math.max(cr,cg,cb), min=Math.min(cr,cg,cb);
+      const saturation=max-min;
+      const light=(max+min)/2;
+      if(light>12&&light<245){r+=cr;g+=cg;b+=cb;count++;}
+      if(saturation>35&&light>35&&light<230) vibrant.push({r:cr,g:cg,b:cb,score:saturation+Math.abs(128-light)/3});
+    }
+    if(!count) throw new Error('Logo illisible');
+    const avg={r:Math.round(r/count),g:Math.round(g/count),b:Math.round(b/count)};
+    vibrant.sort((a,b)=>b.score-a.score);
+    const accent=vibrant[0]??avg;
+    const background=shade(avg,-0.58);
+    const background2=shade(accent,-0.28);
+    const text=luminance(background)>0.45?'#111827':'#ffffff';
+    return {background:rgbToHex(background),background2:rgbToHex(background2),accent:rgbToHex(accent),text};
+  }
+
+  function shade(color:{r:number;g:number;b:number}, factor:number){
+    const mix=factor<0?0:255;
+    const amount=Math.abs(factor);
+    return {
+      r:Math.round(color.r+(mix-color.r)*amount),
+      g:Math.round(color.g+(mix-color.g)*amount),
+      b:Math.round(color.b+(mix-color.b)*amount),
+    };
+  }
+
+  function rgbToHex({r,g,b}:{r:number;g:number;b:number}) {
+    return `#${[r,g,b].map(v=>Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')).join('')}`;
+  }
+
+  function luminance({r,g,b}:{r:number;g:number;b:number}) {
+    return (0.2126*r+0.7152*g+0.0722*b)/255;
   }
 
   // Mode tampon
@@ -630,6 +678,92 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     ['preview-strip','strip-preview-img','g-strip-img'].forEach(id=>(document.getElementById(id) as HTMLImageElement).style.objectPosition=obj);
     ['top','center','bottom'].forEach(v=>document.getElementById(`strip-pos-${v}-label`)!.style.cssText=v===pos?'border-color:#6366f1;background:rgb(99 102 241/0.1);color:white':'border-color:#334155;background:transparent;color:#64748b');
   }));
+
+  function parseJsonArray<T>(value: unknown): T[] {
+    if(Array.isArray(value)) return value as T[];
+    if(typeof value==='string'){
+      try{const parsed=JSON.parse(value); return Array.isArray(parsed)?parsed as T[]:[];}catch{return [];}
+    }
+    return [];
+  }
+
+  function getProgramUnit() {
+    return ((document.querySelector('input[name="type"]:checked') as HTMLInputElement)?.value??'tampons')==='points'?'pts':'tampon(s)';
+  }
+
+  function defaultRewardTiers(): RewardTier[] {
+    const type=(document.querySelector('input[name="type"]:checked') as HTMLInputElement)?.value??'tampons';
+    if(type==='points') return [
+      {seuil:100,recompense:'5€ de réduction'},
+      {seuil:250,recompense:'-10% sur votre prochain achat'},
+    ];
+    const total=parseInt((document.getElementById('tampons-total') as HTMLInputElement).value)||10;
+    return [
+      {seuil:Math.max(1,Math.floor(total/2)),recompense:'Café offert'},
+      {seuil:total,recompense:(document.getElementById('recompense') as HTMLInputElement).value||'Récompense fidélité'},
+    ];
+  }
+
+  function escapeAttr(value: string) {
+    return value.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+  }
+
+  function renderRewardTiers(tiers: RewardTier[]=[]) {
+    const wrap=document.getElementById('reward-tiers')!;
+    const normalized=tiers.length?tiers:defaultRewardTiers();
+    wrap.innerHTML=normalized.map((tier)=>`
+      <div class="reward-tier-row grid grid-cols-[92px_1fr_34px] gap-2 items-center">
+        <input class="input text-xs py-2 reward-tier-seuil" type="number" min="1" value="${Number(tier.seuil)||1}" aria-label="Seuil récompense" />
+        <input class="input text-xs py-2 reward-tier-label" type="text" maxlength="80" value="${escapeAttr(tier.recompense||'')}" placeholder="Ex : café offert" aria-label="Récompense" />
+        <button type="button" class="reward-tier-remove btn-secondary text-xs py-2 px-2" aria-label="Retirer récompense">×</button>
+      </div>
+    `).join('');
+    wrap.querySelectorAll('.reward-tier-remove').forEach((button,index)=>button.addEventListener('click',()=>{
+      const current=collectRewardTiers();
+      current.splice(index,1);
+      renderRewardTiers(current);
+      updatePreview();
+    }));
+    wrap.querySelectorAll('input').forEach(input=>input.addEventListener('input',updatePreview));
+  }
+
+  function collectRewardTiers(): RewardTier[] {
+    return Array.from(document.querySelectorAll('.reward-tier-row')).map((row)=>({
+      seuil:parseInt((row.querySelector('.reward-tier-seuil') as HTMLInputElement).value)||0,
+      recompense:(row.querySelector('.reward-tier-label') as HTMLInputElement).value.trim(),
+    })).filter((tier)=>tier.seuil>0&&tier.recompense).slice(0,6).sort((a,b)=>a.seuil-b.seuil);
+  }
+
+  function renderVipTiers(tiers: VipTier[]=[]) {
+    const wrap=document.getElementById('vip-tiers')!;
+    const normalized=tiers.length?tiers:[
+      {nom:'Bronze',seuil:100,avantage:'Accès aux offres fidélité'},
+      {nom:'Silver',seuil:250,avantage:'Avantage prioritaire'},
+      {nom:'Gold',seuil:500,avantage:'Récompense premium'},
+    ];
+    wrap.innerHTML=normalized.map((tier)=>`
+      <div class="vip-tier-row grid grid-cols-[92px_88px_1fr] gap-2">
+        <input class="input text-xs py-2 vip-tier-name" type="text" maxlength="24" value="${escapeAttr(tier.nom||'')}" aria-label="Nom palier VIP" />
+        <input class="input text-xs py-2 vip-tier-seuil" type="number" min="1" value="${Number(tier.seuil)||1}" aria-label="Seuil palier VIP" />
+        <input class="input text-xs py-2 vip-tier-avantage" type="text" maxlength="80" value="${escapeAttr(tier.avantage||'')}" placeholder="Avantage" aria-label="Avantage palier VIP" />
+      </div>
+    `).join('');
+    wrap.querySelectorAll('input').forEach(input=>input.addEventListener('input',updatePreview));
+  }
+
+  function collectVipTiers(): VipTier[] {
+    return Array.from(document.querySelectorAll('.vip-tier-row')).map((row)=>({
+      nom:(row.querySelector('.vip-tier-name') as HTMLInputElement).value.trim(),
+      seuil:parseInt((row.querySelector('.vip-tier-seuil') as HTMLInputElement).value)||0,
+      avantage:(row.querySelector('.vip-tier-avantage') as HTMLInputElement).value.trim(),
+    })).filter((tier)=>tier.nom&&tier.seuil>0).slice(0,3).sort((a,b)=>a.seuil-b.seuil);
+  }
+
+  document.getElementById('add-reward-tier')!.addEventListener('click',()=>{
+    const current=collectRewardTiers();
+    const next=(current.at(-1)?.seuil??0)+5;
+    renderRewardTiers([...current,{seuil:next,recompense:''}]);
+  });
 
   // Strip
   document.getElementById('strip-btn')!.addEventListener('click',()=>(document.getElementById('strip-file') as HTMLInputElement).click());
@@ -695,6 +829,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     setInput('points-par-euro', el.dataset.perEuro ?? '1');
     setInput('points-recompense', el.dataset.points ?? '100');
     setInput('recompense', el.dataset.reward ?? '');
+    renderRewardTiers(defaultRewardTiers());
+    renderVipTiers();
     updatePreview();
   }));
 
@@ -705,6 +841,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     setInput('recompense', el.dataset.reward ?? '');
     setInput('label-client', el.dataset.label ?? 'Client');
     setInput('message-geo', el.dataset.message ?? '');
+    setInput('welcome-message', `Bienvenue chez ${el.dataset.name ?? 'nous'}, créez votre carte fidélité en 10 secondes.`);
+    setInput('success-message', 'Votre carte est prête, montrez-la à chaque passage.');
     setInput('couleur-fond', el.dataset.fond ?? '#0f172a');
     setInput('couleur-texte', el.dataset.texte ?? '#ffffff');
     setInput('couleur-accent', el.dataset.accent ?? '#6366f1');
@@ -717,8 +855,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     setInput('tampons-total', el.dataset.total ?? '10');
     setInput('points-par-euro', '1');
     setInput('points-recompense', el.dataset.type === 'points' ? '100' : '100');
+    setRadio('strip_layout', el.dataset.layout ?? 'background');
     setRadio('barcode_type', 'QR');
     selectEmojiStamp(el.dataset.stamp ?? '✓');
+    renderRewardTiers(defaultRewardTiers());
+    renderVipTiers();
     updatePreview();
     document.getElementById('success-msg')!.textContent='Modèle appliqué. Vous pouvez ajuster puis enregistrer.';
     document.getElementById('success-msg')!.classList.remove('hidden');
@@ -735,6 +876,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   function applyTypeUI(type: string){
     document.getElementById('config-tampons')!.classList.toggle('hidden',type!=='tampons');
     document.getElementById('config-points')!.classList.toggle('hidden',type!=='points');
+    document.getElementById('vip-tiers-card')!.classList.toggle('opacity-60',type!=='points');
   }
 
   // Barcode
@@ -816,29 +958,23 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const total=parseInt((document.getElementById('tampons-total') as HTMLInputElement).value)||10;
     const ptsCible=parseInt((document.getElementById('points-recompense') as HTMLInputElement).value)||100;
     const pt=(document.querySelector('input[name="pattern_type"]:checked') as HTMLInputElement)?.value??'none';
-    const police=(document.querySelector('input[name="police"]:checked') as HTMLInputElement)?.value??'system';
-    const taille=parseInt((document.getElementById('police-taille') as HTMLInputElement).value)||100;
-    const gras=(document.querySelector('input[name="police_gras"]:checked') as HTMLInputElement)?.value==='true';
-    const align=(document.querySelector('input[name="texte_alignement"]:checked') as HTMLInputElement)?.value??'left';
+    const rewardTiers=collectRewardTiers();
+    const rewardSummary=rewardTiers.length?rewardTiers.map(t=>`${t.seuil} ${getProgramUnit()} : ${t.recompense}`).join(' • '):recompense;
 
     const bg=getBgStyle();
-    const ff=FONT_MAP[police]??'system-ui,sans-serif';
-    const fs=`${taille/100}rem`;
-    const fw=gras?'bold':'normal';
     const pat=getPatBg(pt,accent);
     const display=Math.min(total,12);
 
     // Apple
     const apple=document.getElementById('apple-preview')!;
-    apple.style.background=bg; apple.style.color=texte; apple.style.fontFamily=ff; apple.style.fontSize=fs; apple.style.fontWeight=fw;
+    apple.style.background=bg; apple.style.color=texte;
     const ag=document.getElementById('a-pattern-global')!;
     ag.style.backgroundImage=pat.image; ag.style.backgroundSize=pat.size;
     const sc=document.getElementById('preview-strip-color')!; sc.style.background=bg;
     const so=document.getElementById('preview-pattern-overlay')!; so.style.backgroundImage=pat.image; so.style.backgroundSize=pat.size;
 
     document.getElementById('preview-card-name')!.textContent=nom;
-    (document.getElementById('preview-card-name') as HTMLElement).style.textAlign=align;
-    document.getElementById('preview-recompense')!.textContent=recompense;
+    document.getElementById('preview-recompense')!.textContent=rewardSummary;
     document.getElementById('preview-label-client')!.textContent=labelClient.toUpperCase();
     document.getElementById('preview-type-label')!.textContent=type==='tampons'?'Tampons':'Points';
 
@@ -859,11 +995,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     // Google
     const gb=document.getElementById('g-strip-bg')!; gb.style.background=bg;
     const gp=document.getElementById('g-pattern-overlay')!; gp.style.backgroundImage=pat.image; gp.style.backgroundSize=pat.size;
-    const gv=document.getElementById('google-preview')!; gv.style.fontFamily=ff; gv.style.fontSize=fs; gv.style.fontWeight=fw;
 
     document.getElementById('g-card-name')!.textContent=nom;
-    (document.getElementById('g-card-name') as HTMLElement).style.textAlign=align;
-    document.getElementById('g-recompense')!.textContent=recompense;
+    document.getElementById('g-recompense')!.textContent=rewardSummary;
     document.getElementById('g-label-client')!.textContent=labelClient.toUpperCase();
     document.getElementById('g-type-lbl')!.textContent=type==='tampons'?'Tampons':'Points';
 
@@ -902,20 +1036,19 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       function sl(prefix:string,opts:string[],sel:string){opts.forEach(v=>document.getElementById(`${prefix}${v}-label`)!.style.cssText=v===sel?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent');}
 
       const pt=data.pattern_type??'none'; sr('pattern_type',pt); sl('pat-',['none','dots','grid','waves','diagonal','confetti'],pt);
-      const pol='system'; sr('police',pol); sl('font-',['system','inter','playfair','bebas','nunito','mono'],pol);
-      set('police-taille','100'); document.getElementById('police-taille-val')!.textContent='100%';
-      const gv='false'; sr('police_gras',gv);
-      document.getElementById('gras-off-label')!.style.cssText='border-color:#6366f1;background:rgb(99 102 241/0.1)';
-      document.getElementById('gras-on-label')!.style.cssText='border-color:#334155;background:transparent';
-      const av='left'; sr('texte_alignement',av);
-      ['left','center','right'].forEach(v=>document.getElementById(`align-${v}-label`)!.style.cssText=v===av?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent');
-      applyStripStyle(!!data.strip_plein_largeur); if(data.strip_plein_largeur)sr('strip_style','full');
+      const isFull=data.strip_plein_largeur !== false; applyStripStyle(isFull); sr('strip_style',isFull?'full':'rounded');
+      const layout=data.strip_layout??'background'; sr('strip_layout',layout);
+      ['background','top','bottom'].forEach(v=>document.getElementById(`strip-layout-${v}-label`)!.style.cssText=v===layout?'border-color:#6366f1;background:rgb(99 102 241/0.1);color:white':'border-color:#334155;background:transparent;color:#64748b');
       const tp=data.type??'tampons'; sr('type',tp); applyTypeUI(tp);
       document.getElementById('type-tampons-label')!.style.cssText=tp==='tampons'?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent';
       document.getElementById('type-points-label')!.style.cssText=tp==='points'?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent';
       const bt=data.barcode_type??'QR'; sr('barcode_type',bt);
       ['QR','PDF417','AZTEC','NONE'].forEach(v=>document.getElementById(`barcode-${v.toLowerCase()}-label`)!.style.cssText=v===bt?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent');
       if(data.logo_url){logoUrl=data.logo_url;setLogoPreview(logoUrl);}
+      set('welcome-message', data.welcome_message ?? `Bienvenue chez ${data.nom ?? 'nous'}, créez votre carte fidélité en 10 secondes.`);
+      set('success-message', data.success_message ?? 'Votre carte est prête, montrez-la à chaque passage.');
+      renderRewardTiers(parseJsonArray<RewardTier>(data.rewards_config));
+      renderVipTiers(parseJsonArray<VipTier>(data.vip_tiers));
       if(data.strip_url){
         stripUrl=data.strip_url; const sp=data.strip_position??'center'; sr('strip_position',sp);
         ['top','center','bottom'].forEach(v=>document.getElementById(`strip-pos-${v}-label`)!.style.cssText=v===sp?'border-color:#6366f1;background:rgb(99 102 241/0.1);color:white':'border-color:#334155;background:transparent;color:#64748b');
@@ -975,13 +1108,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       police:'system',police_taille:100,
       police_gras:false,texte_alignement:'left',
       strip_plein_largeur:v('strip_style')==='full',
+      strip_layout:v('strip_layout')||'background',
+      welcome_message:gi('welcome-message')||null,
+      success_message:gi('success-message')||null,
+      rewards_config:collectRewardTiers(),
+      vip_tiers:collectVipTiers(),
     };
     try{
       const res=carteId?await authFetch(`/api/cartes/${carteId}`,{method:'PATCH',body:JSON.stringify(payload)}):await authFetch('/api/cartes',{method:'POST',body:JSON.stringify(payload)});
       if(!res.ok)throw new Error((await res.json()).error??'Erreur');
       const{data}=await res.json();
       if(!carteId){carteId=data.id;const pu=publicCardUrl(data.id);document.getElementById('public-link-banner')!.classList.remove('hidden');document.getElementById('public-link-url')!.textContent=pu;}
-      suc.textContent=!hadExistingCard&&setupMode?'Carte créée avec succès. Vous pouvez maintenant la partager.':'Carte enregistrée avec succès !';suc.classList.remove('hidden');
+      suc.textContent=!hadExistingCard&&setupMode?'Carte créée avec succès. Votre programme est opérationnel : vous pouvez maintenant scanner les cartes depuis votre espace Scan.':'Carte enregistrée avec succès !';suc.classList.remove('hidden');
       if (setupMode && !hadExistingCard) {
         document.getElementById('setup-banner')!.classList.add('hidden');
         window.history.replaceState({}, '', '/dashboard/carte');
@@ -995,5 +1133,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   updatePreview();
   applyTypeUI('tampons');
+  applyStripStyle(true);
+  renderRewardTiers();
+  renderVipTiers();
   loadExistingCarte();
 </script>

@@ -18,6 +18,7 @@ interface StripOptions {
   gradientAngle?: number | null;
   patternType?: string | null;
   tamponEmoji?: string | null;
+  stripLayout?: string | null;
 }
 
 // Hex → { r, g, b }
@@ -208,7 +209,25 @@ export async function generateStripImage(opts: StripOptions): Promise<Buffer> {
     const bgBuf = await fetchBuffer(opts.stripImageUrl);
     if (bgBuf) {
       try {
-        const bg = await sharp(bgBuf).resize(W, H, { fit: 'cover', position: sharpPos }).png().toBuffer();
+        let bg: Buffer;
+        const layout = opts.stripLayout ?? 'background';
+        if (layout === 'top' || layout === 'bottom') {
+          const bannerH = Math.round(H * 0.42);
+          const banner = await sharp(bgBuf)
+            .resize(W, bannerH, { fit: 'cover', position: sharpPos })
+            .png()
+            .toBuffer();
+          const baseSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
+            <rect width="${W}" height="${H}" fill="${opts.couleurFond}"/>
+            ${patternOverlay(opts.patternType ?? 'none', W, H, opts.couleurAccent)}
+          </svg>`;
+          bg = await sharp(Buffer.from(baseSvg))
+            .composite([{ input: banner, left: 0, top: layout === 'top' ? 0 : H - bannerH }])
+            .png()
+            .toBuffer();
+        } else {
+          bg = await sharp(bgBuf).resize(W, H, { fit: 'cover', position: sharpPos }).png().toBuffer();
+        }
         const acc = hexToRgb(opts.couleurAccent);
         const cols = stampCols(opts.tamponsTotal);
         const rows = Math.ceil(opts.tamponsTotal / cols);
@@ -218,7 +237,12 @@ export async function generateStripImage(opts: StripOptions): Promise<Buffer> {
         const totalW = cols * spacingX - spacingX + r * 2;
         const totalH = rows * spacingY - spacingY + r * 2;
         const startX = (W - totalW) / 2 + r;
-        const startY = (H - totalH) / 2 + r;
+        const layout = opts.stripLayout ?? 'background';
+        const startY = layout === 'top'
+          ? H - totalH - 18 + r
+          : layout === 'bottom'
+            ? 18 + r
+            : (H - totalH) / 2 + r;
 
         const circles = Array.from({ length: opts.tamponsTotal }, (_, i) => {
           const cx = startX + (i % cols) * spacingX;

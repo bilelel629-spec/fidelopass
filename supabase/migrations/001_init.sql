@@ -1,5 +1,5 @@
 -- =====================================================
--- FidéliPass — Migration initiale
+-- Fidelopass — Migration initiale
 -- Exécuter dans l'éditeur SQL de Supabase
 -- =====================================================
 

@@ -15,6 +15,8 @@ interface CarteData {
   strip_url?: string | null;
   barcode_type?: string | null;
   label_client?: string | null;
+  rewards_config?: Array<{ seuil: number; recompense: string }> | null;
+  vip_tiers?: Array<{ nom: string; seuil: number; avantage?: string }> | null;
   commerces: {
     nom: string;
     logo_url: string | null;
@@ -51,6 +53,22 @@ function getIssuerId(): string {
   const id = process.env.GOOGLE_ISSUER_ID;
   if (!id) throw new Error('GOOGLE_ISSUER_ID non configuré');
   return id;
+}
+
+function getRewardsText(carte: CarteData): string | null {
+  const rewards = (carte.rewards_config ?? [])
+    .filter((reward) => reward?.seuil && reward?.recompense)
+    .map((reward) => `${reward.seuil} ${carte.type === 'tampons' ? 'tampons' : 'points'} : ${reward.recompense}`);
+
+  return rewards.length ? rewards.join('\n') : null;
+}
+
+function getVipText(carte: CarteData): string | null {
+  const tiers = (carte.vip_tiers ?? [])
+    .filter((tier) => tier?.nom && tier?.seuil)
+    .map((tier) => `${tier.nom} : ${tier.seuil} points${tier.avantage ? ` — ${tier.avantage}` : ''}`);
+
+  return tiers.length ? tiers.join('\n') : null;
 }
 
 async function getAuthClient() {
@@ -145,6 +163,16 @@ export async function generateGooglePass(
         body: carte.recompense_description ?? '—',
         id: 'recompense',
       },
+      ...(getRewardsText(carte) ? [{
+        header: 'Récompenses',
+        body: getRewardsText(carte),
+        id: 'recompenses_multiples',
+      }] : []),
+      ...(getVipText(carte) ? [{
+        header: 'Paliers VIP',
+        body: getVipText(carte),
+        id: 'paliers_vip',
+      }] : []),
     ],
   };
 
@@ -198,6 +226,16 @@ export async function updateGooglePassObject(
           body: carte.recompense_description ?? '—',
           id: 'recompense',
         },
+        ...(getRewardsText(carte) ? [{
+          header: 'Récompenses',
+          body: getRewardsText(carte),
+          id: 'recompenses_multiples',
+        }] : []),
+        ...(getVipText(carte) ? [{
+          header: 'Paliers VIP',
+          body: getVipText(carte),
+          id: 'paliers_vip',
+        }] : []),
         {
           header: 'Récompenses obtenues',
           body: String(client.recompenses_obtenues ?? 0),

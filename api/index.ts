@@ -42,6 +42,6 @@ app.onError((err, c) => {
 });
 
 const port = Number(process.env.PORT ?? 3001);
-console.log(`API FideloPass démarrée sur http://localhost:${port}`);
+console.log(`API Fidelopass démarrée sur http://localhost:${port}`);
 
 serve({ fetch: app.fetch, port });

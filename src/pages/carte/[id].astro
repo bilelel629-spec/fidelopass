@@ -15,7 +15,7 @@ const firebasePushConfig = {
 };
 ---
 
-<BaseLayout title="Ajouter à mon Wallet — FideloPass">
+<BaseLayout title="Ajouter à mon Wallet — Fidelopass">
   <div class="min-h-screen flex flex-col items-center justify-center px-4 py-12">
 
     <div id="loading" class="text-center">
@@ -71,7 +71,7 @@ const firebasePushConfig = {
       <!-- Formulaire -->
       <div class="card p-5 mb-4">
         <p class="text-white font-semibold mb-1">Créer votre carte de fidélité</p>
-        <p class="text-slate-400 text-xs mb-4">Ces informations sont nécessaires pour votre carte.</p>
+        <p id="client-welcome-message" class="text-slate-400 text-xs mb-4">Bienvenue, créez votre carte fidélité en 10 secondes.</p>
 
         <div class="flex flex-col gap-3">
           <div>
@@ -225,7 +225,7 @@ const firebasePushConfig = {
         return;
       }
       localStorage.removeItem('fidelopass_wallet_redirect');
-      showSuccess('Si vous avez confirmé dans Wallet, votre carte a bien été ajoutée.');
+      showSuccess(carteData?.carte?.success_message || 'Votre carte est prête, montrez-la à chaque passage.');
     } catch {
       localStorage.removeItem('fidelopass_wallet_redirect');
     }
@@ -268,7 +268,12 @@ const firebasePushConfig = {
       // Textes
       document.getElementById('commerce-nom').textContent = data.commerce.nom;
       document.getElementById('carte-nom').textContent = data.carte.nom;
-      document.getElementById('recompense-desc').textContent = data.carte.recompense_description ?? '—';
+      const rewards = Array.isArray(data.carte.rewards_config) ? data.carte.rewards_config : [];
+      document.getElementById('recompense-desc').textContent = rewards.length
+        ? rewards.map((item) => `${item.seuil} ${data.carte.type === 'points' ? 'pts' : 'tampon(s)'} : ${item.recompense}`).join(' • ')
+        : data.carte.recompense_description ?? '—';
+      document.getElementById('client-welcome-message').textContent =
+        data.carte.welcome_message || `Bienvenue chez ${data.commerce.nom}, créez votre carte fidélité en 10 secondes.`;
 
       // Logo
       if (data.commerce.logo_url || data.carte.logo_url) {
@@ -297,7 +302,7 @@ const firebasePushConfig = {
         const total = data.carte.tampons_total ?? 10;
         document.getElementById('preview-type-lbl').textContent = 'Tampons';
         document.getElementById('preview-solde').textContent = `0/${total}`;
-        renderStamps(0, total, accent, texte, data.carte.tampon_icon_url);
+        renderStamps(0, total, accent, texte, data.carte.tampon_icon_url, data.carte.tampon_emoji);
       } else {
         const pts = data.carte.points_recompense ?? 100;
         document.getElementById('preview-type-lbl').textContent = 'Points';
@@ -316,7 +321,7 @@ const firebasePushConfig = {
     }
   }
 
-  function renderStamps(current, total, accent, texte, iconUrl) {
+  function renderStamps(current, total, accent, texte, iconUrl, emoji) {
     const container = document.getElementById('preview-stamps');
     container.innerHTML = '';
     const display = Math.min(total, 12);
@@ -325,14 +330,21 @@ const firebasePushConfig = {
       dot.style.cssText = `width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;`;
       if (i < current) {
         dot.style.background = accent;
-        if (iconUrl) {
+        if (emoji) {
+          dot.style.fontSize = '16px';
+          dot.textContent = emoji;
+        } else if (iconUrl) {
           dot.innerHTML = `<img src="${iconUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
         } else {
           dot.innerHTML = `<svg viewBox="0 0 12 12" style="width:14px;height:14px"><path d="M2 6l3 3 5-5" stroke="${texte}" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
         }
       } else {
         dot.style.border = `2px solid rgba(255,255,255,0.25)`;
-        if (iconUrl) {
+        if (emoji) {
+          dot.style.fontSize = '15px';
+          dot.style.opacity = '0.35';
+          dot.textContent = emoji;
+        } else if (iconUrl) {
           dot.innerHTML = `<img src="${iconUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;opacity:0.3;" />`;
         }
       }

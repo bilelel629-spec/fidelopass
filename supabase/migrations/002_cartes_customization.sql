@@ -1,5 +1,5 @@
 -- =====================================================
--- FidéliPass — Personnalisation avancée des cartes
+-- Fidelopass — Personnalisation avancée des cartes
 -- Exécuter dans l'éditeur SQL de Supabase
 -- =====================================================
 

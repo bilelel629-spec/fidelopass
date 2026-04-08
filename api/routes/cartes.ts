@@ -5,6 +5,17 @@ import { authMiddleware } from '../middleware/auth';
 
 export const cartesRoutes = new Hono();
 
+const rewardSchema = z.object({
+  seuil: z.number().int().min(1).max(100000),
+  recompense: z.string().min(1).max(120),
+});
+
+const vipTierSchema = z.object({
+  nom: z.string().min(1).max(24),
+  seuil: z.number().int().min(1).max(100000),
+  avantage: z.string().max(120).optional().default(''),
+});
+
 const carteSchema = z.object({
   nom: z.string().min(2).max(255),
   description: z.string().max(500).nullable().optional(),
@@ -29,12 +40,18 @@ const carteSchema = z.object({
   gradient_angle: z.number().int().min(0).max(360).default(135),
   pattern_type: z.enum(['none', 'dots', 'waves', 'grid', 'diagonal', 'confetti']).default('none'),
   tampon_emoji: z.string().max(8).nullable().optional(),
-  // Typographie (migration 004)
+  // Compatibilité ancienne migration : les Wallets gardent leur typographie native.
   police: z.enum(['system', 'inter', 'playfair', 'bebas', 'nunito', 'mono']).default('system'),
   police_taille: z.number().int().min(70).max(150).default(100),
   police_gras: z.boolean().default(false),
   texte_alignement: z.enum(['left', 'center', 'right']).default('left'),
-  strip_plein_largeur: z.boolean().default(false),
+  strip_plein_largeur: z.boolean().default(true),
+  // Personnalisation programme (migration 006)
+  welcome_message: z.string().max(180).nullable().optional(),
+  success_message: z.string().max(180).nullable().optional(),
+  rewards_config: z.array(rewardSchema).max(6).default([]),
+  vip_tiers: z.array(vipTierSchema).max(3).default([]),
+  strip_layout: z.enum(['background', 'top', 'bottom']).default('background'),
 });
 
 /** GET /api/cartes — Récupère la carte du commerce connecté */
@@ -142,15 +159,31 @@ cartesRoutes.post('/', authMiddleware, async (c) => {
   if (parsed.data.texte_alignement !== undefined) typoFields.texte_alignement = parsed.data.texte_alignement;
   if (parsed.data.strip_plein_largeur !== undefined) typoFields.strip_plein_largeur = parsed.data.strip_plein_largeur;
 
-  // Essai 1 : tout (base + ext + adv + typo)
+  const programFields: Record<string, unknown> = {};
+  if (parsed.data.welcome_message !== undefined) programFields.welcome_message = parsed.data.welcome_message;
+  if (parsed.data.success_message !== undefined) programFields.success_message = parsed.data.success_message;
+  if (parsed.data.rewards_config !== undefined) programFields.rewards_config = parsed.data.rewards_config;
+  if (parsed.data.vip_tiers !== undefined) programFields.vip_tiers = parsed.data.vip_tiers;
+  if (parsed.data.strip_layout !== undefined) programFields.strip_layout = parsed.data.strip_layout;
+
+  // Essai 1 : tout (base + ext + adv + typo + programme)
   let result = await db
     .from('cartes')
-    .upsert({ ...baseFields, ...extFields, ...advFields, ...typoFields }, { onConflict: 'commerce_id' })
+    .upsert({ ...baseFields, ...extFields, ...advFields, ...typoFields, ...programFields }, { onConflict: 'commerce_id' })
     .select()
     .single();
 
   if (result.error?.message?.includes('column')) {
-    // Essai 2 : base + ext + adv (migration 004 pas encore exécutée)
+    // Essai 2 : sans migration 006
+    result = await db
+      .from('cartes')
+      .upsert({ ...baseFields, ...extFields, ...advFields, ...typoFields }, { onConflict: 'commerce_id' })
+      .select()
+      .single();
+  }
+
+  if (result.error?.message?.includes('column')) {
+    // Essai 3 : base + ext + adv (migration 004 pas encore exécutée)
     result = await db
       .from('cartes')
       .upsert({ ...baseFields, ...extFields, ...advFields }, { onConflict: 'commerce_id' })
@@ -159,7 +192,7 @@ cartesRoutes.post('/', authMiddleware, async (c) => {
   }
 
   if (result.error?.message?.includes('column')) {
-    // Essai 3 : base + ext (migration 003 non plus)
+    // Essai 4 : base + ext (migration 003 non plus)
     result = await db
       .from('cartes')
       .upsert({ ...baseFields, ...extFields }, { onConflict: 'commerce_id' })
@@ -168,7 +201,7 @@ cartesRoutes.post('/', authMiddleware, async (c) => {
   }
 
   if (result.error?.message?.includes('column')) {
-    // Essai 4 : base only
+    // Essai 5 : base only
     result = await db
       .from('cartes')
       .upsert(baseFields, { onConflict: 'commerce_id' })
@@ -208,6 +241,7 @@ cartesRoutes.patch('/:id', authMiddleware, async (c) => {
     logo_url, strip_url, strip_position, tampon_icon_url, barcode_type, label_client,
     couleur_fond_2, gradient_angle, pattern_type, tampon_emoji,
     police, police_taille, police_gras, texte_alignement, strip_plein_largeur,
+    welcome_message, success_message, rewards_config, vip_tiers, strip_layout,
     ...baseData
   } = parsed.data;
 
@@ -232,19 +266,37 @@ cartesRoutes.patch('/:id', authMiddleware, async (c) => {
   if (texte_alignement !== undefined) typoFields.texte_alignement = texte_alignement;
   if (strip_plein_largeur !== undefined) typoFields.strip_plein_largeur = strip_plein_largeur;
 
+  const programFields: Record<string, unknown> = {};
+  if (welcome_message !== undefined) programFields.welcome_message = welcome_message;
+  if (success_message !== undefined) programFields.success_message = success_message;
+  if (rewards_config !== undefined) programFields.rewards_config = rewards_config;
+  if (vip_tiers !== undefined) programFields.vip_tiers = vip_tiers;
+  if (strip_layout !== undefined) programFields.strip_layout = strip_layout;
+
   const ts = { updated_at: new Date().toISOString() };
 
   // Essai 1 : tout
   let result = await db
     .from('cartes')
-    .update({ ...baseData, ...extFields, ...advFields, ...typoFields, ...ts })
+    .update({ ...baseData, ...extFields, ...advFields, ...typoFields, ...programFields, ...ts })
     .eq('id', carteId)
     .eq('commerce_id', commerce.id)
     .select()
     .single();
 
   if (result.error?.message?.includes('column')) {
-    // Essai 2 : sans typo (migration 004 manquante)
+    // Essai 2 : sans migration 006
+    result = await db
+      .from('cartes')
+      .update({ ...baseData, ...extFields, ...advFields, ...typoFields, ...ts })
+      .eq('id', carteId)
+      .eq('commerce_id', commerce.id)
+      .select()
+      .single();
+  }
+
+  if (result.error?.message?.includes('column')) {
+    // Essai 3 : sans typo (migration 004 manquante)
     result = await db
       .from('cartes')
       .update({ ...baseData, ...extFields, ...advFields, ...ts })
@@ -255,7 +307,7 @@ cartesRoutes.patch('/:id', authMiddleware, async (c) => {
   }
 
   if (result.error?.message?.includes('column')) {
-    // Essai 3 : base + ext
+    // Essai 4 : base + ext
     result = await db
       .from('cartes')
       .update({ ...baseData, ...extFields, ...ts })
@@ -266,7 +318,7 @@ cartesRoutes.patch('/:id', authMiddleware, async (c) => {
   }
 
   if (result.error?.message?.includes('column')) {
-    // Essai 4 : base only
+    // Essai 5 : base only
     result = await db
       .from('cartes')
       .update({ ...baseData, ...ts })

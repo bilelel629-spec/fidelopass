@@ -1,4 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="8" fill="#6366f1"/>
-  <text x="16" y="22" font-size="18" text-anchor="middle" fill="white" font-family="system-ui">F</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Fidelopass">
+  <defs>
+    <linearGradient id="bg" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22c55e"/>
+      <stop offset="0.42" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="18" y1="14" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fefce8"/>
+      <stop offset="1" stop-color="#bfdbfe"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="url(#bg)"/>
+  <path d="M18 19.5c0-3.04 2.46-5.5 5.5-5.5h17c3.04 0 5.5 2.46 5.5 5.5v25c0 3.04-2.46 5.5-5.5 5.5h-17a5.5 5.5 0 0 1-5.5-5.5v-25Z" fill="rgba(15,23,42,.58)" stroke="rgba(255,255,255,.38)" stroke-width="2"/>
+  <path d="M23 23h18M23 30h12" stroke="url(#shine)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M25 42.2 30.2 47 41 34" fill="none" stroke="#fefce8" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

@@ -56,6 +56,11 @@ export interface Database {
           police_gras: boolean | null;
           texte_alignement: string | null;
           strip_plein_largeur: boolean | null;
+          welcome_message: string | null;
+          success_message: string | null;
+          rewards_config: Json | null;
+          vip_tiers: Json | null;
+          strip_layout: string | null;
           pass_type_id: string | null;
           qr_code_url: string | null;
           actif: boolean;

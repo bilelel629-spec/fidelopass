@@ -28,6 +28,9 @@ interface CarteData {
   gradient_angle?: number | null;
   pattern_type?: string | null;
   tampon_emoji?: string | null;
+  strip_layout?: string | null;
+  rewards_config?: Array<{ seuil: number; recompense: string }> | null;
+  vip_tiers?: Array<{ nom: string; seuil: number; avantage?: string }> | null;
   commerces: {
     nom: string;
     logo_url: string | null;
@@ -108,6 +111,14 @@ export async function generateApplePass(carte: CarteData, client: ClientData): P
   const soldeValue = carte.type === 'tampons'
     ? `${client.tampons_actuels}/${carte.tampons_total}`
     : String(client.points_actuels);
+  const rewardsText = (carte.rewards_config ?? [])
+    .filter((reward) => reward?.seuil && reward?.recompense)
+    .map((reward) => `${reward.seuil} ${carte.type === 'tampons' ? 'tampons' : 'points'} : ${reward.recompense}`)
+    .join('\n');
+  const vipText = (carte.vip_tiers ?? [])
+    .filter((tier) => tier?.nom && tier?.seuil)
+    .map((tier) => `${tier.nom} : ${tier.seuil} points${tier.avantage ? ` — ${tier.avantage}` : ''}`)
+    .join('\n');
 
   const passJson: Record<string, unknown> = {
     formatVersion: 1,
@@ -147,7 +158,7 @@ export async function generateApplePass(carte: CarteData, client: ClientData): P
           key: 'recompense',
           label: 'Récompense',
           value: carte.recompense_description ?? '—',
-          changeMessage: 'Votre récompense FideloPass a été mise à jour.',
+          changeMessage: 'Votre récompense Fidelopass a été mise à jour.',
         },
       ],
       backFields: [
@@ -161,6 +172,16 @@ export async function generateApplePass(carte: CarteData, client: ClientData): P
           label: 'Conditions',
           value: `Présentez cette carte à chaque visite pour cumuler vos ${soldeLabel.toLowerCase()}.`,
         },
+        ...(rewardsText ? [{
+          key: 'recompenses_multiples',
+          label: 'Récompenses',
+          value: rewardsText,
+        }] : []),
+        ...(vipText ? [{
+          key: 'paliers_vip',
+          label: 'Paliers VIP',
+          value: vipText,
+        }] : []),
       ],
     },
   };
@@ -201,6 +222,7 @@ export async function generateApplePass(carte: CarteData, client: ClientData): P
     gradientAngle: carte.gradient_angle,
     patternType: carte.pattern_type,
     tamponEmoji: carte.tampon_emoji,
+    stripLayout: carte.strip_layout,
   });
 
   // ── Logo ──────────────────────────────────────────────────────────

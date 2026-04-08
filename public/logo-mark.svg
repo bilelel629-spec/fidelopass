@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Fidelopass">
+  <defs>
+    <linearGradient id="mark-bg" x1="12" y1="8" x2="84" y2="88" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22c55e"/>
+      <stop offset="0.42" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="mark-line" x1="28" y1="20" x2="68" y2="72" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff7ed"/>
+      <stop offset="1" stop-color="#dbeafe"/>
+    </linearGradient>
+  </defs>
+  <rect width="96" height="96" rx="28" fill="url(#mark-bg)"/>
+  <path d="M27 25.5c0-4.14 3.36-7.5 7.5-7.5h27c4.14 0 7.5 3.36 7.5 7.5v45c0 4.14-3.36 7.5-7.5 7.5h-27c-4.14 0-7.5-3.36-7.5-7.5v-45Z" fill="rgba(15,23,42,.56)" stroke="rgba(255,255,255,.34)" stroke-width="3"/>
+  <path d="M36 34h24M36 45h16" stroke="url(#mark-line)" stroke-width="6" stroke-linecap="round"/>
+  <path d="M36 65.5 43.2 72 60 51" fill="none" stroke="#fefce8" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

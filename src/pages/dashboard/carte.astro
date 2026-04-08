@@ -461,6 +461,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <p class="text-slate-400 text-xs mb-3">QR code à afficher dans votre commerce</p>
         <div id="qr-container" class="flex justify-center"></div>
         <p class="text-slate-500 text-xs mt-3">Les clients scannent ce QR pour ajouter la carte</p>
+        <div class="grid sm:grid-cols-2 gap-2 mt-4 text-left">
+          <button id="download-qr-btn" type="button" class="btn-secondary text-sm py-2.5">Télécharger le QR code</button>
+          <a id="poster-link-minimal" href="#" target="_blank" rel="noreferrer" class="btn-secondary text-sm py-2.5 text-center">Affiche A4 minimal</a>
+          <a id="poster-link-premium" href="#" target="_blank" rel="noreferrer" class="btn-secondary text-sm py-2.5 text-center">Affiche A4 premium</a>
+          <a id="poster-link-promo" href="#" target="_blank" rel="noreferrer" class="btn-secondary text-sm py-2.5 text-center">Affiche A4 promo</a>
+        </div>
+        <p class="text-slate-600 text-xs mt-3">Ouvrez un modèle A4, imprimez-le ou exportez-le en PDF pour l’afficher dans votre commerce.</p>
       </div>
     </div>
   </div>
@@ -483,6 +490,20 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   function publicCardUrl(id: string) {
     return `${PUBLIC_SITE_URL}/carte/${id}`;
+  }
+
+  function posterUrl(id: string, template: string) {
+    return `${PUBLIC_SITE_URL}/poster/${id}?template=${encodeURIComponent(template)}`;
+  }
+
+  function qrImageUrl(id: string, size = 768) {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(publicCardUrl(id))}&bgcolor=ffffff&color=111827&qzone=1`;
+  }
+
+  function updateQrTools(id: string) {
+    (document.getElementById('poster-link-minimal') as HTMLAnchorElement).href = posterUrl(id, 'minimal');
+    (document.getElementById('poster-link-premium') as HTMLAnchorElement).href = posterUrl(id, 'premium');
+    (document.getElementById('poster-link-promo') as HTMLAnchorElement).href = posterUrl(id, 'promo');
   }
 
   if (setupMode) {
@@ -1072,8 +1093,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       document.getElementById('public-link-banner')!.classList.remove('hidden');
       document.getElementById('public-link-url')!.textContent=pu;
       document.getElementById('qr-section')!.classList.remove('hidden');
+      updateQrTools(data.id);
       const qc=document.getElementById('qr-container')!;
-      if(!qc.firstChild){const qi=document.createElement('img');qi.src=`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(pu)}&bgcolor=1e293b&color=ffffff`;qi.className='rounded-xl';qi.width=150;qi.height=150;qc.appendChild(qi);}
+      if(!qc.firstChild){const qi=document.createElement('img');qi.src=`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(pu)}&bgcolor=1e293b&color=ffffff&qzone=1`;qi.className='rounded-xl';qi.width=150;qi.height=150;qc.appendChild(qi);}
       document.getElementById('submit-btn')!.textContent='Mettre à jour la carte';
     }catch{}
   }
@@ -1082,6 +1104,34 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     navigator.clipboard.writeText(document.getElementById('public-link-url')!.textContent??'').then(()=>{
       const b=document.getElementById('copy-link-btn')!;b.textContent='Copié !';setTimeout(()=>b.textContent='Copier le lien',2000);
     });
+  });
+
+  document.getElementById('download-qr-btn')!.addEventListener('click', async () => {
+    if (!carteId) return;
+    const button = document.getElementById('download-qr-btn') as HTMLButtonElement;
+    const original = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Téléchargement...';
+    try {
+      const response = await fetch(qrImageUrl(carteId, 1200));
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `fidelopass-qr-${carteId}.png`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      button.textContent = 'QR téléchargé';
+    } catch {
+      button.textContent = 'Erreur';
+    } finally {
+      setTimeout(() => {
+        button.disabled = false;
+        button.textContent = original;
+      }, 1800);
+    }
   });
 
   document.getElementById('submit-btn')!.addEventListener('click',async()=>{
@@ -1119,6 +1169,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if(!res.ok)throw new Error((await res.json()).error??'Erreur');
       const{data}=await res.json();
       if(!carteId){carteId=data.id;const pu=publicCardUrl(data.id);document.getElementById('public-link-banner')!.classList.remove('hidden');document.getElementById('public-link-url')!.textContent=pu;}
+      if (carteId) updateQrTools(carteId);
       suc.textContent=!hadExistingCard&&setupMode?'Carte créée avec succès. Votre programme est opérationnel : vous pouvez maintenant scanner les cartes depuis votre espace Scan.':'Carte enregistrée avec succès !';suc.classList.remove('hidden');
       if (setupMode && !hadExistingCard) {
         document.getElementById('setup-banner')!.classList.add('hidden');

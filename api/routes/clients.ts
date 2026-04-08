@@ -9,6 +9,59 @@ function normalizePhone(phone: string): string {
   return phone.replace(/[^\d+]/g, '');
 }
 
+/** GET /api/clients/public/:id — État minimal du client pour la page carte publique */
+clientsRoutes.get('/public/:id', async (c) => {
+  const clientId = c.req.param('id');
+  const carteId = c.req.query('carte_id');
+  const db = createServiceClient();
+
+  const { data, error } = await db
+    .from('clients')
+    .select(`
+      id,
+      nom,
+      telephone,
+      carte_id,
+      points_actuels,
+      tampons_actuels,
+      recompenses_obtenues,
+      cartes(
+        id,
+        actif,
+        type,
+        tampons_total,
+        points_recompense,
+        recompense_description
+      )
+    `)
+    .eq('id', clientId)
+    .single();
+
+  if (error || !data) return c.json({ error: 'Client introuvable' }, 404);
+  if (carteId && data.carte_id !== carteId) return c.json({ error: 'Client introuvable' }, 404);
+
+  const carte = Array.isArray(data.cartes) ? data.cartes[0] : data.cartes;
+  if (!carte?.actif) return c.json({ error: 'Carte introuvable' }, 404);
+
+  return c.json({
+    data: {
+      id: data.id,
+      nom: data.nom,
+      telephone: data.telephone,
+      points_actuels: data.points_actuels,
+      tampons_actuels: data.tampons_actuels,
+      recompenses_obtenues: data.recompenses_obtenues,
+      carte: {
+        id: carte.id,
+        type: carte.type,
+        tampons_total: carte.tampons_total,
+        points_recompense: carte.points_recompense,
+        recompense_description: carte.recompense_description,
+      },
+    },
+  });
+});
+
 /** GET /api/clients/:id — Récupère un client (utilisé par le scanner) */
 clientsRoutes.get('/:id', authMiddleware, async (c) => {
   const clientId = c.req.param('id');

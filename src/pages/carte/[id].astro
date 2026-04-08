@@ -250,6 +250,33 @@ const firebasePushConfig = {
     return true;
   }
 
+  const clientStorageKey = `fidelopass_client_${carteId}`;
+
+  function rememberClient(client) {
+    try {
+      localStorage.setItem(clientStorageKey, JSON.stringify({
+        id: client.id,
+        nom: client.nom ?? '',
+        telephone: client.telephone ?? '',
+      }));
+    } catch {
+      // Le suivi local améliore seulement l'UX.
+    }
+  }
+
+  function readRememberedClient() {
+    try {
+      const raw = localStorage.getItem(clientStorageKey);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function rewardSeenKey(clientId) {
+    return `fidelopass_reward_seen_${carteId}_${clientId}`;
+  }
+
   // ── Chargement carte ─────────────────────────────────────────────
   let carteData = null;
 
@@ -315,9 +342,73 @@ const firebasePushConfig = {
 
       document.getElementById('loading').classList.add('hidden');
       document.getElementById('carte-content').classList.remove('hidden');
+      await hydrateRememberedClientState();
     } catch {
       document.getElementById('loading').classList.add('hidden');
       document.getElementById('error-content').classList.remove('hidden');
+    }
+  }
+
+  function renderClientProgress(client) {
+    if (!carteData?.carte) return;
+
+    const type = carteData.carte.type ?? 'tampons';
+    const accent = carteData.carte.couleur_accent ?? '#6366f1';
+    const texte = carteData.carte.couleur_texte ?? '#ffffff';
+
+    if (type === 'tampons') {
+      const total = carteData.carte.tampons_total ?? 10;
+      document.getElementById('preview-type-lbl').textContent = 'Tampons';
+      document.getElementById('preview-solde').textContent = `${client.tampons_actuels ?? 0}/${total}`;
+      document.getElementById('preview-stamps-wrap').classList.remove('hidden');
+      document.getElementById('preview-points-wrap').classList.add('hidden');
+      renderStamps(client.tampons_actuels ?? 0, total, accent, texte, carteData.carte.tampon_icon_url, carteData.carte.tampon_emoji);
+      return;
+    }
+
+    const target = carteData.carte.points_recompense ?? 100;
+    const current = client.points_actuels ?? 0;
+    const ratio = Math.max(0, Math.min(100, Math.round((current / target) * 100)));
+    document.getElementById('preview-type-lbl').textContent = 'Points';
+    document.getElementById('preview-solde').textContent = String(current);
+    document.getElementById('preview-stamps-wrap').classList.add('hidden');
+    document.getElementById('preview-points-wrap').classList.remove('hidden');
+    document.getElementById('preview-bar').style.background = accent;
+    document.getElementById('preview-bar').style.width = `${ratio}%`;
+    document.getElementById('preview-pts-txt').textContent = `${current} / ${target} pts`;
+  }
+
+  async function hydrateRememberedClientState() {
+    const remembered = readRememberedClient();
+    if (!remembered?.id) return;
+
+    const inputNom = document.getElementById('client-nom');
+    const inputTel = document.getElementById('client-tel');
+    if (!inputNom.value) inputNom.value = remembered.nom ?? '';
+    if (!inputTel.value) inputTel.value = remembered.telephone ?? '';
+
+    try {
+      const res = await fetch(apiUrl(`/api/clients/public/${remembered.id}?carte_id=${encodeURIComponent(carteId)}`));
+      if (!res.ok) return;
+      const { data } = await res.json();
+      walletClient = {
+        id: data.id,
+        nom: data.nom,
+        telephone: data.telephone,
+      };
+      renderClientProgress(data);
+
+      const seenKey = rewardSeenKey(data.id);
+      const previousRewards = Number(localStorage.getItem(seenKey) ?? '0');
+      const currentRewards = Number(data.recompenses_obtenues ?? 0);
+      localStorage.setItem(seenKey, String(currentRewards));
+
+      if (currentRewards > previousRewards) {
+        await fireWelcomeConfetti();
+        showSuccess(`Bravo ! Vous avez débloqué ${currentRewards > 1 ? 'une nouvelle récompense' : 'votre récompense'}. Montrez votre carte à chaque passage.`);
+      }
+    } catch {
+      // L'état public du client n'est qu'un confort.
     }
   }
 
@@ -374,6 +465,7 @@ const firebasePushConfig = {
       if (!res.ok) throw new Error(data.error ?? 'Erreur lors de la création');
 
       walletClient = data.data;
+      rememberClient(walletClient);
       if (pushConsent) {
         await registerPushToken(walletClient.id).catch((error) => {
           console.warn('[push registration]', error);

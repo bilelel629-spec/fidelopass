@@ -1,0 +1,82 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Acheter une clé d’accès — Fidelopass" description="Préparez l’achat d’une clé d’accès Fidelopass pour ouvrir un nouvel espace commerçant.">
+  <div class="relative overflow-hidden min-h-screen">
+    <div class="absolute inset-0 pointer-events-none">
+      <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[70rem] h-[70rem] rounded-full blur-3xl opacity-25" style="background:radial-gradient(circle,#6366f1 0%,rgba(10,15,30,0) 62%)"></div>
+      <div class="absolute top-32 -left-20 w-96 h-96 rounded-full blur-3xl opacity-20" style="background:radial-gradient(circle,#0ea5e9 0%,rgba(10,15,30,0) 68%)"></div>
+    </div>
+
+    <nav class="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
+      <a href="/" class="inline-flex items-center">
+        <img src="/logo.svg" alt="Fidelopass" class="h-11 w-auto" />
+      </a>
+      <div class="flex items-center gap-3">
+        <a href="/contact" class="btn-secondary text-sm">Contact</a>
+        <a href="/register" class="btn-primary text-sm">Créer mon accès</a>
+      </div>
+    </nav>
+
+    <section class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-20">
+      <div class="grid lg:grid-cols-[0.95fr_1.05fr] gap-8 items-start">
+        <div class="card p-7 sm:p-8">
+          <div class="badge badge-info mb-5">Clé d’accès Fidelopass</div>
+          <h1 class="font-display text-4xl sm:text-5xl font-bold text-white leading-tight">
+            Préparez l’ouverture
+            <span class="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-sky-300 to-amber-200">
+              d’un nouvel espace commerçant
+            </span>
+          </h1>
+          <p class="text-slate-300 text-lg leading-relaxed mt-6">
+            Cette page sert de point d’entrée pour acheter une clé d’accès Fidelopass. Le parcours de paiement sera paramétré ensemble juste après.
+          </p>
+
+          <div class="rounded-[1.75rem] border border-white/10 bg-white/5 p-5 mt-8">
+            <p class="text-white font-semibold">Ce qui sera débloqué avec votre clé</p>
+            <div class="space-y-3 mt-4 text-sm text-slate-300">
+              <div class="flex items-start gap-3"><span class="mt-1 w-2.5 h-2.5 rounded-full bg-indigo-400"></span><span>Création d’un compte commerçant sécurisé</span></div>
+              <div class="flex items-start gap-3"><span class="mt-1 w-2.5 h-2.5 rounded-full bg-sky-400"></span><span>Accès au dashboard, au scanner et aux modèles d’affiches</span></div>
+              <div class="flex items-start gap-3"><span class="mt-1 w-2.5 h-2.5 rounded-full bg-amber-300"></span><span>Configuration Wallet, QR code boutique et messages client</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid gap-5">
+          <div class="card p-6">
+            <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">Structure commerciale</p>
+            <div class="grid md:grid-cols-3 gap-4 mt-5">
+              <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <p class="text-white font-semibold">Starter</p>
+                <p class="text-slate-400 text-sm mt-2">1 commerce, 1 programme de fidélité, affiches A4 et scanner mobile.</p>
+              </div>
+              <div class="rounded-2xl border border-indigo-400/20 bg-indigo-500/10 p-4">
+                <p class="text-white font-semibold">Pro</p>
+                <p class="text-slate-400 text-sm mt-2">Personnalisation plus poussée, notifications push et campagnes plus fréquentes.</p>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <p class="text-white font-semibold">Réseau</p>
+                <p class="text-slate-400 text-sm mt-2">Pensé pour plusieurs points de vente ou plusieurs cartes au même nom d’enseigne.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-[2rem] border border-white/10 p-6 sm:p-7" style="background:linear-gradient(135deg,rgba(30,41,59,0.9),rgba(49,46,129,0.82),rgba(15,118,110,0.55))">
+            <p class="text-slate-300 text-xs uppercase tracking-[0.3em]">Étape suivante</p>
+            <h2 class="font-display text-2xl sm:text-3xl font-bold text-white mt-4">
+              Le paiement en ligne se branche ici ensuite.
+            </h2>
+            <p class="text-slate-200/85 text-sm sm:text-base leading-relaxed mt-4">
+              Pour l’instant, cette page pose la structure : offre, rassurance et point d’achat. On pourra y brancher Stripe ou un autre tunnel juste après, sans refaire toute la vitrine.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-3 mt-6">
+              <a href="/contact" class="btn-primary px-8 py-3.5 text-base">Je veux acheter une clé</a>
+              <a href="/register" class="btn-secondary px-8 py-3.5 text-base">J’ai déjà une clé</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</BaseLayout>

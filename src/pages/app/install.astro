@@ -1,0 +1,56 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+---
+
+<AppLayout title="Installer le scanner — Fidelopass">
+  <div class="min-h-[100dvh] px-6 py-8 max-w-3xl mx-auto">
+    <a href="/app" class="inline-flex items-center gap-2 text-slate-400 text-sm hover:text-white transition-colors">
+      <span>←</span>
+      <span>Retour à l’espace scan</span>
+    </a>
+
+    <div class="mt-6 card p-6 sm:p-8">
+      <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">Installation rapide</p>
+      <h1 class="font-display text-3xl sm:text-4xl font-bold text-white mt-4">Ajoutez le scanner à l’écran d’accueil</h1>
+      <p class="text-slate-400 text-sm sm:text-base mt-4 leading-relaxed">
+        L’objectif est simple : ouvrir le scanner comme une application, sans devoir retaper l’adresse du site à chaque passage en caisse.
+      </p>
+
+      <div class="grid md:grid-cols-2 gap-5 mt-8">
+        <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+          <p class="text-white font-semibold">Sur iPhone</p>
+          <ol class="mt-4 space-y-3 text-sm text-slate-300 list-decimal list-inside">
+            <li>Ouvrez <span class="font-medium text-white">Safari</span> sur <span class="font-medium text-white">www.fidelopass.com/app</span>.</li>
+            <li>Touchez le bouton <span class="font-medium text-white">Partager</span>.</li>
+            <li>Choisissez <span class="font-medium text-white">Sur l’écran d’accueil</span>.</li>
+            <li>Renommez l’icône si besoin puis validez.</li>
+          </ol>
+          <p class="text-slate-500 text-xs mt-4">Safari est recommandé sur iPhone pour un accès caméra plus fiable.</p>
+        </div>
+
+        <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+          <p class="text-white font-semibold">Sur Android</p>
+          <ol class="mt-4 space-y-3 text-sm text-slate-300 list-decimal list-inside">
+            <li>Ouvrez <span class="font-medium text-white">Chrome</span> sur <span class="font-medium text-white">www.fidelopass.com/app</span>.</li>
+            <li>Ouvrez le menu du navigateur.</li>
+            <li>Choisissez <span class="font-medium text-white">Installer l’application</span> ou <span class="font-medium text-white">Ajouter à l’écran d’accueil</span>.</li>
+            <li>Validez pour garder le scanner à portée de main.</li>
+          </ol>
+          <p class="text-slate-500 text-xs mt-4">Une fois installé, le scanner s’ouvre plus vite et se comporte comme une app légère.</p>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-indigo-400/20 bg-indigo-500/10 p-5 mt-6">
+        <p class="text-white font-semibold">Conseil comptoir</p>
+        <p class="text-slate-300 text-sm mt-2 leading-relaxed">
+          Installez l’icône sur le téléphone utilisé en caisse, autorisez la caméra une seule fois, puis gardez simplement l’écran scan prêt à l’usage.
+        </p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3 mt-6">
+        <a href="/app/scan" class="btn-primary px-6 py-3 text-center">Ouvrir le scanner</a>
+        <a href="/app" class="btn-secondary px-6 py-3 text-center">Retour à l’espace commerçant</a>
+      </div>
+    </div>
+  </div>
+</AppLayout>

@@ -65,6 +65,29 @@ const differentiators = [
   'Expérience plus moderne qu’une carte papier ou un tampon physique',
   'Configuration complète côté commerçant, sans développement custom à chaque fois',
 ];
+
+const gainSnapshots = [
+  {
+    metric: '1 scan = 1 passage traçable',
+    title: 'Vous remplacez la carte papier par une donnée exploitable',
+    detail: 'Chaque passage scanné peut alimenter vos stats, vos récompenses et vos relances plutôt que de rester hors radar.',
+  },
+  {
+    metric: '3 leviers dans une seule carte',
+    title: 'Wallet, push et passage en boutique',
+    detail: 'Le commerce peut combiner la carte en Wallet, les notifications push et le scanner pour faire revenir le client.',
+  },
+  {
+    metric: 'A4 + QR + Wallet',
+    title: 'Un parcours prêt à afficher dans le point de vente',
+    detail: 'Vous créez la carte, vous imprimez l’affiche QR et vous captez immédiatement les inscriptions sur place.',
+  },
+  {
+    metric: 'Vue claire côté commerce',
+    title: 'Cartes actives, scans, récompenses, clients notifiables',
+    detail: 'Le commerçant suit enfin ce que son programme génère au lieu de distribuer des tampons à l’aveugle.',
+  },
+];
 ---
 
 <BaseLayout
@@ -86,6 +109,8 @@ const differentiators = [
       <div class="hidden md:flex items-center gap-6 text-sm text-slate-400">
         <a href="#fonctionnement" class="hover:text-white transition-colors">Fonctionnement</a>
         <a href="#avantages" class="hover:text-white transition-colors">Avantages</a>
+        <a href="/acces" class="hover:text-white transition-colors">Acheter une clé</a>
+        <a href="/contact" class="hover:text-white transition-colors">Contact</a>
         <a href="#cta" class="hover:text-white transition-colors">Lancer le projet</a>
       </div>
       <div class="flex items-center gap-3">
@@ -111,6 +136,7 @@ const differentiators = [
           <div class="flex flex-col sm:flex-row gap-4 mt-8">
             <a href="/register" class="btn-primary px-8 py-3.5 text-base">Créer mon compte commerçant</a>
             <a href="#fonctionnement" class="btn-secondary px-8 py-3.5 text-base">Voir le parcours produit</a>
+            <a href="/acces" class="btn-secondary px-8 py-3.5 text-base">Acheter une clé</a>
           </div>
 
           <div class="grid sm:grid-cols-2 gap-3 mt-8 max-w-2xl">
@@ -266,6 +292,34 @@ const differentiators = [
       </div>
     </section>
 
+    <section class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pb-20">
+      <div class="grid xl:grid-cols-[0.9fr_1.1fr] gap-8 items-start">
+        <div class="card p-7">
+          <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">Ce que le commerce commence à gagner</p>
+          <h2 class="font-display text-3xl sm:text-4xl font-bold text-white mt-4">Des signaux pilotables, pas seulement des tampons distribués.</h2>
+          <p class="text-slate-400 leading-relaxed mt-4">
+            Fidelopass ne promet pas un chiffre magique. En revanche, il transforme un programme fidélité en parcours mesurable : affiches QR en boutique, cartes actives, scans enregistrés et clients recontactables.
+          </p>
+          <div class="rounded-3xl border border-indigo-400/20 bg-indigo-500/10 p-5 mt-6">
+            <p class="text-white font-semibold">Lecture simple pour rassurer un commerce</p>
+            <p class="text-slate-300 text-sm mt-3 leading-relaxed">
+              Plus le commerçant diffuse son affiche A4 et utilise le scanner, plus il convertit un passage réel en carte active, puis une carte active en retour mesurable.
+            </p>
+          </div>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-5">
+          {gainSnapshots.map((item) => (
+            <article class="card p-6 h-full">
+              <p class="text-indigo-300 font-mono text-sm tracking-[0.12em]">{item.metric}</p>
+              <h3 class="font-display text-xl font-bold text-white mt-4 leading-tight">{item.title}</h3>
+              <p class="text-slate-400 text-sm leading-relaxed mt-3">{item.detail}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
     <section id="cta" class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pb-20">
       <div class="rounded-[2rem] border border-white/10 p-8 sm:p-10 lg:p-12" style="background:linear-gradient(135deg,rgba(30,41,59,0.9),rgba(49,46,129,0.82),rgba(15,118,110,0.55))">
         <div class="grid lg:grid-cols-[1fr_auto] gap-8 items-center">
@@ -281,6 +335,7 @@ const differentiators = [
 
           <div class="flex flex-col sm:flex-row lg:flex-col gap-3">
             <a href="/register" class="btn-primary px-8 py-3.5 text-base">Créer mon accès</a>
+            <a href="/acces" class="btn-secondary px-8 py-3.5 text-base">Acheter une clé d’accès</a>
             <a href="/login" class="btn-secondary px-8 py-3.5 text-base">Accéder au dashboard</a>
           </div>
         </div>
@@ -288,7 +343,11 @@ const differentiators = [
     </section>
 
     <footer class="relative z-10 border-t border-white/5 py-8 px-4 sm:px-6 text-center text-slate-500 text-sm">
-      <p>© {new Date().getFullYear()} Fidelopass — conçu pour des programmes de fidélité Wallet plus ambitieux.</p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
+        <p>© {new Date().getFullYear()} Fidelopass — conçu pour des programmes de fidélité Wallet plus ambitieux.</p>
+        <a href="/acces" class="text-slate-400 hover:text-white transition-colors">Acheter une clé</a>
+        <a href="/contact" class="text-slate-400 hover:text-white transition-colors">Contact</a>
+      </div>
     </footer>
   </div>
 </BaseLayout>

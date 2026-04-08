@@ -237,10 +237,10 @@ export async function generateStripImage(opts: StripOptions): Promise<Buffer> {
         const totalW = cols * spacingX - spacingX + r * 2;
         const totalH = rows * spacingY - spacingY + r * 2;
         const startX = (W - totalW) / 2 + r;
-        const layout = opts.stripLayout ?? 'background';
-        const startY = layout === 'top'
+        const stampLayout = opts.stripLayout ?? 'background';
+        const startY = stampLayout === 'top'
           ? H - totalH - 18 + r
-          : layout === 'bottom'
+          : stampLayout === 'bottom'
             ? 18 + r
             : (H - totalH) / 2 + r;
 

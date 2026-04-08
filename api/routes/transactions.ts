@@ -129,35 +129,57 @@ transactionsRoutes.post('/', async (c) => {
     return c.json({ error: 'Erreur lors de l\'enregistrement' }, 500);
   }
 
+  const walletUpdates: Array<Promise<{ provider: string; ok: boolean; count?: number; error?: string }>> = [];
+  const updatedClient = {
+    ...client,
+    points_actuels: newPoints,
+    tampons_actuels: newTampons,
+    recompenses_obtenues: recompensesObtenues,
+  };
+
   if (client.google_pass_id) {
-    updateGooglePassObject(
-      client.google_pass_id,
-      carte as Parameters<typeof updateGooglePassObject>[1],
-      {
-        ...client,
-        points_actuels: newPoints,
-        tampons_actuels: newTampons,
-        recompenses_obtenues: recompensesObtenues,
-      },
-    ).catch((err) => console.error('[Google Wallet update]', err));
+    walletUpdates.push(
+      updateGooglePassObject(
+        client.google_pass_id,
+        carte as Parameters<typeof updateGooglePassObject>[1],
+        updatedClient,
+      )
+        .then(() => ({ provider: 'google', ok: true }))
+        .catch((err) => {
+          console.error('[Google Wallet update]', err);
+          return { provider: 'google', ok: false, error: err instanceof Error ? err.message : 'Google update failed' };
+        }),
+    );
   }
 
   if (client.apple_pass_serial) {
-    db.from('apple_pass_registrations')
+    walletUpdates.push(
+      db.from('apple_pass_registrations')
       .select('push_token, pass_type_identifier')
       .eq('client_id', parsed.data.client_id)
       .then(({ data, error }) => {
         if (error) {
           console.error('[Apple Wallet registrations]', error);
-          return;
+          return { provider: 'apple', ok: false, count: 0, error: error.message };
         }
 
-        for (const registration of data ?? []) {
-          pushApplePassUpdate(registration.push_token, registration.pass_type_identifier)
-            .catch((err) => console.error('[Apple Wallet push]', err));
-        }
-      });
+        const registrations = data ?? [];
+        return Promise.allSettled(
+          registrations.map((registration) =>
+            pushApplePassUpdate(registration.push_token, registration.pass_type_identifier),
+          ),
+        ).then((results) => {
+          const failed = results.find((result) => result.status === 'rejected');
+          if (failed) {
+            console.error('[Apple Wallet push]', failed.reason);
+          }
+          return { provider: 'apple', ok: !failed, count: registrations.length };
+        });
+      }),
+    );
   }
+
+  const wallet_update_results = await Promise.all(walletUpdates);
 
   return c.json({
     data: transactionResult.data,
@@ -166,5 +188,6 @@ transactionsRoutes.post('/', async (c) => {
       tampons_actuels: newTampons,
       recompenses_obtenues: recompensesObtenues,
     },
+    wallet_update_results,
   }, 201);
 });

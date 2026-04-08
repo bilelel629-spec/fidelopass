@@ -124,7 +124,12 @@ export async function generateApplePass(carte: CarteData, client: ClientData): P
     storeCard: {
       // headerFields : coin supérieur droit (solde)
       headerFields: [
-        { key: 'solde', label: soldeLabel.toUpperCase(), value: soldeValue },
+        {
+          key: 'solde',
+          label: soldeLabel.toUpperCase(),
+          value: soldeValue,
+          changeMessage: `Votre solde ${soldeLabel.toLowerCase()} est maintenant %@.`,
+        },
       ],
       // primaryFields : zone sur la strip — on laisse vide pour ne rien superposer
       primaryFields: [],
@@ -142,6 +147,7 @@ export async function generateApplePass(carte: CarteData, client: ClientData): P
           key: 'recompense',
           label: 'Récompense',
           value: carte.recompense_description ?? '—',
+          changeMessage: 'Votre récompense FideloPass a été mise à jour.',
         },
       ],
       backFields: [
@@ -265,8 +271,8 @@ export async function pushApplePassUpdate(pushToken: string, passTypeIdentifier:
       ':method': 'POST',
       ':path': `/3/device/${pushToken}`,
       'apns-topic': passTypeIdentifier,
-      'apns-priority': '10',
-      'apns-push-type': 'alert',
+      'apns-priority': '5',
+      'apns-push-type': 'background',
     });
 
     request.on('data', (chunk) => chunks.push(Buffer.from(chunk)));

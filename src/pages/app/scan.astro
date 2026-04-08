@@ -72,6 +72,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
         </div>
       </div>
     </div>
+
+    <div id="scan-toast" class="hidden fixed left-4 right-4 bottom-6 z-[70] rounded-2xl border border-emerald-400/30 bg-emerald-500/15 px-4 py-3 text-center text-sm font-semibold text-emerald-100 shadow-2xl backdrop-blur-md"></div>
   </div>
 </AppLayout>
 
@@ -136,11 +138,14 @@ import AppLayout from '../../layouts/AppLayout.astro';
   let currentClientId: string | null = null;
   let currentClientRecompenses = 0;
   let scannerPaused = false;
+  let audioContext: AudioContext | null = null;
+  let toastTimeout: ReturnType<typeof setTimeout> | null = null;
 
   const scannerStatus = document.getElementById('scanner-status')!;
   const cameraHelp = document.getElementById('camera-help')!;
   const cameraHelpText = document.getElementById('camera-help-text')!;
   const cameraPermissionBtn = document.getElementById('btn-camera-permission') as HTMLButtonElement;
+  const scanToast = document.getElementById('scan-toast')!;
   const scanner = new Html5Qrcode('reader', false);
   let scannerStarting = false;
   const scanConfig = {
@@ -161,6 +166,50 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
   function setScannerStatus(message: string) {
     scannerStatus.textContent = message;
+  }
+
+  function getAudioContext() {
+    const AudioContextClass = window.AudioContext ?? window.webkitAudioContext;
+    if (!AudioContextClass) return null;
+    audioContext ??= new AudioContextClass();
+    return audioContext;
+  }
+
+  function unlockAudio() {
+    const context = getAudioContext();
+    if (context?.state === 'suspended') {
+      context.resume().catch(() => {});
+    }
+  }
+
+  function playBeep(type: 'scan' | 'success' = 'scan') {
+    const context = getAudioContext();
+    if (!context) return;
+
+    const now = context.currentTime;
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = type === 'success' ? 'triangle' : 'sine';
+    oscillator.frequency.setValueAtTime(type === 'success' ? 880 : 660, now);
+    if (type === 'success') {
+      oscillator.frequency.exponentialRampToValueAtTime(1320, now + 0.08);
+    }
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.exponentialRampToValueAtTime(type === 'success' ? 0.18 : 0.13, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + (type === 'success' ? 0.16 : 0.09));
+
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(now);
+    oscillator.stop(now + (type === 'success' ? 0.18 : 0.11));
+  }
+
+  function showToast(message: string) {
+    if (toastTimeout) clearTimeout(toastTimeout);
+    scanToast.textContent = message;
+    scanToast.classList.remove('hidden');
+    toastTimeout = setTimeout(() => scanToast.classList.add('hidden'), 2200);
   }
 
   function showCameraHelp(message: string) {
@@ -278,6 +327,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
     scannerPaused = true;
     scanner.pause();
     setScannerStatus('QR code détecté...');
+    playBeep('scan');
 
     try {
       // Le QR contient l'ID client
@@ -354,6 +404,15 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
       // Feedback positif
       if (navigator.vibrate) navigator.vibrate([50, 50, 100]);
+      playBeep('success');
+      const confirmation = type === 'ajout_tampon'
+        ? 'Tampon ajouté avec succès.'
+        : type === 'ajout_points'
+          ? `${valeur} point${valeur > 1 ? 's' : ''} ajouté${valeur > 1 ? 's' : ''} avec succès.`
+          : type === 'recompense'
+            ? 'Récompense utilisée avec succès.'
+            : 'Action enregistrée avec succès.';
+      showToast(confirmation);
 
       // Confetti si récompense obtenue (dernier tampon ou points atteints)
       const newRecompenses: number = data.client?.recompenses_obtenues ?? currentClientRecompenses;
@@ -401,6 +460,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
   }
 
   document.getElementById('btn-close')!.addEventListener('click', closeResult);
+  document.addEventListener('pointerdown', unlockAudio, { once: true });
+  document.addEventListener('touchstart', unlockAudio, { once: true });
   cameraPermissionBtn.addEventListener('click', () => startScanner({ fromUserAction: true }));
   startScanner();
 </script>

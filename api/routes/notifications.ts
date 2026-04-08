@@ -8,6 +8,49 @@ export const notificationsRoutes = new Hono();
 
 notificationsRoutes.use('*', authMiddleware);
 
+/** GET /api/notifications/summary — Résumé des canaux réellement disponibles */
+notificationsRoutes.get('/summary', async (c) => {
+  const userId = c.get('userId') as string;
+  const db = createServiceClient();
+
+  const { data: commerce } = await db
+    .from('commerces')
+    .select('id')
+    .eq('user_id', userId)
+    .single();
+
+  if (!commerce) {
+    return c.json({
+      data: {
+        web_push_ready: 0,
+        wallet_ready: 0,
+      },
+    });
+  }
+
+  const [{ count: webPushReady }, { data: clients }] = await Promise.all([
+    db
+      .from('clients')
+      .select('id', { count: 'exact', head: true })
+      .eq('commerce_id', commerce.id)
+      .eq('push_enabled', true)
+      .not('fcm_token', 'is', null),
+    db
+      .from('clients')
+      .select('id, apple_pass_serial, google_pass_id')
+      .eq('commerce_id', commerce.id),
+  ]);
+
+  const walletReady = (clients ?? []).filter((client) => client.apple_pass_serial || client.google_pass_id).length;
+
+  return c.json({
+    data: {
+      web_push_ready: webPushReady ?? 0,
+      wallet_ready: walletReady,
+    },
+  });
+});
+
 /** GET /api/notifications — Historique des notifications */
 notificationsRoutes.get('/', async (c) => {
   const userId = c.get('userId') as string;

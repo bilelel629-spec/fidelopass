@@ -5,7 +5,20 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 <DashboardLayout title="Notifications — Fidelopass" activeNav="notifications">
   <div class="mb-8">
     <h1 class="font-display text-2xl font-bold text-white">Notifications push</h1>
-    <p class="text-slate-400 text-sm mt-1">Envoyez des messages à tous vos clients</p>
+    <p class="text-slate-400 text-sm mt-1">Envoyez des messages promotionnels à tous vos clients compatibles web push</p>
+  </div>
+
+  <div id="notif-summary" class="grid gap-4 md:grid-cols-2 mb-6">
+    <div class="card p-5">
+      <p class="text-slate-400 text-xs uppercase tracking-wide">Push marketing web</p>
+      <p id="summary-web-push" class="text-white text-2xl font-display font-bold mt-2">—</p>
+      <p class="text-slate-400 text-sm mt-2">Clients pouvant recevoir vos campagnes depuis cette page.</p>
+    </div>
+    <div class="card p-5">
+      <p class="text-slate-400 text-xs uppercase tracking-wide">Mises à jour Wallet</p>
+      <p id="summary-wallet" class="text-white text-2xl font-display font-bold mt-2">—</p>
+      <p class="text-slate-400 text-sm mt-2">Clients déjà joignables via Apple Wallet ou Google Wallet.</p>
+    </div>
   </div>
 
   <div class="grid lg:grid-cols-2 gap-6">
@@ -74,6 +87,25 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const form = document.getElementById('notif-form') as HTMLFormElement;
   const errorMsg = document.getElementById('error-msg') as HTMLDivElement;
   const successMsg = document.getElementById('success-msg') as HTMLDivElement;
+  let notificationSummary = { web_push_ready: 0, wallet_ready: 0 };
+
+  async function loadSummary() {
+    try {
+      const res = await authFetch('/api/notifications/summary');
+      if (!res.ok) throw new Error();
+      const { data } = await res.json();
+      notificationSummary = {
+        web_push_ready: data?.web_push_ready ?? 0,
+        wallet_ready: data?.wallet_ready ?? 0,
+      };
+
+      document.getElementById('summary-web-push')!.textContent = String(notificationSummary.web_push_ready);
+      document.getElementById('summary-wallet')!.textContent = String(notificationSummary.wallet_ready);
+    } catch {
+      document.getElementById('summary-web-push')!.textContent = '—';
+      document.getElementById('summary-wallet')!.textContent = '—';
+    }
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -97,11 +129,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (!res.ok) throw new Error(data.error ?? 'Erreur');
 
       successMsg.textContent = data.nb_destinataires === 0
-        ? 'Aucun client n’a encore un token push valide. Vérifiez la configuration Firebase puis demandez aux clients de réactiver les notifications sur leur carte.'
+        ? notificationSummary.wallet_ready > 0
+          ? `0 client prêt pour les campagnes push web. ${notificationSummary.wallet_ready} client(s) reçoivent déjà les mises à jour Wallet, mais cela reste distinct des notifications promotionnelles envoyées depuis ce tableau.`
+          : 'Aucun client n’a encore un token push web valide. Vérifiez la configuration Firebase puis demandez aux clients d’autoriser les notifications web sur leur carte.'
         : `Notification envoyée à ${data.nb_delivrees} client(s) sur ${data.nb_destinataires} notifiable(s).`;
       successMsg.classList.remove('hidden');
       form.reset();
       charCount.textContent = '0';
+      await loadSummary();
       loadHistory();
     } catch (err: unknown) {
       errorMsg.textContent = err instanceof Error ? err.message : 'Erreur lors de l\'envoi.';
@@ -142,5 +177,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   }
 
+  loadSummary();
   loadHistory();
 </script>

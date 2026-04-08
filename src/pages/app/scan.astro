@@ -17,7 +17,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
     <!-- Zone scanner -->
     <div class="flex-1 flex flex-col items-center justify-center px-4 gap-6">
       <div class="relative w-full max-w-sm">
-        <div id="reader" class="scanner-reader w-full aspect-[3/4] rounded-2xl overflow-hidden border-2 border-indigo-500/50 bg-navy-800"></div>
+        <div id="reader" class="scanner-reader w-full aspect-[4/5] rounded-2xl overflow-hidden border-2 border-indigo-500/50 bg-navy-800"></div>
         <div class="pointer-events-none absolute inset-3 rounded-2xl border border-white/45 shadow-[0_0_24px_rgba(99,102,241,0.35)]"></div>
       </div>
       <div class="text-center">
@@ -149,15 +149,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
   const scanner = new Html5Qrcode('reader', false);
   let scannerStarting = false;
   const scanConfig = {
-    fps: 20,
-    qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-      // Zone de scan large : le QR n'a pas besoin d'être exactement centré.
-      return {
-        width: Math.floor(viewfinderWidth * 0.94),
-        height: Math.floor(viewfinderHeight * 0.88),
-      };
-    },
-    aspectRatio: 3 / 4,
+    fps: 30,
+    aspectRatio: 4 / 5,
     disableFlip: true,
     experimentalFeatures: {
       useBarCodeDetectorIfSupported: true,
@@ -237,7 +230,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
           facingMode: { ideal: 'environment' },
           width: { ideal: 1920 },
           height: { ideal: 1080 },
-          focusMode: { ideal: 'continuous' },
+          advanced: [{ focusMode: 'continuous' } as MediaTrackConstraintSet],
         },
         audio: false,
       });
@@ -282,7 +275,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
                 facingMode: { ideal: 'environment' },
                 width: { ideal: 1920 },
                 height: { ideal: 1080 },
-                focusMode: { ideal: 'continuous' },
+                advanced: [{ focusMode: 'continuous' } as MediaTrackConstraintSet],
               },
           scanConfig,
           handleScan,

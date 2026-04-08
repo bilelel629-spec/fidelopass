@@ -103,11 +103,22 @@ const firebasePushConfig = {
             <div>
               <p class="text-white text-xs font-medium">Recevoir des notifications push</p>
               <p class="text-slate-400 text-xs mt-0.5 leading-relaxed">
-                Offres, promotions et rappels de fidélité de ce commerce. Désactivable à tout moment.
+                Activé par défaut pour recevoir vos offres, promotions et rappels de fidélité. Désactivable à tout moment.
               </p>
             </div>
           </div>
-          <input type="hidden" id="consent-value" value="false" />
+          <input type="hidden" id="consent-value" value="true" />
+          <div id="push-helper" class="hidden rounded-xl border border-indigo-400/20 bg-indigo-500/10 px-4 py-3">
+            <p id="push-helper-title" class="text-white text-sm font-medium"></p>
+            <p id="push-helper-text" class="text-slate-300 text-xs mt-1 leading-relaxed"></p>
+            <button
+              id="push-helper-action"
+              type="button"
+              class="hidden mt-3 inline-flex items-center justify-center rounded-lg border border-indigo-300/30 bg-white/5 px-4 py-2 text-xs font-medium text-white transition hover:bg-white/10"
+            >
+              Activer maintenant
+            </button>
+          </div>
         </div>
       </div>
 
@@ -153,18 +164,139 @@ const firebasePushConfig = {
   );
 
   // ── Checkbox consentement ────────────────────────────────────────
-  let pushConsent = false;
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const supportsPushBrowser = 'Notification' in window && 'serviceWorker' in navigator;
+
+  let pushConsent = isPushConfigured;
+  let latestPushStatus = isPushConfigured ? 'pending-auto' : 'disabled';
   const consentBox = document.getElementById('consent-box');
   const consentCheck = document.getElementById('consent-check');
   const consentIcon = document.getElementById('consent-check-icon');
+  const consentText = consentBox.querySelector('p.text-slate-400');
+  const pushHelper = document.getElementById('push-helper');
+  const pushHelperTitle = document.getElementById('push-helper-title');
+  const pushHelperText = document.getElementById('push-helper-text');
+  const pushHelperAction = document.getElementById('push-helper-action');
+
+  function renderConsentState() {
+    document.getElementById('consent-value').value = String(pushConsent);
+    if (pushConsent) {
+      consentBox.style.cssText = 'border-color:#6366f1;background:rgb(99 102 241/0.1)';
+      consentCheck.style.cssText = 'border-color:#6366f1;background:#6366f1;width:20px;height:20px;border-radius:4px;border-width:2px;display:flex;align-items:center;justify-content:center;transition:all 0.15s';
+      consentIcon.classList.remove('hidden');
+      return;
+    }
+
+    consentBox.style.cssText = 'border-color:#334155;background:transparent';
+    consentCheck.style.cssText = 'border-color:#475569;background:transparent;width:20px;height:20px;border-radius:4px;border-width:2px;display:flex;align-items:center;justify-content:center;transition:all 0.15s';
+    consentIcon.classList.add('hidden');
+  }
+
+  function setPushHelper({ title, text, actionLabel = '', actionHidden = true, actionDisabled = false } = {}) {
+    if (!title && !text) {
+      pushHelper.classList.add('hidden');
+      pushHelperAction.classList.add('hidden');
+      pushHelperAction.textContent = 'Activer maintenant';
+      pushHelperTitle.textContent = '';
+      pushHelperText.textContent = '';
+      return;
+    }
+
+    pushHelper.classList.remove('hidden');
+    pushHelperTitle.textContent = title ?? '';
+    pushHelperText.textContent = text ?? '';
+    pushHelperAction.textContent = actionLabel || 'Activer maintenant';
+    pushHelperAction.disabled = actionDisabled;
+    pushHelperAction.classList.toggle('hidden', actionHidden);
+  }
+
+  function refreshPushUi() {
+    renderConsentState();
+
+    if (!isPushConfigured) {
+      consentText.textContent = 'Les notifications sont en cours de configuration. Vous pourrez les activer prochainement.';
+      consentBox.style.opacity = '0.6';
+      consentBox.style.cursor = 'not-allowed';
+      setPushHelper({
+        title: 'Notifications bientôt disponibles',
+        text: 'Ce commerce finalise encore la configuration technique des notifications.',
+      });
+      return;
+    }
+
+    consentBox.style.opacity = '1';
+    consentBox.style.cursor = 'pointer';
+    consentText.textContent = pushConsent
+      ? 'Activé par défaut pour recevoir vos offres, promotions et rappels de fidélité. Désactivable à tout moment.'
+      : 'Désactivé pour cette carte. Vous pourrez les réactiver plus tard.';
+
+    if (!pushConsent) {
+      latestPushStatus = 'disabled';
+      setPushHelper({
+        title: 'Notifications désactivées',
+        text: 'Vous pourrez les réactiver plus tard depuis cette page si vous changez d’avis.',
+      });
+      return;
+    }
+
+    if (!supportsPushBrowser) {
+      latestPushStatus = 'unsupported';
+      setPushHelper({
+        title: 'Navigateur limité',
+        text: 'Votre navigateur ne permet pas encore d’activer les notifications web pour cette carte.',
+      });
+      return;
+    }
+
+    if (isIos && !isStandalone()) {
+      latestPushStatus = 'requires-install';
+      setPushHelper({
+        title: 'Activation en 1 étape sur iPhone',
+        text: 'Ajoutez cette page à l’écran d’accueil, rouvrez-la depuis l’icône, puis continuez : la demande de notification apparaîtra automatiquement.',
+      });
+      return;
+    }
+
+    if (Notification.permission === 'denied') {
+      latestPushStatus = 'denied';
+      setPushHelper({
+        title: 'Autorisation bloquée',
+        text: 'Les notifications sont refusées dans votre navigateur. Autorisez-les dans les réglages du site, puis revenez ici.',
+      });
+      return;
+    }
+
+    if (Notification.permission === 'granted') {
+      if (latestPushStatus === 'success') {
+        setPushHelper({
+          title: 'Notifications activées',
+          text: 'Tout est prêt. Vous recevrez les offres et rappels de fidélité de ce commerce.',
+        });
+        return;
+      }
+
+      setPushHelper({
+        title: 'Notifications en préparation',
+        text: 'Votre appareil autorise déjà les notifications. Elles seront liées à votre carte automatiquement.',
+      });
+      return;
+    }
+
+    const clientId = walletClient?.id ?? readRememberedClient()?.id ?? '';
+    setPushHelper({
+      title: clientId ? 'Dernière étape très rapide' : 'Notifications prêtes',
+      text: clientId
+        ? 'Touchez simplement pour autoriser les notifications et finaliser l’activation pour cette carte.'
+        : 'Nous vous proposerons automatiquement les notifications dès que votre carte sera créée.',
+      actionLabel: 'Activer maintenant',
+      actionHidden: !clientId,
+    });
+  }
 
   if (!isPushConfigured) {
-    const consentText = consentBox.querySelector('p.text-slate-400');
-    if (consentText) {
-      consentText.textContent = 'Les notifications sont en cours de configuration. Vous pourrez les activer prochainement.';
-    }
-    consentBox.style.opacity = '0.6';
-    consentBox.style.cursor = 'not-allowed';
+    pushConsent = false;
   }
 
   consentBox.addEventListener('click', () => {
@@ -174,17 +306,15 @@ const firebasePushConfig = {
     }
 
     pushConsent = !pushConsent;
-    document.getElementById('consent-value').value = String(pushConsent);
-    if (pushConsent) {
-      consentBox.style.cssText = 'border-color:#6366f1;background:rgb(99 102 241/0.1)';
-      consentCheck.style.cssText = 'border-color:#6366f1;background:#6366f1;width:20px;height:20px;border-radius:4px;border-width:2px;display:flex;align-items:center;justify-content:center;transition:all 0.15s';
-      consentIcon.classList.remove('hidden');
-    } else {
-      consentBox.style.cssText = 'border-color:#334155;background:transparent';
-      consentCheck.style.cssText = 'border-color:#475569;background:transparent;width:20px;height:20px;border-radius:4px;border-width:2px;display:flex;align-items:center;justify-content:center;transition:all 0.15s';
-      consentIcon.classList.add('hidden');
-    }
+    refreshPushUi();
   });
+
+  pushHelperAction.addEventListener('click', async () => {
+    const clientId = walletClient?.id ?? readRememberedClient()?.id;
+    if (!clientId) return;
+    await maybeActivatePush(clientId, { showFeedback: true, source: 'helper' });
+  });
+  refreshPushUi();
 
   // ── Validation ───────────────────────────────────────────────────
   function showError(msg) {
@@ -380,6 +510,7 @@ const firebasePushConfig = {
 
   async function hydrateRememberedClientState() {
     const remembered = readRememberedClient();
+    refreshPushUi();
     if (!remembered?.id) return;
 
     const inputNom = document.getElementById('client-nom');
@@ -396,6 +527,7 @@ const firebasePushConfig = {
         nom: data.nom,
         telephone: data.telephone,
       };
+      refreshPushUi();
       renderClientProgress(data);
 
       const seenKey = rewardSeenKey(data.id);
@@ -406,6 +538,15 @@ const firebasePushConfig = {
       if (currentRewards > previousRewards) {
         await fireWelcomeConfetti();
         showSuccess(`Bravo ! Vous avez débloqué ${currentRewards > 1 ? 'une nouvelle récompense' : 'votre récompense'}. Montrez votre carte à chaque passage.`);
+      }
+
+      if (
+        pushConsent
+        && isPushConfigured
+        && supportsPushBrowser
+        && Notification.permission === 'granted'
+      ) {
+        await maybeActivatePush(data.id, { showFeedback: false, source: 'restore' });
       }
     } catch {
       // L'état public du client n'est qu'un confort.
@@ -466,10 +607,9 @@ const firebasePushConfig = {
 
       walletClient = data.data;
       rememberClient(walletClient);
-      if (pushConsent) {
-        await registerPushToken(walletClient.id).catch((error) => {
-          console.warn('[push registration]', error);
-        });
+      refreshPushUi();
+      if (pushConsent && isPushConfigured) {
+        await maybeActivatePush(walletClient.id, { showFeedback: true, source: 'create' });
       }
       return walletClient;
     })();
@@ -486,16 +626,28 @@ const firebasePushConfig = {
     const missing = required.some((key) => !pushConfig?.[key]);
     if (missing) {
       console.warn('[push] Firebase public config missing');
-      return null;
+      return { status: 'unavailable' };
     }
 
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+    if (!supportsPushBrowser) {
       console.warn('[push] notifications unavailable in this browser');
-      return null;
+      return { status: 'unsupported' };
     }
 
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') return null;
+    if (isIos && !isStandalone()) {
+      return { status: 'requires-install' };
+    }
+
+    if (Notification.permission === 'denied') {
+      return { status: 'denied' };
+    }
+
+    const permission = Notification.permission === 'granted'
+      ? 'granted'
+      : await Notification.requestPermission();
+    if (permission !== 'granted') {
+      return { status: permission === 'denied' ? 'denied' : 'dismissed' };
+    }
 
     const [{ initializeApp, getApps }, { getMessaging, getToken }] = await Promise.all([
       import('firebase/app'),
@@ -517,7 +669,7 @@ const firebasePushConfig = {
       serviceWorkerRegistration: registration,
     });
 
-    if (!token) return null;
+    if (!token) return { status: 'dismissed' };
 
     await fetch(apiUrl(`/api/clients/${clientId}/fcm`), {
       method: 'PATCH',
@@ -525,7 +677,36 @@ const firebasePushConfig = {
       body: JSON.stringify({ fcm_token: token }),
     });
 
-    return token;
+    return { status: 'success', token };
+  }
+
+  async function maybeActivatePush(clientId, { showFeedback = false, source = 'manual' } = {}) {
+    if (!clientId || !pushConsent || !isPushConfigured) {
+      refreshPushUi();
+      return { status: 'disabled' };
+    }
+
+    latestPushStatus = source === 'helper' ? 'pending-manual' : 'pending-auto';
+    refreshPushUi();
+
+    try {
+      const result = await registerPushToken(clientId);
+      latestPushStatus = result.status;
+      refreshPushUi();
+
+      if (showFeedback && result.status === 'success') {
+        showSuccess('Notifications activées pour cette carte. Vous recevrez maintenant les offres et rappels de fidélité.');
+      } else if (showFeedback && result.status === 'requires-install') {
+        showSuccess('Votre carte est prête. Sur iPhone, ajoutez maintenant cette page à l’écran d’accueil pour activer les notifications.');
+      }
+
+      return result;
+    } catch (error) {
+      latestPushStatus = 'error';
+      refreshPushUi();
+      console.warn('[push registration]', error);
+      return { status: 'error', error };
+    }
   }
 
   // ── Confetti récompense ──────────────────────────────────────────

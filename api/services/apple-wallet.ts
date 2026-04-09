@@ -111,9 +111,14 @@ async function resizeTo(buf: Buffer, w: number, h: number): Promise<Buffer> {
 }
 
 async function createPassIcon(buf: Buffer, size: number, backgroundHex: string): Promise<Buffer> {
-  const padding = Math.max(3, Math.round(size * 0.14));
+  const padding = Math.max(2, Math.round(size * 0.06));
   const inner = Math.max(1, size - padding * 2);
-  const contained = await sharp(buf)
+  const trimmed = await sharp(buf)
+    .trim()
+    .png()
+    .toBuffer();
+
+  const contained = await sharp(trimmed)
     .resize(inner, inner, {
       fit: 'contain',
       background: { r: 0, g: 0, b: 0, alpha: 0 },

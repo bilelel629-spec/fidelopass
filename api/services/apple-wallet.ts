@@ -47,6 +47,11 @@ interface ClientData {
   tampons_actuels: number;
 }
 
+interface WalletMessage {
+  titre: string;
+  message: string;
+}
+
 function hexToRgb(hex: string): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
@@ -103,7 +108,11 @@ const BARCODE_FORMAT_MAP: Record<string, string> = {
   CODE128: 'PKBarcodeFormatCode128',
 };
 
-export async function generateApplePass(carte: CarteData, client: ClientData): Promise<Buffer> {
+export async function generateApplePass(
+  carte: CarteData,
+  client: ClientData,
+  walletMessage?: WalletMessage | null,
+): Promise<Buffer> {
   const barcodeType = carte.barcode_type ?? 'QR';
   const labelClient = carte.label_client ?? 'Client';
 
@@ -181,6 +190,12 @@ export async function generateApplePass(carte: CarteData, client: ClientData): P
           key: 'paliers_vip',
           label: 'Paliers VIP',
           value: vipText,
+        }] : []),
+        ...(walletMessage?.message ? [{
+          key: 'message_wallet',
+          label: walletMessage.titre || 'Message',
+          value: walletMessage.message,
+          changeMessage: `${walletMessage.titre || 'Nouveau message'} : %@`,
         }] : []),
       ],
     },

@@ -5,6 +5,7 @@ import { generateApplePass } from '../services/apple-wallet';
 import { generateGooglePass } from '../services/google-wallet';
 
 export const walletRoutes = new Hono();
+const RECENT_WALLET_MESSAGE_WINDOW_DAYS = 7;
 
 const bodySchema = z.object({
   client_id: z.string().uuid(),
@@ -34,7 +35,7 @@ async function loadWalletContext(
     .single();
 
   if (!carte) {
-    return { db, carte: null, client: null } as const;
+    return { db, carte: null, client: null, latestNotification: null } as const;
   }
 
   const { data: client } = await db
@@ -43,7 +44,16 @@ async function loadWalletContext(
     .eq('id', clientId)
     .single();
 
-  return { db, carte, client } as const;
+  const { data: latestNotification } = await db
+    .from('notifications')
+    .select('titre, message, created_at')
+    .eq('commerce_id', carte.commerce_id)
+    .gte('created_at', new Date(Date.now() - RECENT_WALLET_MESSAGE_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString())
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return { db, carte, client, latestNotification } as const;
 }
 
 function isValidApplePassAuth(c: Context, serialNumber: string) {
@@ -59,9 +69,17 @@ async function loadApplePassByClient(serialNumber: string) {
     .eq('id', serialNumber)
     .single();
 
-  if (!client?.cartes) return { db, client: null, carte: null } as const;
+  if (!client?.cartes) return { db, client: null, carte: null, latestNotification: null } as const;
   const { cartes, ...clientData } = client as typeof client & { cartes: unknown };
-  return { db, client: clientData, carte: cartes } as const;
+  const { data: latestNotification } = await db
+    .from('notifications')
+    .select('titre, message, created_at')
+    .eq('commerce_id', clientData.commerce_id)
+    .gte('created_at', new Date(Date.now() - RECENT_WALLET_MESSAGE_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString())
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return { db, client: clientData, carte: cartes, latestNotification } as const;
 }
 
 walletRoutes.post('/apple/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber', async (c) => {
@@ -133,13 +151,14 @@ walletRoutes.get('/apple/v1/passes/:passTypeIdentifier/:serialNumber', async (c)
   const serialNumber = c.req.param('serialNumber') ?? '';
   if (!isValidApplePassAuth(c, serialNumber)) return c.body(null, 401);
 
-  const { carte, client } = await loadApplePassByClient(serialNumber);
+  const { carte, client, latestNotification } = await loadApplePassByClient(serialNumber);
   if (!carte || !client) return c.json({ error: 'Pass introuvable' }, 404);
 
   try {
     const passBuffer = await generateApplePass(
       carte as Parameters<typeof generateApplePass>[0],
       client as Parameters<typeof generateApplePass>[1],
+      latestNotification ?? null,
     );
 
     return new Response(new Uint8Array(passBuffer), {
@@ -165,7 +184,7 @@ const appleWalletHandler = async (c: Context) => {
     return c.json({ error: 'client_id manquant ou invalide' }, 400);
   }
 
-  const { db, carte, client } = await loadWalletContext(
+  const { db, carte, client, latestNotification } = await loadWalletContext(
     carteId,
     parsed.data.client_id,
     'id, nom, logo_url, latitude, longitude, rayon_geo',
@@ -179,6 +198,7 @@ const appleWalletHandler = async (c: Context) => {
     const passBuffer = await generateApplePass(
       carte as Parameters<typeof generateApplePass>[0],
       client,
+      latestNotification ?? null,
     );
 
     await db.from('clients').update({ apple_pass_serial: client.id }).eq('id', client.id);
@@ -208,7 +228,7 @@ walletRoutes.post('/google/:carteId', async (c) => {
     return c.json({ error: 'client_id manquant ou invalide' }, 400);
   }
 
-  const { db, carte, client } = await loadWalletContext(
+  const { db, carte, client, latestNotification } = await loadWalletContext(
     carteId,
     parsed.data.client_id,
     'id, nom, logo_url',
@@ -222,6 +242,7 @@ walletRoutes.post('/google/:carteId', async (c) => {
     const { objectId, saveUrl } = await generateGooglePass(
       carte as Parameters<typeof generateGooglePass>[0],
       client,
+      latestNotification ?? null,
     );
     await db.from('clients').update({ google_pass_id: objectId }).eq('id', client.id);
     return c.json({ saveUrl });

@@ -31,6 +31,11 @@ interface ClientData {
   recompenses_obtenues?: number;
 }
 
+interface WalletMessage {
+  titre: string;
+  message: string;
+}
+
 const GOOGLE_WALLET_API = 'https://walletobjects.googleapis.com/walletobjects/v1';
 
 function getCredentials() {
@@ -134,6 +139,7 @@ async function upsertLoyaltyClass(carte: CarteData): Promise<string> {
 export async function generateGooglePass(
   carte: CarteData,
   client: ClientData,
+  walletMessage?: WalletMessage | null,
 ): Promise<{ objectId: string; saveUrl: string }> {
   const issuerId = getIssuerId();
   const credentials = getCredentials();
@@ -172,6 +178,11 @@ export async function generateGooglePass(
         header: 'Paliers VIP',
         body: getVipText(carte),
         id: 'paliers_vip',
+      }] : []),
+      ...(walletMessage?.message ? [{
+        header: walletMessage.titre || 'Message',
+        body: walletMessage.message,
+        id: 'message_wallet',
       }] : []),
     ],
   };
@@ -242,6 +253,31 @@ export async function updateGooglePassObject(
           id: 'solde_actuel',
         },
       ],
+    },
+  });
+}
+
+export async function sendGoogleWalletMessage(
+  objectId: string,
+  titre: string,
+  message: string,
+  notificationId?: string,
+): Promise<void> {
+  const authClient = await getAuthClient();
+  const requester = authClient as unknown as {
+    request: (opts: { url: string; method: string; data?: unknown }) => Promise<unknown>;
+  };
+
+  await requester.request({
+    url: `${GOOGLE_WALLET_API}/loyaltyObject/${objectId}/addMessage`,
+    method: 'POST',
+    data: {
+      message: {
+        id: notificationId ? `notif_${notificationId}` : `notif_${Date.now()}`,
+        header: titre,
+        body: message,
+        messageType: 'TEXT_AND_NOTIFY',
+      },
     },
   });
 }

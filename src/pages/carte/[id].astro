@@ -711,6 +711,8 @@ const firebasePushConfig = {
 
       if (showFeedback && result.status === 'success') {
         showSuccess('Notifications activées pour cette carte. Vous recevrez maintenant les offres et rappels de fidélité.');
+      }
+
       return result;
     } catch (error) {
       latestPushStatus = 'error';

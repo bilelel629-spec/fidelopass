@@ -278,9 +278,11 @@ export async function generateApplePass(
   const logoRaw = logoUrl ? await fetchImageBuffer(logoUrl) : null;
   const logo1x = logoRaw ? await resizeTo(logoRaw, 120, 120) : readAsset('logo.png');
   const logo2x = logoRaw ? await resizeTo(logoRaw, 240, 240) : readAsset('logo@2x.png');
-  const icon1x = logoRaw ? await createPassIcon(logoRaw, 29, carte.couleur_accent) : readAsset('icon.png');
-  const icon2x = logoRaw ? await createPassIcon(logoRaw, 58, carte.couleur_accent) : readAsset('icon@2x.png');
-  const icon3x = logoRaw ? await createPassIcon(logoRaw, 87, carte.couleur_accent) : readAsset('icon@3x.png');
+  // iOS 15+ affiche une icône de notification Wallet plus grande.
+  // Apple recommande maintenant 38x38 minimum à l'échelle 1x.
+  const icon1x = logoRaw ? await createPassIcon(logoRaw, 38, carte.couleur_accent) : await resizeTo(readAsset('icon@3x.png'), 38, 38);
+  const icon2x = logoRaw ? await createPassIcon(logoRaw, 76, carte.couleur_accent) : await resizeTo(readAsset('icon@3x.png'), 76, 76);
+  const icon3x = logoRaw ? await createPassIcon(logoRaw, 114, carte.couleur_accent) : await resizeTo(readAsset('icon@3x.png'), 114, 114);
 
   // ── Dossier temporaire .pass ──────────────────────────────────────
   const tmpPassDir = resolve(tmpdir(), `fidelopass-${randomUUID()}.pass`);

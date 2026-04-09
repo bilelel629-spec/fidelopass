@@ -168,9 +168,10 @@ const firebasePushConfig = {
     || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
   const supportsPushBrowser = 'Notification' in window && 'serviceWorker' in navigator;
+  const supportsMarketingWebPush = supportsPushBrowser && !isIos;
 
-  let pushConsent = isPushConfigured;
-  let latestPushStatus = isPushConfigured ? 'pending-auto' : 'disabled';
+  let pushConsent = isPushConfigured && supportsMarketingWebPush;
+  let latestPushStatus = isPushConfigured && supportsMarketingWebPush ? 'pending-auto' : 'disabled';
   const consentBox = document.getElementById('consent-box');
   const consentCheck = document.getElementById('consent-check');
   const consentIcon = document.getElementById('consent-check-icon');
@@ -226,6 +227,24 @@ const firebasePushConfig = {
       return;
     }
 
+    if (!supportsMarketingWebPush) {
+      pushConsent = false;
+      renderConsentState();
+      consentText.textContent = isIos
+        ? 'Les notifications marketing web ne sont pas encore prises en charge sur iPhone avec cette configuration. Vous recevrez quand même les mises à jour de votre carte via Wallet.'
+        : 'Ce navigateur ne permet pas encore les notifications marketing web pour cette carte.';
+      consentBox.style.opacity = '0.6';
+      consentBox.style.cursor = 'not-allowed';
+      latestPushStatus = 'unsupported';
+      setPushHelper({
+        title: isIos ? 'iPhone : Wallet OK, push web non disponible' : 'Navigateur limité',
+        text: isIos
+          ? 'Les ajouts de tampons et mises à jour de fidélité continueront à remonter via Apple Wallet. Les campagnes promotionnelles envoyées depuis ce tableau restent pour l’instant réservées aux navigateurs compatibles web push.'
+          : 'Ce navigateur ne permet pas encore d’activer les notifications web promotionnelles pour cette carte.',
+      });
+      return;
+    }
+
     consentBox.style.opacity = '1';
     consentBox.style.cursor = 'pointer';
     consentText.textContent = pushConsent
@@ -237,24 +256,6 @@ const firebasePushConfig = {
       setPushHelper({
         title: 'Notifications désactivées',
         text: 'Vous pourrez les réactiver plus tard depuis cette page si vous changez d’avis.',
-      });
-      return;
-    }
-
-    if (!supportsPushBrowser) {
-      latestPushStatus = 'unsupported';
-      setPushHelper({
-        title: 'Navigateur limité',
-        text: 'Votre navigateur ne permet pas encore d’activer les notifications web pour cette carte.',
-      });
-      return;
-    }
-
-    if (isIos && !isStandalone()) {
-      latestPushStatus = 'requires-install';
-      setPushHelper({
-        title: 'Activation en 1 étape sur iPhone',
-        text: 'Ajoutez cette page à l’écran d’accueil, rouvrez-la depuis l’icône, puis continuez : la demande de notification apparaîtra automatiquement.',
       });
       return;
     }
@@ -302,6 +303,13 @@ const firebasePushConfig = {
   consentBox.addEventListener('click', () => {
     if (!isPushConfigured) {
       showError('Les notifications push ne sont pas encore configurées pour ce site.');
+      return;
+    }
+
+    if (!supportsMarketingWebPush) {
+      showError(isIos
+        ? 'Sur iPhone, Fidelopass utilise actuellement les mises à jour Wallet. Les campagnes push web promotionnelles restent réservées aux navigateurs compatibles.'
+        : 'Ce navigateur ne prend pas encore en charge les notifications web pour cette carte.');
       return;
     }
 
@@ -543,7 +551,7 @@ const firebasePushConfig = {
       if (
         pushConsent
         && isPushConfigured
-        && supportsPushBrowser
+        && supportsMarketingWebPush
         && Notification.permission === 'granted'
       ) {
         await maybeActivatePush(data.id, { showFeedback: false, source: 'restore' });
@@ -608,7 +616,7 @@ const firebasePushConfig = {
       walletClient = data.data;
       rememberClient(walletClient);
       refreshPushUi();
-      if (pushConsent && isPushConfigured) {
+      if (pushConsent && isPushConfigured && supportsMarketingWebPush) {
         await maybeActivatePush(walletClient.id, { showFeedback: true, source: 'create' });
       }
       return walletClient;
@@ -629,13 +637,9 @@ const firebasePushConfig = {
       return { status: 'unavailable' };
     }
 
-    if (!supportsPushBrowser) {
+    if (!supportsMarketingWebPush) {
       console.warn('[push] notifications unavailable in this browser');
       return { status: 'unsupported' };
-    }
-
-    if (isIos && !isStandalone()) {
-      return { status: 'requires-install' };
     }
 
     if (Notification.permission === 'denied') {
@@ -682,8 +686,7 @@ const firebasePushConfig = {
 
   async function primePushPermission() {
     if (!pushConsent || !isPushConfigured) return { status: 'disabled' };
-    if (!supportsPushBrowser) return { status: 'unsupported' };
-    if (isIos && !isStandalone()) return { status: 'requires-install' };
+    if (!supportsMarketingWebPush) return { status: 'unsupported' };
     if (Notification.permission === 'granted') return { status: 'granted' };
     if (Notification.permission === 'denied') return { status: 'denied' };
 
@@ -693,7 +696,7 @@ const firebasePushConfig = {
   }
 
   async function maybeActivatePush(clientId, { showFeedback = false, source = 'manual' } = {}) {
-    if (!clientId || !pushConsent || !isPushConfigured) {
+    if (!clientId || !pushConsent || !isPushConfigured || !supportsMarketingWebPush) {
       refreshPushUi();
       return { status: 'disabled' };
     }
@@ -708,10 +711,6 @@ const firebasePushConfig = {
 
       if (showFeedback && result.status === 'success') {
         showSuccess('Notifications activées pour cette carte. Vous recevrez maintenant les offres et rappels de fidélité.');
-      } else if (showFeedback && result.status === 'requires-install') {
-        showSuccess('Votre carte est prête. Sur iPhone, ajoutez maintenant cette page à l’écran d’accueil pour activer les notifications.');
-      }
-
       return result;
     } catch (error) {
       latestPushStatus = 'error';
@@ -761,7 +760,7 @@ const firebasePushConfig = {
     let redirecting = false;
 
     try {
-      if (pushConsent && isPushConfigured) {
+      if (pushConsent && isPushConfigured && supportsMarketingWebPush) {
         const primed = await primePushPermission();
         latestPushStatus = primed.status === 'granted' ? 'pending-auto' : primed.status;
         refreshPushUi();
@@ -790,7 +789,7 @@ const firebasePushConfig = {
     let redirecting = false;
 
     try {
-      if (pushConsent && isPushConfigured) {
+      if (pushConsent && isPushConfigured && supportsMarketingWebPush) {
         const primed = await primePushPermission();
         latestPushStatus = primed.status === 'granted' ? 'pending-auto' : primed.status;
         refreshPushUi();

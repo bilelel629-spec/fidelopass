@@ -7,6 +7,13 @@ import { generateGooglePass } from '../services/google-wallet';
 export const walletRoutes = new Hono();
 const RECENT_WALLET_MESSAGE_WINDOW_DAYS = 7;
 
+function withEffectiveCommerceLogo<T extends { logo_url?: string | null; commerces?: { logo_url?: string | null } | null }>(carte: T | null): T | null {
+  if (carte?.commerces) {
+    carte.commerces.logo_url = carte.logo_url ?? carte.commerces.logo_url ?? null;
+  }
+  return carte;
+}
+
 const bodySchema = z.object({
   client_id: z.string().uuid(),
 });
@@ -53,7 +60,7 @@ async function loadWalletContext(
     .limit(1)
     .maybeSingle();
 
-  return { db, carte, client, latestNotification } as const;
+  return { db, carte: withEffectiveCommerceLogo(carte), client, latestNotification } as const;
 }
 
 function isValidApplePassAuth(c: Context, serialNumber: string) {
@@ -79,7 +86,7 @@ async function loadApplePassByClient(serialNumber: string) {
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
-  return { db, client: clientData, carte: cartes, latestNotification } as const;
+  return { db, client: clientData, carte: withEffectiveCommerceLogo(cartes), latestNotification } as const;
 }
 
 walletRoutes.post('/apple/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber', async (c) => {

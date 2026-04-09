@@ -274,7 +274,7 @@ export async function generateApplePass(
   });
 
   // ── Logo ──────────────────────────────────────────────────────────
-  const logoUrl = carte.commerces.logo_url ?? carte.logo_url;
+  const logoUrl = carte.logo_url ?? carte.commerces.logo_url;
   const logoRaw = logoUrl ? await fetchImageBuffer(logoUrl) : null;
   const logo1x = logoRaw ? await resizeTo(logoRaw, 120, 120) : readAsset('logo.png');
   const logo2x = logoRaw ? await resizeTo(logoRaw, 240, 240) : readAsset('logo@2x.png');

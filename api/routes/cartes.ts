@@ -5,6 +5,13 @@ import { authMiddleware } from '../middleware/auth';
 
 export const cartesRoutes = new Hono();
 
+function withEffectiveCommerceLogo<T extends { logo_url?: string | null; commerces?: { logo_url?: string | null } | null }>(carte: T): T {
+  if (carte?.commerces) {
+    carte.commerces.logo_url = carte.logo_url ?? carte.commerces.logo_url ?? null;
+  }
+  return carte;
+}
+
 const rewardSchema = z.object({
   seuil: z.number().int().min(1).max(100000),
   recompense: z.string().min(1).max(120),
@@ -89,6 +96,8 @@ cartesRoutes.get('/:id/public', async (c) => {
     .single();
 
   if (!carte) return c.json({ error: 'Carte introuvable' }, 404);
+
+  withEffectiveCommerceLogo(carte);
 
   const { commerces, ...carteData } = carte as typeof carte & { commerces: { id: string; nom: string; logo_url: string | null } };
 

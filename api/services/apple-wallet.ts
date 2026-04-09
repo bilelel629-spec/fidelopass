@@ -59,6 +59,15 @@ function hexToRgb(hex: string): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
+function hexToSharpColor(hex: string, alpha = 1): { r: number; g: number; b: number; alpha: number } {
+  return {
+    r: parseInt(hex.slice(1, 3), 16),
+    g: parseInt(hex.slice(3, 5), 16),
+    b: parseInt(hex.slice(5, 7), 16),
+    alpha,
+  };
+}
+
 function readAsset(filename: string): Buffer {
   const path = resolve(process.cwd(), 'assets/pass', filename);
   if (!existsSync(path)) {
@@ -99,6 +108,30 @@ async function fetchImageBuffer(url: string): Promise<Buffer | null> {
 
 async function resizeTo(buf: Buffer, w: number, h: number): Promise<Buffer> {
   return sharp(buf).resize(w, h, { fit: 'cover', position: 'centre' }).png().toBuffer();
+}
+
+async function createPassIcon(buf: Buffer, size: number, backgroundHex: string): Promise<Buffer> {
+  const padding = Math.max(3, Math.round(size * 0.14));
+  const inner = Math.max(1, size - padding * 2);
+  const contained = await sharp(buf)
+    .resize(inner, inner, {
+      fit: 'contain',
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .png()
+    .toBuffer();
+
+  return sharp({
+    create: {
+      width: size,
+      height: size,
+      channels: 4,
+      background: hexToSharpColor(backgroundHex),
+    },
+  })
+    .composite([{ input: contained, gravity: 'centre' }])
+    .png()
+    .toBuffer();
 }
 
 const BARCODE_FORMAT_MAP: Record<string, string> = {
@@ -245,6 +278,9 @@ export async function generateApplePass(
   const logoRaw = logoUrl ? await fetchImageBuffer(logoUrl) : null;
   const logo1x = logoRaw ? await resizeTo(logoRaw, 120, 120) : readAsset('logo.png');
   const logo2x = logoRaw ? await resizeTo(logoRaw, 240, 240) : readAsset('logo@2x.png');
+  const icon1x = logoRaw ? await createPassIcon(logoRaw, 29, carte.couleur_accent) : readAsset('icon.png');
+  const icon2x = logoRaw ? await createPassIcon(logoRaw, 58, carte.couleur_accent) : readAsset('icon@2x.png');
+  const icon3x = logoRaw ? await createPassIcon(logoRaw, 87, carte.couleur_accent) : readAsset('icon@3x.png');
 
   // ── Dossier temporaire .pass ──────────────────────────────────────
   const tmpPassDir = resolve(tmpdir(), `fidelopass-${randomUUID()}.pass`);
@@ -253,9 +289,9 @@ export async function generateApplePass(
   try {
     writeFileSync(resolve(tmpPassDir, 'pass.json'), JSON.stringify(passJson));
 
-    writeFileSync(resolve(tmpPassDir, 'icon.png'), readAsset('icon.png'));
-    writeFileSync(resolve(tmpPassDir, 'icon@2x.png'), readAsset('icon@2x.png'));
-    writeFileSync(resolve(tmpPassDir, 'icon@3x.png'), readAsset('icon@3x.png'));
+    writeFileSync(resolve(tmpPassDir, 'icon.png'), icon1x);
+    writeFileSync(resolve(tmpPassDir, 'icon@2x.png'), icon2x);
+    writeFileSync(resolve(tmpPassDir, 'icon@3x.png'), icon3x);
 
     writeFileSync(resolve(tmpPassDir, 'logo.png'), logo1x);
     writeFileSync(resolve(tmpPassDir, 'logo@2x.png'), logo2x);

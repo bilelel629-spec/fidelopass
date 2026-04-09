@@ -136,9 +136,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (!res.ok) throw new Error(data.error ?? 'Erreur');
 
       successMsg.textContent = data.nb_destinataires === 0
-        ? notificationSummary.wallet_ready > 0
-          ? `Aucun client n'a encore ajouté sa carte dans Wallet ou activé le push web.`
-          : `Message envoyé à ${data.nb_delivrees} client(s) sur ${data.nb_destinataires}. Wallet : ${data.nb_wallet ?? 0}. Push web : ${data.nb_web_push ?? 0}.`;
+        ? `Aucun client n'a encore ajouté sa carte dans Wallet ou activé le push web.`
+        : `Message envoyé à ${data.nb_delivrees} client(s) sur ${data.nb_destinataires}. Wallet : ${data.nb_wallet ?? 0}. Push web : ${data.nb_web_push ?? 0}.`;
       successMsg.classList.remove('hidden');
       form.reset();
       charCount.textContent = '0';

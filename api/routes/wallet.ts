@@ -238,7 +238,7 @@ walletRoutes.post('/google/:carteId', async (c) => {
   const { db, carte, client, latestNotification } = await loadWalletContext(
     carteId,
     parsed.data.client_id,
-    'id, nom, logo_url',
+    'id, nom, logo_url, latitude, longitude, rayon_geo',
   );
 
   if (!carte) return c.json({ error: 'Carte introuvable' }, 404);

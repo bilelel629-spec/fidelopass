@@ -20,6 +20,9 @@ interface CarteData {
   commerces: {
     nom: string;
     logo_url: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    rayon_geo?: number | null;
   };
 }
 
@@ -76,6 +79,17 @@ function getVipText(carte: CarteData): string | null {
   return tiers.length ? tiers.join('\n') : null;
 }
 
+function getMerchantLocations(carte: CarteData): Array<{ latitude: number; longitude: number }> | undefined {
+  const latitude = carte.commerces.latitude;
+  const longitude = carte.commerces.longitude;
+
+  if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+    return undefined;
+  }
+
+  return [{ latitude, longitude }];
+}
+
 async function getAuthClient() {
   const credentials = getCredentials();
   const auth = new google.auth.GoogleAuth({
@@ -106,6 +120,11 @@ async function upsertLoyaltyClass(carte: CarteData): Promise<string> {
     hexBackgroundColor: carte.couleur_fond,
     reviewStatus: 'UNDER_REVIEW',
   };
+
+  const merchantLocations = getMerchantLocations(carte);
+  if (merchantLocations) {
+    classData.merchantLocations = merchantLocations;
+  }
 
   // Image bannière (hero image)
   if (carte.strip_url) {
@@ -187,6 +206,11 @@ export async function generateGooglePass(
     ],
   };
 
+  const merchantLocations = getMerchantLocations(carte);
+  if (merchantLocations) {
+    loyaltyObject.merchantLocations = merchantLocations;
+  }
+
   if (barcodeType !== 'NONE') {
     loyaltyObject.barcode = {
       type: GOOGLE_BARCODE_MAP[barcodeType] ?? 'QR_CODE',
@@ -253,6 +277,7 @@ export async function updateGooglePassObject(
           id: 'solde_actuel',
         },
       ],
+      ...(getMerchantLocations(carte) ? { merchantLocations: getMerchantLocations(carte) } : {}),
     },
   });
 }

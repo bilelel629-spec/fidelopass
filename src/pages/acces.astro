@@ -1,4 +1,6 @@
 ---
+import PublicFooter from '../components/marketing/PublicFooter.astro';
+import PublicNav from '../components/marketing/PublicNav.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
@@ -9,15 +11,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <div class="absolute top-32 -left-20 w-96 h-96 rounded-full blur-3xl opacity-20" style="background:radial-gradient(circle,#0ea5e9 0%,rgba(10,15,30,0) 68%)"></div>
     </div>
 
-    <nav class="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
-      <a href="/" class="inline-flex items-center">
-        <img src="/logo.svg" alt="Fidelopass" class="h-11 w-auto" />
-      </a>
-      <div class="flex items-center gap-3">
-        <a href="/contact" class="btn-secondary text-sm">Contact</a>
-        <a href="/register" class="btn-primary text-sm">Créer mon accès</a>
-      </div>
-    </nav>
+    <PublicNav currentPath="/acces" />
 
     <section class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-20">
       <div class="grid lg:grid-cols-[0.95fr_1.05fr] gap-8 items-start">
@@ -78,5 +72,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </div>
       </div>
     </section>
+    <PublicFooter />
   </div>
 </BaseLayout>

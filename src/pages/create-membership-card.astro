@@ -1,0 +1,75 @@
+---
+import PublicFooter from '../components/marketing/PublicFooter.astro';
+import PublicNav from '../components/marketing/PublicNav.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const tiers = [
+  { name: 'Bronze', detail: 'Premiers avantages visibles dès l’entrée dans le programme.' },
+  { name: 'Silver', detail: 'Client reconnu, accès à des offres ou bonus réservés.' },
+  { name: 'Gold', detail: 'Niveau premium pour les meilleurs clients ou membres payants.' },
+];
+---
+
+<BaseLayout title="Carte VIP Fidelopass" description="Créez une carte VIP ou membership Apple Wallet et Google Wallet avec niveaux Bronze, Silver, Gold et avantages visibles.">
+  <div class="relative overflow-hidden min-h-screen">
+    <div class="absolute inset-0 pointer-events-none">
+      <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[62rem] h-[62rem] rounded-full blur-3xl opacity-20" style="background:radial-gradient(circle,#f59e0b 0%,rgba(10,15,30,0) 62%)"></div>
+    </div>
+
+    <PublicNav currentPath="/create-membership-card" />
+
+    <section class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-16">
+      <div class="grid lg:grid-cols-[1fr_0.95fr] gap-10 items-center">
+        <div>
+          <div class="badge badge-info mb-5">Produit Fidelopass</div>
+          <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[0.96]">
+            La carte VIP Wallet
+            <span class="block text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-indigo-300 to-sky-300">
+              pour transformer une fidélité en statut visible
+            </span>
+          </h1>
+          <p class="text-slate-300 text-lg leading-relaxed mt-6 max-w-2xl">
+            Cette carte est faite pour les commerces qui veulent récompenser l’ancienneté, créer un sentiment d’appartenance ou donner des avantages réservés à une clientèle récurrente.
+          </p>
+          <div class="rounded-[1.75rem] border border-white/10 bg-white/5 p-5 mt-8">
+            <p class="text-white font-semibold">Cas d’usage typiques</p>
+            <div class="space-y-3 mt-4 text-sm text-slate-300">
+              <div class="flex items-start gap-3"><span class="mt-1 w-2.5 h-2.5 rounded-full bg-amber-300"></span><span>Membership premium, accès prioritaire, avantages permanents</span></div>
+              <div class="flex items-start gap-3"><span class="mt-1 w-2.5 h-2.5 rounded-full bg-amber-300"></span><span>Niveaux VIP Bronze / Silver / Gold affichés dans le Wallet</span></div>
+              <div class="flex items-start gap-3"><span class="mt-1 w-2.5 h-2.5 rounded-full bg-amber-300"></span><span>Expérience plus haut de gamme qu’une simple carte à tampons</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid gap-5">
+          {tiers.map((tier) => (
+            <article class="card p-6">
+              <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">{tier.name}</p>
+              <p class="text-white font-semibold mt-4">{tier.detail}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pb-20">
+      <div class="rounded-[2rem] border border-white/10 p-8 sm:p-10" style="background:linear-gradient(135deg,rgba(30,41,59,0.95),rgba(245,158,11,0.18),rgba(99,102,241,0.18))">
+        <div class="grid lg:grid-cols-[1fr_auto] gap-8 items-center">
+          <div>
+            <p class="text-slate-300 text-xs uppercase tracking-[0.3em]">Positionnement</p>
+            <h2 class="font-display text-3xl sm:text-4xl font-bold text-white mt-4">Le format à utiliser quand la carte doit ressembler à un privilège, pas juste à un compteur.</h2>
+            <p class="text-slate-200/85 text-base sm:text-lg leading-relaxed mt-4 max-w-2xl">
+              C’est un bon axe de différenciation face aux solutions trop génériques : on ne vend plus seulement une fidélité, on vend un statut et une expérience de marque.
+            </p>
+          </div>
+          <div class="flex flex-col sm:flex-row lg:flex-col gap-3">
+            <a href="/register" class="btn-primary px-8 py-3.5 text-base">Créer une carte VIP</a>
+            <a href="/contact" class="btn-secondary px-8 py-3.5 text-base">Parler du positionnement</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <PublicFooter />
+  </div>
+</BaseLayout>

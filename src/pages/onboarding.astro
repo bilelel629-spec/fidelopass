@@ -1,5 +1,20 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+
+const nextSteps = [
+  {
+    label: '1. Identité du commerce',
+    detail: 'Nom, contact, adresse et base de diffusion pour rendre la carte crédible dès le départ.',
+  },
+  {
+    label: '2. Choix du programme',
+    detail: 'Carte à tampons, points ou VIP selon la logique métier la plus simple pour le commerce.',
+  },
+  {
+    label: '3. Diffusion terrain',
+    detail: 'QR code, affiche A4, lien public et installation du scanner sur téléphone boutique.',
+  },
+];
 ---
 
 <BaseLayout title="Bienvenue — Fidelopass">
@@ -14,7 +29,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         <div class="flex items-center justify-between gap-3 mb-6">
           <div>
             <img src="/logo.svg" alt="Fidelopass" class="h-12 w-auto" />
-            <h1 class="font-display text-3xl sm:text-4xl font-bold text-white mt-4">Bienvenue, on prépare votre univers de marque.</h1>
+            <h1 class="font-display text-3xl sm:text-4xl font-bold text-white mt-4">Bienvenue, on prépare un espace commerçant vendable dès la première carte.</h1>
           </div>
           <div class="hidden sm:flex items-center gap-2">
             <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background:#6366f1">1</div>
@@ -24,8 +39,17 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </div>
 
         <p class="text-slate-300 text-base leading-relaxed max-w-2xl">
-          Première étape : on enregistre votre commerce. Ensuite, on vous envoie directement dans l’éditeur complet de carte, avec toutes les options de personnalisation déjà disponibles dans le dashboard.
+          Première étape : on enregistre votre commerce. Ensuite, on vous envoie directement dans l’éditeur complet de carte, avec les modèles, les récompenses, le QR boutique et les messages client déjà prêts à être paramétrés.
         </p>
+
+        <div class="grid sm:grid-cols-3 gap-3 mt-6">
+          {nextSteps.map((step) => (
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p class="text-white font-medium text-sm">{step.label}</p>
+              <p class="text-slate-400 text-sm mt-2 leading-relaxed">{step.detail}</p>
+            </div>
+          ))}
+        </div>
 
         <form id="commerce-form" class="flex flex-col gap-4 mt-8">
           <div>
@@ -92,12 +116,35 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           </div>
         </div>
 
+        <div class="rounded-3xl border border-white/10 bg-white/5 p-5 mt-6">
+          <p class="text-white font-semibold">En sortie d’onboarding, vous pourrez déjà :</p>
+          <div class="space-y-3 mt-4 text-sm text-slate-300">
+            <div class="flex items-start gap-3">
+              <span class="mt-1 w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+              <span>Configurer un template métier prêt à personnaliser</span>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="mt-1 w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
+              <span>Télécharger une affiche A4 et un QR code d’inscription</span>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="mt-1 w-2.5 h-2.5 rounded-full bg-sky-400"></span>
+              <span>Installer le scanner boutique et commencer à enregistrer les passages</span>
+            </div>
+          </div>
+        </div>
+
         <div class="rounded-3xl p-5 mt-6 border border-white/10" style="background:linear-gradient(145deg,rgba(99,102,241,0.18),rgba(15,23,42,0.35))">
           <p class="text-slate-300 text-sm">Conseil</p>
           <p class="text-white font-semibold mt-1">Commencez simple, puis affinez.</p>
           <p class="text-slate-400 text-sm mt-2">
             Même si vous n’avez pas encore votre logo ou votre bannière finale, vous pouvez créer la première version puis revenir l’améliorer ensuite.
           </p>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-3 mt-6">
+          <a href="/create-stamp-card" class="btn-secondary justify-center">Voir les formats</a>
+          <a href="/help" class="btn-secondary justify-center">Lire les guides</a>
         </div>
       </aside>
     </div>

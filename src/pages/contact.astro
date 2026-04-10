@@ -1,4 +1,6 @@
 ---
+import PublicFooter from '../components/marketing/PublicFooter.astro';
+import PublicNav from '../components/marketing/PublicNav.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
 const contactEmail = 'bilel@pulse-agency.fr';
@@ -16,19 +18,7 @@ const contactEmail = 'bilel@pulse-agency.fr';
       <div class="absolute inset-0 opacity-[0.08]" style="background-image:linear-gradient(rgba(255,255,255,0.09) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.09) 1px, transparent 1px); background-size: 100px 100px;"></div>
     </div>
 
-    <nav class="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
-      <a href="/" class="inline-flex items-center">
-        <img src="/logo.svg" alt="Fidelopass" class="h-11 w-auto" />
-      </a>
-      <div class="hidden md:flex items-center gap-6 text-sm text-slate-400">
-        <a href="/" class="hover:text-white transition-colors">Accueil</a>
-        <a href="/contact" class="text-white">Contact</a>
-      </div>
-      <div class="flex items-center gap-3">
-        <a href="/login" class="btn-secondary text-sm">Connexion</a>
-        <a href="/register" class="btn-primary text-sm">Créer mon accès</a>
-      </div>
-    </nav>
+    <PublicNav currentPath="/contact" />
 
     <section class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-20">
       <div class="grid lg:grid-cols-[0.95fr_1.05fr] gap-8 items-start">
@@ -112,5 +102,6 @@ const contactEmail = 'bilel@pulse-agency.fr';
         </div>
       </div>
     </section>
+    <PublicFooter />
   </div>
 </BaseLayout>

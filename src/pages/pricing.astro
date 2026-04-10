@@ -6,157 +6,316 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 const plans = [
   {
     name: 'Starter',
-    price: 'À partir de 29€',
-    subtitle: 'Pour lancer une première carte et commencer à scanner en boutique.',
-    highlights: [
-      '1 commerce, 1 carte active',
-      'Apple Wallet + Google Wallet',
-      'Scanner mobile et QR boutique',
-      'Affiche A4 et lien d’inscription',
+    monthlyPrice: 35,
+    annualPrice: 25,
+    subtitle: 'Pour lancer votre première carte et commencer à fidéliser.',
+    features: [
+      { text: '1 commerce, 1 carte active', ok: true },
+      { text: 'Carte à tampons', ok: true },
+      { text: 'Apple Wallet + Google Wallet', ok: true },
+      { text: 'Scanner mobile + affiche QR', ok: true },
+      { text: 'Lien d\'inscription public', ok: true },
+      { text: 'Support email', ok: true },
+      { text: 'Notifications push', ok: false },
+      { text: 'Carte à points & VIP', ok: false },
+      { text: 'Géolocalisation', ok: false },
     ],
+    cta: 'Démarrer l\'essai gratuit',
+    href: '/register',
+    featured: false,
   },
   {
     name: 'Pro',
-    price: 'À partir de 69€',
-    subtitle: 'Pour un commerce qui veut personnaliser plus fort et communiquer avec ses clients.',
-    highlights: [
-      'Récompenses multiples et paliers VIP',
-      'Messages Wallet et campagnes client',
-      'Templates métier, palette auto, bannières',
-      'Stats de scans et parcours plus structurés',
+    monthlyPrice: 85,
+    annualPrice: 65,
+    subtitle: 'Pour fidéliser plus fort et communiquer avec vos clients.',
+    features: [
+      { text: '1 commerce, cartes illimitées', ok: true },
+      { text: 'Tampons + Points + VIP (paliers)', ok: true },
+      { text: 'Apple Wallet + Google Wallet', ok: true },
+      { text: 'Scanner mobile + affiche QR', ok: true },
+      { text: 'Lien d\'inscription public', ok: true },
+      { text: 'Support prioritaire', ok: true },
+      { text: 'Notifications push & campagnes', ok: true },
+      { text: 'Géolocalisation client', ok: true },
+      { text: 'Statistiques avancées', ok: true },
     ],
+    cta: 'Démarrer l\'essai gratuit',
+    href: '/register',
     featured: true,
   },
   {
     name: 'Réseau',
-    price: 'Sur devis',
-    subtitle: 'Pensé pour plusieurs points de vente ou plusieurs cartes par enseigne.',
-    highlights: [
-      'Multi-sites et plusieurs scanners',
-      'Structuration plus avancée des accès',
-      'Accompagnement au déploiement',
-      'Personnalisation plus poussée de marque',
+    monthlyPrice: 259,
+    annualPrice: 199,
+    subtitle: 'Pour les enseignes multi-sites ou les franchises.',
+    features: [
+      { text: 'Multi-sites illimités', ok: true },
+      { text: 'Tous les types de cartes', ok: true },
+      { text: 'Apple Wallet + Google Wallet', ok: true },
+      { text: 'Multi-scanners + accès équipe', ok: true },
+      { text: 'Lien d\'inscription public', ok: true },
+      { text: 'Support dédié + onboarding', ok: true },
+      { text: 'Notifications push avancées', ok: true },
+      { text: 'Géolocalisation multi-sites', ok: true },
+      { text: 'Dashboard réseau centralisé', ok: true },
     ],
+    cta: 'Démarrer l\'essai gratuit',
+    href: '/register',
+    featured: false,
   },
 ];
 
-const comparisons = [
-  ['Ajout Apple / Google Wallet', 'Inclus', 'Inclus', 'Inclus'],
-  ['Affiches QR et lien public', 'Inclus', 'Inclus', 'Inclus'],
-  ['Récompenses multiples', '—', 'Inclus', 'Inclus'],
-  ['VIP Bronze / Silver / Gold', '—', 'Inclus', 'Inclus'],
-  ['Accompagnement au lancement', 'Guides', 'Prioritaire', 'Sur mesure'],
+const faq = [
+  { q: 'Y a-t-il un engagement minimum ?', a: 'Non. Les plans mensuels sont sans engagement. Vous pouvez annuler à tout moment depuis votre espace client, sans frais ni pénalité.' },
+  { q: 'Comment fonctionne l\'essai gratuit ?', a: 'Vous créez votre compte sans carte bancaire. Pendant 15 jours, accès à toutes les fonctionnalités du plan Pro. À la fin, vous choisissez votre plan.' },
+  { q: 'Quelle est la différence entre mensuel et annuel ?', a: 'L\'abonnement annuel vous fait économiser environ 25% par rapport au mensuel. Il est facturé en une seule fois pour 12 mois.' },
+  { q: 'Puis-je changer de plan ?', a: 'Oui, vous pouvez évoluer ou rétrograder à tout moment. Les changements sont effectifs immédiatement.' },
+  { q: 'Mes clients doivent-ils télécharger une app ?', a: 'Non. Vos clients utilisent Apple Wallet ou Google Wallet, déjà installés sur leur téléphone. Aucun téléchargement supplémentaire.' },
 ];
 ---
 
 <BaseLayout
-  title="Tarifs Fidelopass — Lancez une carte Wallet vendable"
-  description="Découvrez les plans Fidelopass pour lancer une carte de fidélité Apple Wallet et Google Wallet sans app client."
+  theme="light"
+  title="Tarifs Fidelopass — Essai gratuit 15 jours sans carte bancaire"
+  description="3 plans pour tous les commerces. Starter 35€/mois, Pro 85€/mois, Réseau 259€/mois. Engagement annuel disponible. Essai gratuit 15 jours."
 >
-  <div class="relative overflow-hidden min-h-screen">
-    <div class="absolute inset-0 pointer-events-none">
-      <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[70rem] h-[70rem] rounded-full blur-3xl opacity-20" style="background:radial-gradient(circle,#6366f1 0%,rgba(10,15,30,0) 62%)"></div>
-      <div class="absolute top-20 right-0 w-[34rem] h-[34rem] rounded-full blur-3xl opacity-15" style="background:radial-gradient(circle,#0ea5e9 0%,rgba(10,15,30,0) 68%)"></div>
-    </div>
+  <PublicNav currentPath="/pricing" />
 
-    <PublicNav currentPath="/pricing" />
+  <!-- Header -->
+  <section class="bg-white pt-14 pb-12">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+      <span class="badge badge-info mb-5">Tarifs Fidelopass</span>
+      <h1 class="font-display text-5xl sm:text-6xl font-bold text-slate-900 leading-tight">
+        Des tarifs simples,<br/>
+        <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-500">
+          sans mauvaise surprise.
+        </span>
+      </h1>
+      <p class="text-slate-500 text-lg mt-5 max-w-xl mx-auto">
+        Essai gratuit 15 jours sur tous les plans. Aucune carte bancaire requise. Annulez à tout moment.
+      </p>
 
-    <section class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-16">
-      <div class="max-w-4xl">
-        <div class="badge badge-info mb-5">Tarifs Fidelopass</div>
-        <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[0.96]">
-          Des offres lisibles pour lancer plus vite,
-          <span class="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-sky-300 to-amber-200">
-            sans refaire le produit à chaque commerce
-          </span>
-        </h1>
-        <p class="text-slate-300 text-lg sm:text-xl leading-relaxed mt-6 max-w-3xl">
-          Fidelopass doit se vendre comme un outil opérationnel : une carte Wallet, un parcours client, un scanner boutique et des messages utiles. Les offres ci-dessous posent déjà cette logique.
-        </p>
+      <!-- Toggle mensuel / annuel -->
+      <div class="inline-flex items-center gap-1 mt-8 bg-slate-100 rounded-2xl p-1.5">
+        <button id="toggle-monthly" class="px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm">
+          Mensuel
+        </button>
+        <button id="toggle-annual" class="px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500">
+          Annuel
+          <span class="ml-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 font-semibold">-25%</span>
+        </button>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pb-16">
-      <div class="grid lg:grid-cols-3 gap-5">
+  <!-- Plans -->
+  <section class="bg-slate-50 py-10 pb-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+      <div class="grid lg:grid-cols-3 gap-6 items-start">
         {plans.map((plan) => (
-          <article class:list={['card p-7 h-full flex flex-col', plan.featured && 'border-indigo-400/30 bg-indigo-500/10']}>
-            <div class="flex items-center justify-between gap-4">
-              <div>
-                <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">{plan.name}</p>
-                <h2 class="font-display text-3xl font-bold text-white mt-3">{plan.price}</h2>
+          <article class:list={[
+            "rounded-2xl border flex flex-col p-8",
+            plan.featured
+              ? "border-indigo-400 bg-indigo-600 shadow-2xl shadow-indigo-100 relative"
+              : "border-slate-200 bg-white shadow-sm",
+          ]}>
+            {plan.featured && (
+              <div class="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <span class="rounded-full bg-amber-400 text-amber-900 text-xs font-bold px-4 py-1.5 shadow whitespace-nowrap">
+                  ⭐ Le plus populaire
+                </span>
               </div>
-              {plan.featured && <span class="badge badge-info">Le plus équilibré</span>}
+            )}
+
+            <p class:list={["text-xs font-bold uppercase tracking-widest mb-3", plan.featured ? "text-indigo-200" : "text-slate-400"]}>
+              {plan.name}
+            </p>
+
+            <div class="flex items-end gap-1 mb-1">
+              <span class:list={["font-display font-bold leading-none", plan.featured ? "text-white" : "text-slate-900"]}>
+                <span class="text-4xl monthly-price" data-monthly={plan.monthlyPrice} data-annual={plan.annualPrice}>
+                  {plan.monthlyPrice}€
+                </span>
+              </span>
+              <span class:list={["text-sm mb-1 period-label", plan.featured ? "text-indigo-200" : "text-slate-400"]}>/mois</span>
             </div>
-            <p class="text-slate-300 text-sm leading-relaxed mt-4">{plan.subtitle}</p>
-            <div class="space-y-3 mt-6 flex-1">
-              {plan.highlights.map((item) => (
-                <div class="flex items-start gap-3 text-sm text-slate-300">
-                  <span class="mt-1 w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
-            <a href="/acces" class:list={['mt-8 justify-center', plan.featured ? 'btn-primary' : 'btn-secondary']}>
-              Acheter une clé d’accès
+            <p class:list={["text-xs mt-0.5 annual-note hidden", plan.featured ? "text-indigo-300" : "text-slate-400"]}>
+              Facturé {plan.annualPrice * 12}€/an
+            </p>
+
+            <p class:list={["text-sm leading-relaxed mt-4 mb-6", plan.featured ? "text-indigo-200" : "text-slate-500"]}>
+              {plan.subtitle}
+            </p>
+
+            <a
+              href={plan.href}
+              class:list={[
+                "inline-flex items-center justify-center py-3 rounded-xl font-semibold text-sm transition-all mb-8",
+                plan.featured
+                  ? "bg-white text-indigo-700 hover:bg-indigo-50 shadow"
+                  : "btn-primary",
+              ]}
+            >
+              {plan.cta}
             </a>
+
+            <ul class="space-y-3 flex-1">
+              {plan.features.map((f) => (
+                <li class="flex items-center gap-3 text-sm">
+                  <span class:list={[
+                    "w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0",
+                    f.ok
+                      ? plan.featured ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-600"
+                      : "bg-slate-100 text-slate-300",
+                  ]}>
+                    {f.ok ? '✓' : '—'}
+                  </span>
+                  <span class:list={[
+                    f.ok
+                      ? plan.featured ? "text-indigo-100" : "text-slate-700"
+                      : plan.featured ? "text-indigo-400/50" : "text-slate-300",
+                  ]}>
+                    {f.text}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </article>
         ))}
       </div>
-    </section>
 
-    <section class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pb-16">
-      <div class="card p-7 sm:p-8 overflow-x-auto">
-        <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-6">
-          <div>
-            <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">Comparatif rapide</p>
-            <h2 class="font-display text-3xl font-bold text-white mt-4">Ce que chaque plan débloque vraiment.</h2>
-          </div>
-          <p class="text-slate-400 text-sm max-w-2xl">
-            Le but n’est pas d’empiler des options abstraites, mais de rendre l’offre compréhensible pour un commerce qui veut savoir ce qu’il peut mettre en place concrètement.
-          </p>
-        </div>
+      <p class="text-center text-slate-400 text-xs mt-8">Prix HT. TVA applicable selon votre situation.</p>
+    </div>
+  </section>
 
-        <table class="w-full min-w-[760px] text-left">
+  <!-- Tableau comparatif -->
+  <section class="bg-white py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+      <div class="text-center mb-10">
+        <h2 class="font-display text-3xl sm:text-4xl font-bold text-slate-900">Comparez les plans</h2>
+        <p class="text-slate-500 mt-2 text-sm">Ce que chaque plan inclut concrètement.</p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[600px] text-left border-collapse">
           <thead>
-            <tr class="text-slate-400 text-sm border-b border-white/10">
-              <th class="pb-4 font-medium">Fonction</th>
-              <th class="pb-4 font-medium">Starter</th>
-              <th class="pb-4 font-medium">Pro</th>
-              <th class="pb-4 font-medium">Réseau</th>
+            <tr class="border-b-2 border-slate-100">
+              <th class="pb-4 pr-6 text-slate-400 font-medium text-sm w-2/5">Fonctionnalité</th>
+              <th class="pb-4 px-4 text-center text-slate-700 font-semibold text-sm">Starter</th>
+              <th class="pb-4 px-4 text-center text-indigo-600 font-semibold text-sm">Pro</th>
+              <th class="pb-4 px-4 text-center text-slate-700 font-semibold text-sm">Réseau</th>
             </tr>
           </thead>
           <tbody>
-            {comparisons.map((row) => (
-              <tr class="border-b border-white/5 text-sm">
-                <td class="py-4 text-white">{row[0]}</td>
-                <td class="py-4 text-slate-300">{row[1]}</td>
-                <td class="py-4 text-slate-300">{row[2]}</td>
-                <td class="py-4 text-slate-300">{row[3]}</td>
+            {[
+              ['Apple / Google Wallet', '✓', '✓', '✓'],
+              ['Affiche QR + lien public', '✓', '✓', '✓'],
+              ['Scanner mobile boutique', '✓', '✓', '✓ multi'],
+              ['Carte à tampons', '✓', '✓', '✓'],
+              ['Carte à points', '—', '✓', '✓'],
+              ['Carte VIP (paliers)', '—', '✓', '✓'],
+              ['Notifications push', '—', '✓', '✓ avancées'],
+              ['Géolocalisation', '—', '✓', '✓'],
+              ['Statistiques', 'Basiques', 'Avancées', 'Réseau'],
+              ['Multi-sites', '—', '—', '✓'],
+              ['Support', 'Email', 'Prioritaire', 'Dédié'],
+            ].map((row, i) => (
+              <tr class:list={["border-b border-slate-50 text-sm", i % 2 === 1 && "bg-slate-50/50"]}>
+                <td class="py-3.5 pr-6 text-slate-700 font-medium">{row[0]}</td>
+                <td class:list={["py-3.5 px-4 text-center", row[1] === '—' ? "text-slate-300" : "text-slate-600"]}>{row[1]}</td>
+                <td class:list={["py-3.5 px-4 text-center font-medium", row[2] === '—' ? "text-slate-300" : "text-indigo-600"]}>{row[2]}</td>
+                <td class:list={["py-3.5 px-4 text-center", row[3] === '—' ? "text-slate-300" : "text-slate-600"]}>{row[3]}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pb-20">
-      <div class="rounded-[2rem] border border-white/10 p-8 sm:p-10" style="background:linear-gradient(135deg,rgba(30,41,59,0.9),rgba(49,46,129,0.82),rgba(15,118,110,0.55))">
-        <div class="grid lg:grid-cols-[1fr_auto] gap-8 items-center">
-          <div>
-            <p class="text-slate-300 text-xs uppercase tracking-[0.3em]">Étape suivante</p>
-            <h2 class="font-display text-3xl sm:text-4xl font-bold text-white mt-4">Choisissons l’offre qui colle à ton lancement.</h2>
-            <p class="text-slate-200/85 text-base sm:text-lg leading-relaxed mt-4 max-w-2xl">
-              Tu peux déjà vendre Fidelopass avec une structure claire : une clé d’accès, un niveau d’usage, puis une montée en gamme logique quand le commerce veut aller plus loin.
-            </p>
-          </div>
-          <div class="flex flex-col sm:flex-row lg:flex-col gap-3">
-            <a href="/acces" class="btn-primary px-8 py-3.5 text-base">Acheter une clé</a>
-            <a href="/contact" class="btn-secondary px-8 py-3.5 text-base">Parler du lancement</a>
-          </div>
-        </div>
+  <!-- FAQ -->
+  <section class="bg-slate-50 py-20">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6">
+      <div class="text-center mb-10">
+        <h2 class="font-display text-3xl sm:text-4xl font-bold text-slate-900">Questions fréquentes</h2>
       </div>
-    </section>
+      <div class="space-y-3" id="pricing-faq">
+        {faq.map((item, i) => (
+          <div class="bg-white rounded-2xl border border-slate-100 overflow-hidden" data-faq={i}>
+            <button class="w-full px-6 py-5 text-left flex items-center justify-between gap-4" aria-expanded="false">
+              <span class="font-semibold text-slate-900 text-sm sm:text-base">{item.q}</span>
+              <span class="faq-icon text-slate-400 text-xl flex-shrink-0 font-light">+</span>
+            </button>
+            <div class="faq-answer hidden px-6 pb-5">
+              <p class="text-slate-500 text-sm leading-relaxed">{item.a}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
 
-    <PublicFooter />
-  </div>
+  <!-- CTA -->
+  <section class="bg-indigo-600 py-20">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+      <h2 class="font-display text-4xl font-bold text-white">Commencez votre essai gratuit</h2>
+      <p class="text-indigo-200 text-lg mt-4">15 jours offerts. Aucune carte bancaire. Annulation à tout moment.</p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+        <a href="/register" class="inline-flex items-center justify-center bg-white text-indigo-700 font-bold px-8 py-4 rounded-xl hover:bg-indigo-50 transition-colors text-base shadow-lg">
+          Démarrer l'essai gratuit
+        </a>
+        <a href="/contact" class="inline-flex items-center justify-center bg-white/10 text-white font-medium px-8 py-4 rounded-xl hover:bg-white/20 border border-white/20 transition-colors text-base">
+          Contacter l'équipe
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <PublicFooter />
 </BaseLayout>
+
+<script>
+  const monthlyBtn = document.getElementById('toggle-monthly') as HTMLButtonElement;
+  const annualBtn = document.getElementById('toggle-annual') as HTMLButtonElement;
+
+  function setMode(mode: 'monthly' | 'annual') {
+    const isAnnual = mode === 'annual';
+
+    monthlyBtn.className = isAnnual
+      ? 'px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500'
+      : 'px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm';
+    annualBtn.className = isAnnual
+      ? 'px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm'
+      : 'px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500';
+
+    document.querySelectorAll('.monthly-price').forEach((el) => {
+      const monthly = el.getAttribute('data-monthly');
+      const annual = el.getAttribute('data-annual');
+      el.textContent = (isAnnual ? annual : monthly) + '€';
+    });
+
+    document.querySelectorAll('.period-label').forEach((el) => {
+      el.textContent = isAnnual ? '/mois (annuel)' : '/mois';
+    });
+
+    document.querySelectorAll('.annual-note').forEach((el) => {
+      el.classList.toggle('hidden', !isAnnual);
+    });
+  }
+
+  monthlyBtn.addEventListener('click', () => setMode('monthly'));
+  annualBtn.addEventListener('click', () => setMode('annual'));
+
+  // FAQ
+  document.querySelectorAll('#pricing-faq [data-faq]').forEach((item) => {
+    const btn = item.querySelector('button') as HTMLButtonElement;
+    const answer = item.querySelector('.faq-answer') as HTMLDivElement;
+    const icon = item.querySelector('.faq-icon') as HTMLSpanElement;
+    btn.addEventListener('click', () => {
+      const open = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+      answer.classList.toggle('hidden', open);
+      icon.textContent = open ? '+' : '×';
+    });
+  });
+</script>

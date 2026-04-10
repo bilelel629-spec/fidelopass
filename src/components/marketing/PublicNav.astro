@@ -6,37 +6,35 @@ interface Props {
 const { currentPath = '' } = Astro.props;
 
 const links = [
+  { href: '/comment-ca-fonctionne', label: 'Comment ça marche' },
   { href: '/pricing', label: 'Tarifs' },
-  { href: '/create-stamp-card', label: 'Carte à tampons' },
-  { href: '/create-points-card', label: 'Carte à points' },
-  { href: '/create-membership-card', label: 'Carte VIP' },
-  { href: '/help', label: 'Guides' },
-  { href: '/acces', label: 'Acheter une clé' },
   { href: '/contact', label: 'Contact' },
 ];
 ---
 
-<nav class="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between gap-4">
-  <a href="/" class="inline-flex items-center shrink-0">
-    <img src="/logo-premium.png" alt="Fidelopass" class="h-28 sm:h-32 w-auto" />
-  </a>
+<nav class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
+    <a href="/" class="inline-flex items-center shrink-0">
+      <img src="/logo-premium.png" alt="Fidelopass" class="h-10 w-auto" />
+    </a>
 
-  <div class="hidden xl:flex items-center gap-5 text-sm text-slate-500">
-    {links.map((link) => (
-      <a
-        href={link.href}
-        class:list={[
-          'transition-colors hover:text-slate-900',
-          currentPath === link.href && 'text-slate-950',
-        ]}
-      >
-        {link.label}
-      </a>
-    ))}
-  </div>
+    <div class="hidden md:flex items-center gap-7 text-sm text-slate-500 font-medium">
+      {links.map((link) => (
+        <a
+          href={link.href}
+          class:list={[
+            'transition-colors hover:text-slate-900',
+            currentPath === link.href && 'text-slate-900',
+          ]}
+        >
+          {link.label}
+        </a>
+      ))}
+    </div>
 
-  <div class="flex items-center gap-3 shrink-0">
-    <a href="/login" class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-950">Connexion</a>
-    <a href="/register" class="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white shadow-[0_10px_30px_-12px_rgba(15,23,42,0.45)] transition-colors hover:bg-slate-800">Créer mon accès</a>
+    <div class="flex items-center gap-3 shrink-0">
+      <a href="/login" class="btn-secondary text-sm px-4 py-2">Connexion</a>
+      <a href="/register" class="btn-primary text-sm px-4 py-2">Essai gratuit — 15 jours</a>
+    </div>
   </div>
 </nav>

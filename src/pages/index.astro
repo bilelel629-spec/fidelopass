@@ -2,264 +2,254 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PublicFooter from '../components/marketing/PublicFooter.astro';
 import PublicNav from '../components/marketing/PublicNav.astro';
-
-const howItWorks = [
-  {
-    step: '1',
-    title: 'Le client scanne votre QR code',
-    description: 'Depuis votre affiche en magasin, un lien privé ou votre site, il ouvre sa carte en quelques secondes.',
-  },
-  {
-    step: '2',
-    title: 'Il ajoute sa carte à Apple ou Google Wallet',
-    description: 'Aucune application à télécharger. La carte reste accessible directement dans le téléphone.',
-  },
-  {
-    step: '3',
-    title: 'Vous scannez et fidélisez en boutique',
-    description: 'Chaque passage devient une action simple : ajout de tampon, de points, récompense et message client.',
-  },
-];
-
-const benefits = [
-  'Cartes dématérialisées totalement personnalisées',
-  'Programmes à tampons ou à points selon votre activité',
-  'Expérience plus ludique et plus mémorable pour vos clients',
-  'Notifications Wallet et rappels contextuels',
-  'Templates prêts à imprimer avec QR code pour le magasin',
-  'Signaux pilotables : scans, cartes actives, retours clients',
-];
-
-const faqs = [
-  {
-    question: 'Mes clients doivent-ils installer une application ?',
-    answer: 'Non. Ils ajoutent simplement leur carte à Apple Wallet ou Google Wallet depuis leur téléphone.',
-  },
-  {
-    question: 'Combien de temps faut-il pour lancer la première carte ?',
-    answer: 'Le parcours est pensé pour une mise en place rapide. Une première version crédible peut être publiée en quelques minutes.',
-  },
-  {
-    question: 'Est-ce adapté à un commerce de proximité ?',
-    answer: 'Oui. Fidelopass est pensé pour les commerces qui veulent un QR code en boutique, un scanner mobile simple et une carte moderne sans complexité technique.',
-  },
-  {
-    question: 'Puis-je personnaliser complètement le rendu ?',
-    answer: 'Oui. Logo, bannière, couleurs, templates métier, récompenses et structure du programme sont personnalisables.',
-  },
-];
 ---
 
 <BaseLayout
-  title="Fidelopass — Cartes de fidélité Wallet premium pour commerces"
-  description="Fidelopass aide les commerces à lancer une carte de fidélité Apple Wallet et Google Wallet sans application client, avec QR code boutique, scanner et design premium."
+  theme="light"
+  title="Fidelopass — Cartes de fidélité Apple Wallet & Google Wallet pour commerces"
+  description="Créez une carte de fidélité dans Apple Wallet et Google Wallet en 5 minutes. Sans application pour vos clients. Essai gratuit 15 jours."
 >
-  <div class="min-h-screen bg-[#f6f8fb] text-slate-900">
-    <div class="absolute inset-x-0 top-0 h-[38rem] pointer-events-none bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.18),rgba(246,248,251,0)_52%),linear-gradient(180deg,#ffffff_0%,#f6f8fb_100%)]"></div>
+  <PublicNav currentPath="/" />
 
-    <div class="relative">
-      <PublicNav currentPath="/" />
+  <!-- HERO -->
+  <section class="bg-white pt-16 pb-24">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-14 items-center">
+      <div>
+        <span class="badge badge-info mb-5">Fidélité Wallet-first · Sans application</span>
+        <h1 class="font-display text-5xl sm:text-6xl font-bold text-slate-900 leading-[1.05]">
+          Vos clients reviennent.<br/>
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-500">
+            Sans app à télécharger.
+          </span>
+        </h1>
+        <p class="text-slate-500 text-lg leading-relaxed mt-6 max-w-lg">
+          Créez une carte de fidélité directement dans Apple Wallet et Google Wallet.
+          Vos clients l'ajoutent en 20 secondes — sans compte, sans téléchargement.
+        </p>
 
-      <section class="max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-18 lg:pb-24">
-        <div class="grid lg:grid-cols-[1fr_0.95fr] gap-12 items-center">
-          <div>
-            <div class="inline-flex items-center rounded-full border border-sky-200 bg-white px-4 py-1.5 text-sm font-medium text-sky-700 shadow-sm">
-              Fidélité premium sans application client
-            </div>
-            <h1 class="mt-6 font-display text-5xl sm:text-6xl lg:text-7xl font-bold leading-[0.95] text-slate-950 max-w-4xl">
-              Faites revenir vos clients
-              <span class="block text-sky-500">avec une carte de fidélité moderne</span>
-            </h1>
-            <p class="mt-6 max-w-2xl text-lg sm:text-xl leading-relaxed text-slate-600">
-              Fidelopass permet aux commerces de lancer une carte Apple Wallet et Google Wallet élégante, simple à scanner en boutique et suffisamment professionnelle pour inspirer confiance dès le premier regard.
-            </p>
+        <div class="flex flex-col sm:flex-row gap-3 mt-8">
+          <a href="/register" class="btn-primary px-7 py-3.5 text-base font-semibold">
+            Essai gratuit — 15 jours
+          </a>
+          <a href="/comment-ca-fonctionne" class="btn-secondary px-7 py-3.5 text-base">
+            Comment ça marche →
+          </a>
+        </div>
 
-            <div class="mt-8 flex flex-col sm:flex-row gap-4">
-              <a href="/register" class="inline-flex items-center justify-center rounded-xl bg-slate-950 px-8 py-3.5 text-base font-medium text-white shadow-[0_18px_45px_-18px_rgba(15,23,42,0.55)] transition-colors hover:bg-slate-800">
-                Essai gratuit 14 jours
-              </a>
-              <a href="/how-it-works" class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-8 py-3.5 text-base font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-950">
-                Comment ça fonctionne
-              </a>
-            </div>
+        <p class="text-slate-400 text-sm mt-4">
+          Aucune carte de crédit · Aucune application pour vos clients · Prêt en 5 minutes
+        </p>
 
-            <div class="mt-8 flex flex-wrap gap-3 text-sm">
-              <span class="rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-600 shadow-sm">Essai gratuit de 14 jours</span>
-              <span class="rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-600 shadow-sm">Aucune carte bancaire requise</span>
-              <span class="rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-600 shadow-sm">Aucune application pour vos clients</span>
-              <span class="rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-600 shadow-sm">Installation en 5 minutes</span>
-            </div>
+        <div class="flex flex-wrap gap-5 mt-8">
+          <div class="flex items-center gap-2 text-sm text-slate-500">
+            <span class="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-xs font-bold">✓</span>
+            Apple Wallet natif
           </div>
+          <div class="flex items-center gap-2 text-sm text-slate-500">
+            <span class="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-xs font-bold">✓</span>
+            Google Wallet natif
+          </div>
+          <div class="flex items-center gap-2 text-sm text-slate-500">
+            <span class="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-xs font-bold">✓</span>
+            +27% de rétention clients
+          </div>
+        </div>
+      </div>
 
-          <div class="relative">
-            <div class="absolute -inset-6 rounded-[2rem] bg-[radial-gradient(circle,rgba(56,189,248,0.22),rgba(255,255,255,0)_62%)] blur-2xl"></div>
-            <div class="relative rounded-[2rem] border border-white bg-white p-5 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.28)]">
-              <div class="grid gap-4">
-                <div class="rounded-[1.5rem] border border-slate-200 bg-[linear-gradient(145deg,#0f172a,#1d4ed8_55%,#38bdf8)] p-5 text-white">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                      <div class="h-11 w-11 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center text-lg">☕</div>
-                      <div>
-                        <p class="text-sm font-semibold">Maison Aure</p>
-                        <p class="text-xs text-white/75">Carte de fidélité café</p>
-                      </div>
-                    </div>
-                    <div class="rounded-full bg-white/12 px-3 py-1 text-xs font-medium text-white/90">4 / 8 tampons</div>
-                  </div>
-
-                  <div class="mt-5 rounded-[1.25rem] bg-black/15 p-4">
-                    <div class="grid grid-cols-4 gap-3">
-                      {Array.from({ length: 8 }).map((_, index) => (
-                        <div class={`aspect-square rounded-full border-2 flex items-center justify-center text-sm ${index < 4 ? 'border-amber-400 bg-amber-400 text-white' : 'border-white/25 text-white/40'}`}>
-                          {index < 4 ? '✓' : '•'}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div class="mt-5 rounded-[1rem] bg-white px-4 py-3 text-center">
-                    <div class="h-14 rounded-lg bg-[repeating-linear-gradient(90deg,#111827_0,#111827_3px,transparent_3px,transparent_7px)]"></div>
-                    <p class="mt-2 text-xs text-slate-400">QR et identifiant client</p>
+      <!-- Mockup carte Wallet -->
+      <div class="relative flex justify-center">
+        <div class="absolute inset-0 rounded-[3rem] blur-3xl opacity-15 bg-gradient-to-br from-indigo-400 to-violet-400"></div>
+        <div class="relative w-full max-w-sm">
+          <div class="rounded-[2rem] overflow-hidden shadow-2xl border border-slate-100">
+            <div class="p-6" style="background:linear-gradient(145deg,#1e1b4b,#312e81 55%,#0f766e)">
+              <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center text-2xl">☕</div>
+                  <div>
+                    <p class="text-white font-bold text-sm">Café Lumière</p>
+                    <p class="text-white/60 text-xs">Carte de fidélité</p>
                   </div>
                 </div>
-
-                <div class="grid sm:grid-cols-2 gap-4">
-                  <div class="rounded-[1.5rem] border border-slate-200 bg-[#f8fbff] p-5">
-                    <p class="text-xs uppercase tracking-[0.26em] text-slate-400">Vue commerçant</p>
-                    <p class="mt-3 text-lg font-semibold text-slate-950">Simple à piloter</p>
-                    <div class="mt-4 space-y-3">
-                      <div class="rounded-2xl bg-white p-4 shadow-sm">
-                        <p class="text-xs text-slate-400">Cartes actives</p>
-                        <p class="mt-1 text-2xl font-semibold text-slate-950">248</p>
-                      </div>
-                      <div class="rounded-2xl bg-white p-4 shadow-sm">
-                        <p class="text-xs text-slate-400">Scans cette semaine</p>
-                        <p class="mt-1 text-2xl font-semibold text-slate-950">67</p>
-                      </div>
+                <span class="rounded-full bg-amber-400/20 border border-amber-400/30 text-amber-200 text-xs font-medium px-3 py-1">6 / 10</span>
+              </div>
+              <div class="rounded-2xl bg-black/20 border border-white/10 p-4 mb-5">
+                <div class="grid grid-cols-5 gap-2.5">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <div
+                      class="aspect-square rounded-full border-2 flex items-center justify-center text-sm font-bold"
+                      style={i < 6 ? 'background:#f59e0b;border-color:#f59e0b;color:white;' : 'border-color:rgba(255,255,255,0.2);color:rgba(255,255,255,0.3);'}
+                    >
+                      {i < 6 ? '✓' : '·'}
                     </div>
-                  </div>
-
-                  <div class="rounded-[1.5rem] border border-slate-200 bg-[#f9f8ff] p-5">
-                    <p class="text-xs uppercase tracking-[0.26em] text-slate-400">Pourquoi ça rassure</p>
-                    <div class="mt-4 space-y-3">
-                      <div class="rounded-2xl border border-slate-200 bg-white p-4">
-                        <p class="font-medium text-slate-950">Sans application client</p>
-                        <p class="mt-2 text-sm leading-relaxed text-slate-600">Le client ajoute sa carte directement dans le Wallet de son téléphone.</p>
-                      </div>
-                      <div class="rounded-2xl border border-slate-200 bg-white p-4">
-                        <p class="font-medium text-slate-950">Prêt pour le comptoir</p>
-                        <p class="mt-2 text-sm leading-relaxed text-slate-600">QR boutique, scanner mobile et affiches imprimables dès la mise en ligne.</p>
-                      </div>
-                    </div>
-                  </div>
+                  ))}
                 </div>
+                <p class="text-white/50 text-xs text-center mt-3">10 tampons = 1 café offert</p>
+              </div>
+              <div class="rounded-xl bg-white px-4 py-3 text-center">
+                <div class="h-10 rounded-lg" style="background:repeating-linear-gradient(90deg,#1e1b4b 0,#1e1b4b 3px,transparent 3px,transparent 7px);"></div>
+                <p class="text-slate-400 text-xs mt-1.5">Scanner en boutique</p>
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      <section class="max-w-7xl mx-auto px-4 sm:px-6 pb-18">
-        <div class="rounded-[2rem] border border-slate-200 bg-white px-6 py-8 sm:px-8 shadow-[0_18px_50px_-35px_rgba(15,23,42,0.2)]">
-          <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5 mb-8">
-            <div>
-              <p class="text-sm font-semibold tracking-[0.22em] text-sky-600 uppercase">Comment ça fonctionne</p>
-              <h2 class="mt-3 font-display text-3xl sm:text-4xl font-bold text-slate-950">Un parcours simple pour le commerce comme pour le client.</h2>
-            </div>
-            <p class="max-w-2xl text-base leading-relaxed text-slate-600">
-              Le but est de rendre la fidélité aussi naturelle qu’une carte papier, mais avec la lisibilité, la personnalisation et les données d’un vrai produit digital.
-            </p>
+          <div class="absolute -right-4 top-6 bg-white rounded-2xl shadow-lg border border-slate-100 px-4 py-3 text-xs">
+            <p class="font-semibold text-slate-900">🍎 Apple Wallet</p>
+            <p class="text-slate-400 mt-0.5">Ajouté en 20 sec</p>
           </div>
-
-          <div class="grid lg:grid-cols-3 gap-5">
-            {howItWorks.map((item) => (
-              <article class="rounded-[1.5rem] border border-slate-200 bg-[#fbfcfe] p-6">
-                <div class="h-11 w-11 rounded-2xl bg-slate-950 text-white flex items-center justify-center font-semibold">{item.step}</div>
-                <h3 class="mt-5 font-display text-2xl font-bold text-slate-950 leading-tight">{item.title}</h3>
-                <p class="mt-3 text-sm leading-relaxed text-slate-600">{item.description}</p>
-              </article>
-            ))}
+          <div class="absolute -left-4 bottom-8 bg-white rounded-2xl shadow-lg border border-slate-100 px-4 py-3 text-xs">
+            <p class="font-semibold text-slate-900">📲 Notification push</p>
+            <p class="text-emerald-500 mt-0.5">+1 client revenu</p>
           </div>
         </div>
-      </section>
+      </div>
+    </div>
+  </section>
 
-      <section class="max-w-7xl mx-auto px-4 sm:px-6 pb-18">
-        <div class="grid lg:grid-cols-[0.85fr_1.15fr] gap-8 items-start">
-          <div class="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-[0_18px_50px_-35px_rgba(15,23,42,0.2)]">
-            <p class="text-sm font-semibold tracking-[0.22em] text-sky-600 uppercase">Pourquoi Fidelopass</p>
-            <h2 class="mt-3 font-display text-3xl sm:text-4xl font-bold text-slate-950">Une fidélité plus claire, plus rentable et plus élégante.</h2>
-            <p class="mt-4 text-base leading-relaxed text-slate-600">
-              Fidelopass ne vend pas seulement une carte. Il vend un parcours de fidélité moderne, prêt à être affiché en magasin et suffisamment simple pour être utilisé tous les jours.
-            </p>
-
-            <div class="mt-6 rounded-[1.5rem] bg-[#f8fbff] p-5">
-              <p class="text-sm font-medium text-slate-950">Moyenne de +27% de rétention clients</p>
-              <p class="mt-2 text-sm leading-relaxed text-slate-600">
-                Le bon message au bon moment, une carte visible dans le téléphone et un passage boutique simplifié augmentent les chances de retour et la mémorisation du programme.
-              </p>
-            </div>
-          </div>
-
-          <div class="grid sm:grid-cols-2 gap-4">
-            {benefits.map((benefit) => (
-              <div class="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-[0_18px_50px_-35px_rgba(15,23,42,0.18)]">
-                <div class="flex items-start gap-3">
-                  <span class="mt-1 h-2.5 w-2.5 rounded-full bg-sky-400"></span>
-                  <p class="text-sm leading-relaxed text-slate-700">{benefit}</p>
-                </div>
-              </div>
-            ))}
-            <div class="rounded-[1.5rem] border border-slate-200 bg-[linear-gradient(135deg,#0f172a,#1e3a8a)] p-5 text-white shadow-[0_20px_60px_-35px_rgba(15,23,42,0.35)] sm:col-span-2">
-              <p class="text-sm uppercase tracking-[0.22em] text-sky-200">En plus</p>
-              <p class="mt-3 text-lg font-semibold">Pas d’application nécessaire pour vos clients, mais une expérience beaucoup plus premium qu’une carte papier.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="max-w-7xl mx-auto px-4 sm:px-6 pb-18">
-        <div class="rounded-[2rem] border border-slate-200 bg-white px-6 py-8 sm:px-8 shadow-[0_18px_50px_-35px_rgba(15,23,42,0.2)]">
-          <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5 mb-8">
-            <div>
-              <p class="text-sm font-semibold tracking-[0.22em] text-sky-600 uppercase">FAQ</p>
-              <h2 class="mt-3 font-display text-3xl sm:text-4xl font-bold text-slate-950">Les questions qu’un commerce se pose avant de lancer.</h2>
-            </div>
-          </div>
-
-          <div class="grid lg:grid-cols-2 gap-4">
-            {faqs.map((faq) => (
-              <article class="rounded-[1.5rem] border border-slate-200 bg-[#fbfcfe] p-6">
-                <h3 class="text-lg font-semibold text-slate-950">{faq.question}</h3>
-                <p class="mt-3 text-sm leading-relaxed text-slate-600">{faq.answer}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section class="max-w-7xl mx-auto px-4 sm:px-6 pb-20">
-        <div class="rounded-[2rem] border border-slate-200 bg-[linear-gradient(135deg,#ffffff_0%,#eff6ff_55%,#e0f2fe_100%)] px-6 py-10 sm:px-8 shadow-[0_20px_60px_-35px_rgba(15,23,42,0.22)]">
-          <div class="grid lg:grid-cols-[1fr_auto] gap-8 items-center">
-            <div>
-              <p class="text-sm font-semibold tracking-[0.22em] text-sky-600 uppercase">Prêt à faire revenir vos clients ?</p>
-              <h2 class="mt-3 font-display text-3xl sm:text-4xl font-bold text-slate-950">Essai gratuit de 14 jours. Aucune carte de crédit requise.</h2>
-              <p class="mt-4 max-w-2xl text-base sm:text-lg leading-relaxed text-slate-600">
-                Aucune application pour vos clients. Installation en 5 minutes. Une première carte, un QR en boutique et un vrai parcours Wallet pour commencer à fidéliser rapidement.
-              </p>
-            </div>
-            <div class="flex flex-col sm:flex-row lg:flex-col gap-3">
-              <a href="/register" class="inline-flex items-center justify-center rounded-xl bg-slate-950 px-8 py-3.5 text-base font-medium text-white shadow-[0_18px_45px_-18px_rgba(15,23,42,0.45)] transition-colors hover:bg-slate-800">
-                Commencer l’essai gratuit
-              </a>
-              <a href="/pricing" class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-8 py-3.5 text-base font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-950">
-                Voir la tarification
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <PublicFooter />
+  <!-- BARRE RÉASSURANCE -->
+  <div class="bg-slate-50 border-y border-slate-100 py-5">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 flex flex-wrap justify-center gap-6 sm:gap-10 text-sm text-slate-500">
+      <div class="flex items-center gap-2"><span>🍎</span> Apple Wallet intégré</div>
+      <div class="w-px h-4 bg-slate-200 hidden sm:block self-center"></div>
+      <div class="flex items-center gap-2"><span>🤖</span> Google Wallet intégré</div>
+      <div class="w-px h-4 bg-slate-200 hidden sm:block self-center"></div>
+      <div class="flex items-center gap-2"><span>🚫</span> Aucune app pour le client</div>
+      <div class="w-px h-4 bg-slate-200 hidden sm:block self-center"></div>
+      <div class="flex items-center gap-2"><span>⚡</span> Installation en 5 minutes</div>
+      <div class="w-px h-4 bg-slate-200 hidden sm:block self-center"></div>
+      <div class="flex items-center gap-2"><span>📈</span> +27% de rétention en moyenne</div>
     </div>
   </div>
+
+  <!-- COMMENT ÇA FONCTIONNE -->
+  <section class="bg-white py-24">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+      <div class="text-center mb-16">
+        <span class="badge badge-info mb-4">Simple comme bonjour</span>
+        <h2 class="font-display text-4xl sm:text-5xl font-bold text-slate-900 mt-2">Comment ça fonctionne ?</h2>
+        <p class="text-slate-500 text-lg mt-4 max-w-2xl mx-auto">
+          Trois étapes pour passer d'un commerce sans programme à une fidélité active et mesurable.
+        </p>
+      </div>
+      <div class="grid lg:grid-cols-3 gap-8">
+        {[
+          { num: '01', icon: '🎨', title: 'Créez votre carte en 5 min', desc: 'Choisissez le type (tampons, points ou VIP), personnalisez couleurs et logo. Votre carte est prête à être partagée.' },
+          { num: '02', icon: '📲', title: 'Partagez le QR code', desc: 'Affichez le QR sur votre comptoir ou partagez le lien. Vos clients scannent et ajoutent la carte à leur Wallet en 20 secondes.' },
+          { num: '03', icon: '✅', title: 'Scannez & relancez', desc: 'À chaque passage, scannez la carte. Elle se met à jour automatiquement. Envoyez des notifications push pour faire revenir vos clients.' },
+        ].map((s) => (
+          <div class="bg-slate-50 rounded-2xl border border-slate-100 p-8">
+            <div class="flex items-center gap-4 mb-5">
+              <div class="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-2xl">{s.icon}</div>
+              <span class="font-mono text-xs font-bold text-indigo-400 tracking-widest">{s.num}</span>
+            </div>
+            <h3 class="font-display text-xl font-bold text-slate-900">{s.title}</h3>
+            <p class="text-slate-500 text-sm leading-relaxed mt-3">{s.desc}</p>
+          </div>
+        ))}
+      </div>
+      <div class="text-center mt-10">
+        <a href="/comment-ca-fonctionne" class="btn-secondary px-6 py-2.5 text-sm">Voir le détail complet →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- AVANTAGES -->
+  <section class="bg-slate-50 py-24">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+      <div class="text-center mb-16">
+        <span class="badge badge-info mb-4">Pourquoi Fidelopass</span>
+        <h2 class="font-display text-4xl sm:text-5xl font-bold text-slate-900 mt-2">Tout pour fidéliser efficacement</h2>
+        <p class="text-slate-500 text-lg mt-4 max-w-2xl mx-auto">
+          Une solution complète, pensée pour les commerçants de proximité.
+        </p>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[
+          { icon: '🃏', title: 'Cartes 100% personnalisées', desc: 'Tampons ou points selon votre activité. Couleurs, logo, emoji — votre carte ressemble à votre commerce. Ludique et mémorable.' },
+          { icon: '🔔', title: 'Notifications push ciblées', desc: 'Envoyez un message à tous vos clients ou à ceux qui n\'ont pas visité depuis X jours. Relancez en un clic.' },
+          { icon: '🗺️', title: 'Rappel géolocalisé', desc: 'Quand vos clients passent près de votre boutique, ils reçoivent automatiquement un rappel sur leur Wallet.' },
+          { icon: '🖨️', title: 'Template QR prêt à imprimer', desc: 'Un affiche A4 à poser sur votre comptoir. Vos clients scannent, s\'inscrivent et ajoutent leur carte en 30 secondes.' },
+          { icon: '📊', title: 'Signaux pilotables', desc: 'Suivez les passages, récompenses et clients actifs. Chaque scan devient une donnée exploitable pour votre commerce.' },
+          { icon: '📱', title: 'Aucune application', desc: 'Vos clients utilisent Apple Wallet ou Google Wallet, déjà installés. Zéro friction, taux d\'adoption maximal.' },
+        ].map((a) => (
+          <div class="bg-white rounded-2xl border border-slate-100 p-7 shadow-sm hover:shadow-md transition-shadow">
+            <div class="text-3xl mb-4">{a.icon}</div>
+            <h3 class="font-display text-lg font-bold text-slate-900 mb-2">{a.title}</h3>
+            <p class="text-slate-500 text-sm leading-relaxed">{a.desc}</p>
+          </div>
+        ))}
+      </div>
+      <div class="mt-10 bg-indigo-600 rounded-2xl p-8 text-center">
+        <p class="text-indigo-200 text-sm font-medium uppercase tracking-widest mb-2">Résultat moyen constaté</p>
+        <p class="font-display text-5xl font-bold text-white">+27%</p>
+        <p class="text-indigo-200 text-lg mt-2">de rétention clients avec une carte de fidélité Wallet</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="bg-white py-24">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6">
+      <div class="text-center mb-12">
+        <span class="badge badge-info mb-4">FAQ</span>
+        <h2 class="font-display text-4xl sm:text-5xl font-bold text-slate-900 mt-2">On répond à vos questions</h2>
+      </div>
+      <div class="space-y-3" id="faq-list">
+        {[
+          { q: 'Mes clients doivent-ils télécharger une application ?', a: 'Non. Vos clients reçoivent la carte directement dans Apple Wallet (iPhone) ou Google Wallet (Android), déjà installés sur tous les smartphones. Aucun téléchargement supplémentaire.' },
+          { q: 'Comment fonctionne l\'essai gratuit de 15 jours ?', a: 'Vous créez votre compte gratuitement sans carte bancaire. Pendant 15 jours, accès à toutes les fonctionnalités. À la fin, vous choisissez votre plan. Sans engagement.' },
+          { q: 'La carte fonctionne-t-elle sur iPhone et Android ?', a: 'Oui. Fidelopass génère automatiquement une carte Apple Wallet (iPhone) et Google Wallet (Android). Vos clients reçoivent le bon format selon leur téléphone.' },
+          { q: 'Combien de temps pour créer sa première carte ?', a: 'Moins de 5 minutes. Choisissez le type (tampons, points ou VIP), personnalisez couleurs et logo — votre carte est prête.' },
+          { q: 'Puis-je changer de plan à tout moment ?', a: 'Oui. Passez à un plan supérieur ou résiliez à tout moment. Pas d\'engagement minimum sur les plans mensuels.' },
+          { q: 'C\'est quoi la carte VIP / paliers ?', a: 'La carte VIP crée des niveaux de fidélité (ex: Bronze, Silver, Gold). Chaque palier débloque des avantages différents. Idéal pour salons, spas ou commerces premium.' },
+        ].map((item, i) => (
+          <div class="bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden" data-faq={i}>
+            <button class="w-full px-6 py-5 text-left flex items-center justify-between gap-4" aria-expanded="false">
+              <span class="font-semibold text-slate-900 text-sm sm:text-base">{item.q}</span>
+              <span class="faq-icon text-slate-400 text-xl flex-shrink-0 font-light">+</span>
+            </button>
+            <div class="faq-answer hidden px-6 pb-5">
+              <p class="text-slate-500 text-sm leading-relaxed">{item.a}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA FINAL -->
+  <section class="bg-indigo-600 py-20">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+      <h2 class="font-display text-4xl sm:text-5xl font-bold text-white leading-tight">
+        Prêt à faire revenir vos clients ?
+      </h2>
+      <p class="text-indigo-200 text-lg mt-5 leading-relaxed">
+        Essai gratuit de 15 jours. Aucune carte de crédit requise.<br/>
+        Aucune application pour vos clients. Installation en 5 minutes.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+        <a href="/register" class="inline-flex items-center justify-center bg-white text-indigo-700 font-bold px-8 py-4 rounded-xl hover:bg-indigo-50 transition-colors text-base shadow-lg">
+          Démarrer l'essai gratuit
+        </a>
+        <a href="/pricing" class="inline-flex items-center justify-center bg-white/10 text-white font-medium px-8 py-4 rounded-xl hover:bg-white/20 border border-white/20 transition-colors text-base">
+          Voir les tarifs
+        </a>
+      </div>
+      <p class="text-indigo-300 text-sm mt-5">Sans engagement · Annulation à tout moment</p>
+    </div>
+  </section>
+
+  <PublicFooter />
 </BaseLayout>
+
+<script>
+  document.querySelectorAll('#faq-list [data-faq]').forEach((item) => {
+    const btn = item.querySelector('button') as HTMLButtonElement;
+    const answer = item.querySelector('.faq-answer') as HTMLDivElement;
+    const icon = item.querySelector('.faq-icon') as HTMLSpanElement;
+    btn.addEventListener('click', () => {
+      const open = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+      answer.classList.toggle('hidden', open);
+      icon.textContent = open ? '+' : '×';
+    });
+  });
+</script>

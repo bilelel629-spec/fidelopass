@@ -10,63 +10,63 @@ const contactEmail = 'bilel@pulse-agency.fr';
   title="Contact — Fidelopass"
   description="Contactez Fidelopass pour une démonstration, une question produit ou un accompagnement au déploiement."
 >
-  <div class="relative overflow-hidden min-h-screen">
+  <div class="relative overflow-hidden min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_65%,#ffffff_100%)]">
     <div class="absolute inset-0 pointer-events-none">
-      <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[70rem] h-[70rem] rounded-full blur-3xl opacity-25" style="background:radial-gradient(circle,#6366f1 0%,rgba(10,15,30,0) 62%)"></div>
-      <div class="absolute top-32 -left-20 w-96 h-96 rounded-full blur-3xl opacity-20" style="background:radial-gradient(circle,#0ea5e9 0%,rgba(10,15,30,0) 68%)"></div>
-      <div class="absolute bottom-0 right-0 w-[32rem] h-[32rem] rounded-full blur-3xl opacity-15" style="background:radial-gradient(circle,#f59e0b 0%,rgba(10,15,30,0) 65%)"></div>
-      <div class="absolute inset-0 opacity-[0.08]" style="background-image:linear-gradient(rgba(255,255,255,0.09) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.09) 1px, transparent 1px); background-size: 100px 100px;"></div>
+      <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[70rem] h-[70rem] rounded-full blur-3xl opacity-20" style="background:radial-gradient(circle,#6366f1 0%,rgba(255,255,255,0) 62%)"></div>
+      <div class="absolute top-32 -left-20 w-96 h-96 rounded-full blur-3xl opacity-20" style="background:radial-gradient(circle,#0ea5e9 0%,rgba(255,255,255,0) 68%)"></div>
+      <div class="absolute bottom-0 right-0 w-[32rem] h-[32rem] rounded-full blur-3xl opacity-15" style="background:radial-gradient(circle,#f59e0b 0%,rgba(255,255,255,0) 65%)"></div>
+      <div class="absolute inset-0 opacity-[0.06]" style="background-image:linear-gradient(rgba(15,23,42,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.08) 1px, transparent 1px); background-size: 100px 100px;"></div>
     </div>
 
     <PublicNav currentPath="/contact" />
 
     <section class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-20">
       <div class="grid lg:grid-cols-[0.95fr_1.05fr] gap-8 items-start">
-        <div class="card p-7 sm:p-8">
-          <div class="badge badge-info mb-5">Contact Fidelopass</div>
-          <h1 class="font-display text-4xl sm:text-5xl font-bold text-white leading-tight">
+        <div class="rounded-[2rem] border border-white/80 bg-white/90 p-7 shadow-[0_30px_70px_rgba(15,23,42,0.08)] backdrop-blur sm:p-8">
+          <div class="mb-5 inline-flex items-center rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700 shadow-sm">Contact Fidelopass</div>
+          <h1 class="font-display text-4xl sm:text-5xl font-bold text-slate-900 leading-tight">
             Parlons de votre futur
-            <span class="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-sky-300 to-amber-200">
+            <span class="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-sky-500 to-amber-500">
               programme de fidélité Wallet
             </span>
           </h1>
-          <p class="text-slate-300 text-lg leading-relaxed mt-6">
+          <p class="text-slate-600 text-lg leading-relaxed mt-6">
             Une question produit, un besoin de déploiement, une démo ou un accompagnement pour lancer Fidelopass dans votre commerce : nous pouvons vous répondre rapidement.
           </p>
 
-          <div class="rounded-[1.75rem] border border-white/10 bg-white/5 p-5 mt-8">
+          <div class="mt-8 rounded-[1.75rem] border border-slate-200 bg-slate-50/90 p-5">
             <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">Contact direct</p>
             <a
               href={`mailto:${contactEmail}`}
-              class="mt-3 inline-flex items-center gap-3 text-white text-lg font-semibold hover:text-indigo-200 transition-colors break-all"
+              class="mt-3 inline-flex items-center gap-3 text-slate-900 text-lg font-semibold hover:text-indigo-600 transition-colors break-all"
             >
-              <span class="w-10 h-10 rounded-2xl bg-indigo-500/15 border border-indigo-400/20 flex items-center justify-center text-xl">✉️</span>
+              <span class="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-xl">✉️</span>
               {contactEmail}
             </a>
-            <p class="text-slate-400 text-sm mt-4">
+            <p class="text-slate-500 text-sm mt-4">
               Réponse humaine, claire et orientée mise en place. Idéal pour une démonstration, un devis ou une question technique.
             </p>
           </div>
         </div>
 
         <div class="grid gap-5">
-          <div class="card p-6">
+          <div class="rounded-[2rem] border border-white/80 bg-white/90 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)] backdrop-blur">
             <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">Quand nous contacter</p>
             <div class="grid sm:grid-cols-2 gap-4 mt-5">
-              <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p class="text-white font-semibold">Avant lancement</p>
-                <p class="text-slate-400 text-sm mt-2">Choix du programme de fidélité, design de carte, QR code, Wallet, stratégie de diffusion.</p>
+              <div class="rounded-2xl border border-slate-200 bg-slate-50/90 p-4">
+                <p class="text-slate-900 font-semibold">Avant lancement</p>
+                <p class="text-slate-500 text-sm mt-2">Choix du programme de fidélité, design de carte, QR code, Wallet, stratégie de diffusion.</p>
               </div>
-              <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p class="text-white font-semibold">Après mise en place</p>
-                <p class="text-slate-400 text-sm mt-2">Aide au paramétrage, évolution du parcours client, questions techniques ou commerciales.</p>
+              <div class="rounded-2xl border border-slate-200 bg-slate-50/90 p-4">
+                <p class="text-slate-900 font-semibold">Après mise en place</p>
+                <p class="text-slate-500 text-sm mt-2">Aide au paramétrage, évolution du parcours client, questions techniques ou commerciales.</p>
               </div>
             </div>
           </div>
 
-          <div class="card p-6">
+          <div class="rounded-[2rem] border border-white/80 bg-white/90 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)] backdrop-blur">
             <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">Informations utiles à envoyer</p>
-            <div class="space-y-3 mt-5 text-sm text-slate-300">
+            <div class="space-y-3 mt-5 text-sm text-slate-600">
               <div class="flex items-start gap-3">
                 <span class="mt-1 w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
                 <span>Le nom de votre commerce et votre activité</span>
@@ -82,19 +82,19 @@ const contactEmail = 'bilel@pulse-agency.fr';
             </div>
           </div>
 
-          <div class="rounded-[2rem] border border-white/10 p-6 sm:p-7" style="background:linear-gradient(135deg,rgba(30,41,59,0.9),rgba(49,46,129,0.82),rgba(15,118,110,0.55))">
-            <p class="text-slate-300 text-xs uppercase tracking-[0.3em]">Action rapide</p>
-            <h2 class="font-display text-2xl sm:text-3xl font-bold text-white mt-4">
+          <div class="rounded-[2rem] border border-white/80 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)] sm:p-7" style="background:linear-gradient(135deg,rgba(255,255,255,0.96),rgba(248,250,252,0.96),rgba(239,246,255,0.96))">
+            <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">Action rapide</p>
+            <h2 class="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-4">
               Besoin d’une réponse simple ?
             </h2>
-            <p class="text-slate-200/85 text-sm sm:text-base leading-relaxed mt-4">
+            <p class="text-slate-600 text-sm sm:text-base leading-relaxed mt-4">
               Le plus simple est d’envoyer un email avec votre besoin en quelques lignes. Nous pourrons ensuite vous répondre, vous guider ou préparer une mise en place plus propre.
             </p>
             <div class="flex flex-col sm:flex-row gap-3 mt-6">
-              <a href={`mailto:${contactEmail}?subject=Contact%20Fidelopass`} class="btn-primary px-8 py-3.5 text-base">
+              <a href={`mailto:${contactEmail}?subject=Contact%20Fidelopass`} class="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-8 py-3.5 text-base font-semibold text-white shadow-[0_18px_40px_rgba(15,23,42,0.18)] transition-all hover:-translate-y-0.5 hover:bg-slate-900">
                 Envoyer un email
               </a>
-              <a href="/register" class="btn-secondary px-8 py-3.5 text-base">
+              <a href="/register" class="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-8 py-3.5 text-base font-medium text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:text-slate-900 hover:shadow-md">
                 Créer mon accès
               </a>
             </div>

@@ -70,7 +70,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
           </div>
           <div class="rounded-2xl border border-slate-200 bg-white p-4">
             <p class="font-medium text-slate-900">Supervision utile maintenant</p>
-            <p class="mt-1">Nombre de commerces, activation, carte configurée, clients et dernier signal d’inscription.</p>
+            <p id="admin-onboarding-helper" class="mt-1">Chargement des états d’onboarding...</p>
           </div>
         </div>
       </div>
@@ -103,6 +103,12 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   };
 
   let allCommerces: AdminCommerce[] = [];
+
+  function getOnboardingState(commerce: AdminCommerce) {
+    if (!commerce.cartes.length) return { label: 'Compte créé', badge: 'badge-warning' };
+    if (!commerce.clients.length) return { label: 'Carte prête', badge: 'badge-info' };
+    return { label: 'Carte partagée', badge: 'badge-success' };
+  }
 
   async function authFetch(url: string, opts: RequestInit = {}) {
     const { supabase } = await import('../../lib/supabase');
@@ -156,6 +162,11 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       document.getElementById('stat-clients')!.textContent = String(data.totalClients ?? 0);
       document.getElementById('stat-transactions')!.textContent = String(data.totalTransactions ?? 0);
       document.getElementById('stat-nouveaux-30j')!.textContent = String(data.nouveaux30J ?? 0);
+      const helper = document.getElementById('admin-onboarding-helper');
+      const onboarding = data.onboarding ?? {};
+      if (helper) {
+        helper.textContent = `${onboarding.sansCarte ?? 0} comptes créés, ${onboarding.cartePrete ?? 0} cartes prêtes, ${onboarding.cartePartagee ?? 0} cartes déjà partagées.`;
+      }
     } catch {}
   }
 
@@ -181,6 +192,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
                 <th class="px-4 py-3 text-xs uppercase tracking-wide text-slate-500">Carte</th>
                 <th class="px-4 py-3 text-xs uppercase tracking-wide text-slate-500">Clients</th>
                 <th class="px-4 py-3 text-xs uppercase tracking-wide text-slate-500">Abonnement</th>
+                <th class="px-4 py-3 text-xs uppercase tracking-wide text-slate-500">Onboarding</th>
                 <th class="px-4 py-3 text-xs uppercase tracking-wide text-slate-500">Statut</th>
                 <th class="px-4 py-3 text-xs uppercase tracking-wide text-slate-500">Création</th>
                 <th class="px-4 py-3 text-xs uppercase tracking-wide text-slate-500">Action</th>
@@ -200,6 +212,9 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
                   </td>
                   <td class="px-4 py-4 font-mono text-sm text-sky-700">${commerce.clients.length}</td>
                   <td class="px-4 py-4"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">Plan manuel</span></td>
+                  <td class="px-4 py-4">
+                    <span class="badge ${getOnboardingState(commerce).badge}">${getOnboardingState(commerce).label}</span>
+                  </td>
                   <td class="px-4 py-4">
                     ${commerce.actif
                       ? '<span class="badge badge-success">Actif</span>'

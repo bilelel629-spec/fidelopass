@@ -10,7 +10,9 @@ const plans = [
     annualPrice: 25,
     subtitle: 'Pour lancer votre première carte et commencer à fidéliser.',
     features: [
-      { text: '1 commerce, 1 carte active', ok: true },
+      { text: 'Jusqu’à 500 cartes clients actives', ok: true },
+      { text: '1 commerce / lieu', ok: true },
+      { text: '3 scanners inclus', ok: true },
       { text: 'Carte à tampons', ok: true },
       { text: 'Apple Wallet + Google Wallet', ok: true },
       { text: 'Scanner mobile + affiche QR', ok: true },
@@ -30,7 +32,9 @@ const plans = [
     annualPrice: 65,
     subtitle: 'Pour fidéliser plus fort et communiquer avec vos clients.',
     features: [
+      { text: 'Jusqu’à 5 000 cartes clients actives', ok: true },
       { text: '3 lieux / commerces', ok: true },
+      { text: '6 scanners par lieu', ok: true },
       { text: 'Tampons + Points + VIP (paliers)', ok: true },
       { text: 'Apple Wallet + Google Wallet', ok: true },
       { text: 'Scanner mobile + affiche QR', ok: true },
@@ -45,12 +49,14 @@ const plans = [
     featured: true,
   },
   {
-    name: 'Réseau',
-    monthlyPrice: 259,
-    annualPrice: 199,
-    subtitle: 'Pour les enseignes multi-sites ou les franchises.',
+    name: 'Sur mesure',
+    monthlyPrice: null,
+    annualPrice: null,
+    subtitle: 'Pour les enseignes, réseaux ou besoins spécifiques.',
     features: [
-      { text: '10 lieux / commerces', ok: true },
+      { text: 'Volume de cartes adapté à vos besoins', ok: true },
+      { text: 'Nombre de lieux sur devis', ok: true },
+      { text: 'Scanners supplémentaires à partir de 5€/scanner', ok: true },
       { text: 'Tous les types de cartes', ok: true },
       { text: 'Apple Wallet + Google Wallet', ok: true },
       { text: 'Multi-scanners + accès équipe', ok: true },
@@ -60,15 +66,15 @@ const plans = [
       { text: 'Géolocalisation multi-sites', ok: true },
       { text: 'Dashboard réseau centralisé', ok: true },
     ],
-    cta: 'Démarrer l\'essai gratuit',
-    href: '/register',
+    cta: 'Demander un devis',
+    href: '/contact',
     featured: false,
   },
 ];
 
 const faq = [
   { q: 'Y a-t-il un engagement minimum ?', a: 'Non. Les plans mensuels sont sans engagement. Vous pouvez annuler à tout moment depuis votre espace client, sans frais ni pénalité.' },
-  { q: 'Comment fonctionne l\'essai gratuit ?', a: 'Vous créez votre compte sans carte bancaire. Pendant 15 jours, accès à toutes les fonctionnalités du plan Pro. À la fin, vous choisissez votre plan.' },
+  { q: 'Comment fonctionne l\'essai gratuit ?', a: 'Vous créez votre compte sans carte bancaire. Pendant 14 jours, vous configurez votre carte et votre scanner librement. À la fin, votre espace passe en lecture seule tant que vous n’avez pas choisi de plan.' },
   { q: 'Quelle est la différence entre mensuel et annuel ?', a: 'L\'abonnement annuel vous fait économiser environ 25% par rapport au mensuel. Il est facturé en une seule fois pour 12 mois.' },
   { q: 'Puis-je changer de plan ?', a: 'Oui, vous pouvez évoluer ou rétrograder à tout moment. Les changements sont effectifs immédiatement.' },
   { q: 'Mes clients doivent-ils télécharger une app ?', a: 'Non. Vos clients utilisent Apple Wallet ou Google Wallet, déjà installés sur leur téléphone. Aucun téléchargement supplémentaire.' },
@@ -77,8 +83,8 @@ const faq = [
 
 <BaseLayout
   theme="light"
-  title="Tarifs Fidelopass — Essai gratuit 15 jours sans carte bancaire"
-  description="3 plans pour tous les commerces. Starter 35€/mois, Pro 85€/mois, Réseau 259€/mois. Engagement annuel disponible. Essai gratuit 15 jours."
+  title="Tarifs Fidelopass — Essai gratuit 14 jours sans carte bancaire"
+  description="3 offres Fidelopass pour tous les commerces. Starter, Pro et Sur mesure. Engagement annuel disponible. Essai gratuit 14 jours."
 >
   <PublicNav currentPath="/pricing" />
 
@@ -97,7 +103,7 @@ const faq = [
         </span>
       </h1>
       <p class="text-slate-500 text-lg mt-5 max-w-xl mx-auto">
-        Essai gratuit 15 jours sur tous les plans. Aucune carte bancaire requise. Annulez à tout moment.
+        Essai gratuit 14 jours sur tous les plans. Aucune carte bancaire requise. Ensuite, votre espace reste accessible en lecture seule tant qu’aucun plan n’est choisi.
       </p>
 
       <!-- Toggle mensuel / annuel -->
@@ -137,17 +143,30 @@ const faq = [
               {plan.name}
             </p>
 
-            <div class="flex items-end gap-1 mb-1">
-              <span class:list={["font-display font-bold leading-none", plan.featured ? "text-white" : "text-slate-900"]}>
-                <span class="text-4xl monthly-price" data-monthly={plan.monthlyPrice} data-annual={plan.annualPrice}>
-                  {plan.annualPrice}€
-                </span>
-              </span>
-              <span class:list={["text-sm mb-1 period-label", plan.featured ? "text-indigo-200" : "text-slate-400"]}>/mois</span>
-            </div>
-            <p class:list={["text-xs mt-0.5", plan.featured ? "text-indigo-300" : "text-slate-400"]}>
-              Avec engagement annuel
-            </p>
+            {plan.monthlyPrice !== null && plan.annualPrice !== null ? (
+              <>
+                <div class="flex items-end gap-1 mb-1">
+                  <span class:list={["font-display font-bold leading-none", plan.featured ? "text-white" : "text-slate-900"]}>
+                    <span class="text-4xl monthly-price" data-monthly={plan.monthlyPrice} data-annual={plan.annualPrice}>
+                      {plan.annualPrice}€
+                    </span>
+                  </span>
+                  <span class:list={["text-sm mb-1 period-label", plan.featured ? "text-indigo-200" : "text-slate-400"]}>/mois</span>
+                </div>
+                <p class:list={["text-xs mt-0.5", plan.featured ? "text-indigo-300" : "text-slate-400"]}>
+                  Avec engagement annuel
+                </p>
+              </>
+            ) : (
+              <>
+                <div class="flex items-end gap-2 mb-1">
+                  <span class:list={["font-display text-4xl font-bold leading-none", plan.featured ? "text-white" : "text-slate-900"]}>Sur devis</span>
+                </div>
+                <p class:list={["text-xs mt-0.5", plan.featured ? "text-indigo-300" : "text-slate-400"]}>
+                  Proposition adaptée à votre besoin
+                </p>
+              </>
+            )}
 
             <p class:list={["text-sm leading-relaxed mt-4 mb-6", plan.featured ? "text-indigo-200" : "text-slate-500"]}>
               {plan.subtitle}
@@ -237,7 +256,7 @@ const faq = [
               <th class="pb-4 pr-6 text-slate-400 font-medium text-sm w-2/5">Fonctionnalité</th>
               <th class="pb-4 px-4 text-center text-slate-700 font-semibold text-sm">Starter</th>
               <th class="pb-4 px-4 text-center text-indigo-600 font-semibold text-sm">Pro</th>
-              <th class="pb-4 px-4 text-center text-slate-700 font-semibold text-sm">Réseau</th>
+              <th class="pb-4 px-4 text-center text-slate-700 font-semibold text-sm">Sur mesure</th>
             </tr>
           </thead>
           <tbody>
@@ -246,12 +265,13 @@ const faq = [
               ['Affiche QR + lien public', '✓', '✓', '✓'],
               ['Scanner mobile boutique', '✓', '✓', '✓ multi'],
               ['Carte à tampons', '✓', '✓', '✓'],
-              ['Carte à points', '—', '✓', '✓'],
-              ['Carte VIP (paliers)', '—', '✓', '✓'],
-              ['Notifications push', '—', '✓', '✓ avancées'],
-              ['Géolocalisation', '—', '✓', '✓'],
-              ['Statistiques', 'Basiques', 'Avancées', 'Réseau'],
-              ['Multi-sites', '—', '—', '✓'],
+              ['Carte à points', '✓', '✓', '✓'],
+              ['Carte VIP (paliers)', '✓', '✓', '✓'],
+              ['Notifications push', '✓', '✓', '✓ avancées'],
+              ['Géolocalisation', '✓', '✓', '✓'],
+              ['Statistiques', 'Basiques', 'Avancées', 'Sur mesure'],
+              ['Lieux / commerces', '1 lieu', '3 lieux', 'Sur devis'],
+              ['Scanners inclus', '3', '6 / lieu', 'Sur devis'],
               ['Support', 'Email', 'Prioritaire', 'Dédié'],
             ].map((row, i) => (
               <tr class:list={["border-b border-slate-50 text-sm", i % 2 === 1 && "bg-slate-50/50"]}>
@@ -293,7 +313,7 @@ const faq = [
   <section class="bg-[linear-gradient(135deg,#0f172a_0%,#312e81_55%,#0284c7_100%)] py-20">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 text-center">
       <h2 class="font-display text-4xl font-bold text-white">Commencez votre essai gratuit</h2>
-      <p class="text-indigo-200 text-lg mt-4">15 jours offerts. Aucune carte bancaire. Annulation à tout moment.</p>
+      <p class="text-indigo-200 text-lg mt-4">14 jours offerts. Aucune carte bancaire. Puis lecture seule tant qu’aucun plan n’est choisi.</p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center mt-8">
         <a href="/register" class="inline-flex items-center justify-center bg-white text-indigo-700 font-bold px-8 py-4 rounded-xl hover:bg-indigo-50 transition-colors text-base shadow-lg">
           Démarrer l'essai gratuit

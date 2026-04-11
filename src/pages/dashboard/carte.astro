@@ -20,14 +20,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <div>
         <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600/70">Parcours guidé</p>
         <h2 class="mt-1 text-xl font-semibold text-slate-900">Configurez votre carte étape par étape</h2>
-        <p class="mt-1 text-sm text-slate-500">Vous pouvez revenir en arrière à tout moment, puis terminer par le scanner du personnel et le partage client.</p>
+        <p class="mt-1 text-sm text-slate-500">Vous pouvez revenir en arrière à tout moment, relire avant publication, puis terminer par le scanner du personnel et le partage client.</p>
       </div>
       <div class="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-900">
         <span class="font-semibold" id="wizard-current-label">Étape 1</span>
-        <span class="text-slate-500"> sur 8</span>
+        <span class="text-slate-500"> sur 9</span>
       </div>
     </div>
-    <div class="mt-4 grid gap-2 md:grid-cols-4 xl:grid-cols-8">
+    <div class="mt-4 grid gap-2 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-9">
       {[
         'Template',
         'Identité',
@@ -35,6 +35,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         'Messages',
         'Apparence',
         'Géolocalisation',
+        'Relecture',
         'Scanner',
         'Partage',
       ].map((label, index) => (
@@ -50,7 +51,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </div>
   </div>
 
-  <div id="public-link-banner" class="wizard-section step-8 hidden mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 shadow-[0_18px_40px_-34px_rgba(16,185,129,0.5)] flex items-center justify-between gap-4">
+  <div id="public-link-banner" class="wizard-section step-9 hidden mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 shadow-[0_18px_40px_-34px_rgba(16,185,129,0.5)] flex items-center justify-between gap-4">
     <div>
       <p class="text-emerald-700 text-sm font-medium">Votre carte est publiée ✓</p>
       <p id="public-link-url" class="text-slate-500 text-xs mt-0.5"></p>
@@ -66,7 +67,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <div class="card wizard-section step-1 p-6">
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">
           <div>
-            <h2 class="font-display font-bold text-white flex items-center gap-2"><span class="text-lg">⚡</span> Modèles rapides</h2>
+            <h2 class="font-display font-bold text-white">Modèles rapides</h2>
             <p class="text-slate-400 text-sm mt-1">Choisissez un style de départ, puis ajustez les détails. Tout ici est compatible avec le rendu Wallet.</p>
           </div>
           <span class="text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-400/20 rounded-full px-3 py-1 w-fit">Recommandé pour démarrer</span>
@@ -116,7 +117,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       <!-- Identité visuelle -->
       <div class="card wizard-section step-2 p-6">
-        <h2 class="font-display font-bold text-white mb-5 flex items-center gap-2"><span class="text-lg">🖼️</span> Identité visuelle</h2>
+        <h2 class="font-display font-bold text-white mb-5">Identité visuelle</h2>
         <div class="grid sm:grid-cols-3 gap-5">
 
           <div>
@@ -237,7 +238,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       <!-- Programme fidélité -->
       <div class="card wizard-section step-3 p-6">
-        <h2 class="font-display font-bold text-white mb-5 flex items-center gap-2"><span class="text-lg">🎴</span> Programme fidélité</h2>
+        <h2 class="font-display font-bold text-white mb-5">Programme fidélité</h2>
         <div class="flex flex-col gap-4">
           <div>
             <label class="label mb-3 block">Formules prêtes à l'emploi</label>
@@ -310,7 +311,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       <!-- Messages client -->
       <div class="card wizard-section step-4 p-6">
-        <h2 class="font-display font-bold text-white mb-5 flex items-center gap-2"><span class="text-lg">💬</span> Messages client</h2>
+        <h2 class="font-display font-bold text-white mb-5">Messages client</h2>
         <div class="grid sm:grid-cols-2 gap-4">
           <div>
             <label class="label" for="welcome-message">Texte d’accueil public</label>
@@ -325,7 +326,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       <!-- Apparence -->
       <div class="card wizard-section step-5 p-6">
-        <h2 class="font-display font-bold text-white mb-5 flex items-center gap-2"><span class="text-lg">🎨</span> Apparence</h2>
+        <h2 class="font-display font-bold text-white mb-5">Apparence</h2>
         <label class="label mb-3 block">Thèmes prédéfinis</label>
         <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-5">
           {[
@@ -389,7 +390,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       <!-- Code-barres -->
       <div class="card wizard-section step-5 p-6">
-        <h2 class="font-display font-bold text-white mb-5 flex items-center gap-2"><span class="text-lg">📱</span> Code-barres</h2>
+        <h2 class="font-display font-bold text-white mb-5">Code-barres</h2>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[{value:'QR',label:'QR Code',icon:'⬛',desc:'Recommandé'},{value:'PDF417',label:'Code-barres',icon:'▬',desc:'Linéaire'},{value:'AZTEC',label:'Aztec',icon:'◈',desc:'Compact'},{value:'NONE',label:'Aucun',icon:'∅',desc:'Sans code'}].map(({value,label,icon,desc})=>(
             <label id={`barcode-${value.toLowerCase()}-label`} class="cursor-pointer rounded-xl border-2 p-3 text-center transition-all" style={value==='QR'?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent'}>
@@ -402,7 +403,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       <!-- Géolocalisation -->
       <div class="card wizard-section step-6 p-6">
-        <h2 class="font-display font-bold text-white mb-4 flex items-center gap-2"><span class="text-lg">📍</span> Géolocalisation</h2>
+        <h2 class="font-display font-bold text-white mb-4">Géolocalisation</h2>
         <label class="label" for="message-geo">Message sur l'écran de verrouillage</label>
         <input id="message-geo" type="text" class="input" placeholder="Votre carte de fidélité vous attend !" />
         <p class="text-slate-500 text-xs mt-1">S'affiche quand le client passe devant votre commerce.</p>
@@ -417,6 +418,25 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
 
       <div class="card wizard-section step-7 p-6">
+        <h2 class="font-display font-bold text-white mb-4">Relecture & publication</h2>
+        <div class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+          <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-600/70">Résumé</p>
+            <div id="review-summary" class="mt-4 grid gap-3 sm:grid-cols-2"></div>
+          </div>
+          <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+            <p class="text-sm font-semibold text-emerald-800">Avant de publier</p>
+            <ul class="mt-3 space-y-2 text-sm text-emerald-900/80">
+              <li>Votre nom de carte et votre récompense doivent être clairement lisibles.</li>
+              <li>Le message Wallet doit donner envie de revenir, pas seulement informer.</li>
+              <li>Le scanner et le partage s’activent juste après cette validation.</li>
+            </ul>
+            <p class="mt-4 text-xs text-emerald-700">Vous pourrez encore revenir en arrière ensuite pour ajuster la carte si nécessaire.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card wizard-section step-8 p-6">
         <h2 class="font-display font-bold text-white mb-4">Configurer le scanner du personnel</h2>
         <div class="grid gap-5 lg:grid-cols-[220px_1fr] lg:items-center">
           <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center">
@@ -532,7 +552,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
       </div>
 
-      <div id="qr-section" class="wizard-section step-8 hidden card p-4 text-center">
+      <div id="qr-section" class="wizard-section step-9 hidden card p-4 text-center">
         <p class="text-slate-400 text-xs mb-3">QR code à afficher dans votre commerce</p>
         <div id="qr-container" class="flex justify-center"></div>
         <p class="text-slate-500 text-xs mt-3">Les clients scannent ce QR pour ajouter la carte</p>
@@ -556,7 +576,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const API = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
   const PUBLIC_SITE_URL = (import.meta.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
   const setupMode = new URLSearchParams(window.location.search).get('setup') === '1';
-  const TOTAL_STEPS = 8;
+  const TOTAL_STEPS = 9;
 
   let carteId: string | null = null;
   let logoUrl = '', stripUrl = '', tamponIconUrl = '', tamponEmoji = '';
@@ -611,25 +631,27 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const nextBtn = document.getElementById('next-step-btn') as HTMLButtonElement;
     const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
     const currentLabel = document.getElementById('wizard-current-label');
-    const labels = ['Template', 'Identité', 'Programme', 'Messages', 'Apparence', 'Géolocalisation', 'Scanner', 'Partage'];
+    const labels = ['Template', 'Identité', 'Programme', 'Messages', 'Apparence', 'Géolocalisation', 'Relecture', 'Scanner', 'Partage'];
 
     if (currentLabel) currentLabel.textContent = `Étape ${currentStep} · ${labels[currentStep - 1]}`;
 
     prevBtn.classList.toggle('invisible', currentStep === 1);
     nextBtn.classList.toggle('hidden', currentStep === TOTAL_STEPS);
-    submitBtn.classList.toggle('hidden', currentStep >= 7);
+    submitBtn.classList.toggle('hidden', currentStep >= 8);
 
     if (currentStep < 6) nextBtn.textContent = 'Étape suivante';
-    else if (currentStep === 6) nextBtn.textContent = carteId ? 'Scanner du personnel' : 'Créer d’abord la carte';
-    else if (currentStep === 7) nextBtn.textContent = 'Passer au partage';
+    else if (currentStep === 6) nextBtn.textContent = 'Relecture & publication';
+    else if (currentStep === 7) nextBtn.textContent = carteId ? 'Scanner du personnel' : 'Créer puis continuer';
+    else if (currentStep === 8) nextBtn.textContent = 'Passer au partage';
 
     if (currentStep < 6) submitBtn.textContent = carteId ? 'Enregistrer les modifications' : 'Enregistrer le brouillon';
     else if (currentStep === 6) submitBtn.textContent = carteId ? 'Enregistrer et continuer' : 'Créer la carte';
+    else if (currentStep === 7) submitBtn.textContent = 'Publier et continuer';
   }
 
   function showStep(step: number) {
     const target = Math.max(1, Math.min(TOTAL_STEPS, step));
-    if (target >= 7 && !carteId) {
+    if (target >= 8 && !carteId) {
       const err = document.getElementById('error-msg') as HTMLDivElement;
       err.textContent = 'Créez d’abord votre carte avant de configurer le scanner et le partage.';
       err.classList.remove('hidden');
@@ -652,6 +674,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     });
 
     updateWizardActions();
+    renderReviewSummary();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -1182,6 +1205,47 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       (document.getElementById('g-points-bar') as HTMLElement).style.background=accent;
       document.getElementById('g-points-text')!.textContent=`0/${ptsCible} pts`;
     }
+
+    renderReviewSummary();
+  }
+
+  function renderReviewSummary() {
+    const container = document.getElementById('review-summary');
+    if (!container) return;
+
+    const type = (document.querySelector('input[name="type"]:checked') as HTMLInputElement)?.value ?? 'tampons';
+    const total = (document.getElementById('tampons-total') as HTMLInputElement).value || '10';
+    const pointsTarget = (document.getElementById('points-recompense') as HTMLInputElement).value || '100';
+    const cards = [
+      {
+        title: 'Carte',
+        value: (document.getElementById('nom-carte') as HTMLInputElement).value || 'Nom non défini',
+        detail: (document.getElementById('description') as HTMLInputElement).value || 'Ajoutez une promesse claire pour donner envie de créer la carte.',
+      },
+      {
+        title: 'Programme',
+        value: type === 'tampons' ? `${total} tampons` : `${pointsTarget} points`,
+        detail: (document.getElementById('recompense') as HTMLInputElement).value || 'Récompense non renseignée',
+      },
+      {
+        title: 'Messages',
+        value: (document.getElementById('welcome-message') as HTMLInputElement).value || 'Message d’accueil par défaut',
+        detail: (document.getElementById('success-message') as HTMLInputElement).value || 'Message après ajout Wallet par défaut',
+      },
+      {
+        title: 'Proximité',
+        value: `${parseInt((document.getElementById('rayon-geo') as HTMLInputElement).value || '1000', 10).toLocaleString('fr-FR')} m`,
+        detail: (document.getElementById('message-geo') as HTMLInputElement).value || 'Aucun message de proximité personnalisé',
+      },
+    ];
+
+    container.innerHTML = cards.map((card) => `
+      <div class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm">
+        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-sky-600/70">${card.title}</p>
+        <p class="mt-2 text-sm font-semibold text-slate-900">${card.value}</p>
+        <p class="mt-1 text-xs leading-relaxed text-slate-500">${card.detail}</p>
+      </div>
+    `).join('');
   }
 
   document.querySelectorAll('#nom-carte,#recompense,#label-client,#tampons-total,#points-recompense,#couleur-fond,#couleur-texte,#couleur-accent,#couleur-fond-2').forEach(el=>el.addEventListener('input',updatePreview));
@@ -1355,7 +1419,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         document.getElementById('setup-banner')!.classList.add('hidden');
         window.history.replaceState({}, '', '/dashboard/carte');
       }
-      if (!hadExistingCard || currentStep === 6) showStep(7);
+      if (currentStep === 7) showStep(8);
+      else if (!hadExistingCard || currentStep === 6) showStep(7);
     }catch(e:unknown){
       err.textContent=e instanceof Error?e.message:'Erreur inattendue.';err.classList.remove('hidden');
     }finally{btn.disabled=false;}

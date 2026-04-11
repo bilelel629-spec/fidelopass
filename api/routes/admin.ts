@@ -13,7 +13,7 @@ adminRoutes.get('/commerces', async (c) => {
   const db = createServiceClient();
   const { data, error } = await db
     .from('commerces')
-    .select('*, cartes(id), clients(id)')
+    .select('*, cartes(id, nom, updated_at), clients(id)')
     .order('created_at', { ascending: false });
 
   if (error) return c.json({ error: 'Erreur lors de la récupération' }, 500);
@@ -28,14 +28,22 @@ adminRoutes.get('/stats', async (c) => {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const [commercesRes, commercesActifsRes, cartesRes, clientsRes, transactionsRes, recentCommercesRes] = await Promise.all([
+  const [commercesRes, commercesActifsRes, cartesRes, clientsRes, transactionsRes, recentCommercesRes, commerceDetailsRes] = await Promise.all([
     db.from('commerces').select('id', { count: 'exact', head: true }),
     db.from('commerces').select('id', { count: 'exact', head: true }).eq('actif', true),
     db.from('cartes').select('id', { count: 'exact', head: true }),
     db.from('clients').select('id', { count: 'exact', head: true }),
     db.from('transactions').select('id', { count: 'exact', head: true }),
     db.from('commerces').select('id', { count: 'exact', head: true }).gte('created_at', thirtyDaysAgo.toISOString()),
+    db.from('commerces').select('id, cartes(id), clients(id)'),
   ]);
+
+  const commerceDetails = commerceDetailsRes.data ?? [];
+  const onboarding = {
+    sansCarte: commerceDetails.filter((commerce) => !commerce.cartes?.length).length,
+    cartePrete: commerceDetails.filter((commerce) => commerce.cartes?.length && !commerce.clients?.length).length,
+    cartePartagee: commerceDetails.filter((commerce) => commerce.clients?.length).length,
+  };
 
   return c.json({
     totalCommerces: commercesRes.count ?? 0,
@@ -44,6 +52,7 @@ adminRoutes.get('/stats', async (c) => {
     totalClients: clientsRes.count ?? 0,
     totalTransactions: transactionsRes.count ?? 0,
     nouveaux30J: recentCommercesRes.count ?? 0,
+    onboarding,
   });
 });
 

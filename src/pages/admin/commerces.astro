@@ -50,6 +50,12 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
   let allCommerces: AdminCommerce[] = [];
 
+  function getOnboardingState(commerce: AdminCommerce) {
+    if (!commerce.cartes.length) return { label: 'Compte créé', badge: 'badge-warning' };
+    if (!commerce.clients.length) return { label: 'Carte prête', badge: 'badge-info' };
+    return { label: 'Carte partagée', badge: 'badge-success' };
+  }
+
   async function authFetch(url: string, opts: RequestInit = {}) {
     const { supabase } = await import('../../lib/supabase');
     const { data: { session } } = await supabase.auth.getSession();
@@ -65,7 +71,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
   function exportCsv(data: AdminCommerce[]) {
     const rows = [
-      ['Nom', 'Email', 'Téléphone', 'Adresse', 'Carte configurée', 'Clients', 'Statut', 'Créé le'],
+      ['Nom', 'Email', 'Téléphone', 'Adresse', 'Carte configurée', 'Clients', 'Onboarding', 'Statut', 'Créé le'],
       ...data.map((commerce) => [
         commerce.nom,
         commerce.email ?? '',
@@ -73,6 +79,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         commerce.adresse ?? '',
         commerce.cartes.length > 0 ? 'Oui' : 'Non',
         String(commerce.clients.length),
+        getOnboardingState(commerce).label,
         commerce.actif ? 'Actif' : 'Inactif',
         new Date(commerce.created_at).toLocaleDateString('fr-FR'),
       ]),
@@ -108,6 +115,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
               <th class="px-6 py-3 text-xs uppercase tracking-wide text-slate-500">Carte</th>
               <th class="px-6 py-3 text-xs uppercase tracking-wide text-slate-500">Clients</th>
               <th class="px-6 py-3 text-xs uppercase tracking-wide text-slate-500">Abonnement</th>
+              <th class="px-6 py-3 text-xs uppercase tracking-wide text-slate-500">Onboarding</th>
               <th class="px-6 py-3 text-xs uppercase tracking-wide text-slate-500">Statut</th>
               <th class="px-6 py-3 text-xs uppercase tracking-wide text-slate-500">Inscrit</th>
               <th class="px-6 py-3 text-xs uppercase tracking-wide text-slate-500">Action</th>
@@ -132,6 +140,9 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
                 <td class="px-6 py-4 font-mono text-sm text-sky-700">${commerce.clients.length}</td>
                 <td class="px-6 py-4">
                   <span class="badge bg-slate-100 text-slate-600 border border-slate-200">Plan manuel</span>
+                </td>
+                <td class="px-6 py-4">
+                  <span class="badge ${getOnboardingState(commerce).badge}">${getOnboardingState(commerce).label}</span>
                 </td>
                 <td class="px-6 py-4">
                   ${commerce.actif

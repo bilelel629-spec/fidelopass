@@ -1,6 +1,6 @@
 import type { Context, Next } from 'hono';
 
-const builtInAdmins = ['bilelel@live.fr'];
+const builtInAdmins = ['bilelel@live.fr', 'bilelel629@gmail.com'];
 
 const adminEmails = Array.from(new Set([...builtInAdmins, ...(process.env.ADMIN_EMAILS ?? '')
   .split(',')

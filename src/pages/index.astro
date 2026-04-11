@@ -22,12 +22,10 @@ import PublicNav from '../components/marketing/PublicNav.astro';
       <div class="relative">
         <span class="mb-5 inline-flex items-center rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700 shadow-sm">Fidélité Wallet-first · Sans application</span>
         <h1 class="font-display text-[2.85rem] sm:text-[4.15rem] font-bold text-slate-900 leading-[0.98] tracking-[-0.04em]">
-          La carte de fidélité
-          <br />
-          <span class="text-slate-900">qui reste déjà</span>
+          Transformez vos
           <br />
           <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-500">
-            dans le Wallet.
+            clients en habitués.
           </span>
         </h1>
         <p class="text-slate-500 text-lg leading-relaxed mt-6 max-w-lg">
@@ -117,13 +115,16 @@ import PublicNav from '../components/marketing/PublicNav.astro';
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
       <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {[
-          { eyebrow: 'Compatibilité', value: 'Apple Wallet', detail: 'Ajout natif sur iPhone' },
-          { eyebrow: 'Compatibilité', value: 'Google Wallet', detail: 'Ajout natif sur Android' },
-          { eyebrow: 'Expérience client', value: 'Aucune application', detail: 'Scan, ajout, fidélisation' },
-          { eyebrow: 'Mise en place', value: 'Prêt en 5 minutes', detail: 'QR, carte et scanner inclus' },
-          { eyebrow: 'Performance', value: '+27% de rétention', detail: 'Moyenne observée sur les cartes Wallet' },
+          { eyebrow: 'Compatibilité', value: 'Apple Wallet', detail: 'Ajout natif sur iPhone', icon: '/apple-wallet-icon.svg' },
+          { eyebrow: 'Compatibilité', value: 'Google Wallet', detail: 'Ajout natif sur Android', icon: '/google-wallet-icon.svg' },
+          { eyebrow: 'Expérience client', value: 'Aucune application', detail: 'Scan, ajout et fidélisation fluide', icon: '/client-experience-icon.svg' },
+          { eyebrow: 'Mise en place', value: 'Prêt en 5 minutes', detail: 'QR, carte et scanner inclus', icon: '/setup-watch-icon.svg' },
+          { eyebrow: 'Performance', value: '+27% de rétention', detail: 'Moyenne observée sur les cartes Wallet', icon: '/growth-arrow-icon.svg' },
         ].map((item) => (
           <div class="rounded-[1.35rem] border border-slate-200 bg-white px-5 py-4 shadow-sm">
+            <div class="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50">
+              <img src={item.icon} alt={item.value} class="h-10 w-10 object-contain" />
+            </div>
             <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">{item.eyebrow}</p>
             <p class="mt-2 text-base font-semibold text-slate-900">{item.value}</p>
             <p class="mt-1 text-sm text-slate-500 leading-relaxed">{item.detail}</p>
@@ -177,12 +178,12 @@ import PublicNav from '../components/marketing/PublicNav.astro';
       </div>
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[
-          { label: 'Personnalisation', title: 'Cartes totalement personnalisées', desc: 'Tampons ou points selon votre activité, design ajusté à votre image et expérience client plus mémorable.' },
-          { label: 'Relance', title: 'Notifications Wallet & push', desc: 'Envoyez des messages utiles au bon moment pour faire revenir vos clients, sans dépendre d’une application native.' },
-          { label: 'Proximité', title: 'Rappel géolocalisé', desc: 'Quand un client s’approche du commerce, sa carte peut remonter automatiquement dans son Wallet.' },
-          { label: 'Terrain', title: 'Template QR prêt à afficher', desc: 'Affiches et QR codes prêts à imprimer pour recruter des porteurs de carte directement au comptoir.' },
-          { label: 'Pilotage', title: 'Signaux clairs pour le commerce', desc: 'Scans, récompenses, clients actifs, campagnes envoyées : tout reste lisible et exploitable.' },
-          { label: 'Adoption', title: 'Aucune application nécessaire', desc: 'Le client scanne, ajoute sa carte et revient. Le parcours reste fluide, naturel et rassurant.' },
+          { label: 'Personnalisation', title: 'Une carte à votre image, pas un modèle générique', desc: 'Logo, couleurs, bannière, programme à points ou à tampons : chaque carte renforce votre marque et donne envie de revenir.' },
+          { label: 'Relance', title: 'Faites revenir vos clients avec des messages qui comptent', desc: 'Relancez au bon moment depuis Wallet avec des messages utiles, visibles et directement liés à la carte du client.' },
+          { label: 'Proximité', title: 'Restez présent quand le client passe près du commerce', desc: 'La carte peut remonter à proximité du point de vente pour recréer un réflexe de visite sans friction.' },
+          { label: 'Terrain', title: 'Recrutez des porteurs de carte directement au comptoir', desc: 'Vos affiches QR et liens d’inscription transforment chaque visite en opportunité de fidélisation immédiate.' },
+          { label: 'Pilotage', title: 'Transformez chaque scan en signal exploitable', desc: 'Suivez les passages, récompenses, clients actifs et campagnes pour comprendre ce qui fait réellement revenir.' },
+          { label: 'Adoption', title: 'Le client comprend instantanément quoi faire', desc: 'Pas d’application à télécharger, pas de création de compte complexe : le parcours est simple, rapide et rassurant.' },
         ].map((a) => (
           <div class="rounded-[1.75rem] border border-white/80 bg-white p-7 shadow-[0_18px_45px_rgba(15,23,42,0.08)] transition-all hover:-translate-y-1 hover:shadow-[0_24px_55px_rgba(15,23,42,0.12)]">
             <div class="mb-5 inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">{a.label}</div>

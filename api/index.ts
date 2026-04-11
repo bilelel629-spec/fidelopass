@@ -13,6 +13,7 @@ import { notificationsRoutes } from './routes/notifications';
 import { adminRoutes } from './routes/admin';
 import { dashboardRoutes } from './routes/dashboard';
 import { uploadRoutes } from './routes/upload';
+import { reviewRoutes } from './routes/review';
 
 const app = new Hono();
 
@@ -33,6 +34,7 @@ app.route('/api/notifications', notificationsRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/dashboard', dashboardRoutes);
 app.route('/api/upload', uploadRoutes);
+app.route('/api/review', reviewRoutes);
 
 app.get('/api/health', (c) => c.json({ ok: true, ts: new Date().toISOString() }));
 app.notFound((c) => c.json({ error: 'Route introuvable' }, 404));

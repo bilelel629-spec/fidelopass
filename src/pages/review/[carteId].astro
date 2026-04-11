@@ -1,0 +1,217 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const { carteId } = Astro.params;
+---
+
+<BaseLayout
+  theme="light"
+  title="Gagnez un tampon en laissant un avis Google"
+  description="Laissez un avis Google et recevez automatiquement votre récompense sur votre carte de fidélité."
+>
+  <div class="min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#f6f9ff_60%,#ffffff_100%)] flex flex-col items-center justify-center px-4 py-16">
+
+    <!-- Loading -->
+    <div id="state-loading" class="text-center">
+      <div class="w-12 h-12 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin mx-auto"></div>
+      <p class="text-slate-400 text-sm mt-4">Chargement…</p>
+    </div>
+
+    <!-- Erreur -->
+    <div id="state-error" class="hidden max-w-sm w-full text-center">
+      <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto text-3xl">❌</div>
+      <h1 class="font-display text-xl font-bold text-slate-900 mt-4">Lien invalide</h1>
+      <p id="error-msg" class="text-slate-500 text-sm mt-2">Ce lien est invalide ou a expiré.</p>
+    </div>
+
+    <!-- Déjà réclamé -->
+    <div id="state-already-claimed" class="hidden max-w-sm w-full text-center">
+      <div class="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto text-3xl">⭐</div>
+      <h1 class="font-display text-2xl font-bold text-slate-900 mt-4">Déjà réclamé !</h1>
+      <p class="text-slate-500 text-sm mt-2">Vous avez déjà obtenu votre récompense pour cette carte. Merci pour votre avis !</p>
+    </div>
+
+    <!-- Étape 1 : Invitation à laisser l'avis -->
+    <div id="state-invite" class="hidden max-w-sm w-full">
+      <div class="text-center mb-8">
+        <div id="invite-logo-wrap" class="w-20 h-20 rounded-2xl border border-slate-200 bg-white shadow-md flex items-center justify-center mx-auto overflow-hidden">
+          <span class="text-3xl">⭐</span>
+        </div>
+        <p id="invite-commerce" class="text-slate-400 text-xs font-semibold uppercase tracking-widest mt-4"></p>
+        <h1 class="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-1 leading-tight">
+          Laissez un avis,<br/>gagnez une récompense
+        </h1>
+        <p id="invite-desc" class="text-slate-500 text-sm mt-3"></p>
+      </div>
+
+      <div class="bg-white rounded-[1.75rem] border border-slate-200 shadow-[0_20px_50px_rgba(15,23,42,0.08)] p-6 space-y-4">
+
+        <!-- Étape 1 -->
+        <div class="flex items-start gap-4">
+          <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">1</div>
+          <div>
+            <p class="font-semibold text-slate-900 text-sm">Laissez votre avis sur Google</p>
+            <p class="text-slate-400 text-xs mt-0.5">Cliquez ci-dessous pour ouvrir Google Maps</p>
+          </div>
+        </div>
+
+        <a
+          id="google-maps-btn"
+          href="#"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="flex items-center justify-center gap-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-900 shadow-sm hover:border-slate-300 hover:shadow-md transition-all"
+        >
+          <svg viewBox="0 0 24 24" class="w-5 h-5 flex-shrink-0" fill="none">
+            <path d="M21.56 10.74a9.55 9.55 0 0 0-.15-1.69H12v3.2h5.37a4.6 4.6 0 0 1-2 3.02v2.51h3.23c1.89-1.74 2.96-4.3 2.96-7.04z" fill="#4285F4"/>
+            <path d="M12 22c2.7 0 4.96-.9 6.61-2.43l-3.23-2.51c-.9.6-2.04.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H3.08v2.6A10 10 0 0 0 12 22z" fill="#34A853"/>
+            <path d="M6.41 13.9A6 6 0 0 1 6.09 12c0-.66.11-1.3.32-1.9V7.5H3.08A10 10 0 0 0 2 12c0 1.61.38 3.13 1.08 4.5l3.33-2.6z" fill="#FBBC05"/>
+            <path d="M12 5.88c1.47 0 2.79.5 3.82 1.5l2.86-2.86A9.96 9.96 0 0 0 12 2 10 10 0 0 0 3.08 7.5l3.33 2.6C7.2 7.64 9.4 5.88 12 5.88z" fill="#EA4335"/>
+          </svg>
+          Laisser un avis sur Google Maps
+        </a>
+
+        <!-- Étape 2 -->
+        <div class="flex items-start gap-4 pt-2">
+          <div class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 text-sm font-bold flex-shrink-0">2</div>
+          <div>
+            <p class="font-semibold text-slate-900 text-sm">Revenez ici et réclamez votre récompense</p>
+            <p class="text-slate-400 text-xs mt-0.5">Après avoir posté votre avis, cliquez le bouton ci-dessous</p>
+          </div>
+        </div>
+
+        <button
+          id="claim-btn"
+          type="button"
+          class="w-full rounded-2xl bg-slate-950 px-4 py-4 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(15,23,42,0.18)] transition-all hover:-translate-y-0.5 hover:bg-slate-900"
+        >
+          J'ai laissé mon avis — Réclamer ma récompense
+        </button>
+
+        <p id="claim-error" class="hidden text-red-600 text-xs text-center bg-red-50 border border-red-200 rounded-xl px-3 py-2"></p>
+
+        <p class="text-slate-400 text-xs text-center">Valable une seule fois par carte de fidélité.</p>
+      </div>
+    </div>
+
+    <!-- Succès -->
+    <div id="state-success" class="hidden max-w-sm w-full text-center">
+      <div class="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto text-4xl">🎉</div>
+      <h1 class="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-5">Merci pour votre avis !</h1>
+      <p id="success-msg" class="text-slate-500 text-base mt-3"></p>
+      <div id="success-wallet-badge" class="hidden mt-6 inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-4 py-2 text-sm font-medium text-emerald-700">
+        <span>✓</span>
+        <span>Votre carte Wallet a été mise à jour</span>
+      </div>
+    </div>
+
+  </div>
+</BaseLayout>
+
+<script define:vars={{ carteId }}>
+  const API = (window.__API_URL__ ?? '').trim() || '';
+  const params = new URLSearchParams(window.location.search);
+  const clientId = params.get('client_id');
+
+  const states = ['loading', 'error', 'already-claimed', 'invite', 'success'];
+  const show = (state) => {
+    states.forEach((s) => {
+      document.getElementById(`state-${s}`)?.classList.toggle('hidden', s !== state);
+    });
+  };
+
+  async function init() {
+    if (!clientId) {
+      show('error');
+      document.getElementById('error-msg').textContent = 'Lien invalide : paramètre client manquant.';
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API}/api/review/${carteId}/info?client_id=${clientId}`);
+      const json = await res.json();
+
+      if (!res.ok) {
+        show('error');
+        document.getElementById('error-msg').textContent = json.error ?? 'Lien invalide ou expiré.';
+        return;
+      }
+
+      const { carte, already_claimed } = json.data;
+
+      if (already_claimed) {
+        show('already-claimed');
+        return;
+      }
+
+      // Remplir l'UI
+      const unit = carte.type === 'tampons'
+        ? carte.review_reward_value === 1 ? '1 tampon offert' : `${carte.review_reward_value} tampons offerts`
+        : carte.review_reward_value === 1 ? '1 point offert' : `${carte.review_reward_value} points offerts`;
+
+      document.getElementById('invite-commerce').textContent = carte.commerce_nom;
+      document.getElementById('invite-desc').textContent =
+        `Laissez un avis 5 étoiles sur Google Maps et recevez immédiatement ${unit} sur votre carte "${carte.nom}".`;
+
+      if (carte.commerce_logo) {
+        const logoWrap = document.getElementById('invite-logo-wrap');
+        logoWrap.innerHTML = `<img src="${carte.commerce_logo}" alt="${carte.commerce_nom}" class="w-full h-full object-cover" />`;
+      }
+
+      if (carte.google_maps_url) {
+        document.getElementById('google-maps-btn').href = carte.google_maps_url;
+      }
+
+      show('invite');
+    } catch {
+      show('error');
+      document.getElementById('error-msg').textContent = 'Une erreur est survenue. Réessayez plus tard.';
+    }
+  }
+
+  document.getElementById('claim-btn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('claim-btn');
+    const errEl = document.getElementById('claim-error');
+    btn.disabled = true;
+    btn.textContent = 'Envoi en cours…';
+    errEl.classList.add('hidden');
+
+    try {
+      const res = await fetch(`${API}/api/review/${carteId}/claim`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: clientId }),
+      });
+      const json = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 409) {
+          show('already-claimed');
+          return;
+        }
+        errEl.textContent = json.error ?? 'Une erreur est survenue.';
+        errEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = "J'ai laissé mon avis — Réclamer ma récompense";
+        return;
+      }
+
+      const { reward_value, type } = json.data;
+      const unit = type === 'tampons'
+        ? reward_value === 1 ? '1 tampon a été ajouté' : `${reward_value} tampons ont été ajoutés`
+        : reward_value === 1 ? '1 point a été ajouté' : `${reward_value} points ont été ajoutés`;
+
+      document.getElementById('success-msg').textContent =
+        `${unit} à votre carte de fidélité. Votre soutien compte énormément !`;
+      document.getElementById('success-wallet-badge').classList.remove('hidden');
+      show('success');
+    } catch {
+      errEl.textContent = 'Une erreur réseau est survenue. Réessayez.';
+      errEl.classList.remove('hidden');
+      btn.disabled = false;
+      btn.textContent = "J'ai laissé mon avis — Réclamer ma récompense";
+    }
+  });
+
+  init();
+</script>

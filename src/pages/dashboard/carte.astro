@@ -609,6 +609,51 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
       </div>
 
+      <!-- Récompense avis Google -->
+      <div class="wizard-section step-9 hidden card p-6">
+        <div class="flex items-center justify-between gap-4 mb-5">
+          <div>
+            <h2 class="font-display font-bold text-slate-900">Récompense avis Google</h2>
+            <p class="mt-1 text-sm leading-6 text-slate-500">Offrez un tampon ou des points aux clients qui laissent un avis Google. Un lien unique leur est envoyé — un clic, c'est crédité.</p>
+          </div>
+          <button
+            id="review-toggle"
+            type="button"
+            class="relative w-12 h-6 rounded-full transition-colors flex-shrink-0"
+            style="background:#334155"
+            aria-pressed="false"
+          >
+            <span id="review-knob" class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" style="left:2px"></span>
+          </button>
+        </div>
+
+        <div id="review-settings" class="hidden space-y-4">
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="label" for="review-reward-value">Récompense offerte</label>
+              <div class="flex items-center gap-2 mt-1">
+                <input id="review-reward-value" type="number" min="1" max="10" value="1" class="input w-24 text-center" />
+                <span id="review-reward-unit" class="text-sm text-slate-500">tampon(s)</span>
+              </div>
+            </div>
+            <div>
+              <label class="label" for="google-maps-url">Lien Google Maps de votre commerce</label>
+              <input id="google-maps-url" type="url" class="input mt-1" placeholder="https://maps.google.com/?cid=..." />
+              <p class="text-slate-400 text-xs mt-1">Trouvez votre fiche Google Maps → Partager → Copier le lien</p>
+            </div>
+          </div>
+
+          <div id="review-link-section" class="hidden rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+            <p class="text-emerald-700 font-semibold text-sm mb-2">Lien à partager avec vos clients</p>
+            <div class="flex items-center gap-2">
+              <input id="review-link-input" type="text" readonly class="input flex-1 text-xs bg-white" />
+              <button id="copy-review-link-btn" type="button" class="btn-secondary text-sm py-2 px-3 shrink-0">Copier</button>
+            </div>
+            <p class="text-emerald-600 text-xs mt-2">Partagez ce lien par SMS, WhatsApp, push ou QR code en boutique. Chaque client ne peut réclamer qu'une seule fois.</p>
+          </div>
+        </div>
+      </div>
+
       <div id="qr-section" class="wizard-section step-9 hidden card p-4 text-center">
         <p class="text-slate-400 text-xs mb-3">QR code à afficher dans votre commerce</p>
         <div id="qr-container" class="flex justify-center"></div>
@@ -1486,6 +1531,53 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       err.textContent=e instanceof Error?e.message:'Erreur inattendue.';err.classList.remove('hidden');
     }finally{btn.disabled=false;}
   });
+
+  // ── Récompense avis Google ─────────────────────────────────────────
+  let reviewEnabled = false;
+
+  const reviewToggle = document.getElementById('review-toggle') as HTMLButtonElement;
+  const reviewKnob   = document.getElementById('review-knob') as HTMLSpanElement;
+  const reviewSettings = document.getElementById('review-settings') as HTMLDivElement;
+  const reviewLinkSection = document.getElementById('review-link-section') as HTMLDivElement;
+  const reviewLinkInput = document.getElementById('review-link-input') as HTMLInputElement;
+  const reviewRewardValue = document.getElementById('review-reward-value') as HTMLInputElement;
+  const reviewRewardUnit  = document.getElementById('review-reward-unit') as HTMLSpanElement;
+  const googleMapsUrl = document.getElementById('google-maps-url') as HTMLInputElement;
+
+  function setReviewToggle(enabled: boolean) {
+    reviewEnabled = enabled;
+    reviewToggle.style.background = enabled ? '#4f46e5' : '#334155';
+    reviewKnob.style.left = enabled ? '26px' : '2px';
+    reviewToggle.setAttribute('aria-pressed', String(enabled));
+    reviewSettings.classList.toggle('hidden', !enabled);
+  }
+
+  function updateReviewLink() {
+    if (!carteId) return;
+    reviewLinkSection.classList.remove('hidden');
+    // Le lien inclut la carte — le client_id sera ajouté automatiquement quand la carte est partagée
+    reviewLinkInput.value = `${PUBLIC_SITE_URL}/review/${carteId}?client_id={CLIENT_ID}`;
+  }
+
+  reviewToggle.addEventListener('click', () => setReviewToggle(!reviewEnabled));
+
+  // Met à jour l'unité selon le type de carte
+  function updateReviewUnit() {
+    const typeEl = document.querySelector('input[name="type"]:checked') as HTMLInputElement | null;
+    const type = typeEl?.value ?? 'tampons';
+    reviewRewardUnit.textContent = type === 'tampons' ? 'tampon(s)' : 'point(s)';
+  }
+  document.querySelectorAll('input[name="type"]').forEach((r) => r.addEventListener('change', updateReviewUnit));
+
+  document.getElementById('copy-review-link-btn')?.addEventListener('click', () => {
+    navigator.clipboard.writeText(reviewLinkInput.value).then(() => {
+      const b = document.getElementById('copy-review-link-btn')!;
+      b.textContent = 'Copié !';
+      setTimeout(() => { b.textContent = 'Copier'; }, 2000);
+    });
+  });
+
+  // updateReviewLink est appelé après chaque save (quand carteId est connu)
 
   updatePreview();
   applyTypeUI('tampons');

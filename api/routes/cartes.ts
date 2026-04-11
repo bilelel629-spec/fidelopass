@@ -61,6 +61,10 @@ const carteSchema = z.object({
   rewards_config: z.array(rewardSchema).max(6).default([]),
   vip_tiers: z.array(vipTierSchema).max(3).default([]),
   strip_layout: z.enum(['background', 'top', 'bottom']).default('background'),
+  // Récompense avis Google (migration 007)
+  review_reward_enabled: z.boolean().default(false),
+  review_reward_value: z.number().int().min(1).max(50).default(1),
+  google_maps_url: z.string().url().nullable().optional(),
 });
 
 /** GET /api/cartes — Récupère la carte du commerce connecté */
@@ -176,6 +180,9 @@ cartesRoutes.post('/', authMiddleware, async (c) => {
   if (parsed.data.rewards_config !== undefined) programFields.rewards_config = parsed.data.rewards_config;
   if (parsed.data.vip_tiers !== undefined) programFields.vip_tiers = parsed.data.vip_tiers;
   if (parsed.data.strip_layout !== undefined) programFields.strip_layout = parsed.data.strip_layout;
+  if (parsed.data.review_reward_enabled !== undefined) programFields.review_reward_enabled = parsed.data.review_reward_enabled;
+  if (parsed.data.review_reward_value !== undefined) programFields.review_reward_value = parsed.data.review_reward_value;
+  if (parsed.data.google_maps_url !== undefined) programFields.google_maps_url = parsed.data.google_maps_url;
 
   // Essai 1 : tout (base + ext + adv + typo + programme)
   let result = await db
@@ -283,6 +290,9 @@ cartesRoutes.patch('/:id', authMiddleware, async (c) => {
   if (rewards_config !== undefined) programFields.rewards_config = rewards_config;
   if (vip_tiers !== undefined) programFields.vip_tiers = vip_tiers;
   if (strip_layout !== undefined) programFields.strip_layout = strip_layout;
+  if (parsed.data.review_reward_enabled !== undefined) programFields.review_reward_enabled = parsed.data.review_reward_enabled;
+  if (parsed.data.review_reward_value !== undefined) programFields.review_reward_value = parsed.data.review_reward_value;
+  if (parsed.data.google_maps_url !== undefined) programFields.google_maps_url = parsed.data.google_maps_url;
 
   const ts = { updated_at: new Date().toISOString() };
 

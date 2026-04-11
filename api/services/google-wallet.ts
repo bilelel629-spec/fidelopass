@@ -99,7 +99,7 @@ async function getAuthClient() {
   return auth.getClient();
 }
 
-async function upsertLoyaltyClass(carte: CarteData): Promise<string> {
+export async function upsertLoyaltyClass(carte: CarteData): Promise<string> {
   const issuerId = getIssuerId();
   const classId = `${issuerId}.carte_${carte.id}`;
   const authClient = await getAuthClient();

@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
+import { pushApplePassUpdate } from '../services/apple-wallet';
+import { upsertLoyaltyClass } from '../services/google-wallet';
 
 export const cartesRoutes = new Hono();
 
@@ -341,6 +343,48 @@ cartesRoutes.patch('/:id', authMiddleware, async (c) => {
     console.error('[cartes PATCH]', result.error);
     return c.json({ error: result.error.message }, 500);
   }
+
+  // Propagation fire-and-forget : met à jour les cartes déjà dans les Wallets des clients
+  void (async () => {
+    try {
+      // 1. Apple Wallet : push silencieux → chaque iPhone re-télécharge le pass
+      const { data: clients } = await db
+        .from('clients')
+        .select('id')
+        .eq('commerce_id', commerce.id);
+
+      const clientIds = (clients ?? []).map((cl) => cl.id);
+
+      if (clientIds.length) {
+        const { data: registrations } = await db
+          .from('apple_pass_registrations')
+          .select('push_token, pass_type_identifier')
+          .in('client_id', clientIds);
+
+        if (registrations?.length) {
+          const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
+          await Promise.allSettled(
+            registrations.map((r) => pushApplePassUpdate(r.push_token, r.pass_type_identifier || passTypeId)),
+          );
+        }
+      }
+
+      // 2. Google Wallet : met à jour la classe (design, couleurs, logo, nom)
+      const { data: carteWithCommerce } = await db
+        .from('cartes')
+        .select('*, commerces(nom, logo_url, latitude, longitude, rayon_geo)')
+        .eq('id', carteId)
+        .single();
+
+      if (carteWithCommerce) {
+        await upsertLoyaltyClass(
+          carteWithCommerce as Parameters<typeof upsertLoyaltyClass>[0],
+        );
+      }
+    } catch (err) {
+      console.error('[cartes PATCH wallet-sync]', err);
+    }
+  })();
 
   return c.json({ data: result.data });
 });

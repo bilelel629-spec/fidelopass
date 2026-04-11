@@ -3,31 +3,39 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 ---
 
 <DashboardLayout title="Ma carte — Fidelopass" activeNav="carte">
-  <div class="mb-8">
-    <h1 class="font-display text-2xl font-bold text-white">Ma carte de fidélité</h1>
-    <p class="text-slate-400 text-sm mt-1">Personnalisez l'apparence et le comportement de votre carte Wallet</p>
+  <div class="mb-8 grid gap-4 xl:grid-cols-[1.15fr_0.85fr] xl:items-end">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-[0.28em] text-sky-600/70">Studio de création</p>
+      <h1 class="mt-2 font-display text-3xl font-bold text-slate-900">Créez une carte fidèle à votre commerce</h1>
+      <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">On avance étape par étape : identité, programme, messages, apparence, géolocalisation, puis publication. Vous pouvez revenir en arrière à tout moment sans perdre le fil.</p>
+    </div>
+    <div class="rounded-[1.75rem] border border-sky-100 bg-white/90 px-5 py-4 shadow-[0_24px_60px_-42px_rgba(59,130,246,0.45)]">
+      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-600/70">Objectif</p>
+      <p class="mt-2 text-sm font-semibold text-slate-900">Mettre en ligne une carte claire, belle et facile à utiliser en caisse.</p>
+      <p class="mt-1 text-sm text-slate-500">Quand tout est prêt, on vous guide automatiquement vers le scanner du personnel puis vers le partage client.</p>
+    </div>
   </div>
 
-  <div id="setup-banner" class="hidden mb-6 rounded-2xl border border-indigo-400/20 bg-indigo-500/10 px-5 py-4">
-    <p class="text-white font-medium">Dernière étape de l’onboarding</p>
-    <p class="text-slate-300 text-sm mt-1">
+  <div id="setup-banner" class="hidden mb-6 rounded-[1.6rem] border border-sky-200 bg-gradient-to-r from-sky-50 to-white px-5 py-4 shadow-[0_24px_50px_-38px_rgba(14,165,233,0.35)]">
+    <p class="font-medium text-sky-800">Dernière étape de l’onboarding</p>
+    <p class="mt-1 text-sm text-slate-600">
       Vous êtes maintenant dans l’éditeur complet. Créez votre première carte avec toutes les options de personnalisation, puis partagez son lien public à vos clients.
     </p>
   </div>
 
-  <div class="mb-6 rounded-[2rem] border border-sky-100 bg-white/90 p-4 shadow-[0_30px_80px_-55px_rgba(59,130,246,0.55)]">
+  <div class="mb-6 rounded-[2rem] border border-sky-100 bg-white/95 p-5 shadow-[0_30px_80px_-55px_rgba(59,130,246,0.55)]">
     <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
       <div>
         <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600/70">Parcours guidé</p>
         <h2 class="mt-1 text-xl font-semibold text-slate-900">Configurez votre carte étape par étape</h2>
-        <p class="mt-1 text-sm text-slate-500">Vous pouvez revenir en arrière à tout moment, relire avant publication, puis terminer par le scanner du personnel et le partage client.</p>
+        <p class="mt-1 max-w-3xl text-sm leading-6 text-slate-500">Le parcours avance dans l’ordre le plus simple : on choisit d’abord une base visuelle, puis on règle le programme, les messages, l’apparence et la proximité avant de publier.</p>
       </div>
-      <div class="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+      <div class="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-900 shadow-inner">
         <span class="font-semibold" id="wizard-current-label">Étape 1</span>
         <span class="text-slate-500"> sur 9</span>
       </div>
     </div>
-    <div class="mt-4 grid gap-2 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-9">
+    <div class="mt-5 grid gap-2 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-9">
       {[
         'Template',
         'Identité',
@@ -67,25 +75,25 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <div class="card wizard-section step-1 p-6">
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">
           <div>
-            <h2 class="font-display font-bold text-white">Modèles rapides</h2>
-            <p class="text-slate-400 text-sm mt-1">Choisissez un style de départ, puis ajustez les détails. Tout ici est compatible avec le rendu Wallet.</p>
+            <h2 class="font-display font-bold text-slate-900">Modèles rapides</h2>
+            <p class="mt-1 text-sm leading-6 text-slate-500">Choisissez une base prête à l’emploi. Le modèle remplit les couleurs, le programme et le ton général, puis vous l’affinez à votre rythme.</p>
           </div>
-          <span class="text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-400/20 rounded-full px-3 py-1 w-fit">Recommandé pour démarrer</span>
+          <span class="w-fit rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-700">Recommandé pour démarrer</span>
         </div>
         <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {[
-            {name:'Café cosy', icon:'☕', fond:'#2b1608', texte:'#fff7ed', accent:'#d97706', fond2:'#5f3214', pattern:'waves', layout:'bottom', stamp:'☕', type:'tampons', total:'10', reward:'1 boisson offerte', label:'Client', desc:'10 passages = 1 boisson offerte', message:'Votre café vous attend !'},
-            {name:'Restaurant', icon:'🍽️', fond:'#111827', texte:'#fff7ed', accent:'#f97316', fond2:'#7c2d12', pattern:'diagonal', layout:'top', stamp:'🍽️', type:'tampons', total:'8', reward:'1 dessert offert', label:'Table fidèle', desc:'Cumulez des tampons à chaque repas', message:'Une récompense vous attend au restaurant.'},
-            {name:'Institut beauté', icon:'✨', fond:'#4a102a', texte:'#fff1f2', accent:'#f472b6', fond2:'#831843', pattern:'confetti', layout:'bottom', stamp:'✨', type:'tampons', total:'6', reward:'-20% sur un soin', label:'Cliente', desc:'Votre carte privilège beauté', message:'Votre avantage beauté est disponible.'},
-            {name:'Barber shop', icon:'✂️', fond:'#0f172a', texte:'#f8fafc', accent:'#38bdf8', fond2:'#1e3a8a', pattern:'grid', layout:'top', stamp:'✂️', type:'tampons', total:'8', reward:'1 coupe offerte', label:'Client', desc:'Une coupe offerte après 8 passages', message:'Votre barber vous attend.'},
-            {name:'Boutique premium', icon:'🛍️', fond:'#030712', texte:'#fefce8', accent:'#d4af37', fond2:'#422006', pattern:'dots', layout:'background', stamp:'🛍️', type:'points', total:'10', reward:'10€ de réduction', label:'Membre', desc:'Cumulez des points à chaque achat', message:'Votre avantage fidélité est disponible en boutique.'},
-            {name:'Sport & coaching', icon:'🏆', fond:'#022c22', texte:'#ecfdf5', accent:'#22c55e', fond2:'#064e3b', pattern:'diagonal', layout:'background', stamp:'🏆', type:'points', total:'10', reward:'1 séance offerte', label:'Athlète', desc:'Transformez vos visites en récompenses', message:'Votre coach vous attend.'},
+            {name:'Café cosy', badge:'CF', fond:'#2b1608', texte:'#fff7ed', accent:'#d97706', fond2:'#5f3214', pattern:'waves', layout:'bottom', stamp:'☕', type:'tampons', total:'10', reward:'1 boisson offerte', label:'Client', desc:'10 passages = 1 boisson offerte', message:'Votre café vous attend !'},
+            {name:'Restaurant', badge:'RS', fond:'#111827', texte:'#fff7ed', accent:'#f97316', fond2:'#7c2d12', pattern:'diagonal', layout:'top', stamp:'🍽️', type:'tampons', total:'8', reward:'1 dessert offert', label:'Table fidèle', desc:'Cumulez des tampons à chaque repas', message:'Une récompense vous attend au restaurant.'},
+            {name:'Institut beauté', badge:'BE', fond:'#4a102a', texte:'#fff1f2', accent:'#f472b6', fond2:'#831843', pattern:'confetti', layout:'bottom', stamp:'✨', type:'tampons', total:'6', reward:'-20% sur un soin', label:'Cliente', desc:'Votre carte privilège beauté', message:'Votre avantage beauté est disponible.'},
+            {name:'Barber shop', badge:'BR', fond:'#0f172a', texte:'#f8fafc', accent:'#38bdf8', fond2:'#1e3a8a', pattern:'grid', layout:'top', stamp:'✂️', type:'tampons', total:'8', reward:'1 coupe offerte', label:'Client', desc:'Une coupe offerte après 8 passages', message:'Votre barber vous attend.'},
+            {name:'Boutique premium', badge:'BT', fond:'#030712', texte:'#fefce8', accent:'#d4af37', fond2:'#422006', pattern:'dots', layout:'background', stamp:'🛍️', type:'points', total:'10', reward:'10€ de réduction', label:'Membre', desc:'Cumulez des points à chaque achat', message:'Votre avantage fidélité est disponible en boutique.'},
+            {name:'Sport & coaching', badge:'SP', fond:'#022c22', texte:'#ecfdf5', accent:'#22c55e', fond2:'#064e3b', pattern:'diagonal', layout:'background', stamp:'🏆', type:'points', total:'10', reward:'1 séance offerte', label:'Athlète', desc:'Transformez vos visites en récompenses', message:'Votre coach vous attend.'},
           ].map((preset) => (
             <button
               type="button"
-              class="business-template-btn text-left rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:border-indigo-400/60 hover:bg-indigo-500/10 transition-all"
+              class="business-template-btn text-left rounded-[1.4rem] border border-sky-100 bg-gradient-to-br from-white to-sky-50/60 p-4 transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_24px_55px_-36px_rgba(59,130,246,0.45)]"
               data-name={preset.name}
-              data-icon={preset.icon}
+              data-icon={preset.badge}
               data-fond={preset.fond}
               data-texte={preset.texte}
               data-accent={preset.accent}
@@ -101,13 +109,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               data-message={preset.message}
             >
               <div class="flex items-center gap-3">
-                <span class="text-2xl">{preset.icon}</span>
+                <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-sm font-bold tracking-[0.12em] text-sky-700">{preset.badge}</span>
                 <div>
-                  <p class="text-white text-sm font-semibold">{preset.name}</p>
-                  <p class="text-slate-400 text-xs mt-0.5">{preset.reward}</p>
+                  <p class="text-sm font-semibold text-slate-900">{preset.name}</p>
+                  <p class="mt-0.5 text-xs text-slate-500">{preset.reward}</p>
                 </div>
               </div>
-              <div class="mt-3 h-10 rounded-xl border border-white/10" style={`background:linear-gradient(135deg,${preset.fond},${preset.fond2})`}>
+              <div class="mt-3 h-10 rounded-xl border border-sky-100" style={`background:linear-gradient(135deg,${preset.fond},${preset.fond2})`}>
                 <div class="h-full w-1/3 rounded-l-xl" style={`background:${preset.accent}`}></div>
               </div>
             </button>
@@ -117,7 +125,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       <!-- Identité visuelle -->
       <div class="card wizard-section step-2 p-6">
-        <h2 class="font-display font-bold text-white mb-5">Identité visuelle</h2>
+        <div class="mb-5">
+          <h2 class="font-display font-bold text-slate-900">Identité visuelle</h2>
+          <p class="mt-1 text-sm leading-6 text-slate-500">Ajoutez les éléments qui feront reconnaître votre commerce au premier coup d’œil : nom, logo, icône de tampon et bannière.</p>
+        </div>
         <div class="grid sm:grid-cols-3 gap-5">
 
           <div>
@@ -143,14 +154,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <div>
             <label class="label mb-2 block">Icône de tampon</label>
             <div class="flex gap-1.5 mb-3">
-              <label id="tampon-mode-default-label" class="flex-1 cursor-pointer rounded-xl border-2 p-2 text-center transition-all" style="border-color:#6366f1;background:rgb(99 102 241/0.1)">
-                <input type="radio" name="tampon_mode" value="default" class="hidden" checked /><div class="text-base mb-0.5">✓</div><div class="text-white text-xs font-medium">Défaut</div>
+              <label id="tampon-mode-default-label" class="flex-1 cursor-pointer rounded-xl border-2 p-2 text-center transition-all" style="border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a">
+                <input type="radio" name="tampon_mode" value="default" class="hidden" checked /><div class="text-base mb-0.5">✓</div><div class="text-xs font-medium text-slate-900">Défaut</div>
               </label>
-              <label id="tampon-mode-emoji-label" class="flex-1 cursor-pointer rounded-xl border-2 p-2 text-center transition-all" style="border-color:#334155;background:transparent">
-                <input type="radio" name="tampon_mode" value="emoji" class="hidden" /><div class="text-base mb-0.5">😀</div><div class="text-white text-xs font-medium">Emoji</div>
+              <label id="tampon-mode-emoji-label" class="flex-1 cursor-pointer rounded-xl border-2 p-2 text-center transition-all" style="border-color:#dbeafe;background:#ffffff">
+                <input type="radio" name="tampon_mode" value="emoji" class="hidden" /><div class="text-base mb-0.5">😀</div><div class="text-xs font-medium text-slate-900">Emoji</div>
               </label>
-              <label id="tampon-mode-custom-label" class="flex-1 cursor-pointer rounded-xl border-2 p-2 text-center transition-all" style="border-color:#334155;background:transparent">
-                <input type="radio" name="tampon_mode" value="custom" class="hidden" /><div class="text-base mb-0.5">🖼️</div><div class="text-white text-xs font-medium">Image</div>
+              <label id="tampon-mode-custom-label" class="flex-1 cursor-pointer rounded-xl border-2 p-2 text-center transition-all" style="border-color:#dbeafe;background:#ffffff">
+                <input type="radio" name="tampon_mode" value="custom" class="hidden" /><div class="text-base mb-0.5">🖼️</div><div class="text-xs font-medium text-slate-900">Image</div>
               </label>
             </div>
             <div id="tampon-emoji-zone" class="hidden">
@@ -196,9 +207,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               <div>
                 <label class="text-slate-500 text-xs mb-1.5 block">Style de la bannière</label>
                 <div class="grid grid-cols-2 gap-1.5">
-                  <label id="strip-style-rounded-label" class="cursor-pointer rounded-lg border-2 py-1.5 text-center text-xs transition-all" style="border-color:#334155;background:transparent;color:#64748b">
+                  <label id="strip-style-rounded-label" class="cursor-pointer rounded-lg border-2 py-1.5 text-center text-xs transition-all" style="border-color:#dbeafe;background:#ffffff;color:#64748b">
                     <input type="radio" name="strip_style" value="rounded" class="hidden" />⬜ Arrondi</label>
-                  <label id="strip-style-full-label" class="cursor-pointer rounded-lg border-2 py-1.5 text-center text-xs transition-all" style="border-color:#6366f1;background:rgb(99 102 241/0.1);color:white">
+                  <label id="strip-style-full-label" class="cursor-pointer rounded-lg border-2 py-1.5 text-center text-xs transition-all" style="border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a">
                     <input type="radio" name="strip_style" value="full" class="hidden" checked />▬ Pleine largeur</label>
                 </div>
               </div>
@@ -211,7 +222,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                     { value: 'bottom', label: 'Bas' },
                   ].map(({ value, label }) => (
                     <label id={`strip-layout-${value}-label`} class="cursor-pointer rounded-lg border-2 py-1.5 text-center transition-all text-xs"
-                      style={value==='background'?'border-color:#6366f1;background:rgb(99 102 241/0.1);color:white':'border-color:#334155;background:transparent;color:#64748b'}>
+                      style={value==='background'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff;color:#64748b'}>
                       <input type="radio" name="strip_layout" value={value} class="hidden" checked={value==='background'} />
                       {label}
                     </label>
@@ -224,7 +235,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                 <div class="grid grid-cols-3 gap-1.5">
                   {['top','center','bottom'].map(pos => (
                     <label id={`strip-pos-${pos}-label`} class="cursor-pointer rounded-lg border-2 py-1.5 text-center transition-all text-xs"
-                      style={pos==='center'?'border-color:#6366f1;background:rgb(99 102 241/0.1);color:white':'border-color:#334155;background:transparent;color:#64748b'}>
+                      style={pos==='center'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff;color:#64748b'}>
                       <input type="radio" name="strip_position" value={pos} class="hidden" checked={pos==='center'} />
                       {pos==='top'?'Haut':pos==='center'?'Centre':'Bas'}
                     </label>
@@ -238,7 +249,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       <!-- Programme fidélité -->
       <div class="card wizard-section step-3 p-6">
-        <h2 class="font-display font-bold text-white mb-5">Programme fidélité</h2>
+        <div class="mb-5">
+          <h2 class="font-display font-bold text-slate-900">Programme fidélité</h2>
+          <p class="mt-1 text-sm leading-6 text-slate-500">Choisissez la mécanique la plus naturelle pour vos clients : tampons simples ou points plus flexibles, avec jusqu’à trois récompenses.</p>
+        </div>
         <div class="flex flex-col gap-4">
           <div>
             <label class="label mb-3 block">Formules prêtes à l'emploi</label>
@@ -253,7 +267,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               ].map((preset) => (
                 <button
                   type="button"
-                  class="program-preset-btn rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-left text-xs text-slate-300 hover:border-indigo-400/60 hover:text-white transition-all"
+                  class="program-preset-btn rounded-xl border border-sky-100 bg-sky-50/60 px-3 py-2 text-left text-xs text-slate-600 transition-all hover:border-sky-200 hover:bg-white"
                   data-type={preset.type}
                   data-total={preset.total}
                   data-reward={preset.reward}
@@ -273,11 +287,25 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <div>
             <label class="label">Type de programme</label>
             <div class="grid grid-cols-2 gap-3">
-              <label id="type-tampons-label" class="cursor-pointer rounded-xl border-2 p-4 transition-all" style="border-color:#6366f1;background:rgb(99 102 241/0.1)">
-                <input type="radio" name="type" value="tampons" class="hidden" checked /><div class="text-2xl mb-1">🔖</div><div class="font-medium text-white text-sm">Tampons</div><div class="text-slate-400 text-xs mt-0.5">Ex: 10 = 1 café offert</div>
+              <label id="type-tampons-label" class="cursor-pointer rounded-2xl border-2 p-4 transition-all" style="border-color:#60a5fa;background:rgb(239 246 255)">
+                <input type="radio" name="type" value="tampons" class="hidden" checked />
+                <div class="flex items-center gap-3">
+                  <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">TM</span>
+                  <div>
+                    <div class="font-medium text-slate-900 text-sm">Tampons</div>
+                    <div class="text-slate-500 text-xs mt-0.5">Simple à comprendre, rapide à utiliser en caisse.</div>
+                  </div>
+                </div>
               </label>
-              <label id="type-points-label" class="cursor-pointer rounded-xl border-2 p-4 transition-all" style="border-color:#334155;background:transparent">
-                <input type="radio" name="type" value="points" class="hidden" /><div class="text-2xl mb-1">⭐</div><div class="font-medium text-white text-sm">Points</div><div class="text-slate-400 text-xs mt-0.5">Ex: 1€ = 1 pt, 100pts = 5€</div>
+              <label id="type-points-label" class="cursor-pointer rounded-2xl border-2 p-4 transition-all" style="border-color:#dbeafe;background:#ffffff">
+                <input type="radio" name="type" value="points" class="hidden" />
+                <div class="flex items-center gap-3">
+                  <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">PT</span>
+                  <div>
+                    <div class="font-medium text-slate-900 text-sm">Points</div>
+                    <div class="text-slate-500 text-xs mt-0.5">Plus souple pour les paliers VIP et les récompenses progressives.</div>
+                  </div>
+                </div>
               </label>
             </div>
           </div>
@@ -290,18 +318,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           </div>
           <div><label class="label" for="recompense">Récompense offerte *</label><input id="recompense" type="text" class="input" placeholder="Ex: 1 café offert, 5€ de réduction..." required /></div>
           <div class="grid lg:grid-cols-2 gap-4">
-            <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div class="rounded-2xl border border-sky-100 bg-sky-50/60 p-4">
               <div class="flex items-center justify-between gap-3 mb-3">
                 <div>
-                  <p class="text-white text-sm font-semibold">Récompenses multiples</p>
+                  <p class="text-sm font-semibold text-slate-900">Récompenses multiples</p>
                   <p class="text-slate-500 text-xs mt-0.5">Ex : café offert au 5e tampon, -10% au 10e.</p>
                 </div>
                 <button id="add-reward-tier" type="button" class="btn-secondary text-xs py-1.5 px-3">Ajouter</button>
               </div>
               <div id="reward-tiers" class="flex flex-col gap-2"></div>
             </div>
-            <div id="vip-tiers-card" class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-              <p class="text-white text-sm font-semibold">Paliers VIP points</p>
+            <div id="vip-tiers-card" class="rounded-2xl border border-sky-100 bg-white p-4">
+              <p class="text-sm font-semibold text-slate-900">Paliers VIP points</p>
               <p class="text-slate-500 text-xs mt-0.5 mb-3">Visible surtout pour les programmes à points.</p>
               <div id="vip-tiers" class="flex flex-col gap-2"></div>
             </div>
@@ -311,7 +339,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       <!-- Messages client -->
       <div class="card wizard-section step-4 p-6">
-        <h2 class="font-display font-bold text-white mb-5">Messages client</h2>
+        <div class="mb-5">
+          <h2 class="font-display font-bold text-slate-900">Messages client</h2>
+          <p class="mt-1 text-sm leading-6 text-slate-500">Préparez les textes visibles par vos clients au moment de la création et après l’ajout dans Wallet.</p>
+        </div>
         <div class="grid sm:grid-cols-2 gap-4">
           <div>
             <label class="label" for="welcome-message">Texte d’accueil public</label>
@@ -326,7 +357,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       <!-- Apparence -->
       <div class="card wizard-section step-5 p-6">
-        <h2 class="font-display font-bold text-white mb-5">Apparence</h2>
+        <div class="mb-5">
+          <h2 class="font-display font-bold text-slate-900">Apparence</h2>
+          <p class="mt-1 text-sm leading-6 text-slate-500">Choisissez un thème, une palette et un fond qui correspondent à votre univers. L’aperçu à droite se met à jour en direct.</p>
+        </div>
         <label class="label mb-3 block">Thèmes prédéfinis</label>
         <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-5">
           {[
@@ -337,7 +371,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             {name:'Café',fond:'#1c0e04',texte:'#fef3c7',accent:'#d97706',fond2:'#292200'},
             {name:'Noir',fond:'#000000',texte:'#ffffff',accent:'#8b5cf6',fond2:'#18003a'},
           ].map(({name,fond,texte,accent,fond2})=>(
-            <button type="button" class="preset-btn flex flex-col items-center gap-1.5 p-2 rounded-xl border border-white/10 hover:border-white/30 transition-all" data-fond={fond} data-texte={texte} data-accent={accent} data-fond2={fond2}>
+            <button type="button" class="preset-btn flex flex-col items-center gap-1.5 rounded-xl border border-sky-100 bg-white p-2 transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_40px_-28px_rgba(59,130,246,0.35)]" data-fond={fond} data-texte={texte} data-accent={accent} data-fond2={fond2}>
               <div class="w-full h-8 rounded-lg flex gap-1 p-1" style={fond2?`background:linear-gradient(135deg,${fond},${fond2})`:`background:${fond}`}>
                 <div class="w-3 h-full rounded-sm" style={`background:${accent}`}></div>
                 <div class="flex-1 h-full rounded-sm opacity-60" style={`background:${texte}`}></div>
@@ -373,7 +407,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <label class="label mb-3 block">Pattern de fond <span class="text-slate-500 font-normal text-xs">(toute la carte)</span></label>
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {[{value:'none',label:'Aucun'},{value:'dots',label:'Points'},{value:'grid',label:'Grille'},{value:'waves',label:'Vagues'},{value:'diagonal',label:'Diagonales'},{value:'confetti',label:'Confetti'}].map(({value,label})=>(
-            <label id={`pat-${value}-label`} class="cursor-pointer rounded-xl border-2 p-2.5 text-center transition-all" style={value==='none'?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent'}>
+            <label id={`pat-${value}-label`} class="cursor-pointer rounded-xl border-2 p-2.5 text-center transition-all" style={value==='none'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff'}>
               <input type="radio" name="pattern_type" value={value} class="hidden" checked={value==='none'} />
               <div class="w-full h-8 rounded-lg mb-1.5 overflow-hidden relative" style="background:#1e293b">
                 {value==='dots'&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pd" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="4" cy="4" r="1.5" fill="rgba(99,102,241,0.5)"/></pattern></defs><rect width="100%" height="100%" fill="url(#pd)"/></svg>}
@@ -382,7 +416,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                 {value==='diagonal'&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pdiag" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="2" height="8" fill="rgba(99,102,241,0.42)"/></pattern></defs><rect width="100%" height="100%" fill="url(#pdiag)"/></svg>}
                 {value==='confetti'&&<svg class="absolute inset-0 w-full h-full"><circle cx="18%" cy="30%" r="3" fill="rgba(99,102,241,0.55)"/><rect x="58%" y="18%" width="14" height="4" rx="2" transform="rotate(20)" fill="rgba(99,102,241,0.45)"/><circle cx="72%" cy="72%" r="2.5" fill="rgba(99,102,241,0.6)"/><rect x="22%" y="70%" width="12" height="4" rx="2" transform="rotate(-25)" fill="rgba(99,102,241,0.4)"/></svg>}
               </div>
-              <div class="text-white text-xs font-medium">{label}</div>
+              <div class="text-xs font-medium text-slate-900">{label}</div>
             </label>
           ))}
         </div>
@@ -390,12 +424,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       <!-- Code-barres -->
       <div class="card wizard-section step-5 p-6">
-        <h2 class="font-display font-bold text-white mb-5">Code-barres</h2>
+        <div class="mb-5">
+          <h2 class="font-display font-bold text-slate-900">Code-barres</h2>
+          <p class="mt-1 text-sm leading-6 text-slate-500">Le QR Code reste le meilleur choix dans la plupart des commerces. Vous pouvez aussi choisir un format plus compact ou retirer le code.</p>
+        </div>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[{value:'QR',label:'QR Code',icon:'⬛',desc:'Recommandé'},{value:'PDF417',label:'Code-barres',icon:'▬',desc:'Linéaire'},{value:'AZTEC',label:'Aztec',icon:'◈',desc:'Compact'},{value:'NONE',label:'Aucun',icon:'∅',desc:'Sans code'}].map(({value,label,icon,desc})=>(
-            <label id={`barcode-${value.toLowerCase()}-label`} class="cursor-pointer rounded-xl border-2 p-3 text-center transition-all" style={value==='QR'?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent'}>
+          {[{value:'QR',label:'QR Code',tag:'QR',desc:'Recommandé'},{value:'PDF417',label:'Code-barres',tag:'B1',desc:'Linéaire'},{value:'AZTEC',label:'Aztec',tag:'AZ',desc:'Compact'},{value:'NONE',label:'Aucun',tag:'--',desc:'Sans code'}].map(({value,label,tag,desc})=>(
+            <label id={`barcode-${value.toLowerCase()}-label`} class="cursor-pointer rounded-2xl border-2 p-3 text-center transition-all" style={value==='QR'?'border-color:#60a5fa;background:rgb(239 246 255)':'border-color:#dbeafe;background:#ffffff'}>
               <input type="radio" name="barcode_type" value={value} class="hidden" checked={value==='QR'} />
-              <div class="text-2xl mb-1">{icon}</div><div class="font-medium text-white text-xs">{label}</div><div class="text-slate-500 text-xs">{desc}</div>
+              <div class="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-100 text-xs font-bold tracking-[0.18em] text-sky-700">{tag}</div>
+              <div class="font-medium text-slate-900 text-xs">{label}</div><div class="text-slate-500 text-xs">{desc}</div>
             </label>
           ))}
         </div>
@@ -403,7 +441,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       <!-- Géolocalisation -->
       <div class="card wizard-section step-6 p-6">
-        <h2 class="font-display font-bold text-white mb-4">Géolocalisation</h2>
+        <div class="mb-4">
+          <h2 class="font-display font-bold text-slate-900">Géolocalisation</h2>
+          <p class="mt-1 text-sm leading-6 text-slate-500">Renseignez ici l’adresse du commerce et la zone de proximité pour faire remonter la carte au bon moment autour du magasin.</p>
+        </div>
         <div class="mb-4">
           <label class="label" for="adresse-commerce">Adresse du commerce</label>
           <input id="adresse-commerce" type="text" class="input" placeholder="12 rue de la Paix, 75001 Paris" />
@@ -423,7 +464,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
 
       <div class="card wizard-section step-7 p-6">
-        <h2 class="font-display font-bold text-white mb-4">Relecture & publication</h2>
+        <div class="mb-4">
+          <h2 class="font-display font-bold text-slate-900">Relecture & publication</h2>
+          <p class="mt-1 text-sm leading-6 text-slate-500">Avant de publier, on relit l’essentiel ensemble pour éviter les oublis sur le nom, la récompense, les messages et la proximité.</p>
+        </div>
         <div class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
           <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
             <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-600/70">Résumé</p>
@@ -442,15 +486,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
 
       <div class="card wizard-section step-8 p-6">
-        <h2 class="font-display font-bold text-white mb-4">Configurer le scanner du personnel</h2>
+        <div class="mb-4">
+          <h2 class="font-display font-bold text-slate-900">Configurer le scanner du personnel</h2>
+          <p class="mt-1 text-sm leading-6 text-slate-500">L’équipe pourra scanner les cartes depuis un simple téléphone. On vous prépare ici le lien d’installation et le QR à partager en interne.</p>
+        </div>
         <div class="grid gap-5 lg:grid-cols-[220px_1fr] lg:items-center">
-          <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center">
+          <div class="rounded-2xl border border-sky-100 bg-sky-50/60 p-4 text-center">
             <div id="scanner-qr-container" class="flex justify-center"></div>
             <p class="mt-3 text-xs text-slate-500">QR d’installation pour l’équipe</p>
           </div>
-          <div class="space-y-3 text-sm text-slate-300">
-            <p class="text-white font-medium">Le personnel scanne ce QR pour ouvrir l’espace scanner sur son téléphone.</p>
-            <ol class="space-y-2 text-slate-400">
+          <div class="space-y-3 text-sm text-slate-600">
+            <p class="font-medium text-slate-900">Le personnel scanne ce QR pour ouvrir l’espace scanner sur son téléphone.</p>
+            <ol class="space-y-2 text-slate-500">
               <li>1. Ouvrez le lien d’installation sur le téléphone du personnel.</li>
               <li>2. Ajoutez l’accès scanner à l’écran d’accueil si besoin.</li>
               <li>3. Autorisez la caméra puis utilisez l’onglet Scan en caisse.</li>
@@ -465,7 +512,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       <div id="error-msg" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"></div>
       <div id="success-msg" class="hidden text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3"></div>
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="rounded-[1.6rem] border border-sky-100 bg-white/90 px-4 py-4 shadow-[0_18px_48px_-36px_rgba(59,130,246,0.35)] flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <button type="button" id="prev-step-btn" class="btn-secondary py-3 px-5">Étape précédente</button>
         <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
           <button type="button" id="submit-btn" class="btn-primary py-3 px-5">Enregistrer la carte</button>
@@ -476,9 +523,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     <!-- Aperçu -->
     <div class="sticky top-8 space-y-5">
-      <div>
-        <p class="label mb-3">Aperçu temps réel</p>
-        <div class="flex rounded-xl p-1 gap-1 mb-3" style="background:rgba(255,255,255,0.05)">
+      <div class="card p-4">
+        <div class="flex items-start justify-between gap-3 mb-3">
+          <div>
+            <p class="label mb-1">Aperçu temps réel</p>
+            <p class="text-xs leading-5 text-slate-500">Le rendu Wallet évolue en direct selon vos choix. Vérifiez le contraste, le nom de carte et la récompense avant publication.</p>
+          </div>
+        </div>
+        <div class="flex rounded-2xl p-1 gap-1 mb-4 bg-sky-50">
           <button id="switch-apple" type="button" class="flex-1 py-1.5 text-xs rounded-lg font-medium transition-all flex items-center justify-center gap-1.5" style="background:#1e293b;color:white">
             <svg viewBox="0 0 24 24" class="w-3.5 h-3.5 fill-current"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
             Apple Wallet
@@ -490,7 +542,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
 
         <!-- Apple preview -->
-        <div id="apple-preview" class="rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 relative" style="background:#0f172a;color:#ffffff;min-height:280px">
+        <div id="apple-preview" class="rounded-[1.6rem] overflow-hidden shadow-[0_28px_60px_-38px_rgba(15,23,42,0.45)] transition-all duration-300 relative" style="background:#0f172a;color:#ffffff;min-height:280px">
           <div id="a-pattern-global" class="absolute inset-0 pointer-events-none z-0"></div>
           <div class="relative z-10 flex items-center justify-between px-4 pt-4 pb-2">
             <div class="flex items-center gap-2">
@@ -529,7 +581,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
 
         <!-- Google preview -->
-        <div id="google-preview" class="hidden rounded-2xl overflow-hidden shadow-2xl">
+        <div id="google-preview" class="hidden rounded-[1.6rem] overflow-hidden shadow-[0_28px_60px_-38px_rgba(15,23,42,0.35)]">
           <div class="relative h-32 overflow-hidden">
             <img id="g-strip-img" src="" alt="" class="hidden w-full h-full object-cover" />
             <div id="g-strip-bg" class="absolute inset-0" style="background:#0f172a"></div>
@@ -732,8 +784,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   // Strip style
   function applyStripStyle(isFull: boolean) {
     const sz=document.getElementById('a-strip-zone')!;
-    document.getElementById('strip-style-rounded-label')!.style.cssText=!isFull?'border-color:#6366f1;background:rgb(99 102 241/0.1);color:white':'border-color:#334155;background:transparent;color:#64748b';
-    document.getElementById('strip-style-full-label')!.style.cssText=isFull?'border-color:#6366f1;background:rgb(99 102 241/0.1);color:white':'border-color:#334155;background:transparent;color:#64748b';
+    document.getElementById('strip-style-rounded-label')!.style.cssText=!isFull?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a;color:white':'border-color:#dbeafe;background:#ffffff;color:#64748b';
+    document.getElementById('strip-style-full-label')!.style.cssText=isFull?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a;color:white':'border-color:#dbeafe;background:#ffffff;color:#64748b';
     if(isFull){sz.classList.remove('mx-3','mb-3','rounded-xl');sz.style.cssText='position:relative;overflow:hidden;min-height:120px;z-index:10;';}
     else{sz.style.cssText='';sz.classList.add('mx-3','mb-3','rounded-xl');sz.style.minHeight='120px';}
   }
@@ -742,7 +794,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const layout=(document.querySelector('input[name="strip_layout"]:checked') as HTMLInputElement).value;
     ['background','top','bottom'].forEach(v=>{
       const label=document.getElementById(`strip-layout-${v}-label`);
-      if(label) label.style.cssText=v===layout?'border-color:#6366f1;background:rgb(99 102 241/0.1);color:white':'border-color:#334155;background:transparent;color:#64748b';
+      if(label) label.style.cssText=v===layout?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a;color:white':'border-color:#dbeafe;background:#ffffff;color:#64748b';
     });
     updatePreview();
   }));
@@ -841,7 +893,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const mode=(document.querySelector('input[name="tampon_mode"]:checked') as HTMLInputElement).value;
     document.getElementById('tampon-emoji-zone')!.classList.toggle('hidden',mode!=='emoji');
     document.getElementById('tampon-custom-zone')!.classList.toggle('hidden',mode!=='custom');
-    ['default','emoji','custom'].forEach(v=>document.getElementById(`tampon-mode-${v}-label`)!.style.cssText=v===mode?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent');
+    ['default','emoji','custom'].forEach(v=>document.getElementById(`tampon-mode-${v}-label`)!.style.cssText=v===mode?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff');
     if(mode!=='emoji')tamponEmoji='';
     if(mode!=='custom'){tamponIconUrl='';(document.getElementById('tampon-icon-url') as HTMLInputElement).value='';}
     updatePreview();
@@ -873,7 +925,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const pos=(document.querySelector('input[name="strip_position"]:checked') as HTMLInputElement).value;
     const obj=pos==='top'?'top':pos==='bottom'?'bottom':'center';
     ['preview-strip','strip-preview-img','g-strip-img'].forEach(id=>(document.getElementById(id) as HTMLImageElement).style.objectPosition=obj);
-    ['top','center','bottom'].forEach(v=>document.getElementById(`strip-pos-${v}-label`)!.style.cssText=v===pos?'border-color:#6366f1;background:rgb(99 102 241/0.1);color:white':'border-color:#334155;background:transparent;color:#64748b');
+    ['top','center','bottom'].forEach(v=>document.getElementById(`strip-pos-${v}-label`)!.style.cssText=v===pos?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a;color:white':'border-color:#dbeafe;background:#ffffff;color:#64748b');
   }));
 
   function parseJsonArray<T>(value: unknown): T[] {
@@ -1066,8 +1118,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   document.querySelectorAll('input[name="type"]').forEach(r=>r.addEventListener('change',()=>{
     const t=(document.querySelector('input[name="type"]:checked') as HTMLInputElement).value;
     applyTypeUI(t);
-    document.getElementById('type-tampons-label')!.style.cssText=t==='tampons'?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent';
-    document.getElementById('type-points-label')!.style.cssText=t==='points'?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent';
+    document.getElementById('type-tampons-label')!.style.cssText=t==='tampons'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff';
+    document.getElementById('type-points-label')!.style.cssText=t==='points'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff';
     updatePreview();
   }));
   function applyTypeUI(type: string){
@@ -1079,7 +1131,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   // Barcode
   document.querySelectorAll('input[name="barcode_type"]').forEach(r=>r.addEventListener('change',()=>{
     const v=(document.querySelector('input[name="barcode_type"]:checked') as HTMLInputElement).value;
-    ['QR','PDF417','AZTEC','NONE'].forEach(k=>document.getElementById(`barcode-${k.toLowerCase()}-label`)!.style.cssText=k===v?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent');
+    ['QR','PDF417','AZTEC','NONE'].forEach(k=>document.getElementById(`barcode-${k.toLowerCase()}-label`)!.style.cssText=k===v?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff');
     document.getElementById('prev-qr')!.classList.toggle('hidden',v!=='QR'&&v!=='AZTEC');
     document.getElementById('prev-barcode')!.classList.toggle('hidden',v!=='PDF417'&&v!=='CODE128');
     document.getElementById('preview-barcode-wrap')!.classList.toggle('hidden',v==='NONE');
@@ -1089,7 +1141,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   // Pattern
   document.querySelectorAll('input[name="pattern_type"]').forEach(r=>r.addEventListener('change',()=>{
     const v=(document.querySelector('input[name="pattern_type"]:checked') as HTMLInputElement).value;
-    ['none','dots','grid','waves','diagonal','confetti'].forEach(k=>document.getElementById(`pat-${k}-label`)!.style.cssText=k===v?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent');
+    ['none','dots','grid','waves','diagonal','confetti'].forEach(k=>document.getElementById(`pat-${k}-label`)!.style.cssText=k===v?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff');
     updatePreview();
   }));
 
@@ -1271,17 +1323,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if(data.gradient_angle!=null){set('gradient-angle',String(data.gradient_angle));document.getElementById('gradient-angle-val')!.textContent=`${data.gradient_angle}°`;}
 
       function sr(name:string,val:string){const el=document.querySelector(`input[name="${name}"][value="${val}"]`) as HTMLInputElement;if(el)el.checked=true;}
-      function sl(prefix:string,opts:string[],sel:string){opts.forEach(v=>document.getElementById(`${prefix}${v}-label`)!.style.cssText=v===sel?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent');}
+      function sl(prefix:string,opts:string[],sel:string){opts.forEach(v=>document.getElementById(`${prefix}${v}-label`)!.style.cssText=v===sel?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff');}
 
       const pt=data.pattern_type??'none'; sr('pattern_type',pt); sl('pat-',['none','dots','grid','waves','diagonal','confetti'],pt);
       const isFull=data.strip_plein_largeur !== false; applyStripStyle(isFull); sr('strip_style',isFull?'full':'rounded');
       const layout=data.strip_layout??'background'; sr('strip_layout',layout);
-      ['background','top','bottom'].forEach(v=>document.getElementById(`strip-layout-${v}-label`)!.style.cssText=v===layout?'border-color:#6366f1;background:rgb(99 102 241/0.1);color:white':'border-color:#334155;background:transparent;color:#64748b');
+      ['background','top','bottom'].forEach(v=>document.getElementById(`strip-layout-${v}-label`)!.style.cssText=v===layout?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a;color:white':'border-color:#dbeafe;background:#ffffff;color:#64748b');
       const tp=data.type??'tampons'; sr('type',tp); applyTypeUI(tp);
-      document.getElementById('type-tampons-label')!.style.cssText=tp==='tampons'?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent';
-      document.getElementById('type-points-label')!.style.cssText=tp==='points'?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent';
+      document.getElementById('type-tampons-label')!.style.cssText=tp==='tampons'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff';
+      document.getElementById('type-points-label')!.style.cssText=tp==='points'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff';
       const bt=data.barcode_type??'QR'; sr('barcode_type',bt);
-      ['QR','PDF417','AZTEC','NONE'].forEach(v=>document.getElementById(`barcode-${v.toLowerCase()}-label`)!.style.cssText=v===bt?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent');
+      ['QR','PDF417','AZTEC','NONE'].forEach(v=>document.getElementById(`barcode-${v.toLowerCase()}-label`)!.style.cssText=v===bt?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff');
       if(data.logo_url){logoUrl=data.logo_url;setLogoPreview(logoUrl);}
       set('welcome-message', data.welcome_message ?? `Bienvenue chez ${data.nom ?? 'nous'}, créez votre carte fidélité en 10 secondes.`);
       set('success-message', data.success_message ?? 'Votre carte est prête, montrez-la à chaque passage.');
@@ -1289,7 +1341,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       renderVipTiers(parseJsonArray<VipTier>(data.vip_tiers));
       if(data.strip_url){
         stripUrl=data.strip_url; const sp=data.strip_position??'center'; sr('strip_position',sp);
-        ['top','center','bottom'].forEach(v=>document.getElementById(`strip-pos-${v}-label`)!.style.cssText=v===sp?'border-color:#6366f1;background:rgb(99 102 241/0.1);color:white':'border-color:#334155;background:transparent;color:#64748b');
+        ['top','center','bottom'].forEach(v=>document.getElementById(`strip-pos-${v}-label`)!.style.cssText=v===sp?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a;color:white':'border-color:#dbeafe;background:#ffffff;color:#64748b');
         setStripPreview(stripUrl);
       }
       if(data.tampon_emoji){
@@ -1298,12 +1350,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         document.getElementById('tampon-emoji-val')!.textContent=tamponEmoji;
         document.getElementById('tampon-emoji-selected')!.classList.remove('hidden');
         sr('tampon_mode','emoji'); document.getElementById('tampon-emoji-zone')!.classList.remove('hidden');
-        ['default','emoji','custom'].forEach(v=>document.getElementById(`tampon-mode-${v}-label`)!.style.cssText=v==='emoji'?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent');
+        ['default','emoji','custom'].forEach(v=>document.getElementById(`tampon-mode-${v}-label`)!.style.cssText=v==='emoji'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff');
         document.querySelectorAll('.emoji-stamp-btn').forEach(b=>{if((b as HTMLElement).dataset.emoji===tamponEmoji)(b as HTMLElement).style.borderColor='#6366f1';});
       }else if(data.tampon_icon_url){
         tamponIconUrl=data.tampon_icon_url; setTamponPreview(tamponIconUrl); sr('tampon_mode','custom');
         document.getElementById('tampon-custom-zone')!.classList.remove('hidden');
-        ['default','emoji','custom'].forEach(v=>document.getElementById(`tampon-mode-${v}-label`)!.style.cssText=v==='custom'?'border-color:#6366f1;background:rgb(99 102 241/0.1)':'border-color:#334155;background:transparent');
+        ['default','emoji','custom'].forEach(v=>document.getElementById(`tampon-mode-${v}-label`)!.style.cssText=v==='custom'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff');
       }
       updatePreview();
       const pu=publicCardUrl(data.id);

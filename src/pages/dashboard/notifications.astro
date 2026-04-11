@@ -54,7 +54,27 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </form>
     </div>
 
-    <!-- Historique -->
+    <!-- Campagne avis Google -->
+    <div class="card p-6 border-amber-100 bg-amber-50/40">
+      <div class="flex items-start gap-3 mb-4">
+        <span class="text-2xl">⭐</span>
+        <div>
+          <h2 class="font-display font-bold text-slate-900">Campagne avis Google</h2>
+          <p class="text-slate-500 text-sm mt-1">Envoie à chaque client son lien personnalisé pour laisser un avis et réclamer sa récompense. Seuls les clients n'ayant pas encore réclamé reçoivent le message.</p>
+        </div>
+      </div>
+      <div id="review-campaign-locked" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-700 text-sm mb-4">
+        La récompense avis Google n'est pas activée sur votre carte. Activez-la dans <a href="/dashboard/carte" class="font-semibold underline">l'éditeur de carte → étape 9</a>.
+      </div>
+      <div id="review-campaign-error" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-3"></div>
+      <div id="review-campaign-success" class="hidden text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 mb-3"></div>
+      <button id="review-campaign-btn" type="button" class="btn-primary py-3 w-full">
+        Envoyer le lien avis Google à mes clients
+      </button>
+      <p class="text-slate-400 text-xs mt-2 text-center">Chaque client reçoit un lien unique · Une réclamation par client</p>
+    </div>
+
+  <!-- Historique -->
     <div class="card p-6">
       <h2 class="font-display font-bold text-slate-900 mb-4">Historique</h2>
       <div id="notif-history" class="flex flex-col gap-3">
@@ -176,6 +196,54 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   }
 
+  // Campagne avis Google
+  async function checkReviewCampaignStatus() {
+    try {
+      const res = await authFetch('/api/cartes');
+      if (!res.ok) return;
+      const { data } = await res.json();
+      if (!data?.review_reward_enabled) {
+        document.getElementById('review-campaign-locked')!.classList.remove('hidden');
+        (document.getElementById('review-campaign-btn') as HTMLButtonElement).disabled = true;
+      }
+    } catch { /* silencieux */ }
+  }
+
+  document.getElementById('review-campaign-btn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('review-campaign-btn') as HTMLButtonElement;
+    const errEl = document.getElementById('review-campaign-error') as HTMLDivElement;
+    const okEl  = document.getElementById('review-campaign-success') as HTMLDivElement;
+    errEl.classList.add('hidden');
+    okEl.classList.add('hidden');
+    btn.disabled = true;
+    btn.textContent = 'Envoi en cours…';
+
+    try {
+      const res = await authFetch('/api/notifications/review-campaign', { method: 'POST' });
+      const data = await res.json();
+
+      if (!res.ok) {
+        errEl.textContent = data.error ?? 'Erreur lors de l\'envoi.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      if (data.nb_envoyes === 0 && data.message) {
+        okEl.textContent = data.message;
+      } else {
+        okEl.textContent = `Lien envoyé à ${data.nb_envoyes} client(s) sur ${data.nb_eligibles} éligibles. ${data.nb_deja_reclame} avaient déjà réclamé.`;
+      }
+      okEl.classList.remove('hidden');
+    } catch {
+      errEl.textContent = 'Erreur réseau. Réessayez.';
+      errEl.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Envoyer le lien avis Google à mes clients';
+    }
+  });
+
   loadSummary();
   loadHistory();
+  checkReviewCampaignStatus();
 </script>

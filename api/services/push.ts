@@ -31,13 +31,13 @@ export async function sendPushNotification(
   tokens: string[],
   title: string,
   body: string,
+  clickUrl = '/',
 ): Promise<number> {
   if (tokens.length === 0) return 0;
 
   const app = getFirebaseApp();
   const messaging = admin.messaging(app);
 
-  // Envoie par lots de 500 (limite FCM)
   const BATCH_SIZE = 500;
   let successCount = 0;
 
@@ -48,20 +48,55 @@ export async function sendPushNotification(
       const response = await messaging.sendEachForMulticast({
         tokens: batch,
         notification: { title, body },
-        data: {
-          title,
-          body,
-          url: '/',
-          icon: '/favicon.svg',
-        },
+        data: { title, body, url: clickUrl, icon: '/favicon.svg' },
         webpush: {
           notification: { title, body, icon: '/favicon.svg' },
-          fcmOptions: { link: '/' },
+          fcmOptions: { link: clickUrl },
         },
       });
       successCount += response.successCount;
     } catch (err) {
       console.error('[FCM] Erreur envoi batch:', err);
+    }
+  }
+
+  return successCount;
+}
+
+/**
+ * Envoie une notification personnalisée à chaque token avec son propre URL.
+ * Utilisé pour les campagnes où chaque client a un lien unique.
+ */
+export async function sendPersonalizedPushNotifications(
+  recipients: Array<{ token: string; clickUrl: string }>,
+  title: string,
+  body: string,
+): Promise<number> {
+  if (recipients.length === 0) return 0;
+
+  const app = getFirebaseApp();
+  const messaging = admin.messaging(app);
+
+  const BATCH_SIZE = 500;
+  let successCount = 0;
+
+  for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+    const batch = recipients.slice(i, i + BATCH_SIZE);
+
+    try {
+      const messages = batch.map((r) => ({
+        token: r.token,
+        notification: { title, body },
+        data: { title, body, url: r.clickUrl, icon: '/favicon.svg' },
+        webpush: {
+          notification: { title, body, icon: '/favicon.svg' },
+          fcmOptions: { link: r.clickUrl },
+        },
+      }));
+      const response = await messaging.sendEach(messages);
+      successCount += response.successCount;
+    } catch (err) {
+      console.error('[FCM] Erreur envoi personnalisé batch:', err);
     }
   }
 

@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
-import { sendPushNotification } from '../services/push';
+import { sendPushNotification, sendPersonalizedPushNotifications } from '../services/push';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { sendGoogleWalletMessage } from '../services/google-wallet';
 
@@ -224,5 +224,109 @@ notificationsRoutes.post('/', async (c) => {
     nb_delivrees: nbDelivrees,
     nb_wallet: walletDeliveredClientIds.size,
     nb_web_push: nbDelivreesWeb,
+  }, 201);
+});
+
+/** POST /api/notifications/review-campaign — Envoie le lien avis Google à chaque client (lien personnalisé) */
+notificationsRoutes.post('/review-campaign', async (c) => {
+  const userId = c.get('userId') as string;
+  const db = createServiceClient();
+  const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
+
+  const { data: commerce } = await db
+    .from('commerces')
+    .select('id')
+    .eq('user_id', userId)
+    .single();
+
+  if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
+
+  // Vérifie que la fonctionnalité est activée
+  const { data: carte } = await db
+    .from('cartes')
+    .select('id, nom, type, review_reward_enabled, review_reward_value')
+    .eq('commerce_id', commerce.id)
+    .eq('actif', true)
+    .single();
+
+  if (!carte) return c.json({ error: 'Carte introuvable' }, 404);
+  if (!carte.review_reward_enabled) return c.json({ error: 'Activez d\'abord la récompense avis Google sur votre carte.' }, 403);
+
+  // Récupère les clients qui n'ont pas encore réclamé
+  const { data: alreadyClaimed } = await db
+    .from('review_rewards')
+    .select('client_id')
+    .eq('carte_id', carte.id);
+
+  const claimedIds = new Set((alreadyClaimed ?? []).map((r) => r.client_id));
+
+  const { data: clients } = await db
+    .from('clients')
+    .select('id, fcm_token, push_enabled, google_pass_id, apple_pass_serial')
+    .eq('commerce_id', commerce.id);
+
+  const eligibles = (clients ?? []).filter((cl) => !claimedIds.has(cl.id));
+
+  if (eligibles.length === 0) {
+    return c.json({ message: 'Tous vos clients ont déjà réclamé leur récompense.', nb_envoyes: 0 }, 200);
+  }
+
+  const unit = carte.type === 'tampons'
+    ? (carte.review_reward_value ?? 1) === 1 ? '1 tampon offert' : `${carte.review_reward_value} tampons offerts`
+    : (carte.review_reward_value ?? 1) === 1 ? '1 point offert' : `${carte.review_reward_value} points offerts`;
+
+  const titre = `⭐ Laissez un avis — ${unit} !`;
+  const message = `Laissez un avis Google sur ${carte.nom} et recevez votre récompense immédiatement.`;
+
+  let nbEnvoyes = 0;
+
+  // 1. Web push (FCM) — lien personnalisé par client
+  const fcmRecipients = eligibles
+    .filter((cl) => cl.push_enabled && cl.fcm_token)
+    .map((cl) => ({
+      token: cl.fcm_token as string,
+      clickUrl: `${PUBLIC_SITE_URL}/review/${carte.id}?client_id=${cl.id}`,
+    }));
+
+  if (fcmRecipients.length > 0) {
+    const sent = await sendPersonalizedPushNotifications(fcmRecipients, titre, message).catch((err) => {
+      console.error('[review-campaign fcm]', err);
+      return 0;
+    });
+    nbEnvoyes += sent;
+  }
+
+  // 2. Google Wallet — message avec lien cliquable
+  const googleClients = eligibles.filter((cl) => !!cl.google_pass_id);
+  for (const cl of googleClients) {
+    const reviewUrl = `${PUBLIC_SITE_URL}/review/${carte.id}?client_id=${cl.id}`;
+    await sendGoogleWalletMessage(
+      cl.google_pass_id as string,
+      titre,
+      `${message}\n👉 ${reviewUrl}`,
+    ).then(() => { nbEnvoyes++; }).catch((err) => console.error('[review-campaign google]', err));
+  }
+
+  // 3. Apple Wallet — push silencieux (la carte se rafraîchit, le lien est dans les back fields via /review/{id})
+  const appleClients = eligibles.filter((cl) => !!cl.apple_pass_serial);
+  if (appleClients.length > 0) {
+    const appleIds = appleClients.map((cl) => cl.id);
+    const { data: registrations } = await db
+      .from('apple_pass_registrations')
+      .select('client_id, push_token, pass_type_identifier')
+      .in('client_id', appleIds);
+
+    const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
+    await Promise.allSettled(
+      (registrations ?? []).map((r) => pushApplePassUpdate(r.push_token, r.pass_type_identifier || passTypeId)
+        .then(() => { nbEnvoyes++; })
+        .catch((err) => console.error('[review-campaign apple]', err))),
+    );
+  }
+
+  return c.json({
+    nb_eligibles: eligibles.length,
+    nb_envoyes: nbEnvoyes,
+    nb_deja_reclame: claimedIds.size,
   }, 201);
 });

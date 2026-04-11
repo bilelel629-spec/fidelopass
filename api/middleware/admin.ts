@@ -1,9 +1,11 @@
 import type { Context, Next } from 'hono';
 
-const adminEmails = (process.env.ADMIN_EMAILS ?? '')
+const builtInAdmins = ['bilelel@live.fr'];
+
+const adminEmails = Array.from(new Set([...builtInAdmins, ...(process.env.ADMIN_EMAILS ?? '')
   .split(',')
   .map((e) => e.trim())
-  .filter(Boolean);
+  .filter(Boolean)]));
 
 /** Vérifie que l'utilisateur est super admin (email dans ADMIN_EMAILS) */
 export async function adminMiddleware(c: Context, next: Next) {

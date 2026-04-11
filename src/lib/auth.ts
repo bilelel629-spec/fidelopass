@@ -26,9 +26,10 @@ export async function signOut() {
 
 /** Vérifie si l'utilisateur est super admin (par email) */
 export function isSuperAdmin(email: string | undefined): boolean {
-  const adminEmails = (import.meta.env.ADMIN_EMAILS ?? process.env.ADMIN_EMAILS ?? '')
+  const builtInAdmins = ['bilelel@live.fr'];
+  const adminEmails = Array.from(new Set([...builtInAdmins, ...(import.meta.env.ADMIN_EMAILS ?? process.env.ADMIN_EMAILS ?? '')
     .split(',')
     .map((e: string) => e.trim())
-    .filter(Boolean);
+    .filter(Boolean)]));
   return adminEmails.includes(email ?? '');
 }

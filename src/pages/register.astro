@@ -7,13 +7,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   title="Essai gratuit 15 jours — Fidelopass"
   description="Créez votre compte Fidelopass gratuitement. 15 jours d'essai sans carte bancaire."
 >
-  <div class="min-h-screen bg-slate-50 px-4 py-12">
+  <div class="min-h-screen bg-[#f8fbff] px-4 py-10 sm:py-14 relative overflow-hidden">
+    <div class="pointer-events-none absolute -top-32 right-[-10rem] h-[28rem] w-[28rem] rounded-full bg-cyan-200/40 blur-3xl"></div>
+    <div class="pointer-events-none absolute bottom-[-8rem] left-[-8rem] h-[24rem] w-[24rem] rounded-full bg-blue-100/80 blur-3xl"></div>
     <div class="max-w-6xl mx-auto grid lg:grid-cols-2 gap-10 items-center">
 
       <!-- Gauche : proposition de valeur -->
       <div class="hidden lg:block">
-        <a href="/" class="font-display font-bold text-2xl text-slate-900 inline-flex items-center gap-1 mb-10">
-          <img src="/logo-premium.png" alt="Fidelopass" class="h-10 w-auto" />
+        <a href="/" class="inline-flex items-center gap-1 mb-10">
+          <img src="/logo-premium.png" alt="Fidelopass" class="h-20 w-auto" />
         </a>
         <h1 class="font-display text-4xl font-bold text-slate-900 leading-tight">
           Lancez votre programme de fidélité en 5 minutes.
@@ -35,16 +37,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             </div>
           ))}
         </div>
-        <div class="mt-10 bg-indigo-50 border border-indigo-100 rounded-2xl p-5">
-          <p class="text-indigo-700 font-semibold text-sm">📈 +27% de rétention clients en moyenne</p>
+        <div class="mt-10 bg-indigo-50 border border-indigo-100 rounded-2xl p-5 shadow-[0_24px_50px_-32px_rgba(79,70,229,0.35)]">
+          <p class="text-indigo-700 font-semibold text-sm">+27% de rétention clients en moyenne</p>
           <p class="text-indigo-500 text-xs mt-1">Constaté chez les commerces utilisant Fidelopass</p>
         </div>
       </div>
 
       <!-- Droite : formulaire -->
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-lg p-6 sm:p-8">
-        <a href="/" class="lg:hidden font-display font-bold text-xl text-slate-900 inline-flex items-center gap-1 mb-6">
-          <img src="/logo-premium.png" alt="Fidelopass" class="h-8 w-auto" />
+      <div class="bg-white/92 backdrop-blur-xl rounded-[2rem] border border-sky-100 shadow-[0_32px_70px_-34px_rgba(37,99,235,0.28)] p-6 sm:p-8">
+        <a href="/" class="lg:hidden inline-flex items-center gap-1 mb-6">
+          <img src="/logo-premium.png" alt="Fidelopass" class="h-14 w-auto" />
         </a>
 
         <div class="flex items-center justify-between gap-3 mb-6">

@@ -9,6 +9,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <h1 class="font-display text-3xl font-bold text-slate-900 mt-2">Clients</h1>
       <p class="text-slate-600 text-sm mt-2">Gérez votre base de clients fidèles et suivez leur capacité à recevoir des messages.</p>
     </div>
+    <button id="export-csv-btn" class="btn-secondary px-4 py-2.5 text-sm font-medium">
+      Exporter en CSV
+    </button>
   </div>
 
   <!-- Barre de recherche -->
@@ -32,6 +35,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 <script>
   import { authFetch } from '../../lib/api';
 
+  let currentClients: Array<{
+    nom: string | null;
+    email: string | null;
+    telephone: string | null;
+    points_actuels: number;
+    tampons_actuels: number;
+    derniere_visite: string | null;
+    push_enabled: boolean;
+    fcm_token: string | null;
+  }> = [];
+
   function escapeHtml(value: unknown) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => ({
       '&': '&amp;',
@@ -50,6 +64,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const res = await authFetch(`/api/clients?${params}`);
       if (!res.ok) throw new Error();
       const { data } = await res.json();
+      currentClients = data ?? [];
 
       if (!data?.length) {
         container.innerHTML = '<p class="text-slate-500 text-sm p-6">Aucun client trouvé.</p>';
@@ -105,5 +120,32 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     searchTimeout = setTimeout(() => {
       loadClients((e.target as HTMLInputElement).value);
     }, 300);
+  });
+
+  document.getElementById('export-csv-btn')!.addEventListener('click', () => {
+    const rows = [
+      ['Nom', 'Email', 'Téléphone', 'Points ou tampons', 'Dernière visite', 'Push activé', 'Token push'],
+      ...currentClients.map((client) => [
+        client.nom ?? 'Anonyme',
+        client.email ?? '',
+        client.telephone ?? '',
+        String(client.points_actuels || client.tampons_actuels || 0),
+        client.derniere_visite ? new Date(client.derniere_visite).toLocaleDateString('fr-FR') : '',
+        client.push_enabled ? 'Oui' : 'Non',
+        client.fcm_token ? 'Oui' : 'Non',
+      ]),
+    ];
+    const csv = rows.map((row) =>
+      row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(';')
+    ).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `clients-fidelopass-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
   });
 </script>

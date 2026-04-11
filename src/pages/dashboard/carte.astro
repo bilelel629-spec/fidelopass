@@ -370,7 +370,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <h2 class="font-display font-bold text-white mb-4 flex items-center gap-2"><span class="text-lg">📍</span> Géolocalisation</h2>
         <label class="label" for="message-geo">Message sur l'écran de verrouillage</label>
         <input id="message-geo" type="text" class="input" placeholder="Votre carte de fidélité vous attend !" />
-        <p class="text-slate-500 text-xs mt-1">S'affiche quand le client passe devant votre commerce</p>
+        <p class="text-slate-500 text-xs mt-1">S'affiche quand le client passe devant votre commerce.</p>
+        <div class="mt-4">
+          <label class="label" for="rayon-geo">Rayon de géolocalisation</label>
+          <div class="flex items-center gap-3">
+            <input id="rayon-geo" type="range" min="100" max="5000" step="100" value="1000" class="flex-1 accent-indigo-500" />
+            <span id="rayon-label" class="font-mono text-sm text-indigo-400 w-16 text-right">1 000 m</span>
+          </div>
+          <p class="text-slate-500 text-xs mt-1.5">Définissez la distance à laquelle Wallet peut remonter la carte autour du commerce.</p>
+        </div>
       </div>
 
       <div id="error-msg" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"></div>
@@ -1138,6 +1146,23 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   });
 
+  const rayonSlider = document.getElementById('rayon-geo') as HTMLInputElement;
+  const rayonLabel = document.getElementById('rayon-label')!;
+  rayonSlider.addEventListener('input', () => {
+    rayonLabel.textContent = `${parseInt(rayonSlider.value).toLocaleString('fr-FR')} m`;
+  });
+
+  async function loadCommerceGeo() {
+    try {
+      const res = await authFetch('/api/commerces/me');
+      if (!res.ok) return;
+      const { data } = await res.json();
+      const rayon = data?.rayon_geo ?? 1000;
+      rayonSlider.value = String(rayon);
+      rayonLabel.textContent = `${rayon.toLocaleString('fr-FR')} m`;
+    } catch {}
+  }
+
   document.getElementById('submit-btn')!.addEventListener('click',async()=>{
     const err=document.getElementById('error-msg') as HTMLDivElement;
     const suc=document.getElementById('success-msg') as HTMLDivElement;
@@ -1171,6 +1196,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     try{
       const res=carteId?await authFetch(`/api/cartes/${carteId}`,{method:'PATCH',body:JSON.stringify(payload)}):await authFetch('/api/cartes',{method:'POST',body:JSON.stringify(payload)});
       if(!res.ok)throw new Error((await res.json()).error??'Erreur');
+      await authFetch('/api/commerces/me', {
+        method: 'PATCH',
+        body: JSON.stringify({ rayon_geo: parseInt(gi('rayon-geo')) }),
+      });
       const{data}=await res.json();
       if(!carteId){carteId=data.id;const pu=publicCardUrl(data.id);document.getElementById('public-link-banner')!.classList.remove('hidden');document.getElementById('public-link-url')!.textContent=pu;}
       if (carteId) updateQrTools(carteId);
@@ -1191,5 +1220,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   applyStripStyle(true);
   renderRewardTiers();
   renderVipTiers();
+  loadCommerceGeo();
   loadExistingCarte();
 </script>

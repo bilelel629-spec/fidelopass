@@ -2,18 +2,51 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<BaseLayout title="Connexion — Fidelopass">
-  <div class="min-h-screen flex items-center justify-center px-4">
-    <div class="w-full max-w-sm">
-      <div class="text-center mb-8">
-        <a href="/" class="font-display font-bold text-2xl text-white">
-          Fidelopass
+<BaseLayout title="Connexion — Fidelopass" description="Connectez-vous à votre espace commerçant Fidelopass.">
+  <div class="min-h-screen bg-[#f8fbff] px-4 py-10 sm:py-14 relative overflow-hidden">
+    <div class="pointer-events-none absolute -top-28 right-[-8rem] h-[26rem] w-[26rem] rounded-full bg-cyan-200/35 blur-3xl"></div>
+    <div class="pointer-events-none absolute bottom-[-7rem] left-[-6rem] h-[22rem] w-[22rem] rounded-full bg-blue-100/80 blur-3xl"></div>
+
+    <div class="max-w-6xl mx-auto grid lg:grid-cols-[1.05fr_0.95fr] gap-10 items-center">
+      <div class="hidden lg:block">
+        <a href="/" class="inline-flex items-center gap-1 mb-10">
+          <img src="/logo-premium.png" alt="Fidelopass" class="h-20 w-auto" />
         </a>
-        <p class="text-slate-400 mt-2 text-sm">Connectez-vous à votre espace commerçant</p>
+        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-sky-700/70">Espace commerçant</p>
+        <h1 class="font-display text-4xl font-bold text-slate-900 leading-tight mt-3">
+          Retrouvez votre tableau de bord et pilotez votre fidélité sereinement.
+        </h1>
+        <p class="text-slate-500 text-base leading-relaxed mt-5 max-w-lg">
+          Gérez vos cartes Wallet, votre scanner, vos clients, vos notifications et vos performances depuis un seul espace clair.
+        </p>
+
+        <div class="grid sm:grid-cols-2 gap-4 mt-8 max-w-xl">
+          {[
+            ['Scanner du personnel prêt à l’usage', 'Accès rapide depuis le mobile du commerce.'],
+            ['Messages Wallet et push centralisés', 'Gardez le contact sans application client.'],
+            ['Design de carte personnalisable', 'Modifiez votre identité visuelle à tout moment.'],
+            ['Suivi clients et historique', 'Gardez une vue claire sur les visites et récompenses.'],
+          ].map(([title, text]) => (
+            <div class="rounded-2xl border border-sky-100 bg-white/80 backdrop-blur-md p-5 shadow-[0_18px_44px_-34px_rgba(37,99,235,0.25)]">
+              <p class="font-semibold text-slate-900 text-sm">{title}</p>
+              <p class="text-slate-500 text-sm mt-2 leading-relaxed">{text}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div class="card p-6">
-        <button id="google-login-btn" type="button" class="w-full rounded-xl bg-white text-slate-950 font-semibold py-3 px-4 flex items-center justify-center gap-3 hover:bg-slate-100 transition-colors mb-5">
+      <div class="bg-white/92 backdrop-blur-xl rounded-[2rem] border border-sky-100 shadow-[0_32px_70px_-34px_rgba(37,99,235,0.28)] p-6 sm:p-8">
+        <a href="/" class="lg:hidden inline-flex items-center gap-1 mb-6">
+          <img src="/logo-premium.png" alt="Fidelopass" class="h-14 w-auto" />
+        </a>
+
+        <div class="mb-7">
+          <p class="text-sky-700/70 text-sm">Connexion commerçant</p>
+          <h2 class="font-display text-3xl font-bold text-slate-900 mt-1">Bienvenue</h2>
+          <p class="text-slate-500 text-sm mt-2">Connectez-vous pour accéder à votre tableau de bord Fidelopass.</p>
+        </div>
+
+        <button id="google-login-btn" type="button" class="w-full rounded-2xl bg-white text-slate-950 font-semibold py-3.5 px-4 flex items-center justify-center gap-3 border border-slate-200 hover:bg-slate-50 transition-colors mb-5 shadow-sm">
           <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" aria-hidden="true">
             <path d="M21.56 10.74a9.55 9.55 0 0 0-.15-1.69H12v3.2h5.37a4.6 4.6 0 0 1-2 3.02v2.51h3.23c1.89-1.74 2.96-4.3 2.96-7.04z" fill="#4285F4"/>
             <path d="M12 22c2.7 0 4.96-.9 6.61-2.43l-3.23-2.51c-.9.6-2.04.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H3.08v2.6A10 10 0 0 0 12 22z" fill="#34A853"/>
@@ -24,9 +57,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </button>
 
         <div class="flex items-center gap-3 mb-5">
-          <div class="h-px flex-1 bg-white/10"></div>
-          <span class="text-xs uppercase tracking-[0.2em] text-slate-500">ou</span>
-          <div class="h-px flex-1 bg-white/10"></div>
+          <div class="h-px flex-1 bg-slate-200"></div>
+          <span class="text-xs uppercase tracking-[0.2em] text-slate-400">ou</span>
+          <div class="h-px flex-1 bg-slate-200"></div>
         </div>
 
         <form id="login-form" class="flex flex-col gap-4">
@@ -37,24 +70,26 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           <div>
             <div class="flex items-center justify-between gap-3">
               <label class="label" for="password">Mot de passe</label>
-              <button id="forgot-btn" type="button" class="text-xs text-indigo-300 hover:text-indigo-200 transition-colors mb-1">
+              <button id="forgot-btn" type="button" class="text-xs text-indigo-600 hover:text-indigo-500 transition-colors mb-1">
                 Mot de passe oublié ?
               </button>
             </div>
             <input id="password" type="password" class="input" placeholder="••••••••" required autocomplete="current-password" />
           </div>
-          <div class="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-slate-400">
+
+          <div class="rounded-2xl border border-sky-100 bg-sky-50/90 px-4 py-3 text-sm text-slate-600">
             Les nouveaux comptes doivent d’abord confirmer leur email avec le code reçu lors de l’inscription.
           </div>
-          <div id="error-msg" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"></div>
-          <button type="submit" class="btn-primary w-full py-3 mt-2">Se connecter</button>
-        </form>
-      </div>
 
-      <p class="text-center text-slate-500 text-sm mt-6">
-        Pas encore de compte ?
-        <a href="/register" class="text-indigo-400 hover:text-indigo-300 transition-colors ml-1">S'inscrire</a>
-      </p>
+          <div id="error-msg" class="hidden text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3"></div>
+          <button type="submit" class="btn-primary w-full py-3.5 mt-2">Se connecter</button>
+        </form>
+
+        <p class="text-center text-slate-500 text-sm mt-6">
+          Pas encore de compte ?
+          <a href="/register" class="text-indigo-600 hover:text-indigo-500 transition-colors ml-1 font-medium">S'inscrire</a>
+        </p>
+      </div>
     </div>
   </div>
 </BaseLayout>

@@ -2,10 +2,10 @@
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
 ---
 
-<DashboardLayout title="Notifications — Fidelopass" activeNav="notifications">
+<DashboardLayout title="Notifications push — Fidelopass" activeNav="notifications">
   <div class="mb-8">
     <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Communication client</p>
-    <h1 class="font-display text-3xl font-bold text-slate-900 mt-2">Messages clients</h1>
+    <h1 class="font-display text-3xl font-bold text-slate-900 mt-2">Notifications push</h1>
     <p class="text-slate-600 text-sm mt-2">Envoyez un message à vos porteurs de carte via Wallet, puis en push web si leur navigateur le permet.</p>
   </div>
 
@@ -20,13 +20,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <p id="summary-wallet" class="text-slate-900 text-2xl font-display font-bold mt-2">—</p>
       <p class="text-slate-600 text-sm mt-2">Clients joignables sans app via Apple Wallet ou Google Wallet.</p>
     </div>
-  </div>
-
-  <div class="mb-6 rounded-2xl border border-sky-200 bg-sky-50/90 px-5 py-4 shadow-[0_18px_44px_-34px_rgba(37,99,235,0.35)]">
-    <p class="text-slate-900 text-sm font-semibold">Comprendre la différence</p>
-    <p class="text-slate-600 text-sm mt-1 leading-relaxed">
-      Cette page envoie d’abord un message Wallet aux clients qui ont déjà ajouté leur carte, puis complète avec un push web sur les navigateurs compatibles. Sur iPhone, le canal principal reste Wallet, sans application à installer.
-    </p>
   </div>
 
   <div class="grid lg:grid-cols-2 gap-6">

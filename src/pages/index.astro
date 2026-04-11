@@ -12,19 +12,22 @@ import PublicNav from '../components/marketing/PublicNav.astro';
   <PublicNav currentPath="/" />
 
   <!-- HERO -->
-  <section class="relative overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f4f8ff_60%,#ffffff_100%)] pt-16 pb-24">
+  <section class="relative overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f6f9ff_58%,#ffffff_100%)] pt-10 pb-16 sm:pt-14 sm:pb-20">
     <div class="pointer-events-none absolute inset-0">
-      <div class="absolute -top-24 right-0 h-80 w-80 rounded-full bg-sky-200/40 blur-3xl"></div>
-      <div class="absolute top-28 left-0 h-72 w-72 rounded-full bg-indigo-200/30 blur-3xl"></div>
+      <div class="absolute -top-16 right-0 h-72 w-72 rounded-full bg-sky-200/35 blur-3xl"></div>
+      <div class="absolute top-24 left-0 h-64 w-64 rounded-full bg-indigo-200/25 blur-3xl"></div>
       <div class="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-white"></div>
     </div>
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-14 items-center">
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-[1.02fr_0.98fr] gap-10 lg:gap-12 items-center">
       <div class="relative">
         <span class="mb-5 inline-flex items-center rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700 shadow-sm">Fidélité Wallet-first · Sans application</span>
-        <h1 class="font-display text-5xl sm:text-6xl font-bold text-slate-900 leading-[1.05]">
-          Vos clients reviennent.<br/>
+        <h1 class="font-display text-[2.85rem] sm:text-[4.15rem] font-bold text-slate-900 leading-[0.98] tracking-[-0.04em]">
+          La carte de fidélité
+          <br />
+          <span class="text-slate-900">qui reste déjà</span>
+          <br />
           <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-500">
-            Sans app à télécharger.
+            dans le Wallet.
           </span>
         </h1>
         <p class="text-slate-500 text-lg leading-relaxed mt-6 max-w-lg">
@@ -63,8 +66,8 @@ import PublicNav from '../components/marketing/PublicNav.astro';
 
       <!-- Mockup carte Wallet -->
       <div class="relative flex justify-center">
-        <div class="absolute inset-0 rounded-[3rem] blur-3xl opacity-20 bg-gradient-to-br from-indigo-300 to-sky-300"></div>
-        <div class="relative w-full max-w-sm">
+        <div class="absolute inset-8 rounded-[3rem] blur-3xl opacity-20 bg-gradient-to-br from-indigo-300 to-sky-300"></div>
+        <div class="relative w-full max-w-[25rem]">
           <div class="rounded-[2rem] overflow-hidden border border-white/70 shadow-[0_35px_80px_rgba(15,23,42,0.14)]">
             <div class="p-6" style="background:linear-gradient(145deg,#1e1b4b,#312e81 55%,#0f766e)">
               <div class="flex items-center justify-between mb-6">
@@ -110,22 +113,28 @@ import PublicNav from '../components/marketing/PublicNav.astro';
   </section>
 
   <!-- BARRE RÉASSURANCE -->
-  <div class="bg-white border-y border-slate-200/80 py-5">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 flex flex-wrap justify-center gap-6 sm:gap-10 text-sm text-slate-500">
-      <div class="flex items-center gap-2"><span>🍎</span> Apple Wallet intégré</div>
-      <div class="w-px h-4 bg-slate-200 hidden sm:block self-center"></div>
-      <div class="flex items-center gap-2"><span>🤖</span> Google Wallet intégré</div>
-      <div class="w-px h-4 bg-slate-200 hidden sm:block self-center"></div>
-      <div class="flex items-center gap-2"><span>🚫</span> Aucune app pour le client</div>
-      <div class="w-px h-4 bg-slate-200 hidden sm:block self-center"></div>
-      <div class="flex items-center gap-2"><span>⚡</span> Installation en 5 minutes</div>
-      <div class="w-px h-4 bg-slate-200 hidden sm:block self-center"></div>
-      <div class="flex items-center gap-2"><span>📈</span> +27% de rétention en moyenne</div>
+  <div class="bg-white py-4 sm:py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+      <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {[
+          { eyebrow: 'Compatibilité', value: 'Apple Wallet', detail: 'Ajout natif sur iPhone' },
+          { eyebrow: 'Compatibilité', value: 'Google Wallet', detail: 'Ajout natif sur Android' },
+          { eyebrow: 'Expérience client', value: 'Aucune application', detail: 'Scan, ajout, fidélisation' },
+          { eyebrow: 'Mise en place', value: 'Prêt en 5 minutes', detail: 'QR, carte et scanner inclus' },
+          { eyebrow: 'Performance', value: '+27% de rétention', detail: 'Moyenne observée sur les cartes Wallet' },
+        ].map((item) => (
+          <div class="rounded-[1.35rem] border border-slate-200 bg-white px-5 py-4 shadow-sm">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">{item.eyebrow}</p>
+            <p class="mt-2 text-base font-semibold text-slate-900">{item.value}</p>
+            <p class="mt-1 text-sm text-slate-500 leading-relaxed">{item.detail}</p>
+          </div>
+        ))}
+      </div>
     </div>
   </div>
 
   <!-- COMMENT ÇA FONCTIONNE -->
-  <section class="bg-white py-24">
+  <section class="bg-white py-18 sm:py-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
       <div class="text-center mb-16">
         <span class="mb-4 inline-flex items-center rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700 shadow-sm">Simple comme bonjour</span>
@@ -136,14 +145,14 @@ import PublicNav from '../components/marketing/PublicNav.astro';
       </div>
       <div class="grid lg:grid-cols-3 gap-8">
         {[
-          { num: '01', icon: '🎨', title: 'Créez votre carte en 5 min', desc: 'Choisissez le type (tampons, points ou VIP), personnalisez couleurs et logo. Votre carte est prête à être partagée.' },
-          { num: '02', icon: '📲', title: 'Partagez le QR code', desc: 'Affichez le QR sur votre comptoir ou partagez le lien. Vos clients scannent et ajoutent la carte à leur Wallet en 20 secondes.' },
-          { num: '03', icon: '✅', title: 'Scannez & relancez', desc: 'À chaque passage, scannez la carte. Elle se met à jour automatiquement. Envoyez des notifications push pour faire revenir vos clients.' },
+          { num: '01', tag: 'Création', title: 'Créez votre carte en 5 min', desc: 'Choisissez le type de programme, vos couleurs et votre identité. La carte est immédiatement prête à être partagée.' },
+          { num: '02', tag: 'Diffusion', title: 'Partagez le QR code', desc: 'Affichez le QR en magasin ou envoyez votre lien. Vos clients ajoutent leur carte au Wallet en quelques secondes.' },
+          { num: '03', tag: 'Activation', title: 'Scannez & relancez', desc: 'À chaque passage, la carte est scannée, mise à jour et prête à déclencher vos récompenses ou messages Wallet.' },
         ].map((s) => (
           <div class="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_45px_rgba(15,23,42,0.06)] transition-transform hover:-translate-y-1">
-            <div class="flex items-center gap-4 mb-5">
-              <div class="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-2xl">{s.icon}</div>
-              <span class="font-mono text-xs font-bold text-indigo-400 tracking-widest">{s.num}</span>
+            <div class="flex items-center justify-between gap-4 mb-6">
+              <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-sm font-bold text-white shadow-[0_14px_30px_rgba(15,23,42,0.16)]">{s.num}</span>
+              <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">{s.tag}</span>
             </div>
             <h3 class="font-display text-xl font-bold text-slate-900">{s.title}</h3>
             <p class="text-slate-500 text-sm leading-relaxed mt-3">{s.desc}</p>
@@ -157,7 +166,7 @@ import PublicNav from '../components/marketing/PublicNav.astro';
   </section>
 
   <!-- AVANTAGES -->
-  <section class="bg-slate-50 py-24">
+  <section class="bg-slate-50/70 py-18 sm:py-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
       <div class="text-center mb-16">
         <span class="mb-4 inline-flex items-center rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700 shadow-sm">Pourquoi Fidelopass</span>
@@ -168,15 +177,15 @@ import PublicNav from '../components/marketing/PublicNav.astro';
       </div>
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[
-          { icon: '🃏', title: 'Cartes 100% personnalisées', desc: 'Tampons ou points selon votre activité. Couleurs, logo, emoji — votre carte ressemble à votre commerce. Ludique et mémorable.' },
-          { icon: '🔔', title: 'Notifications push ciblées', desc: 'Envoyez un message à tous vos clients ou à ceux qui n\'ont pas visité depuis X jours. Relancez en un clic.' },
-          { icon: '🗺️', title: 'Rappel géolocalisé', desc: 'Quand vos clients passent près de votre boutique, ils reçoivent automatiquement un rappel sur leur Wallet.' },
-          { icon: '🖨️', title: 'Template QR prêt à imprimer', desc: 'Un affiche A4 à poser sur votre comptoir. Vos clients scannent, s\'inscrivent et ajoutent leur carte en 30 secondes.' },
-          { icon: '📊', title: 'Signaux pilotables', desc: 'Suivez les passages, récompenses et clients actifs. Chaque scan devient une donnée exploitable pour votre commerce.' },
-          { icon: '📱', title: 'Aucune application', desc: 'Vos clients utilisent Apple Wallet ou Google Wallet, déjà installés. Zéro friction, taux d\'adoption maximal.' },
+          { label: 'Personnalisation', title: 'Cartes totalement personnalisées', desc: 'Tampons ou points selon votre activité, design ajusté à votre image et expérience client plus mémorable.' },
+          { label: 'Relance', title: 'Notifications Wallet & push', desc: 'Envoyez des messages utiles au bon moment pour faire revenir vos clients, sans dépendre d’une application native.' },
+          { label: 'Proximité', title: 'Rappel géolocalisé', desc: 'Quand un client s’approche du commerce, sa carte peut remonter automatiquement dans son Wallet.' },
+          { label: 'Terrain', title: 'Template QR prêt à afficher', desc: 'Affiches et QR codes prêts à imprimer pour recruter des porteurs de carte directement au comptoir.' },
+          { label: 'Pilotage', title: 'Signaux clairs pour le commerce', desc: 'Scans, récompenses, clients actifs, campagnes envoyées : tout reste lisible et exploitable.' },
+          { label: 'Adoption', title: 'Aucune application nécessaire', desc: 'Le client scanne, ajoute sa carte et revient. Le parcours reste fluide, naturel et rassurant.' },
         ].map((a) => (
           <div class="rounded-[1.75rem] border border-white/80 bg-white p-7 shadow-[0_18px_45px_rgba(15,23,42,0.08)] transition-all hover:-translate-y-1 hover:shadow-[0_24px_55px_rgba(15,23,42,0.12)]">
-            <div class="text-3xl mb-4">{a.icon}</div>
+            <div class="mb-5 inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">{a.label}</div>
             <h3 class="font-display text-lg font-bold text-slate-900 mb-2">{a.title}</h3>
             <p class="text-slate-500 text-sm leading-relaxed">{a.desc}</p>
           </div>

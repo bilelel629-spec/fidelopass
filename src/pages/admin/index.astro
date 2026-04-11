@@ -3,42 +3,107 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 ---
 
 <AdminLayout title="Vue globale — Admin Fidelopass" activeNav="overview">
-  <div class="mb-8">
-    <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Pilotage plateforme</p>
-    <h1 class="font-display text-3xl font-bold text-slate-900 mt-2">Vue globale</h1>
-    <p class="text-slate-600 text-sm mt-2">Suivez les commerces inscrits, leur activité et les éléments nécessaires à votre supervision admin.</p>
+  <div class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div>
+      <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Pilotage plateforme</p>
+      <h1 class="font-display mt-2 text-3xl font-bold text-slate-900">Vue globale</h1>
+      <p class="mt-2 text-sm text-slate-600">Suivez les commerces inscrits, leur activité, leurs cartes configurées et les signaux qui comptent pour l’équipe fondatrice.</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <a href="/admin/commerces" class="rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-50">Voir tous les commerces</a>
+      <button id="export-admin-csv" type="button" class="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-sky-700">Exporter la base</button>
+    </div>
   </div>
 
-  <!-- Stats globales -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
     <div class="stat-card">
       <span class="text-slate-500 text-xs uppercase tracking-wide">Commerces</span>
       <span id="stat-commerces" class="font-mono text-3xl font-bold text-slate-900">—</span>
+      <p class="mt-2 text-xs text-slate-500">Nombre total de comptes commerçants.</p>
     </div>
     <div class="stat-card">
-      <span class="text-slate-500 text-xs uppercase tracking-wide">Cartes actives</span>
+      <span class="text-slate-500 text-xs uppercase tracking-wide">Actifs</span>
+      <span id="stat-commerces-actifs" class="font-mono text-3xl font-bold text-slate-900">—</span>
+      <p class="mt-2 text-xs text-slate-500">Commerces actuellement accessibles.</p>
+    </div>
+    <div class="stat-card">
+      <span class="text-slate-500 text-xs uppercase tracking-wide">Cartes configurées</span>
       <span id="stat-cartes" class="font-mono text-3xl font-bold text-slate-900">—</span>
+      <p class="mt-2 text-xs text-slate-500">Cartes prêtes à être partagées.</p>
     </div>
     <div class="stat-card">
-      <span class="text-slate-500 text-xs uppercase tracking-wide">Clients totaux</span>
+      <span class="text-slate-500 text-xs uppercase tracking-wide">Clients</span>
       <span id="stat-clients" class="font-mono text-3xl font-bold text-slate-900">—</span>
+      <p class="mt-2 text-xs text-slate-500">Clients actuellement en base.</p>
     </div>
     <div class="stat-card">
-      <span class="text-slate-500 text-xs uppercase tracking-wide">Historique total</span>
-      <span id="stat-transactions" class="font-mono text-3xl font-bold text-slate-900">—</span>
+      <span class="text-slate-500 text-xs uppercase tracking-wide">Nouveaux 30 jours</span>
+      <span id="stat-nouveaux-30j" class="font-mono text-3xl font-bold text-slate-900">—</span>
+      <p class="mt-2 text-xs text-slate-500">Nouveaux commerces récemment créés.</p>
     </div>
   </div>
 
-  <!-- Liste commerces récents -->
-  <div class="card p-6">
-    <h2 class="font-display font-bold text-slate-900 mb-4">Derniers commerces inscrits</h2>
-    <div id="recent-commerces">
-      <p class="text-slate-500 text-sm">Chargement...</p>
-    </div>
+  <div class="mt-6 grid gap-6 xl:grid-cols-[1.4fr_0.9fr]">
+    <section class="card p-6">
+      <div class="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <h2 class="font-display text-xl font-bold text-slate-900">Commerces récents</h2>
+          <p class="mt-1 text-sm text-slate-500">Une vue rapide pour repérer les comptes créés, leur équipement et leur statut.</p>
+        </div>
+      </div>
+      <div id="recent-commerces">
+        <p class="text-sm text-slate-500">Chargement...</p>
+      </div>
+    </section>
+
+    <section class="space-y-6">
+      <div class="card p-6">
+        <h2 class="font-display text-xl font-bold text-slate-900">Repères admin</h2>
+        <div class="mt-4 space-y-3 text-sm text-slate-600">
+          <div class="rounded-2xl border border-sky-100 bg-sky-50 p-4">
+            <p class="font-medium text-slate-900">Abonnements</p>
+            <p class="mt-1">La structure admin est prête, mais le vrai suivi des plans et de la facturation dépend encore du branchement abonnement côté produit.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-white p-4">
+            <p class="font-medium text-slate-900">Export & support</p>
+            <p class="mt-1">Vous pouvez déjà exporter les commerces pour audit, migration ou suivi manuel avec vos associés.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-white p-4">
+            <p class="font-medium text-slate-900">Supervision utile maintenant</p>
+            <p class="mt-1">Nombre de commerces, activation, carte configurée, clients et dernier signal d’inscription.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card p-6">
+        <h2 class="font-display text-xl font-bold text-slate-900">Historique global</h2>
+        <div class="mt-4 flex items-end gap-4">
+          <div>
+            <p class="text-xs uppercase tracking-[0.24em] text-slate-400">Événements clients</p>
+            <p id="stat-transactions" class="mt-1 font-mono text-4xl font-bold text-slate-900">—</p>
+          </div>
+          <p class="pb-1 text-sm text-slate-500">Ajouts de points, tampons et récompenses enregistrés sur l’ensemble de la plateforme.</p>
+        </div>
+      </div>
+    </section>
   </div>
 </AdminLayout>
 
 <script>
+  type AdminCommerce = {
+    id: string;
+    nom: string;
+    email: string | null;
+    telephone: string | null;
+    adresse: string | null;
+    actif: boolean;
+    created_at: string;
+    cartes: unknown[];
+    clients: unknown[];
+  };
+
+  let allCommerces: AdminCommerce[] = [];
+
   async function authFetch(url: string, opts: RequestInit = {}) {
     const { supabase } = await import('../../lib/supabase');
     const { data: { session } } = await supabase.auth.getSession();
@@ -52,16 +117,46 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     });
   }
 
+  function exportCsv() {
+    const rows = [
+      ['Nom', 'Email', 'Téléphone', 'Adresse', 'Carte configurée', 'Clients', 'Statut', 'Date création'],
+      ...allCommerces.map((commerce) => [
+        commerce.nom,
+        commerce.email ?? '',
+        commerce.telephone ?? '',
+        commerce.adresse ?? '',
+        commerce.cartes.length > 0 ? 'Oui' : 'Non',
+        String(commerce.clients.length),
+        commerce.actif ? 'Actif' : 'Inactif',
+        new Date(commerce.created_at).toLocaleDateString('fr-FR'),
+      ]),
+    ];
+
+    const csv = rows
+      .map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(';'))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'fidelopass-commerces.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function loadStats() {
     try {
       const res = await authFetch(`${import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001'}/api/admin/stats`);
       if (!res.ok) return;
       const data = await res.json();
       document.getElementById('stat-commerces')!.textContent = String(data.totalCommerces ?? 0);
+      document.getElementById('stat-commerces-actifs')!.textContent = String(data.totalCommercesActifs ?? 0);
       document.getElementById('stat-cartes')!.textContent = String(data.totalCartes ?? 0);
       document.getElementById('stat-clients')!.textContent = String(data.totalClients ?? 0);
       document.getElementById('stat-transactions')!.textContent = String(data.totalTransactions ?? 0);
-    } catch { /* silencieux */ }
+      document.getElementById('stat-nouveaux-30j')!.textContent = String(data.nouveaux30J ?? 0);
+    } catch {}
   }
 
   async function loadRecentCommerces() {
@@ -70,73 +165,77 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       const res = await authFetch(`${import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001'}/api/admin/commerces`);
       if (!res.ok) throw new Error();
       const { data } = await res.json();
+      allCommerces = data ?? [];
 
-      if (!data?.length) {
-        container.innerHTML = '<p class="text-slate-500 text-sm">Aucun commerce inscrit.</p>';
+      if (!allCommerces.length) {
+        container.innerHTML = '<p class="text-sm text-slate-500">Aucun commerce inscrit.</p>';
         return;
       }
 
       container.innerHTML = `
-        <table class="w-full">
-          <thead class="border-b border-slate-200">
-            <tr class="text-left">
-              <th class="px-4 py-3 text-slate-500 text-xs uppercase tracking-wide">Commerce</th>
-              <th class="px-4 py-3 text-slate-500 text-xs uppercase tracking-wide">Clients</th>
-              <th class="px-4 py-3 text-slate-500 text-xs uppercase tracking-wide">Abonnement</th>
-              <th class="px-4 py-3 text-slate-500 text-xs uppercase tracking-wide">Statut</th>
-              <th class="px-4 py-3 text-slate-500 text-xs uppercase tracking-wide">Inscrit le</th>
-              <th class="px-4 py-3 text-slate-500 text-xs uppercase tracking-wide">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${(data as Array<{ id: string; nom: string; email: string | null; clients: unknown[]; actif: boolean; created_at: string }>)
-              .slice(0, 20)
-              .map((c) => `
-              <tr class="border-b border-slate-200 last:border-0 hover:bg-sky-50 transition-colors">
-                <td class="px-4 py-4">
-                  <p class="text-slate-900 text-sm font-medium">${c.nom}</p>
-                  <p class="text-slate-500 text-xs">${c.email ?? '—'}</p>
-                </td>
-                <td class="px-4 py-4 font-mono text-sky-700 text-sm">${(c.clients as unknown[]).length}</td>
-                <td class="px-4 py-4">
-                  <span class="badge bg-slate-100 text-slate-600 border border-slate-200">À configurer</span>
-                </td>
-                <td class="px-4 py-4">
-                  ${c.actif
-                    ? '<span class="badge badge-success">Actif</span>'
-                    : '<span class="badge badge-danger">Inactif</span>'
-                  }
-                </td>
-                <td class="px-4 py-4 text-slate-600 text-sm">
-                  ${new Date(c.created_at).toLocaleDateString('fr-FR')}
-                </td>
-                <td class="px-4 py-4">
-                  <button
-                    onclick="toggleCommerce('${c.id}', ${!c.actif})"
-                    class="text-xs px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
-                  >${c.actif ? 'Désactiver' : 'Activer'}</button>
-                </td>
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[760px]">
+            <thead class="border-b border-slate-200">
+              <tr class="text-left">
+                <th class="px-4 py-3 text-xs uppercase tracking-wide text-slate-500">Commerce</th>
+                <th class="px-4 py-3 text-xs uppercase tracking-wide text-slate-500">Carte</th>
+                <th class="px-4 py-3 text-xs uppercase tracking-wide text-slate-500">Clients</th>
+                <th class="px-4 py-3 text-xs uppercase tracking-wide text-slate-500">Abonnement</th>
+                <th class="px-4 py-3 text-xs uppercase tracking-wide text-slate-500">Statut</th>
+                <th class="px-4 py-3 text-xs uppercase tracking-wide text-slate-500">Création</th>
+                <th class="px-4 py-3 text-xs uppercase tracking-wide text-slate-500">Action</th>
               </tr>
-            `).join('')}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              ${allCommerces.slice(0, 12).map((commerce) => `
+                <tr class="border-b border-slate-100 last:border-0 hover:bg-sky-50/70 transition-colors">
+                  <td class="px-4 py-4">
+                    <p class="text-sm font-semibold text-slate-900">${commerce.nom}</p>
+                    <p class="mt-1 text-xs text-slate-500">${commerce.email ?? 'Pas d’email de contact'}</p>
+                  </td>
+                  <td class="px-4 py-4">
+                    ${commerce.cartes.length > 0
+                      ? '<span class="badge badge-success">Configurée</span>'
+                      : '<span class="badge bg-slate-100 text-slate-500 border border-slate-200">À faire</span>'}
+                  </td>
+                  <td class="px-4 py-4 font-mono text-sm text-sky-700">${commerce.clients.length}</td>
+                  <td class="px-4 py-4"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">Plan manuel</span></td>
+                  <td class="px-4 py-4">
+                    ${commerce.actif
+                      ? '<span class="badge badge-success">Actif</span>'
+                      : '<span class="badge badge-danger">Inactif</span>'}
+                  </td>
+                  <td class="px-4 py-4 text-sm text-slate-600">${new Date(commerce.created_at).toLocaleDateString('fr-FR')}</td>
+                  <td class="px-4 py-4">
+                    <button onclick="toggleCommerce('${commerce.id}', ${!commerce.actif})" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50">
+                      ${commerce.actif ? 'Désactiver' : 'Activer'}
+                    </button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
       `;
     } catch {
-      container.innerHTML = '<p class="text-red-400 text-sm">Erreur lors du chargement.</p>';
+      container.innerHTML = '<p class="text-sm text-red-500">Erreur lors du chargement admin.</p>';
     }
   }
 
   async function toggleCommerce(id: string, actif: boolean) {
     try {
-      await authFetch(
-        `${import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001'}/api/admin/commerces/${id}`,
-        { method: 'PATCH', body: JSON.stringify({ actif }) },
-      );
-      loadRecentCommerces();
-    } catch { /* silencieux */ }
+      await authFetch(`${import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001'}/api/admin/commerces/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ actif }),
+      });
+      await loadStats();
+      await loadRecentCommerces();
+    } catch {}
   }
 
   (window as unknown as Record<string, unknown>).toggleCommerce = toggleCommerce;
+
+  document.getElementById('export-admin-csv')!.addEventListener('click', exportCsv);
 
   loadStats();
   loadRecentCommerces();

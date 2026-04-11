@@ -70,34 +70,74 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       <section id="tab-abonnement" class="account-panel hidden card p-6">
         <h2 class="font-display font-bold text-slate-900 text-xl mb-2">Abonnement et facturation</h2>
-        <p class="text-slate-600 text-sm mb-5">Cette section centralisera votre plan actif, votre cycle de facturation et l’historique des paiements.</p>
-        <div class="rounded-2xl border border-sky-100 bg-sky-50/90 p-5">
-          <p class="text-slate-900 font-medium">Bientôt disponible</p>
-          <p class="text-slate-600 text-sm mt-1">On branchera ici votre plan, vos dates de renouvellement et le statut de vos règlements.</p>
+        <p class="text-slate-600 text-sm mb-5">Cette section prépare l’arrivée du vrai suivi abonnement. Pour l’instant, on y met les repères utiles et les prochaines étapes de facturation.</p>
+        <div class="grid gap-4 lg:grid-cols-2">
+          <div class="rounded-2xl border border-sky-100 bg-sky-50/90 p-5">
+            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600/80">Plan actuel</p>
+            <p class="mt-2 text-xl font-semibold text-slate-900">Plan en cours de configuration</p>
+            <p class="mt-2 text-sm text-slate-600">Votre produit est prêt à recevoir une vraie logique de plan. On branchera ici le plan choisi, le renouvellement et le statut d’essai.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-white p-5">
+            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Facturation</p>
+            <p class="mt-2 text-xl font-semibold text-slate-900">Mise en place par l’équipe</p>
+            <p class="mt-2 text-sm text-slate-600">Comme prévu sur la vitrine, la mise en place accompagnée pourra apparaître ici comme frais unique supplémentaire.</p>
+          </div>
         </div>
       </section>
 
       <section id="tab-plans" class="account-panel hidden card p-6">
         <h2 class="font-display font-bold text-slate-900 text-xl mb-2">Plans</h2>
-        <p class="text-slate-600 text-sm mb-5">Comparez les offres Fidelopass et préparez vos évolutions de capacité.</p>
-        <a href="/pricing" class="btn-secondary px-4 py-2.5 text-sm">Voir les tarifs</a>
+        <p class="text-slate-600 text-sm mb-5">Comparez les offres Fidelopass et préparez vos évolutions de capacité sans sortir de l’espace commerçant.</p>
+        <div class="grid gap-4 xl:grid-cols-3">
+          <div class="rounded-2xl border border-slate-200 bg-white p-5">
+            <p class="text-sm font-semibold text-slate-900">Lancement</p>
+            <p class="mt-2 text-3xl font-bold text-slate-900">25€<span class="text-sm font-medium text-slate-500">/mois</span></p>
+            <p class="mt-3 text-sm text-slate-600">Notifications push, carte à points & VIP, géolocalisation.</p>
+          </div>
+          <div class="rounded-2xl border border-sky-200 bg-sky-50 p-5 shadow-[0_20px_50px_-38px_rgba(59,130,246,0.7)]">
+            <p class="text-sm font-semibold text-slate-900">Croissance</p>
+            <p class="mt-2 text-3xl font-bold text-slate-900">65€<span class="text-sm font-medium text-slate-500">/mois</span></p>
+            <p class="mt-3 text-sm text-slate-600">Jusqu’à 3 lieux / commerces, plus de capacité pour votre équipe.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-white p-5">
+            <p class="text-sm font-semibold text-slate-900">Réseau</p>
+            <p class="mt-2 text-3xl font-bold text-slate-900">199€<span class="text-sm font-medium text-slate-500">/mois</span></p>
+            <p class="mt-3 text-sm text-slate-600">Jusqu’à 10 lieux / commerces avec une gestion multi-site plus structurée.</p>
+          </div>
+        </div>
+        <a href="/pricing" class="btn-secondary mt-5 inline-flex px-4 py-2.5 text-sm">Voir la page tarifs complète</a>
       </section>
 
       <section id="tab-organisation" class="account-panel hidden card p-6">
         <h2 class="font-display font-bold text-slate-900 text-xl mb-2">Organisation</h2>
-        <p class="text-slate-600 text-sm mb-5">Cette zone accueillera la gestion multi-lieux, les associés et les accès du personnel.</p>
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-          <p class="text-slate-900 font-medium">Prévu pour la suite</p>
-          <p class="text-slate-600 text-sm mt-1">On y branchera vos lieux, vos collaborateurs et les droits d’accès scanner.</p>
+        <p class="text-slate-600 text-sm mb-5">Cette zone prépare la gestion multi-lieux, les associés et l’équipement scanner du personnel.</p>
+        <div class="grid gap-4 lg:grid-cols-2">
+          <div class="rounded-2xl border border-slate-200 bg-white p-5">
+            <p class="text-sm font-semibold text-slate-900">Lieu principal</p>
+            <p id="organisation-adresse" class="mt-2 text-sm text-slate-600">Adresse en cours de chargement…</p>
+            <p id="organisation-rayon" class="mt-2 text-xs text-slate-500">Rayon de géolocalisation : —</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-white p-5">
+            <p class="text-sm font-semibold text-slate-900">Équipe & scanner</p>
+            <p class="mt-2 text-sm text-slate-600">Le scanner du personnel se configure désormais après la création de la carte. Cette section accueillera ensuite les accès par collaborateur.</p>
+            <a href="/dashboard/carte" class="btn-secondary mt-4 inline-flex px-4 py-2.5 text-sm">Configurer la carte et le scanner</a>
+          </div>
         </div>
       </section>
 
       <section id="tab-paiements" class="account-panel hidden card p-6">
         <h2 class="font-display font-bold text-slate-900 text-xl mb-2">Paiements</h2>
-        <p class="text-slate-600 text-sm mb-5">Retrouvez ici les encaissements liés à votre abonnement et les informations bancaires nécessaires.</p>
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-          <p class="text-slate-900 font-medium">À connecter</p>
-          <p class="text-slate-600 text-sm mt-1">Cette partie prendra tout son sens dès qu’on branche la facturation réelle.</p>
+        <p class="text-slate-600 text-sm mb-5">Retrouvez ici les encaissements liés à votre abonnement et les informations bancaires nécessaires, dès le branchement de la facturation réelle.</p>
+        <div class="grid gap-4 lg:grid-cols-2">
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+            <p class="text-slate-900 font-medium">Paiements à connecter</p>
+            <p class="text-slate-600 text-sm mt-1">Cette section recevra la méthode de paiement, les prochaines échéances et l’historique des factures.</p>
+          </div>
+          <div class="rounded-2xl border border-sky-100 bg-sky-50/90 p-5">
+            <p class="text-slate-900 font-medium">Besoin d’un coup de main ?</p>
+            <p class="text-slate-600 text-sm mt-1">En attendant, on peut garder ici un support manuel pour la mise en place et les ajustements de facturation.</p>
+            <a href="/contact" class="btn-secondary mt-4 inline-flex px-4 py-2.5 text-sm">Contacter l’équipe</a>
+          </div>
         </div>
       </section>
 
@@ -144,6 +184,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         document.getElementById('geo-status')!.className = 'w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block';
         document.getElementById('geo-label')!.textContent = `GPS : ${data.latitude.toFixed(5)}, ${data.longitude.toFixed(5)}`;
       }
+
+      document.getElementById('organisation-adresse')!.textContent = data.adresse ?? 'Adresse non renseignée';
+      document.getElementById('organisation-rayon')!.textContent = `Rayon de géolocalisation : ${(data.rayon_geo ?? 1000).toLocaleString('fr-FR')} m`;
     } catch { /* silencieux */ }
   }
 
@@ -186,6 +229,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         document.getElementById('geo-status')!.className = 'w-1.5 h-1.5 rounded-full bg-amber-400 inline-block';
         document.getElementById('geo-label')!.textContent = 'Adresse non trouvée — vérifiez le format';
       }
+
+      document.getElementById('organisation-adresse')!.textContent = data?.adresse ?? 'Adresse non renseignée';
+      document.getElementById('organisation-rayon')!.textContent = `Rayon de géolocalisation : ${(data?.rayon_geo ?? 1000).toLocaleString('fr-FR')} m`;
     } catch (err: unknown) {
       errorMsg.textContent = err instanceof Error ? err.message : 'Erreur lors de l’enregistrement.';
       errorMsg.classList.remove('hidden');

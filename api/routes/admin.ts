@@ -25,18 +25,25 @@ adminRoutes.get('/commerces', async (c) => {
 adminRoutes.get('/stats', async (c) => {
   const db = createServiceClient();
 
-  const [commercesRes, cartesRes, clientsRes, transactionsRes] = await Promise.all([
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const [commercesRes, commercesActifsRes, cartesRes, clientsRes, transactionsRes, recentCommercesRes] = await Promise.all([
     db.from('commerces').select('id', { count: 'exact', head: true }),
+    db.from('commerces').select('id', { count: 'exact', head: true }).eq('actif', true),
     db.from('cartes').select('id', { count: 'exact', head: true }),
     db.from('clients').select('id', { count: 'exact', head: true }),
     db.from('transactions').select('id', { count: 'exact', head: true }),
+    db.from('commerces').select('id', { count: 'exact', head: true }).gte('created_at', thirtyDaysAgo.toISOString()),
   ]);
 
   return c.json({
     totalCommerces: commercesRes.count ?? 0,
+    totalCommercesActifs: commercesActifsRes.count ?? 0,
     totalCartes: cartesRes.count ?? 0,
     totalClients: clientsRes.count ?? 0,
     totalTransactions: transactionsRes.count ?? 0,
+    nouveaux30J: recentCommercesRes.count ?? 0,
   });
 });
 

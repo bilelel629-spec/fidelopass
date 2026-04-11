@@ -404,6 +404,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <!-- Géolocalisation -->
       <div class="card wizard-section step-6 p-6">
         <h2 class="font-display font-bold text-white mb-4">Géolocalisation</h2>
+        <div class="mb-4">
+          <label class="label" for="adresse-commerce">Adresse du commerce</label>
+          <input id="adresse-commerce" type="text" class="input" placeholder="12 rue de la Paix, 75001 Paris" />
+          <p class="text-slate-500 text-xs mt-1.5">L’adresse sert à positionner la carte autour de votre commerce et à générer les coordonnées GPS automatiquement.</p>
+        </div>
         <label class="label" for="message-geo">Message sur l'écran de verrouillage</label>
         <input id="message-geo" type="text" class="input" placeholder="Votre carte de fidélité vous attend !" />
         <p class="text-slate-500 text-xs mt-1">S'affiche quand le client passe devant votre commerce.</p>
@@ -1235,7 +1240,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       {
         title: 'Proximité',
         value: `${parseInt((document.getElementById('rayon-geo') as HTMLInputElement).value || '1000', 10).toLocaleString('fr-FR')} m`,
-        detail: (document.getElementById('message-geo') as HTMLInputElement).value || 'Aucun message de proximité personnalisé',
+        detail: (document.getElementById('adresse-commerce') as HTMLInputElement).value || (document.getElementById('message-geo') as HTMLInputElement).value || 'Adresse et message de proximité à compléter',
       },
     ];
 
@@ -1366,6 +1371,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (!res.ok) return;
       const { data } = await res.json();
       const rayon = data?.rayon_geo ?? 1000;
+      (document.getElementById('adresse-commerce') as HTMLInputElement).value = data?.adresse ?? '';
       rayonSlider.value = String(rayon);
       rayonLabel.textContent = `${rayon.toLocaleString('fr-FR')} m`;
     } catch {}
@@ -1406,7 +1412,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if(!res.ok)throw new Error((await res.json()).error??'Erreur');
       await authFetch('/api/commerces/me', {
         method: 'PATCH',
-        body: JSON.stringify({ rayon_geo: parseInt(gi('rayon-geo')) }),
+        body: JSON.stringify({
+          rayon_geo: parseInt(gi('rayon-geo')),
+          adresse: gi('adresse-commerce') || null,
+        }),
       });
       const{data}=await res.json();
       if(!carteId){carteId=data.id;const pu=publicCardUrl(data.id);document.getElementById('public-link-banner')!.classList.remove('hidden');document.getElementById('public-link-url')!.textContent=pu;}

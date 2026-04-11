@@ -2,7 +2,7 @@ const CACHE_NAME = 'fidelopass-v9';
 const APP_SHELL = [
   '/app',
   '/app/scan',
-  '/favicon.svg',
+  '/favicon.png',
   '/manifest.json',
 ];
 
@@ -49,7 +49,7 @@ self.addEventListener('fetch', (event) => {
 
 // ── Push notifications ────────────────────────────────────────────────────────
 self.addEventListener('push', (event) => {
-  let payload = { title: 'Fidelopass', body: 'Nouvelle notification', icon: '/favicon.svg' };
+  let payload = { title: 'Fidelopass', body: 'Nouvelle notification', icon: '/favicon.png' };
   try {
     if (event.data) {
       const data = event.data.json();
@@ -70,8 +70,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(payload.title, {
       body: payload.body,
-      icon: payload.icon ?? '/favicon.svg',
-      badge: '/favicon.svg',
+      icon: payload.icon ?? '/favicon.png',
+      badge: '/favicon.png',
       tag: 'fidelopass-promo',
       renotify: true,
       data: { url: '/' },

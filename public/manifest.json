@@ -1,12 +1,12 @@
 {
   "name": "Fidelopass Scanner",
   "short_name": "Fidelopass",
-  "description": "Scanner de cartes de fidélité",
+  "description": "Scanner Fidelopass pour le personnel en boutique",
   "start_url": "/app",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#edf6ff",
+  "theme_color": "#edf6ff",
   "icons": [
     {
       "src": "/icons/apple-touch-icon.png",
@@ -18,19 +18,13 @@
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }

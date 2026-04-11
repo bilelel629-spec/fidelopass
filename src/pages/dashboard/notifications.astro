@@ -6,17 +6,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   <div class="mb-8">
     <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Communication client</p>
     <h1 class="font-display text-3xl font-bold text-slate-900 mt-2">Notifications push</h1>
-    <p class="text-slate-600 text-sm mt-2">Envoyez un message à vos porteurs de carte via Wallet, puis en push web si leur navigateur le permet.</p>
+    <p class="text-slate-600 text-sm mt-2">Envoyez un message à vos porteurs de carte et suivez les clients réellement joignables depuis votre programme fidélité.</p>
   </div>
 
   <div id="notif-summary" class="grid gap-4 md:grid-cols-2 mb-6">
     <div class="card p-5">
-      <p class="text-slate-500 text-xs uppercase tracking-wide">Push web</p>
+      <p class="text-slate-500 text-xs uppercase tracking-wide">Canal web</p>
       <p id="summary-web-push" class="text-slate-900 text-2xl font-display font-bold mt-2">—</p>
-      <p class="text-slate-600 text-sm mt-2">Clients pouvant recevoir un push navigateur en plus du Wallet.</p>
+      <p class="text-slate-600 text-sm mt-2">Clients pouvant recevoir un push navigateur quand leur appareil le permet.</p>
     </div>
     <div class="card p-5">
-      <p class="text-slate-500 text-xs uppercase tracking-wide">Mises à jour Wallet</p>
+      <p class="text-slate-500 text-xs uppercase tracking-wide">Canal Wallet</p>
       <p id="summary-wallet" class="text-slate-900 text-2xl font-display font-bold mt-2">—</p>
       <p class="text-slate-600 text-sm mt-2">Clients joignables sans app via Apple Wallet ou Google Wallet.</p>
     </div>
@@ -25,7 +25,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   <div class="grid lg:grid-cols-2 gap-6">
     <!-- Formulaire d'envoi -->
     <div class="card p-6">
-      <h2 class="font-display font-bold text-slate-900 mb-4">Nouveau message</h2>
+      <h2 class="font-display font-bold text-slate-900 mb-4">Nouveau message client</h2>
       <form id="notif-form" class="flex flex-col gap-4">
         <div>
           <label class="label" for="titre">Titre</label>
@@ -49,7 +49,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <div id="success-msg" class="hidden text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3"></div>
 
         <button type="submit" class="btn-primary py-3">
-          Envoyer à tous les porteurs de carte
+          Envoyer le message
         </button>
       </form>
     </div>
@@ -130,8 +130,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (!res.ok) throw new Error(data.error ?? 'Erreur');
 
       successMsg.textContent = data.nb_destinataires === 0
-        ? `Aucun client n'a encore ajouté sa carte dans Wallet ou activé le push web.`
-        : `Message envoyé à ${data.nb_delivrees} client(s) sur ${data.nb_destinataires}. Wallet : ${data.nb_wallet ?? 0}. Push web : ${data.nb_web_push ?? 0}.`;
+        ? `Aucun client n'est encore joignable depuis votre programme pour le moment.`
+        : `Message envoyé à ${data.nb_delivrees} client(s) sur ${data.nb_destinataires}. Canal Wallet : ${data.nb_wallet ?? 0}. Canal web : ${data.nb_web_push ?? 0}.`;
       successMsg.classList.remove('hidden');
       form.reset();
       charCount.textContent = '0';
@@ -142,7 +142,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       errorMsg.classList.remove('hidden');
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Envoyer à tous les porteurs de carte';
+      btn.textContent = 'Envoyer le message';
     }
   });
 

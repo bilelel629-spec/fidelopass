@@ -9,6 +9,28 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <h1 class="font-display text-3xl font-bold text-slate-900 mt-2">Tableau de bord</h1>
       <p class="text-slate-600 text-sm mt-2">Retrouvez vos chiffres clés, vos scans récents et les signaux utiles pour piloter votre fidélité.</p>
     </div>
+    <div class="hidden sm:flex gap-2">
+      <a href="/dashboard/carte" class="rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-50">Configurer ma carte</a>
+      <a href="/app/scan" class="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-sky-700">Ouvrir le scanner</a>
+    </div>
+  </div>
+
+  <div class="grid gap-4 md:grid-cols-3 mb-8">
+    <a href="/dashboard/carte" class="card p-5 transition hover:-translate-y-0.5 hover:shadow-[0_20px_60px_-42px_rgba(59,130,246,0.6)]">
+      <p class="text-xs uppercase tracking-[0.24em] text-sky-600/70">Étape 1</p>
+      <h2 class="mt-2 text-lg font-semibold text-slate-900">Personnaliser la carte</h2>
+      <p class="mt-2 text-sm text-slate-600">Templates, visuels, programme fidélité, messages et géolocalisation dans un parcours guidé.</p>
+    </a>
+    <a href="/app/install" class="card p-5 transition hover:-translate-y-0.5 hover:shadow-[0_20px_60px_-42px_rgba(59,130,246,0.6)]">
+      <p class="text-xs uppercase tracking-[0.24em] text-sky-600/70">Étape 2</p>
+      <h2 class="mt-2 text-lg font-semibold text-slate-900">Installer le scanner du personnel</h2>
+      <p class="mt-2 text-sm text-slate-600">Scannez le QR d’installation, autorisez la caméra puis utilisez l’espace scan en caisse.</p>
+    </a>
+    <a href="/dashboard/clients" class="card p-5 transition hover:-translate-y-0.5 hover:shadow-[0_20px_60px_-42px_rgba(59,130,246,0.6)]">
+      <p class="text-xs uppercase tracking-[0.24em] text-sky-600/70">Étape 3</p>
+      <h2 class="mt-2 text-lg font-semibold text-slate-900">Suivre vos clients</h2>
+      <p class="mt-2 text-sm text-slate-600">Consultez vos clients, exportez-les en CSV et pilotez vos messages ou récompenses.</p>
+    </a>
   </div>
 
   <!-- Stats -->
@@ -29,23 +51,32 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <span class="text-slate-500 text-xs">Total</span>
     </div>
     <div class="stat-card">
-      <span class="text-slate-500 text-xs uppercase tracking-wide">Push activés</span>
+      <span class="text-slate-500 text-xs uppercase tracking-wide">Clients notifiables</span>
       <span id="stat-push" class="font-mono text-3xl font-bold text-slate-900">—</span>
-      <span class="text-slate-500 text-xs">Clients notifiables</span>
+      <span class="text-slate-500 text-xs">Wallet ou push</span>
     </div>
   </div>
 
-  <!-- Activité récente -->
-  <div class="card p-6">
-    <h2 class="font-display font-bold text-slate-900 mb-4">Activité récente</h2>
-    <div id="recent-transactions" class="flex flex-col gap-3">
-      <p class="text-slate-500 text-sm">Chargement...</p>
+  <div class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+    <div class="card p-6">
+      <h2 class="font-display font-bold text-slate-900 mb-4">Activité récente</h2>
+      <div id="recent-transactions" class="flex flex-col gap-3">
+        <p class="text-slate-500 text-sm">Chargement...</p>
+      </div>
+    </div>
+
+    <div id="admin-shortcut" class="hidden card p-6 border border-sky-100 bg-sky-50/80">
+      <p class="text-xs uppercase tracking-[0.24em] text-sky-600/75">Accès fondateur</p>
+      <h2 class="mt-2 font-display text-xl font-bold text-slate-900">Administration plateforme</h2>
+      <p class="mt-2 text-sm text-slate-600">Accédez à la vue globale des commerces, aux exports et aux indicateurs de pilotage.</p>
+      <a href="/admin" class="btn-secondary mt-4 inline-flex px-4 py-2.5 text-sm">Ouvrir l’admin</a>
     </div>
   </div>
 </DashboardLayout>
 
 <script>
   import { authFetch } from '../../lib/api';
+  import { supabase } from '../../lib/supabase';
 
   function escapeHtml(value: unknown) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -102,6 +133,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   }
 
+  async function loadAdminShortcut() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const email = session?.user?.email?.toLowerCase();
+      const isAdmin = ['bilelel@live.fr', 'bilel@pulse-agency.fr'].includes(email ?? '');
+      document.getElementById('admin-shortcut')!.classList.toggle('hidden', !isAdmin);
+    } catch {}
+  }
+
   loadStats();
   loadRecentTransactions();
+  loadAdminShortcut();
 </script>

@@ -4,26 +4,27 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
 <DashboardLayout title="Notifications — Fidelopass" activeNav="notifications">
   <div class="mb-8">
-    <h1 class="font-display text-2xl font-bold text-white">Messages clients</h1>
-    <p class="text-slate-400 text-sm mt-1">Envoyez un message à vos porteurs de carte via Wallet, puis en push web si leur navigateur le permet.</p>
+    <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Communication client</p>
+    <h1 class="font-display text-3xl font-bold text-slate-900 mt-2">Messages clients</h1>
+    <p class="text-slate-600 text-sm mt-2">Envoyez un message à vos porteurs de carte via Wallet, puis en push web si leur navigateur le permet.</p>
   </div>
 
   <div id="notif-summary" class="grid gap-4 md:grid-cols-2 mb-6">
     <div class="card p-5">
-      <p class="text-slate-400 text-xs uppercase tracking-wide">Push web</p>
-      <p id="summary-web-push" class="text-white text-2xl font-display font-bold mt-2">—</p>
-      <p class="text-slate-400 text-sm mt-2">Clients pouvant recevoir un push navigateur en plus du Wallet.</p>
+      <p class="text-slate-500 text-xs uppercase tracking-wide">Push web</p>
+      <p id="summary-web-push" class="text-slate-900 text-2xl font-display font-bold mt-2">—</p>
+      <p class="text-slate-600 text-sm mt-2">Clients pouvant recevoir un push navigateur en plus du Wallet.</p>
     </div>
     <div class="card p-5">
-      <p class="text-slate-400 text-xs uppercase tracking-wide">Mises à jour Wallet</p>
-      <p id="summary-wallet" class="text-white text-2xl font-display font-bold mt-2">—</p>
-      <p class="text-slate-400 text-sm mt-2">Clients joignables sans app via Apple Wallet ou Google Wallet.</p>
+      <p class="text-slate-500 text-xs uppercase tracking-wide">Mises à jour Wallet</p>
+      <p id="summary-wallet" class="text-slate-900 text-2xl font-display font-bold mt-2">—</p>
+      <p class="text-slate-600 text-sm mt-2">Clients joignables sans app via Apple Wallet ou Google Wallet.</p>
     </div>
   </div>
 
-  <div class="mb-6 rounded-2xl border border-indigo-400/15 bg-indigo-500/8 px-5 py-4">
-    <p class="text-white text-sm font-medium">Comprendre la différence</p>
-    <p class="text-slate-300 text-sm mt-1 leading-relaxed">
+  <div class="mb-6 rounded-2xl border border-sky-200 bg-sky-50/90 px-5 py-4 shadow-[0_18px_44px_-34px_rgba(37,99,235,0.35)]">
+    <p class="text-slate-900 text-sm font-semibold">Comprendre la différence</p>
+    <p class="text-slate-600 text-sm mt-1 leading-relaxed">
       Cette page envoie d’abord un message Wallet aux clients qui ont déjà ajouté leur carte, puis complète avec un push web sur les navigateurs compatibles. Sur iPhone, le canal principal reste Wallet, sans application à installer.
     </p>
   </div>
@@ -31,7 +32,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   <div class="grid lg:grid-cols-2 gap-6">
     <!-- Formulaire d'envoi -->
     <div class="card p-6">
-      <h2 class="font-display font-bold text-white mb-4">Nouveau message</h2>
+      <h2 class="font-display font-bold text-slate-900 mb-4">Nouveau message</h2>
       <form id="notif-form" class="flex flex-col gap-4">
         <div>
           <label class="label" for="titre">Titre</label>
@@ -62,7 +63,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     <!-- Historique -->
     <div class="card p-6">
-      <h2 class="font-display font-bold text-white mb-4">Historique</h2>
+      <h2 class="font-display font-bold text-slate-900 mb-4">Historique</h2>
       <div id="notif-history" class="flex flex-col gap-3">
         <p class="text-slate-500 text-sm">Chargement...</p>
       </div>
@@ -166,11 +167,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       }
 
       container.innerHTML = data.map((n: { titre: string; message: string; nb_destinataires: number; nb_delivrees: number | null; created_at: string }) => `
-        <div class="border-b border-white/5 pb-3 last:border-0 last:pb-0">
+        <div class="border-b border-slate-200 pb-3 last:border-0 last:pb-0">
           <div class="flex items-start justify-between gap-2">
             <div>
-              <p class="text-white text-sm font-medium">${escapeHtml(n.titre)}</p>
-              <p class="text-slate-400 text-xs mt-0.5">${escapeHtml(n.message)}</p>
+              <p class="text-slate-900 text-sm font-medium">${escapeHtml(n.titre)}</p>
+              <p class="text-slate-600 text-xs mt-0.5">${escapeHtml(n.message)}</p>
             </div>
             <span class="badge badge-info shrink-0">${n.nb_delivrees ?? 0}/${n.nb_destinataires}</span>
           </div>

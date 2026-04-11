@@ -5,8 +5,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 <DashboardLayout title="Clients — Fidelopass" activeNav="clients">
   <div class="flex items-center justify-between mb-8">
     <div>
-      <h1 class="font-display text-2xl font-bold text-white">Clients</h1>
-      <p class="text-slate-400 text-sm mt-1">Gérez votre base de clients fidèles</p>
+      <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Base client</p>
+      <h1 class="font-display text-3xl font-bold text-slate-900 mt-2">Clients</h1>
+      <p class="text-slate-600 text-sm mt-2">Gérez votre base de clients fidèles et suivez leur capacité à recevoir des messages.</p>
     </div>
   </div>
 
@@ -57,33 +58,33 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       container.innerHTML = `
         <table class="w-full">
-          <thead class="border-b border-white/10">
+          <thead class="border-b border-slate-200">
             <tr class="text-left">
-              <th class="px-6 py-3 text-slate-400 text-xs uppercase tracking-wide font-medium">Client</th>
-              <th class="px-6 py-3 text-slate-400 text-xs uppercase tracking-wide font-medium">Points / Tampons</th>
-              <th class="px-6 py-3 text-slate-400 text-xs uppercase tracking-wide font-medium">Dernière visite</th>
-              <th class="px-6 py-3 text-slate-400 text-xs uppercase tracking-wide font-medium">Push</th>
+              <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Client</th>
+              <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Points / Tampons</th>
+              <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Dernière visite</th>
+              <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Push</th>
             </tr>
           </thead>
           <tbody>
             ${data.map((c: { nom: string | null; email: string | null; telephone: string | null; points_actuels: number; tampons_actuels: number; derniere_visite: string | null; push_enabled: boolean; fcm_token: string | null }) => `
-              <tr class="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
+              <tr class="border-b border-slate-200 last:border-0 hover:bg-sky-50 transition-colors">
                 <td class="px-6 py-4">
-                  <div class="font-medium text-white text-sm">${escapeHtml(c.nom ?? 'Anonyme')}</div>
+                  <div class="font-medium text-slate-900 text-sm">${escapeHtml(c.nom ?? 'Anonyme')}</div>
                   <div class="text-slate-500 text-xs">${escapeHtml(c.email ?? c.telephone ?? '—')}</div>
                 </td>
                 <td class="px-6 py-4">
-                  <span class="font-mono text-sm text-indigo-400">${c.points_actuels || c.tampons_actuels}</span>
+                  <span class="font-mono text-sm text-sky-700">${c.points_actuels || c.tampons_actuels}</span>
                 </td>
-                <td class="px-6 py-4 text-slate-400 text-sm">
+                <td class="px-6 py-4 text-slate-600 text-sm">
                   ${c.derniere_visite ? new Date(c.derniere_visite).toLocaleDateString('fr-FR') : '—'}
                 </td>
                 <td class="px-6 py-4">
                   ${c.push_enabled && c.fcm_token
                     ? '<span class="badge badge-success">Prêt</span>'
                     : c.push_enabled
-                      ? '<span class="badge bg-amber-500/10 text-amber-300">Token manquant</span>'
-                      : '<span class="badge bg-white/10 text-slate-400">Non</span>'
+                      ? '<span class="badge badge-warning">Token manquant</span>'
+                      : '<span class="badge bg-slate-100 text-slate-500 border border-slate-200">Non</span>'
                   }
                 </td>
               </tr>

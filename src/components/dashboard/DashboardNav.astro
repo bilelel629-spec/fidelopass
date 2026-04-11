@@ -5,71 +5,88 @@ interface Props {
 const { activeNav = '' } = Astro.props;
 
 const navItems = [
-  { href: '/dashboard', id: 'dashboard', label: 'Dashboard', icon: '📊' },
-  { href: '/dashboard/carte', id: 'carte', label: 'Ma carte', icon: '🎴' },
-  { href: '/dashboard/clients', id: 'clients', label: 'Clients', icon: '👥' },
-  { href: '/dashboard/transactions', id: 'transactions', label: 'Transactions', icon: '⚡' },
-  { href: '/dashboard/notifications', id: 'notifications', label: 'Notifications', icon: '🔔' },
-  { href: '/dashboard/parametres', id: 'parametres', label: 'Paramètres', icon: '⚙️' },
+  { href: '/dashboard', id: 'dashboard', label: 'Dashboard', paths: ['M4 13h6V4H4zm10 7h6v-9h-6zm0-11h6V4h-6zM4 20h6v-5H4z'] },
+  { href: '/dashboard/carte', id: 'carte', label: 'Ma carte', paths: ['M3 8a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3zm0 3h18'] },
+  { href: '/dashboard/clients', id: 'clients', label: 'Clients', paths: ['M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2', 'M10 7a4 4 0 1 0 0 .01', 'M20 21v-2a4 4 0 0 0-3-3.87', 'M16 3.13a4 4 0 0 1 0 7.75'] },
+  { href: '/dashboard/transactions', id: 'transactions', label: 'Transactions', paths: ['M3 17l6-6 4 4 8-8', 'M21 7h-6v6'] },
+  { href: '/dashboard/notifications', id: 'notifications', label: 'Messages', paths: ['M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11A6 6 0 0 0 6 11v3.2a2 2 0 0 1-.6 1.4L4 17h5', 'M9 17a3 3 0 0 0 6 0'] },
+  { href: '/dashboard/parametres', id: 'parametres', label: 'Paramètres', paths: ['M12 3v2.2', 'M12 18.8V21', 'M4.93 4.93l1.56 1.56', 'M17.51 17.51l1.56 1.56', 'M3 12h2.2', 'M18.8 12H21', 'M4.93 19.07l1.56-1.56', 'M17.51 6.49l1.56-1.56', 'M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8'] },
 ];
 ---
 
-<aside class="hidden lg:flex w-60 shrink-0 border-r border-white/5 flex-col h-full" style="background:#0a0f1e">
-  <div class="px-6 py-5 border-b border-white/5">
-    <a href="/dashboard" class="flex items-center gap-2 text-white">
-      <img src="/logo-mark.svg" alt="" class="h-8 w-8 rounded-xl" />
-      <span class="font-display font-bold text-lg">Fidelopass</span>
+<aside class="hidden lg:flex w-72 shrink-0 h-full flex-col border-r border-sky-100/90 bg-white/82 backdrop-blur-2xl shadow-[0_18px_50px_-30px_rgba(37,99,235,0.25)]">
+  <div class="px-6 py-6 border-b border-sky-100/90">
+    <a href="/dashboard" class="flex flex-col gap-2">
+      <img src="/logo-premium.png" alt="Fidelopass" class="h-14 w-48 object-cover object-center" />
+      <span class="text-xs font-medium tracking-[0.24em] uppercase text-sky-700/70">Espace commerçant</span>
     </a>
   </div>
 
-  <nav class="flex-1 px-3 py-4 flex flex-col gap-1">
-    {navItems.map(({ href, id, label, icon }) => (
+  <nav class="flex-1 px-4 py-5 flex flex-col gap-1.5">
+    {navItems.map(({ href, id, label, paths }) => (
       <a
         href={href}
-        class={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150
+        class={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-all duration-200
           ${activeNav === id
-            ? 'bg-indigo-500/20 text-indigo-300 font-medium'
-            : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+            ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-[0_18px_30px_-24px_rgba(37,99,235,0.9)]'
+            : 'text-slate-600 hover:bg-sky-50 hover:text-slate-900'
           }`}
       >
-        <span class="text-base">{icon}</span>
-        {label}
+        <span class={`flex h-10 w-10 items-center justify-center rounded-2xl border transition-all
+          ${activeNav === id
+            ? 'border-white/20 bg-white/12'
+            : 'border-sky-100 bg-white text-sky-600 group-hover:border-sky-200 group-hover:bg-sky-100/70'
+          }`}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+            {paths.map((path) => <path d={path}></path>)}
+          </svg>
+        </span>
+        <span class={activeNav === id ? 'font-semibold' : 'font-medium'}>{label}</span>
       </a>
     ))}
   </nav>
 
-  <div class="px-3 py-4 border-t border-white/5">
-    <a href="/app" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all mb-1">
-      <span>📱</span> Scanner
+  <div class="px-4 pb-4 space-y-2 border-t border-sky-100/90 pt-4">
+    <a href="/app" class="flex items-center justify-between rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-medium text-sky-800 transition hover:border-sky-300 hover:bg-sky-100">
+      <span>Ouvrir le scanner</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+        <path d="M7 3H5a2 2 0 0 0-2 2v2"></path>
+        <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+        <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+        <path d="M3 17v2a2 2 0 0 0 2 2h2"></path>
+        <path d="M8 12h8"></path>
+      </svg>
     </a>
-    <button id="logout-btn" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all">
-      <span>🚪</span> Déconnexion
+    <button id="logout-btn" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600">
+      Se déconnecter
     </button>
   </div>
 </aside>
 
-<header class="lg:hidden fixed top-0 inset-x-0 z-40 border-b border-white/10 bg-navy-950/90 backdrop-blur-xl px-4 py-3 flex items-center justify-between">
-  <a href="/dashboard" class="flex items-center gap-2 text-white">
-    <img src="/logo-mark.svg" alt="" class="h-8 w-8 rounded-xl" />
-    <span class="font-display font-bold text-lg">Fidelopass</span>
+<header class="lg:hidden fixed top-0 inset-x-0 z-40 border-b border-sky-100/90 bg-white/90 backdrop-blur-2xl px-4 py-3 flex items-center justify-between">
+  <a href="/dashboard" class="flex items-center gap-3 min-w-0">
+    <img src="/logo-premium.png" alt="Fidelopass" class="h-10 w-36 object-cover object-center" />
   </a>
-  <a href="/app" class="rounded-full bg-indigo-500/20 text-indigo-200 px-3 py-1.5 text-xs font-semibold">
+  <a href="/app" class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700">
     Scanner
   </a>
 </header>
 
-<nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-white/10 bg-navy-950/95 backdrop-blur-xl px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
+<nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-sky-100/90 bg-white/92 backdrop-blur-2xl px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.55rem)]">
   <div class="grid grid-cols-5 gap-1">
-    {navItems.slice(0, 5).map(({ href, id, label, icon }) => (
+    {navItems.slice(0, 5).map(({ href, id, label, paths }) => (
       <a
         href={href}
         class={`min-w-0 flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[0.68rem] transition-all
           ${activeNav === id
-            ? 'bg-indigo-500/20 text-indigo-200 font-semibold'
-            : 'text-slate-400 hover:text-slate-200'
+            ? 'bg-sky-100 text-sky-700 font-semibold'
+            : 'text-slate-500 hover:text-slate-800'
           }`}
       >
-        <span class="text-base leading-none">{icon}</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 leading-none">
+          {paths.map((path) => <path d={path}></path>)}
+        </svg>
         <span class="truncate max-w-full">{label}</span>
       </a>
     ))}
@@ -82,7 +99,7 @@ const navItems = [
     import.meta.env.PUBLIC_SUPABASE_URL,
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
   );
-  document.getElementById('logout-btn')!.addEventListener('click', async () => {
+  document.getElementById('logout-btn')?.addEventListener('click', async () => {
     await supabase.auth.signOut();
     window.location.href = '/login';
   });

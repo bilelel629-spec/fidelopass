@@ -5,38 +5,39 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 <DashboardLayout title="Dashboard — Fidelopass" activeNav="dashboard">
   <div class="flex items-center justify-between mb-8">
     <div>
-      <h1 class="font-display text-2xl font-bold text-white">Tableau de bord</h1>
-      <p class="text-slate-400 text-sm mt-1">Vue d'ensemble de votre activité</p>
+      <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Vue d'ensemble</p>
+      <h1 class="font-display text-3xl font-bold text-slate-900 mt-2">Tableau de bord</h1>
+      <p class="text-slate-600 text-sm mt-2">Retrouvez vos chiffres clés, vos scans récents et les signaux utiles pour piloter votre fidélité.</p>
     </div>
   </div>
 
   <!-- Stats -->
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
     <div class="stat-card">
-      <span class="text-slate-400 text-xs uppercase tracking-wide">Clients totaux</span>
-      <span id="stat-clients" class="font-mono text-3xl font-bold text-white">—</span>
-      <span class="text-emerald-400 text-xs">Ce mois-ci</span>
+      <span class="text-slate-500 text-xs uppercase tracking-wide">Clients totaux</span>
+      <span id="stat-clients" class="font-mono text-3xl font-bold text-slate-900">—</span>
+      <span class="text-emerald-600 text-xs font-medium">Ce mois-ci</span>
     </div>
     <div class="stat-card">
-      <span class="text-slate-400 text-xs uppercase tracking-wide">Scans aujourd'hui</span>
-      <span id="stat-scans" class="font-mono text-3xl font-bold text-white">—</span>
+      <span class="text-slate-500 text-xs uppercase tracking-wide">Scans aujourd'hui</span>
+      <span id="stat-scans" class="font-mono text-3xl font-bold text-slate-900">—</span>
       <span class="text-slate-500 text-xs">Transactions</span>
     </div>
     <div class="stat-card">
-      <span class="text-slate-400 text-xs uppercase tracking-wide">Récompenses offertes</span>
-      <span id="stat-recompenses" class="font-mono text-3xl font-bold text-white">—</span>
+      <span class="text-slate-500 text-xs uppercase tracking-wide">Récompenses offertes</span>
+      <span id="stat-recompenses" class="font-mono text-3xl font-bold text-slate-900">—</span>
       <span class="text-slate-500 text-xs">Total</span>
     </div>
     <div class="stat-card">
-      <span class="text-slate-400 text-xs uppercase tracking-wide">Push activés</span>
-      <span id="stat-push" class="font-mono text-3xl font-bold text-white">—</span>
+      <span class="text-slate-500 text-xs uppercase tracking-wide">Push activés</span>
+      <span id="stat-push" class="font-mono text-3xl font-bold text-slate-900">—</span>
       <span class="text-slate-500 text-xs">Clients notifiables</span>
     </div>
   </div>
 
   <!-- Activité récente -->
   <div class="card p-6">
-    <h2 class="font-display font-bold text-white mb-4">Activité récente</h2>
+    <h2 class="font-display font-bold text-slate-900 mb-4">Activité récente</h2>
     <div id="recent-transactions" class="flex flex-col gap-3">
       <p class="text-slate-500 text-sm">Chargement...</p>
     </div>
@@ -85,13 +86,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       }
 
       container.innerHTML = data.map((t: { type: string; valeur: number; created_at: string }) => `
-        <div class="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+        <div class="flex items-center justify-between py-3 border-b border-slate-200 last:border-0">
           <div class="flex items-center gap-3">
             <span class="w-2 h-2 rounded-full ${t.type === 'ajout_tampon' ? 'bg-indigo-400' : t.type === 'ajout_points' ? 'bg-cyan-400' : 'bg-emerald-400'}"></span>
-            <span class="text-slate-300 text-sm capitalize">${escapeHtml(t.type.replace('_', ' '))}</span>
+            <span class="text-slate-700 text-sm capitalize">${escapeHtml(t.type.replace('_', ' '))}</span>
           </div>
           <div class="flex items-center gap-4">
-            <span class="font-mono text-sm text-white">+${t.valeur}</span>
+            <span class="font-mono text-sm text-slate-900">+${t.valeur}</span>
             <span class="text-slate-500 text-xs">${new Date(t.created_at).toLocaleDateString('fr-FR')}</span>
           </div>
         </div>

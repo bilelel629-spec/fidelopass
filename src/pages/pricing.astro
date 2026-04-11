@@ -102,14 +102,15 @@ const faq = [
 
       <!-- Toggle mensuel / annuel -->
       <div class="inline-flex items-center gap-1 mt-8 rounded-2xl border border-slate-200 bg-white/90 p-1.5 shadow-sm">
-        <button id="toggle-monthly" class="px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm">
+        <button id="toggle-monthly" class="px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500">
           Mensuel
         </button>
-        <button id="toggle-annual" class="px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500">
+        <button id="toggle-annual" class="px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm">
           Annuel
           <span class="ml-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 font-semibold">-25%</span>
         </button>
       </div>
+      <p class="text-slate-400 text-sm mt-3">Tarifs affichés par défaut avec engagement annuel.</p>
     </div>
   </section>
 
@@ -139,13 +140,13 @@ const faq = [
             <div class="flex items-end gap-1 mb-1">
               <span class:list={["font-display font-bold leading-none", plan.featured ? "text-white" : "text-slate-900"]}>
                 <span class="text-4xl monthly-price" data-monthly={plan.monthlyPrice} data-annual={plan.annualPrice}>
-                  {plan.monthlyPrice}€
+                  {plan.annualPrice}€
                 </span>
               </span>
               <span class:list={["text-sm mb-1 period-label", plan.featured ? "text-indigo-200" : "text-slate-400"]}>/mois</span>
             </div>
-            <p class:list={["text-xs mt-0.5 annual-note hidden", plan.featured ? "text-indigo-300" : "text-slate-400"]}>
-              Facturé {plan.annualPrice * 12}€/an
+            <p class:list={["text-xs mt-0.5", plan.featured ? "text-indigo-300" : "text-slate-400"]}>
+              Avec engagement annuel
             </p>
 
             <p class:list={["text-sm leading-relaxed mt-4 mb-6", plan.featured ? "text-indigo-200" : "text-slate-500"]}>
@@ -190,6 +191,35 @@ const faq = [
       </div>
 
       <p class="text-center text-slate-400 text-xs mt-8">Prix HT. TVA applicable selon votre situation.</p>
+    </div>
+  </section>
+
+  <section class="bg-white py-14">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6">
+      <div class="rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-8 shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
+        <div class="grid gap-6 lg:grid-cols-[1fr_0.9fr] lg:items-center">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">Mise en place</p>
+            <h2 class="font-display text-3xl font-bold text-slate-900 mt-3">
+              Personnalisez votre carte directement depuis votre tableau de bord
+            </h2>
+            <p class="text-slate-500 text-base leading-relaxed mt-4">
+              Fidelopass est conçu pour que vous puissiez créer, ajuster et publier votre carte en autonomie. Si vous préférez être accompagné, notre équipe peut aussi préparer la mise en place avec vous.
+            </p>
+          </div>
+          <div class="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+            <p class="text-slate-900 font-semibold text-lg">Option accompagnement</p>
+            <p class="text-slate-500 text-sm mt-2 leading-relaxed">
+              Aide à la configuration, au paramétrage initial et à la mise en ligne de votre première carte.
+            </p>
+            <div class="mt-5 flex items-end gap-2">
+              <span class="font-display text-4xl font-bold text-slate-900">20€</span>
+              <span class="text-slate-400 text-sm mb-1">une seule fois</span>
+            </div>
+            <p class="text-slate-400 text-xs mt-3">À ajouter seulement si vous souhaitez que notre équipe intervienne avec vous.</p>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -299,16 +329,17 @@ const faq = [
     });
 
     document.querySelectorAll('.period-label').forEach((el) => {
-      el.textContent = isAnnual ? '/mois (annuel)' : '/mois';
+      el.textContent = '/mois';
     });
 
     document.querySelectorAll('.annual-note').forEach((el) => {
-      el.classList.toggle('hidden', !isAnnual);
+      el.textContent = isAnnual ? 'Avec engagement annuel' : 'Sans engagement';
     });
   }
 
   monthlyBtn.addEventListener('click', () => setMode('monthly'));
   annualBtn.addEventListener('click', () => setMode('annual'));
+  setMode('annual');
 
   // FAQ
   document.querySelectorAll('#pricing-faq [data-faq]').forEach((item) => {

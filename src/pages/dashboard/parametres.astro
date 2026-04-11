@@ -46,17 +46,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           </div>
 
           <div>
-            <label class="label" for="adresse">Adresse complète</label>
-            <input id="adresse" type="text" class="input" placeholder="12 rue de la Paix, 75001 Paris" />
-            <p class="text-slate-500 text-xs mt-1.5 flex items-center gap-1.5">
-              <span id="geo-status" class="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block"></span>
-              <span id="geo-label">Coordonnées GPS générées automatiquement à la sauvegarde</span>
-            </p>
-          </div>
-
-          <div>
             <label class="label" for="email-commerce">Email contact</label>
             <input id="email-commerce" type="email" class="input" placeholder="contact@moncommerce.fr" />
+          </div>
+
+          <div class="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-slate-700">
+            L’adresse du commerce et le rayon de géolocalisation se règlent maintenant dans
+            <a href="/dashboard/carte" class="font-semibold text-sky-700 underline underline-offset-2">Ma carte → Géolocalisation</a>.
           </div>
 
           <div id="error-msg" class="hidden text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3"></div>
@@ -116,6 +112,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             <p class="text-sm font-semibold text-slate-900">Lieu principal</p>
             <p id="organisation-adresse" class="mt-2 text-sm text-slate-600">Adresse en cours de chargement…</p>
             <p id="organisation-rayon" class="mt-2 text-xs text-slate-500">Rayon de géolocalisation : —</p>
+            <a href="/dashboard/carte" class="btn-secondary mt-4 inline-flex px-4 py-2.5 text-sm">Modifier l’adresse et la proximité</a>
           </div>
           <div class="rounded-2xl border border-slate-200 bg-white p-5">
             <p class="text-sm font-semibold text-slate-900">Équipe & scanner</p>
@@ -177,13 +174,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       (document.getElementById('nom') as HTMLInputElement).value = data.nom ?? '';
       (document.getElementById('telephone') as HTMLInputElement).value = data.telephone ?? '';
-      (document.getElementById('adresse') as HTMLInputElement).value = data.adresse ?? '';
       (document.getElementById('email-commerce') as HTMLInputElement).value = data.email ?? '';
-
-      if (data.latitude && data.longitude) {
-        document.getElementById('geo-status')!.className = 'w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block';
-        document.getElementById('geo-label')!.textContent = `GPS : ${data.latitude.toFixed(5)}, ${data.longitude.toFixed(5)}`;
-      }
 
       document.getElementById('organisation-adresse')!.textContent = data.adresse ?? 'Adresse non renseignée';
       document.getElementById('organisation-rayon')!.textContent = `Rayon de géolocalisation : ${(data.rayon_geo ?? 1000).toLocaleString('fr-FR')} m`;
@@ -203,15 +194,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     btn.disabled = true;
     btn.textContent = 'Enregistrement...';
 
-    const adresse = (document.getElementById('adresse') as HTMLInputElement).value;
-
     try {
       const res = await authFetch('/api/commerces/me', {
         method: 'PATCH',
         body: JSON.stringify({
           nom: (document.getElementById('nom') as HTMLInputElement).value,
           telephone: (document.getElementById('telephone') as HTMLInputElement).value || null,
-          adresse: adresse || null,
           email: (document.getElementById('email-commerce') as HTMLInputElement).value || null,
         }),
       });
@@ -221,14 +209,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       successMsg.textContent = 'Profil commerçant enregistré.';
       successMsg.classList.remove('hidden');
-
-      if (data?.latitude && data?.longitude) {
-        document.getElementById('geo-status')!.className = 'w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block';
-        document.getElementById('geo-label')!.textContent = `GPS : ${data.latitude.toFixed(5)}, ${data.longitude.toFixed(5)}`;
-      } else if (adresse) {
-        document.getElementById('geo-status')!.className = 'w-1.5 h-1.5 rounded-full bg-amber-400 inline-block';
-        document.getElementById('geo-label')!.textContent = 'Adresse non trouvée — vérifiez le format';
-      }
 
       document.getElementById('organisation-adresse')!.textContent = data?.adresse ?? 'Adresse non renseignée';
       document.getElementById('organisation-rayon')!.textContent = `Rayon de géolocalisation : ${(data?.rayon_geo ?? 1000).toLocaleString('fr-FR')} m`;

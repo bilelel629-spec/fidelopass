@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
+import { getPlanLimits } from './commerces';
 import { sendPushNotification, sendPersonalizedPushNotifications } from '../services/push';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { sendGoogleWalletMessage } from '../services/google-wallet';
@@ -240,6 +241,17 @@ notificationsRoutes.post('/review-campaign', async (c) => {
     .single();
 
   if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
+
+  // Vérification plan : avis Google réservé au plan Pro
+  const { data: commerceWithPlan } = await db
+    .from('commerces')
+    .select('plan')
+    .eq('id', commerce.id)
+    .single();
+  const planLimits = getPlanLimits(commerceWithPlan?.plan);
+  if (!planLimits.avisGoogle) {
+    return c.json({ error: "La campagne avis Google est réservée au plan Pro. Mettez à niveau votre abonnement pour y accéder." }, 403);
+  }
 
   // Vérifie que la fonctionnalité est activée
   const { data: carte } = await db

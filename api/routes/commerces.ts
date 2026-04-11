@@ -15,7 +15,17 @@ const updateSchema = z.object({
   email: z.string().email().nullable().optional(),
   logo_url: z.string().url().nullable().optional(),
   rayon_geo: z.number().int().min(100).max(50000).optional(),
+  plan: z.enum(['starter', 'pro']).optional(),
 });
+
+export const PLAN_LIMITS = {
+  starter: { maxClients: 500, maxPointsDeVente: 1, anniversaire: false, avisGoogle: false },
+  pro:     { maxClients: 2000, maxPointsDeVente: 3, anniversaire: true,  avisGoogle: true  },
+} as const;
+
+export function getPlanLimits(plan: string | null | undefined) {
+  return PLAN_LIMITS[(plan as keyof typeof PLAN_LIMITS) ?? 'starter'] ?? PLAN_LIMITS.starter;
+}
 
 /** GET /api/commerces/me — Récupère le commerce de l'utilisateur connecté */
 commercesRoutes.get('/me', async (c) => {

@@ -48,9 +48,9 @@ export async function sendPushNotification(
       const response = await messaging.sendEachForMulticast({
         tokens: batch,
         notification: { title, body },
-        data: { title, body, url: clickUrl, icon: '/favicon.svg' },
+        data: { title, body, url: clickUrl, icon: '/icons/icon-192.png' },
         webpush: {
-          notification: { title, body, icon: '/favicon.svg' },
+          notification: { title, body, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png' },
           fcmOptions: { link: clickUrl },
         },
       });
@@ -87,9 +87,9 @@ export async function sendPersonalizedPushNotifications(
       const messages = batch.map((r) => ({
         token: r.token,
         notification: { title, body },
-        data: { title, body, url: r.clickUrl, icon: '/favicon.svg' },
+        data: { title, body, url: r.clickUrl, icon: '/icons/icon-192.png' },
         webpush: {
-          notification: { title, body, icon: '/favicon.svg' },
+          notification: { title, body, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png' },
           fcmOptions: { link: r.clickUrl },
         },
       }));

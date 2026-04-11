@@ -7,7 +7,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     <div>
       <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Base client</p>
       <h1 class="font-display text-3xl font-bold text-slate-900 mt-2">Clients</h1>
-      <p class="text-slate-600 text-sm mt-2">Gérez votre base de clients fidèles et suivez leur capacité à recevoir des messages.</p>
+      <p class="text-slate-600 text-sm mt-2">Gérez votre base de clients fidèles et ajustez leurs tampons ou points manuellement.</p>
     </div>
     <button id="export-csv-btn" class="btn-secondary px-4 py-2.5 text-sm font-medium">
       Exporter en CSV
@@ -30,21 +30,72 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <p class="text-slate-500 text-sm p-6">Chargement...</p>
     </div>
   </div>
+
+  <!-- Modal client -->
+  <div id="client-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div id="client-modal-backdrop" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+    <div class="relative w-full max-w-sm rounded-[1.6rem] border border-sky-100 bg-white p-6 shadow-[0_32px_80px_-24px_rgba(15,23,42,0.35)]">
+      <button id="modal-close-btn" type="button" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+          <path d="M18 6 6 18M6 6l12 12"></path>
+        </svg>
+      </button>
+      <p class="text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-sky-600/70 mb-1">Client sélectionné</p>
+      <h3 id="modal-nom" class="text-lg font-bold text-slate-900">—</h3>
+      <p id="modal-contact" class="text-slate-500 text-xs mt-0.5 mb-4">—</p>
+
+      <div class="rounded-2xl border border-sky-100 bg-sky-50/40 p-4 mb-4">
+        <div class="flex items-center justify-between">
+          <span class="text-xs text-slate-500 uppercase tracking-wide" id="modal-unit-label">Tampons actuels</span>
+          <span id="modal-score" class="font-mono text-2xl font-bold text-sky-700">—</span>
+        </div>
+        <div id="modal-recompenses-row" class="mt-2 text-xs text-emerald-600 font-medium hidden"></div>
+      </div>
+
+      <div class="mb-4">
+        <label class="label mb-2 block" for="modal-valeur">Ajuster (<span id="modal-valeur-unit">tampons</span>)</label>
+        <div class="flex items-center gap-2">
+          <button type="button" id="modal-minus-btn" class="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 text-lg font-bold">−</button>
+          <input type="number" id="modal-valeur" value="1" min="1" max="100" class="input text-center w-20" />
+          <button type="button" id="modal-plus-btn" class="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 text-lg font-bold">+</button>
+        </div>
+      </div>
+
+      <div id="modal-error" class="hidden text-red-400 text-xs bg-red-50 border border-red-100 rounded-xl px-3 py-2 mb-3"></div>
+      <div id="modal-success" class="hidden text-emerald-600 text-xs bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 mb-3"></div>
+
+      <div class="flex gap-2">
+        <button type="button" id="modal-remove-btn" class="flex-1 rounded-2xl border border-slate-200 bg-white py-2.5 text-sm font-medium text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600">
+          Retirer
+        </button>
+        <button type="button" id="modal-add-btn" class="flex-1 rounded-2xl bg-sky-600 py-2.5 text-sm font-medium text-white transition hover:bg-sky-700">
+          Ajouter
+        </button>
+      </div>
+    </div>
+  </div>
 </DashboardLayout>
 
 <script>
   import { authFetch } from '../../lib/api';
 
-  let currentClients: Array<{
+  interface Client {
+    id: string;
     nom: string | null;
     email: string | null;
     telephone: string | null;
     points_actuels: number;
     tampons_actuels: number;
+    recompenses_obtenues: number;
+    carte_id: string | null;
     derniere_visite: string | null;
     push_enabled: boolean;
     fcm_token: string | null;
-  }> = [];
+  }
+
+  let currentClients: Client[] = [];
+  let selectedClient: Client | null = null;
+  let carteType: 'tampons' | 'points' = 'tampons';
 
   function escapeHtml(value: unknown) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -82,8 +133,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             </tr>
           </thead>
           <tbody>
-            ${data.map((c: { nom: string | null; email: string | null; telephone: string | null; points_actuels: number; tampons_actuels: number; derniere_visite: string | null; push_enabled: boolean; fcm_token: string | null }) => `
-              <tr class="border-b border-slate-200 last:border-0 hover:bg-sky-50 transition-colors">
+            ${data.map((c: Client) => `
+              <tr
+                class="border-b border-slate-200 last:border-0 hover:bg-sky-50 transition-colors cursor-pointer"
+                data-client-id="${escapeHtml(c.id)}"
+              >
                 <td class="px-6 py-4">
                   <div class="font-medium text-slate-900 text-sm">${escapeHtml(c.nom ?? 'Anonyme')}</div>
                   <div class="text-slate-500 text-xs">${escapeHtml(c.email ?? c.telephone ?? '—')}</div>
@@ -107,12 +161,134 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           </tbody>
         </table>
       `;
+
+      // Attacher les listeners sur chaque ligne
+      container.querySelectorAll('tr[data-client-id]').forEach((row) => {
+        row.addEventListener('click', () => {
+          const id = (row as HTMLElement).dataset.clientId;
+          const client = currentClients.find((c) => c.id === id);
+          if (client) openModal(client);
+        });
+      });
     } catch {
       container.innerHTML = '<p class="text-red-400 text-sm p-6">Erreur lors du chargement.</p>';
     }
   }
 
+  // Chargement du type de carte pour savoir si c'est tampons ou points
+  async function loadCarteType() {
+    try {
+      const res = await authFetch('/api/cartes');
+      if (!res.ok) return;
+      const { data } = await res.json();
+      if (data?.type) carteType = data.type;
+    } catch { /* silencieux */ }
+  }
+
+  // ── Modal ──────────────────────────────────────────────────────────
+  function openModal(client: Client) {
+    selectedClient = client;
+    const score = carteType === 'points' ? client.points_actuels : client.tampons_actuels;
+    const unit = carteType === 'points' ? 'Points actuels' : 'Tampons actuels';
+    const unitShort = carteType === 'points' ? 'point(s)' : 'tampon(s)';
+
+    (document.getElementById('modal-nom') as HTMLElement).textContent = client.nom ?? 'Anonyme';
+    (document.getElementById('modal-contact') as HTMLElement).textContent = client.email ?? client.telephone ?? '—';
+    (document.getElementById('modal-unit-label') as HTMLElement).textContent = unit;
+    (document.getElementById('modal-score') as HTMLElement).textContent = String(score);
+    (document.getElementById('modal-valeur-unit') as HTMLElement).textContent = unitShort;
+    (document.getElementById('modal-valeur') as HTMLInputElement).value = '1';
+
+    const recRow = document.getElementById('modal-recompenses-row')!;
+    if (client.recompenses_obtenues > 0) {
+      recRow.textContent = `${client.recompenses_obtenues} récompense(s) obtenue(s)`;
+      recRow.classList.remove('hidden');
+    } else {
+      recRow.classList.add('hidden');
+    }
+
+    (document.getElementById('modal-error') as HTMLElement).classList.add('hidden');
+    (document.getElementById('modal-success') as HTMLElement).classList.add('hidden');
+
+    document.getElementById('client-modal')!.classList.remove('hidden');
+  }
+
+  function closeModal() {
+    document.getElementById('client-modal')!.classList.add('hidden');
+    selectedClient = null;
+  }
+
+  document.getElementById('modal-close-btn')!.addEventListener('click', closeModal);
+  document.getElementById('client-modal-backdrop')!.addEventListener('click', closeModal);
+
+  document.getElementById('modal-minus-btn')!.addEventListener('click', () => {
+    const input = document.getElementById('modal-valeur') as HTMLInputElement;
+    input.value = String(Math.max(1, parseInt(input.value || '1') - 1));
+  });
+  document.getElementById('modal-plus-btn')!.addEventListener('click', () => {
+    const input = document.getElementById('modal-valeur') as HTMLInputElement;
+    input.value = String(Math.min(100, parseInt(input.value || '1') + 1));
+  });
+
+  async function applyTransaction(direction: 'add' | 'remove') {
+    if (!selectedClient) return;
+
+    const valeur = parseInt((document.getElementById('modal-valeur') as HTMLInputElement).value) || 1;
+    const errEl = document.getElementById('modal-error')!;
+    const okEl = document.getElementById('modal-success')!;
+    errEl.classList.add('hidden');
+    okEl.classList.add('hidden');
+
+    const addBtn = document.getElementById('modal-add-btn') as HTMLButtonElement;
+    const removeBtn = document.getElementById('modal-remove-btn') as HTMLButtonElement;
+    addBtn.disabled = true;
+    removeBtn.disabled = true;
+
+    const delta = direction === 'add' ? valeur : -valeur;
+
+    try {
+      const res = await authFetch(`/api/clients/${selectedClient.id}/adjust`, {
+        method: 'PATCH',
+        body: JSON.stringify({ delta }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Erreur');
+
+      const newScore = carteType === 'points' ? data.client.points_actuels : data.client.tampons_actuels;
+      (document.getElementById('modal-score') as HTMLElement).textContent = String(newScore);
+
+      const idx = currentClients.findIndex((c) => c.id === selectedClient!.id);
+      if (idx !== -1) {
+        if (carteType === 'points') currentClients[idx].points_actuels = data.client.points_actuels;
+        else currentClients[idx].tampons_actuels = data.client.tampons_actuels;
+        currentClients[idx].recompenses_obtenues = data.client.recompenses_obtenues;
+      }
+
+      const sign = direction === 'add' ? '+' : '−';
+      const unit = carteType === 'points' ? 'point(s)' : 'tampon(s)';
+      okEl.textContent = `${sign}${valeur} ${unit}. Score : ${newScore}`;
+      okEl.classList.remove('hidden');
+
+      if (data.client.recompenses_obtenues > 0) {
+        const recRow = document.getElementById('modal-recompenses-row')!;
+        recRow.textContent = `${data.client.recompenses_obtenues} récompense(s) obtenue(s)`;
+        recRow.classList.remove('hidden');
+      }
+    } catch (err: unknown) {
+      errEl.textContent = err instanceof Error ? err.message : 'Erreur lors de la transaction.';
+      errEl.classList.remove('hidden');
+    } finally {
+      addBtn.disabled = false;
+      removeBtn.disabled = false;
+    }
+  }
+
+  document.getElementById('modal-add-btn')!.addEventListener('click', () => applyTransaction('add'));
+  document.getElementById('modal-remove-btn')!.addEventListener('click', () => applyTransaction('remove'));
+
+  // ── Export CSV ──────────────────────────────────────────────────────
   loadClients();
+  loadCarteType();
 
   let searchTimeout: ReturnType<typeof setTimeout>;
   document.getElementById('search')!.addEventListener('input', (e) => {

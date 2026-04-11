@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
+import { getPlanLimits } from './commerces';
 
 export const clientsRoutes = new Hono();
 
@@ -148,6 +149,27 @@ clientsRoutes.post('/', async (c) => {
 
   if (!carte) return c.json({ error: 'Carte introuvable' }, 404);
 
+  // Vérification limite de cartes selon plan
+  const { data: commerce } = await db
+    .from('commerces')
+    .select('id, plan')
+    .eq('id', carte.commerce_id)
+    .single();
+
+  if (commerce) {
+    const limits = getPlanLimits(commerce.plan);
+    const { count: activeCount } = await db
+      .from('clients')
+      .select('id', { count: 'exact', head: true })
+      .eq('commerce_id', commerce.id);
+
+    if ((activeCount ?? 0) >= limits.maxClients) {
+      return c.json({
+        error: `Limite de ${limits.maxClients} cartes actives atteinte pour votre plan. Passez au plan supérieur pour continuer.`,
+      }, 403);
+    }
+  }
+
   const { data: existingClient, error: existingClientError } = await db
     .from('clients')
     .select('*')
@@ -202,6 +224,77 @@ clientsRoutes.post('/', async (c) => {
   if (error) return c.json({ error: 'Erreur lors de la création du client' }, 500);
 
   return c.json({ data }, 201);
+});
+
+/** PATCH /api/clients/:id/adjust — Ajustement manuel du score (+ ou -) par le commerçant */
+clientsRoutes.patch('/:id/adjust', authMiddleware, async (c) => {
+  const clientId = c.req.param('id');
+  const userId = c.get('userId') as string;
+  const body = await c.req.json().catch(() => null);
+
+  const schema = z.object({
+    delta: z.number().int().min(-1000).max(1000).refine((n) => n !== 0, 'Delta ne peut pas être 0'),
+  });
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides' }, 400);
+
+  const db = createServiceClient();
+  const { data: commerce } = await db.from('commerces').select('id').eq('user_id', userId).single();
+  if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
+
+  const { data: client } = await db
+    .from('clients')
+    .select('*, cartes(type, tampons_total, points_recompense)')
+    .eq('id', clientId)
+    .eq('commerce_id', commerce.id)
+    .single();
+  if (!client) return c.json({ error: 'Client introuvable' }, 404);
+
+  const carte = Array.isArray(client.cartes) ? client.cartes[0] : client.cartes;
+  const isPoints = carte?.type === 'points';
+
+  const current = isPoints ? client.points_actuels : client.tampons_actuels;
+  const newScore = Math.max(0, current + parsed.data.delta);
+  const type = parsed.data.delta > 0
+    ? (isPoints ? 'ajout_points' : 'ajout_tampon')
+    : (isPoints ? 'retrait_points' : 'retrait_tampon');
+
+  let recompensesObtenues = client.recompenses_obtenues;
+  let finalScore = newScore;
+  if (parsed.data.delta > 0) {
+    const seuil = isPoints ? (carte?.points_recompense ?? 100) : (carte?.tampons_total ?? 10);
+    if (newScore >= seuil) {
+      recompensesObtenues += Math.floor(newScore / seuil);
+      finalScore = newScore % seuil;
+    }
+  }
+
+  const [updateResult] = await Promise.all([
+    db.from('clients').update({
+      ...(isPoints ? { points_actuels: finalScore } : { tampons_actuels: finalScore }),
+      recompenses_obtenues: recompensesObtenues,
+      derniere_visite: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq('id', clientId),
+    db.from('transactions').insert({
+      client_id: clientId,
+      commerce_id: commerce.id,
+      type,
+      valeur: Math.abs(parsed.data.delta),
+      points_avant: current,
+      points_apres: finalScore,
+      note: 'Ajustement manuel',
+    }),
+  ]);
+
+  if (updateResult.error) return c.json({ error: 'Erreur lors de la mise à jour' }, 500);
+
+  return c.json({
+    client: {
+      ...(isPoints ? { points_actuels: finalScore } : { tampons_actuels: finalScore }),
+      recompenses_obtenues: recompensesObtenues,
+    },
+  });
 });
 
 /** PATCH /api/clients/:id/fcm — Met à jour le token FCM */

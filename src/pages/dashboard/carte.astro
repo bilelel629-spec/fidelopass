@@ -23,19 +23,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </p>
   </div>
 
-  <div class="mb-6 rounded-[2rem] border border-sky-100 bg-white/95 p-5 shadow-[0_30px_80px_-55px_rgba(59,130,246,0.55)]">
-    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-      <div>
-        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600/70">Parcours guidé</p>
-        <h2 class="mt-1 text-xl font-semibold text-slate-900">Configurez votre carte étape par étape</h2>
-        <p class="mt-1 max-w-3xl text-sm leading-6 text-slate-500">Le parcours avance dans l'ordre le plus simple : on choisit d'abord une base visuelle, puis on règle le programme, les messages, l'apparence et la proximité avant de publier.</p>
-      </div>
-      <div class="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-900 shadow-inner">
-        <span class="font-semibold" id="wizard-current-label">Étape 1</span>
-        <span class="text-slate-500"> sur 8</span>
-      </div>
+  <!-- Barre de progression compacte -->
+  <div class="mb-6 rounded-[1.6rem] border border-sky-100 bg-white/95 shadow-[0_18px_48px_-36px_rgba(59,130,246,0.4)]">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-sky-50">
+      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-600/70">Parcours guidé</p>
+      <span id="wizard-current-label" class="rounded-xl bg-sky-50 border border-sky-100 px-3 py-1 text-xs font-semibold text-sky-800">Étape 1 · Type</span>
     </div>
-    <div class="mt-5 grid gap-2 md:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-8">
+    <div class="flex overflow-x-auto gap-1 p-2 scrollbar-none">
       {[
         'Type',
         'Identité',
@@ -43,22 +37,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         'Apparence',
         'Messages',
         'Options',
-        'Relecture',
         'Partage',
       ].map((label, index) => (
         <button
           type="button"
-          class="wizard-tab rounded-2xl border border-sky-100 bg-white px-3 py-3 text-left transition-all hover:border-sky-200 hover:bg-sky-50"
+          class="wizard-tab shrink-0 rounded-xl border border-sky-100 bg-white px-3 py-2 transition-all hover:border-sky-300 hover:bg-sky-50 flex items-center gap-2"
           data-step-target={String(index + 1)}
         >
-          <p class="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-sky-500/80">Étape {index + 1}</p>
-          <p class="mt-1 text-sm font-medium text-slate-700">{label}</p>
+          <span class="flex h-5 w-5 items-center justify-center rounded-full bg-sky-100 text-[0.62rem] font-bold text-sky-700">{index + 1}</span>
+          <span class="text-xs font-medium text-slate-700 whitespace-nowrap">{label}</span>
         </button>
       ))}
     </div>
   </div>
 
-  <div id="public-link-banner" class="wizard-section step-8 hidden mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 shadow-[0_18px_40px_-34px_rgba(16,185,129,0.5)] flex items-center justify-between gap-4">
+  <div id="public-link-banner" class="wizard-section step-7 hidden mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 shadow-[0_18px_40px_-34px_rgba(16,185,129,0.5)] flex items-center justify-between gap-4">
     <div>
       <p class="text-emerald-700 text-sm font-medium">Votre carte est publiée ✓</p>
       <p id="public-link-url" class="text-slate-500 text-xs mt-0.5"></p>
@@ -97,32 +90,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               </div>
             </div>
           </label>
-        </div>
-
-        <div class="mb-6">
-          <label class="label mb-3 block">Formules prêtes à l'emploi</label>
-          <div class="grid sm:grid-cols-3 gap-2">
-            {[
-              {label:'10 achats = 1 offert', type:'tampons', total:'10', reward:'1 produit offert', points:'100', perEuro:'1'},
-              {label:'8 visites = cadeau', type:'tampons', total:'8', reward:'1 cadeau fidélité', points:'100', perEuro:'1'},
-              {label:'1€ = 1 point', type:'points', total:'10', reward:'5€ de réduction', points:'100', perEuro:'1'},
-              {label:'2€ = 1 point', type:'points', total:'10', reward:'10€ de réduction', points:'200', perEuro:'0.5'},
-              {label:'VIP rapide', type:'tampons', total:'5', reward:'1 avantage VIP', points:'100', perEuro:'1'},
-              {label:'Récompense premium', type:'points', total:'10', reward:'1 récompense premium', points:'500', perEuro:'1'},
-            ].map((preset) => (
-              <button
-                type="button"
-                class="program-preset-btn rounded-xl border border-sky-100 bg-sky-50/60 px-3 py-2 text-left text-xs text-slate-600 transition-all hover:border-sky-200 hover:bg-white"
-                data-type={preset.type}
-                data-total={preset.total}
-                data-reward={preset.reward}
-                data-points={preset.points}
-                data-per-euro={preset.perEuro}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
         </div>
 
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">
@@ -489,11 +456,40 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           </div>
         </div>
 
+        <!-- Anniversaire — Pro uniquement -->
+        <div id="anniv-section" class="rounded-2xl border border-amber-100 bg-amber-50/60 p-4 mb-4">
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <p class="text-sm font-semibold text-slate-900">Programmation anniversaire</p>
+                <span id="anniv-pro-badge" class="rounded-full bg-amber-100 border border-amber-200 px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-700">Pro</span>
+              </div>
+              <p class="mt-0.5 text-xs text-slate-500">Envoyez automatiquement une récompense aux clients le jour de leur anniversaire.</p>
+            </div>
+            <button
+              id="anniv-toggle"
+              type="button"
+              disabled
+              class="relative w-12 h-6 rounded-full transition-colors flex-shrink-0 opacity-40 cursor-not-allowed"
+              style="background:#334155"
+              aria-pressed="false"
+            >
+              <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" style="left:2px"></span>
+            </button>
+          </div>
+          <p id="anniv-upgrade-msg" class="mt-3 text-xs text-amber-700 hidden">
+            Disponible à partir du plan Pro. <a href="/dashboard/parametres" class="font-semibold underline">Voir les plans →</a>
+          </p>
+        </div>
+
         <!-- Toggle Récompense avis Google -->
         <div class="rounded-2xl border border-sky-100 bg-white p-4">
           <div class="flex items-center justify-between gap-4 mb-3">
             <div>
-              <p class="text-sm font-semibold text-slate-900">Récompense avis Google</p>
+              <div class="flex items-center gap-2">
+                <p class="text-sm font-semibold text-slate-900">Récompense avis Google</p>
+                <span id="review-pro-badge" class="hidden rounded-full bg-amber-100 border border-amber-200 px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-700">Pro</span>
+              </div>
               <p class="mt-0.5 text-sm leading-6 text-slate-500">Offrez un tampon ou des points aux clients qui laissent un avis Google. Un lien unique leur est envoyé — un clic, c'est crédité.</p>
             </div>
             <button
@@ -506,6 +502,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               <span id="review-knob" class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" style="left:2px"></span>
             </button>
           </div>
+          <p id="review-upgrade-msg" class="hidden text-xs text-amber-700 mb-3">
+            La récompense avis Google est réservée au plan Pro. <a href="/dashboard/parametres" class="font-semibold underline">Voir les plans →</a>
+          </p>
 
           <div id="review-settings" class="hidden space-y-4">
             <div class="grid sm:grid-cols-2 gap-4">
@@ -535,30 +534,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
       </div>
 
-      <!-- Étape 7 : Relecture -->
+      <!-- Étape 7 : Scanner & Partage -->
       <div class="card wizard-section step-7 p-6">
-        <div class="mb-4">
-          <h2 class="font-display font-bold text-slate-900">Relecture & publication</h2>
-          <p class="mt-1 text-sm leading-6 text-slate-500">Avant de publier, on relit l'essentiel ensemble pour éviter les oublis sur le nom, la récompense, les messages et la proximité.</p>
-        </div>
-        <div class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-          <div class="rounded-2xl border border-sky-100 bg-sky-50/40 p-5">
-            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-600/70">Résumé</p>
-            <div id="review-summary" class="mt-4 grid gap-3 sm:grid-cols-2"></div>
-          </div>
-          <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-            <p class="text-sm font-semibold text-emerald-800">Avant de publier</p>
-            <ul class="mt-3 space-y-2 text-sm text-emerald-900/80">
-              <li>Votre nom de carte et votre récompense doivent être clairement lisibles.</li>
-              <li>Le message Wallet doit donner envie de revenir, pas seulement informer.</li>
-              <li>Le scanner et le partage s'activent juste après cette validation.</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <!-- Étape 8 : Scanner & Partage -->
-      <div class="card wizard-section step-8 p-6">
         <div class="mb-4">
           <h2 class="font-display font-bold text-slate-900">Scanner & Partage</h2>
           <p class="mt-1 text-sm leading-6 text-slate-500">Configurez le scanner du personnel et partagez le QR code client. Votre carte est opérationnelle.</p>
@@ -714,7 +691,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const API = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
   const PUBLIC_SITE_URL = (import.meta.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
   const setupMode = new URLSearchParams(window.location.search).get('setup') === '1';
-  const TOTAL_STEPS = 8;
+  const TOTAL_STEPS = 7;
 
   let carteId: string | null = null;
   let logoUrl = '', stripUrl = '', tamponIconUrl = '', tamponEmoji = '';
@@ -769,30 +746,28 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const nextBtn = document.getElementById('next-step-btn') as HTMLButtonElement;
     const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
     const currentLabel = document.getElementById('wizard-current-label');
-    const labels = ['Type', 'Identité', 'Programme', 'Apparence', 'Messages', 'Options', 'Relecture', 'Partage'];
+    const labels = ['Type', 'Identité', 'Programme', 'Apparence', 'Messages', 'Options', 'Partage'];
 
     if (currentLabel) currentLabel.textContent = `Étape ${currentStep} · ${labels[currentStep - 1]}`;
 
     prevBtn.classList.toggle('invisible', currentStep === 1);
     nextBtn.classList.toggle('hidden', currentStep === TOTAL_STEPS);
-    submitBtn.classList.toggle('hidden', currentStep >= 7);
+    submitBtn.classList.toggle('hidden', currentStep >= TOTAL_STEPS);
 
     if (currentStep < 6) nextBtn.textContent = 'Étape suivante';
-    else if (currentStep === 6) nextBtn.textContent = 'Relecture & publication';
-    else if (currentStep === 7) nextBtn.textContent = carteId ? 'Scanner & Partage' : 'Créer puis continuer';
+    else if (currentStep === 6) nextBtn.textContent = 'Scanner & Partage';
 
     if (currentStep < 6) submitBtn.textContent = carteId ? 'Enregistrer les modifications' : 'Enregistrer le brouillon';
     else if (currentStep === 6) submitBtn.textContent = carteId ? 'Enregistrer et continuer' : 'Créer la carte';
-    else if (currentStep === 7) submitBtn.textContent = 'Publier et continuer';
   }
 
   function showStep(step: number) {
     const target = Math.max(1, Math.min(TOTAL_STEPS, step));
-    if (target >= 8 && !carteId) {
+    if (target >= TOTAL_STEPS && !carteId) {
       const err = document.getElementById('error-msg') as HTMLDivElement;
       err.textContent = "Créez d'abord votre carte avant de configurer le scanner et le partage.";
       err.classList.remove('hidden');
-      currentStep = 7;
+      currentStep = TOTAL_STEPS - 1;
     } else {
       currentStep = target;
     }
@@ -1603,8 +1578,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         document.getElementById('setup-banner')!.classList.add('hidden');
         window.history.replaceState({}, '', '/dashboard/carte');
       }
-      if (currentStep === 7) showStep(8);
-      else if (!hadExistingCard || currentStep === 6) showStep(7);
+      if (!hadExistingCard || currentStep === 6) showStep(7);
     }catch(e:unknown){
       err.textContent=e instanceof Error?e.message:'Erreur inattendue.';err.classList.remove('hidden');
     }finally{btn.disabled=false;}
@@ -1657,6 +1631,48 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   // updateReviewLink est appelé après chaque save (quand carteId est connu)
 
+  // ── Restrictions par plan ──────────────────────────────────────────
+  async function loadPlanRestrictions() {
+    try {
+      const res = await authFetch('/api/dashboard/plan');
+      if (!res.ok) return;
+      const { data } = await res.json();
+      const plan: string = data?.plan ?? 'starter';
+      const isStarter = plan === 'starter';
+
+      // Anniversaire : toujours verrouillé sur starter
+      if (isStarter) {
+        document.getElementById('anniv-upgrade-msg')!.classList.remove('hidden');
+      } else {
+        const annivBtn = document.getElementById('anniv-toggle') as HTMLButtonElement;
+        annivBtn.disabled = false;
+        annivBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+        document.getElementById('anniv-pro-badge')!.classList.add('hidden');
+      }
+
+      // Avis Google : verrouillé sur starter
+      if (isStarter) {
+        const reviewBtn = document.getElementById('review-toggle') as HTMLButtonElement;
+        reviewBtn.disabled = true;
+        reviewBtn.classList.add('opacity-40', 'cursor-not-allowed');
+        document.getElementById('review-pro-badge')!.classList.remove('hidden');
+        document.getElementById('review-upgrade-msg')!.classList.remove('hidden');
+        // Désactiver aussi le toggle si activé
+        if (reviewEnabled) setReviewToggle(false);
+      }
+
+      // Afficher compteur de cartes si proche de la limite
+      const { clientsCount, limits } = data;
+      if (clientsCount >= Math.floor(limits.maxClients * 0.8)) {
+        const bar = document.getElementById('error-msg') as HTMLDivElement | null;
+        const infoMsg = document.createElement('div');
+        infoMsg.className = 'text-amber-600 text-sm bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4';
+        infoMsg.textContent = `${clientsCount} / ${limits.maxClients} cartes actives utilisées sur votre plan ${plan}.`;
+        bar?.parentNode?.insertBefore(infoMsg, bar);
+      }
+    } catch { /* silencieux */ }
+  }
+
   updatePreview();
   applyTypeUI('tampons');
   applyStripStyle(true);
@@ -1666,4 +1682,5 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   showStep(1);
   loadCommerceGeo();
   loadExistingCarte();
+  loadPlanRestrictions();
 </script>

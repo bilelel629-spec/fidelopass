@@ -15,12 +15,47 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </p>
   </div>
 
-  <div id="public-link-banner" class="hidden mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-between gap-4">
-    <div>
-      <p class="text-emerald-400 text-sm font-medium">Votre carte est publiée ✓</p>
-      <p id="public-link-url" class="text-slate-400 text-xs mt-0.5"></p>
+  <div class="mb-6 rounded-[2rem] border border-sky-100 bg-white/90 p-4 shadow-[0_30px_80px_-55px_rgba(59,130,246,0.55)]">
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600/70">Parcours guidé</p>
+        <h2 class="mt-1 text-xl font-semibold text-slate-900">Configurez votre carte étape par étape</h2>
+        <p class="mt-1 text-sm text-slate-500">Vous pouvez revenir en arrière à tout moment, puis terminer par le scanner du personnel et le partage client.</p>
+      </div>
+      <div class="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+        <span class="font-semibold" id="wizard-current-label">Étape 1</span>
+        <span class="text-slate-500"> sur 8</span>
+      </div>
     </div>
-    <button id="copy-link-btn" class="shrink-0 text-xs px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 transition-colors">Copier le lien</button>
+    <div class="mt-4 grid gap-2 md:grid-cols-4 xl:grid-cols-8">
+      {[
+        'Template',
+        'Identité',
+        'Programme',
+        'Messages',
+        'Apparence',
+        'Géolocalisation',
+        'Scanner',
+        'Partage',
+      ].map((label, index) => (
+        <button
+          type="button"
+          class="wizard-tab rounded-2xl border border-sky-100 bg-white px-3 py-3 text-left transition-all hover:border-sky-200 hover:bg-sky-50"
+          data-step-target={String(index + 1)}
+        >
+          <p class="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-sky-500/80">Étape {index + 1}</p>
+          <p class="mt-1 text-sm font-medium text-slate-700">{label}</p>
+        </button>
+      ))}
+    </div>
+  </div>
+
+  <div id="public-link-banner" class="wizard-section step-8 hidden mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 shadow-[0_18px_40px_-34px_rgba(16,185,129,0.5)] flex items-center justify-between gap-4">
+    <div>
+      <p class="text-emerald-700 text-sm font-medium">Votre carte est publiée ✓</p>
+      <p id="public-link-url" class="text-slate-500 text-xs mt-0.5"></p>
+    </div>
+    <button id="copy-link-btn" class="shrink-0 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-emerald-700">Copier le lien</button>
   </div>
 
   <div class="grid lg:grid-cols-[1fr_370px] gap-6 items-start">
@@ -28,7 +63,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     <div class="flex flex-col gap-5">
 
       <!-- Modèles métier -->
-      <div class="card p-6">
+      <div class="card wizard-section step-1 p-6">
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">
           <div>
             <h2 class="font-display font-bold text-white flex items-center gap-2"><span class="text-lg">⚡</span> Modèles rapides</h2>
@@ -80,7 +115,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
 
       <!-- Identité visuelle -->
-      <div class="card p-6">
+      <div class="card wizard-section step-2 p-6">
         <h2 class="font-display font-bold text-white mb-5 flex items-center gap-2"><span class="text-lg">🖼️</span> Identité visuelle</h2>
         <div class="grid sm:grid-cols-3 gap-5">
 
@@ -201,7 +236,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
 
       <!-- Programme fidélité -->
-      <div class="card p-6">
+      <div class="card wizard-section step-3 p-6">
         <h2 class="font-display font-bold text-white mb-5 flex items-center gap-2"><span class="text-lg">🎴</span> Programme fidélité</h2>
         <div class="flex flex-col gap-4">
           <div>
@@ -274,7 +309,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
 
       <!-- Messages client -->
-      <div class="card p-6">
+      <div class="card wizard-section step-4 p-6">
         <h2 class="font-display font-bold text-white mb-5 flex items-center gap-2"><span class="text-lg">💬</span> Messages client</h2>
         <div class="grid sm:grid-cols-2 gap-4">
           <div>
@@ -289,7 +324,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
 
       <!-- Apparence -->
-      <div class="card p-6">
+      <div class="card wizard-section step-5 p-6">
         <h2 class="font-display font-bold text-white mb-5 flex items-center gap-2"><span class="text-lg">🎨</span> Apparence</h2>
         <label class="label mb-3 block">Thèmes prédéfinis</label>
         <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-5">
@@ -353,7 +388,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
 
       <!-- Code-barres -->
-      <div class="card p-6">
+      <div class="card wizard-section step-5 p-6">
         <h2 class="font-display font-bold text-white mb-5 flex items-center gap-2"><span class="text-lg">📱</span> Code-barres</h2>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[{value:'QR',label:'QR Code',icon:'⬛',desc:'Recommandé'},{value:'PDF417',label:'Code-barres',icon:'▬',desc:'Linéaire'},{value:'AZTEC',label:'Aztec',icon:'◈',desc:'Compact'},{value:'NONE',label:'Aucun',icon:'∅',desc:'Sans code'}].map(({value,label,icon,desc})=>(
@@ -366,7 +401,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
 
       <!-- Géolocalisation -->
-      <div class="card p-6">
+      <div class="card wizard-section step-6 p-6">
         <h2 class="font-display font-bold text-white mb-4 flex items-center gap-2"><span class="text-lg">📍</span> Géolocalisation</h2>
         <label class="label" for="message-geo">Message sur l'écran de verrouillage</label>
         <input id="message-geo" type="text" class="input" placeholder="Votre carte de fidélité vous attend !" />
@@ -381,9 +416,37 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
       </div>
 
+      <div class="card wizard-section step-7 p-6">
+        <h2 class="font-display font-bold text-white mb-4">Configurer le scanner du personnel</h2>
+        <div class="grid gap-5 lg:grid-cols-[220px_1fr] lg:items-center">
+          <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center">
+            <div id="scanner-qr-container" class="flex justify-center"></div>
+            <p class="mt-3 text-xs text-slate-500">QR d’installation pour l’équipe</p>
+          </div>
+          <div class="space-y-3 text-sm text-slate-300">
+            <p class="text-white font-medium">Le personnel scanne ce QR pour ouvrir l’espace scanner sur son téléphone.</p>
+            <ol class="space-y-2 text-slate-400">
+              <li>1. Ouvrez le lien d’installation sur le téléphone du personnel.</li>
+              <li>2. Ajoutez l’accès scanner à l’écran d’accueil si besoin.</li>
+              <li>3. Autorisez la caméra puis utilisez l’onglet Scan en caisse.</li>
+            </ol>
+            <div class="flex flex-wrap gap-2">
+              <a id="scanner-install-link" href="/app/install" target="_blank" rel="noreferrer" class="btn-secondary text-sm py-2 px-4">Ouvrir la page d’installation</a>
+              <a href="/app/scan" target="_blank" rel="noreferrer" class="btn-secondary text-sm py-2 px-4">Tester le scanner</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div id="error-msg" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"></div>
       <div id="success-msg" class="hidden text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3"></div>
-      <button type="button" id="submit-btn" class="btn-primary py-3 w-full">Enregistrer la carte</button>
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <button type="button" id="prev-step-btn" class="btn-secondary py-3 px-5">Étape précédente</button>
+        <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+          <button type="button" id="submit-btn" class="btn-primary py-3 px-5">Enregistrer la carte</button>
+          <button type="button" id="next-step-btn" class="btn-secondary py-3 px-5">Étape suivante</button>
+        </div>
+      </div>
     </div>
 
     <!-- Aperçu -->
@@ -469,7 +532,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
       </div>
 
-      <div id="qr-section" class="hidden card p-4 text-center">
+      <div id="qr-section" class="wizard-section step-8 hidden card p-4 text-center">
         <p class="text-slate-400 text-xs mb-3">QR code à afficher dans votre commerce</p>
         <div id="qr-container" class="flex justify-center"></div>
         <p class="text-slate-500 text-xs mt-3">Les clients scannent ce QR pour ajouter la carte</p>
@@ -493,10 +556,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const API = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
   const PUBLIC_SITE_URL = (import.meta.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
   const setupMode = new URLSearchParams(window.location.search).get('setup') === '1';
+  const TOTAL_STEPS = 8;
 
   let carteId: string | null = null;
   let logoUrl = '', stripUrl = '', tamponIconUrl = '', tamponEmoji = '';
   let isGradient = false;
+  let currentStep = 1;
   type RewardTier = { seuil: number; recompense: string };
   type VipTier = { nom: string; seuil: number; avantage?: string };
 
@@ -512,15 +577,86 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(publicCardUrl(id))}&bgcolor=ffffff&color=111827&qzone=1`;
   }
 
+  function scannerInstallUrl() {
+    return `${PUBLIC_SITE_URL}/app/install`;
+  }
+
+  function ensureQr(containerId: string, url: string, size = 150) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+    const image = document.createElement('img');
+    image.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=111827&qzone=1`;
+    image.className = 'rounded-xl';
+    image.width = size;
+    image.height = size;
+    container.appendChild(image);
+  }
+
   function updateQrTools(id: string) {
     (document.getElementById('poster-link-minimal') as HTMLAnchorElement).href = posterUrl(id, 'minimal');
     (document.getElementById('poster-link-premium') as HTMLAnchorElement).href = posterUrl(id, 'premium');
     (document.getElementById('poster-link-promo') as HTMLAnchorElement).href = posterUrl(id, 'promo');
+    ensureQr('qr-container', publicCardUrl(id));
+  }
+
+  function updateScannerTools() {
+    const installLink = document.getElementById('scanner-install-link') as HTMLAnchorElement | null;
+    if (installLink) installLink.href = scannerInstallUrl();
+    ensureQr('scanner-qr-container', scannerInstallUrl());
+  }
+
+  function updateWizardActions() {
+    const prevBtn = document.getElementById('prev-step-btn') as HTMLButtonElement;
+    const nextBtn = document.getElementById('next-step-btn') as HTMLButtonElement;
+    const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+    const currentLabel = document.getElementById('wizard-current-label');
+    const labels = ['Template', 'Identité', 'Programme', 'Messages', 'Apparence', 'Géolocalisation', 'Scanner', 'Partage'];
+
+    if (currentLabel) currentLabel.textContent = `Étape ${currentStep} · ${labels[currentStep - 1]}`;
+
+    prevBtn.classList.toggle('invisible', currentStep === 1);
+    nextBtn.classList.toggle('hidden', currentStep === TOTAL_STEPS);
+    submitBtn.classList.toggle('hidden', currentStep >= 7);
+
+    if (currentStep < 6) nextBtn.textContent = 'Étape suivante';
+    else if (currentStep === 6) nextBtn.textContent = carteId ? 'Scanner du personnel' : 'Créer d’abord la carte';
+    else if (currentStep === 7) nextBtn.textContent = 'Passer au partage';
+
+    if (currentStep < 6) submitBtn.textContent = carteId ? 'Enregistrer les modifications' : 'Enregistrer le brouillon';
+    else if (currentStep === 6) submitBtn.textContent = carteId ? 'Enregistrer et continuer' : 'Créer la carte';
+  }
+
+  function showStep(step: number) {
+    const target = Math.max(1, Math.min(TOTAL_STEPS, step));
+    if (target >= 7 && !carteId) {
+      const err = document.getElementById('error-msg') as HTMLDivElement;
+      err.textContent = 'Créez d’abord votre carte avant de configurer le scanner et le partage.';
+      err.classList.remove('hidden');
+      currentStep = 6;
+    } else {
+      currentStep = target;
+    }
+
+    document.querySelectorAll('.wizard-section').forEach((section) => {
+      const element = section as HTMLElement;
+      element.classList.toggle('hidden', !element.classList.contains(`step-${currentStep}`));
+    });
+
+    document.querySelectorAll('.wizard-tab').forEach((tab) => {
+      const element = tab as HTMLElement;
+      const isActive = Number(element.dataset.stepTarget) === currentStep;
+      element.classList.toggle('bg-sky-50', isActive);
+      element.classList.toggle('border-sky-300', isActive);
+      element.classList.toggle('shadow-[0_16px_40px_-32px_rgba(59,130,246,0.75)]', isActive);
+    });
+
+    updateWizardActions();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   if (setupMode) {
     document.getElementById('setup-banner')!.classList.remove('hidden');
-    document.getElementById('submit-btn')!.textContent = 'Créer ma première carte';
   }
 
   async function uploadFile(file: File): Promise<string> {
@@ -1106,9 +1242,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       document.getElementById('public-link-url')!.textContent=pu;
       document.getElementById('qr-section')!.classList.remove('hidden');
       updateQrTools(data.id);
-      const qc=document.getElementById('qr-container')!;
-      if(!qc.firstChild){const qi=document.createElement('img');qi.src=`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(pu)}&bgcolor=1e293b&color=ffffff&qzone=1`;qi.className='rounded-xl';qi.width=150;qi.height=150;qc.appendChild(qi);}
-      document.getElementById('submit-btn')!.textContent='Mettre à jour la carte';
+      updateScannerTools();
+      updateWizardActions();
     }catch{}
   }
 
@@ -1117,6 +1252,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const b=document.getElementById('copy-link-btn')!;b.textContent='Copié !';setTimeout(()=>b.textContent='Copier le lien',2000);
     });
   });
+
+  document.querySelectorAll('.wizard-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      showStep(Number((tab as HTMLElement).dataset.stepTarget ?? '1'));
+    });
+  });
+
+  document.getElementById('prev-step-btn')!.addEventListener('click', () => showStep(currentStep - 1));
+  document.getElementById('next-step-btn')!.addEventListener('click', () => showStep(currentStep + 1));
 
   document.getElementById('download-qr-btn')!.addEventListener('click', async () => {
     if (!carteId) return;
@@ -1202,16 +1346,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       });
       const{data}=await res.json();
       if(!carteId){carteId=data.id;const pu=publicCardUrl(data.id);document.getElementById('public-link-banner')!.classList.remove('hidden');document.getElementById('public-link-url')!.textContent=pu;}
-      if (carteId) updateQrTools(carteId);
+      if (carteId) {
+        updateQrTools(carteId);
+        updateScannerTools();
+      }
       suc.textContent=!hadExistingCard&&setupMode?'Carte créée avec succès. Votre programme est opérationnel : vous pouvez maintenant scanner les cartes depuis votre espace Scan.':'Carte enregistrée avec succès !';suc.classList.remove('hidden');
       if (setupMode && !hadExistingCard) {
         document.getElementById('setup-banner')!.classList.add('hidden');
         window.history.replaceState({}, '', '/dashboard/carte');
       }
-      btn.textContent='Mettre à jour la carte';
+      if (!hadExistingCard || currentStep === 6) showStep(7);
     }catch(e:unknown){
       err.textContent=e instanceof Error?e.message:'Erreur inattendue.';err.classList.remove('hidden');
-      btn.textContent=carteId?'Mettre à jour la carte':'Enregistrer la carte';
     }finally{btn.disabled=false;}
   });
 
@@ -1220,6 +1366,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   applyStripStyle(true);
   renderRewardTiers();
   renderVipTiers();
+  updateScannerTools();
+  showStep(1);
   loadCommerceGeo();
   loadExistingCarte();
 </script>

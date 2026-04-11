@@ -9,12 +9,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     <p class="text-slate-600 text-sm mt-2">Envoyez un message à vos porteurs de carte et suivez les clients réellement joignables depuis votre programme fidélité.</p>
   </div>
 
-  <div id="notif-summary" class="grid gap-4 md:grid-cols-2 mb-6">
-    <div class="card p-5">
-      <p class="text-slate-500 text-xs uppercase tracking-wide">Canal web</p>
-      <p id="summary-web-push" class="text-slate-900 text-2xl font-display font-bold mt-2">—</p>
-      <p class="text-slate-600 text-sm mt-2">Clients pouvant recevoir un push navigateur quand leur appareil le permet.</p>
-    </div>
+  <div id="notif-summary" class="grid gap-4 md:grid-cols-1 mb-6">
     <div class="card p-5">
       <p class="text-slate-500 text-xs uppercase tracking-wide">Canal Wallet</p>
       <p id="summary-wallet" class="text-slate-900 text-2xl font-display font-bold mt-2">—</p>
@@ -64,7 +59,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
       </div>
       <div id="review-campaign-locked" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-700 text-sm mb-4">
-        La récompense avis Google n'est pas activée sur votre carte. Activez-la dans <a href="/dashboard/carte" class="font-semibold underline">l'éditeur de carte → étape 9</a>.
+        La récompense avis Google n'est pas activée sur votre carte. Activez-la dans <a href="/dashboard/carte" class="font-semibold underline">l'éditeur de carte → étape 6 Options</a>.
       </div>
       <div id="review-campaign-error" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-3"></div>
       <div id="review-campaign-success" class="hidden text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 mb-3"></div>
@@ -120,10 +115,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         wallet_ready: data?.wallet_ready ?? 0,
       };
 
-      document.getElementById('summary-web-push')!.textContent = String(notificationSummary.web_push_ready);
       document.getElementById('summary-wallet')!.textContent = String(notificationSummary.wallet_ready);
     } catch {
-      document.getElementById('summary-web-push')!.textContent = '—';
       document.getElementById('summary-wallet')!.textContent = '—';
     }
   }

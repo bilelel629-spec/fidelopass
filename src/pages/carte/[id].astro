@@ -230,18 +230,18 @@ const firebasePushConfig = {
     if (!supportsMarketingWebPush) {
       pushConsent = false;
       renderConsentState();
-      consentText.textContent = isIos
-        ? 'Les notifications marketing web ne sont pas encore prises en charge sur iPhone avec cette configuration. Vous recevrez quand même les mises à jour de votre carte via Wallet.'
-        : 'Ce navigateur ne permet pas encore les notifications marketing web pour cette carte.';
-      consentBox.style.opacity = '0.6';
-      consentBox.style.cursor = 'not-allowed';
-      latestPushStatus = 'unsupported';
-      setPushHelper({
-        title: isIos ? 'iPhone : Wallet OK, push web non disponible' : 'Navigateur limité',
-        text: isIos
-          ? 'Les ajouts de tampons et mises à jour de fidélité continueront à remonter via Apple Wallet. Les campagnes promotionnelles envoyées depuis ce tableau restent pour l’instant réservées aux navigateurs compatibles web push.'
-          : 'Ce navigateur ne permet pas encore d’activer les notifications web promotionnelles pour cette carte.',
-      });
+      if (isIos) {
+        consentBox.classList.add(‘hidden’);
+      } else {
+        consentText.textContent = ‘Ce navigateur ne permet pas encore les notifications marketing web pour cette carte.’;
+        consentBox.style.opacity = ‘0.6’;
+        consentBox.style.cursor = ‘not-allowed’;
+        setPushHelper({
+          title: ‘Navigateur limité’,
+          text: ‘Ce navigateur ne permet pas encore d’activer les notifications web promotionnelles pour cette carte.’,
+        });
+      }
+      latestPushStatus = ‘unsupported’;
       return;
     }
 
@@ -307,9 +307,6 @@ const firebasePushConfig = {
     }
 
     if (!supportsMarketingWebPush) {
-      showError(isIos
-        ? 'Sur iPhone, Fidelopass utilise actuellement les mises à jour Wallet. Les campagnes push web promotionnelles restent réservées aux navigateurs compatibles.'
-        : 'Ce navigateur ne prend pas encore en charge les notifications web pour cette carte.');
       return;
     }
 

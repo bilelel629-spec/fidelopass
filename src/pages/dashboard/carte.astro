@@ -32,19 +32,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
       <div class="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-900 shadow-inner">
         <span class="font-semibold" id="wizard-current-label">Étape 1</span>
-        <span class="text-slate-500"> sur 9</span>
+        <span class="text-slate-500"> sur 8</span>
       </div>
     </div>
-    <div class="mt-5 grid gap-2 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-9">
+    <div class="mt-5 grid gap-2 md:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-8">
       {[
-        'Template',
+        'Type',
         'Identité',
         'Programme',
-        'Messages',
         'Apparence',
-        'Géolocalisation',
+        'Messages',
+        'Options',
         'Relecture',
-        'Scanner',
         'Partage',
       ].map((label, index) => (
         <button
@@ -59,7 +58,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </div>
   </div>
 
-  <div id="public-link-banner" class="wizard-section step-9 hidden mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 shadow-[0_18px_40px_-34px_rgba(16,185,129,0.5)] flex items-center justify-between gap-4">
+  <div id="public-link-banner" class="wizard-section step-8 hidden mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 shadow-[0_18px_40px_-34px_rgba(16,185,129,0.5)] flex items-center justify-between gap-4">
     <div>
       <p class="text-emerald-700 text-sm font-medium">Votre carte est publiée ✓</p>
       <p id="public-link-url" class="text-slate-500 text-xs mt-0.5"></p>
@@ -71,8 +70,61 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     <div class="flex flex-col gap-5">
 
-      <!-- Modèles métier -->
+      <!-- Étape 1 : Type de programme -->
       <div class="card wizard-section step-1 p-6">
+        <div class="mb-5">
+          <h2 class="font-display font-bold text-slate-900">Type de programme</h2>
+          <p class="mt-1 text-sm leading-6 text-slate-500">Choisissez d’abord la mécanique de fidélité — tampons ou points. Tout le reste s’adapte à ce choix.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-6">
+          <label id="type-tampons-label" class="cursor-pointer rounded-2xl border-2 p-4 transition-all" style="border-color:#60a5fa;background:rgb(239 246 255)">
+            <input type="radio" name="type" value="tampons" class="hidden" checked />
+            <div class="flex items-center gap-3">
+              <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">TM</span>
+              <div>
+                <div class="font-medium text-slate-900 text-sm">Tampons</div>
+                <div class="text-slate-500 text-xs mt-0.5">Simple à comprendre, rapide à utiliser en caisse.</div>
+              </div>
+            </div>
+          </label>
+          <label id="type-points-label" class="cursor-pointer rounded-2xl border-2 p-4 transition-all" style="border-color:#dbeafe;background:#ffffff">
+            <input type="radio" name="type" value="points" class="hidden" />
+            <div class="flex items-center gap-3">
+              <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">PT</span>
+              <div>
+                <div class="font-medium text-slate-900 text-sm">Points</div>
+                <div class="text-slate-500 text-xs mt-0.5">Plus souple pour les paliers VIP et les récompenses progressives.</div>
+              </div>
+            </div>
+          </label>
+        </div>
+
+        <div class="mb-6">
+          <label class="label mb-3 block">Formules prêtes à l’emploi</label>
+          <div class="grid sm:grid-cols-3 gap-2">
+            {[
+              {label:’10 achats = 1 offert’, type:’tampons’, total:’10’, reward:’1 produit offert’, points:’100’, perEuro:’1’},
+              {label:’8 visites = cadeau’, type:’tampons’, total:’8’, reward:’1 cadeau fidélité’, points:’100’, perEuro:’1’},
+              {label:’1€ = 1 point’, type:’points’, total:’10’, reward:’5€ de réduction’, points:’100’, perEuro:’1’},
+              {label:’2€ = 1 point’, type:’points’, total:’10’, reward:’10€ de réduction’, points:’200’, perEuro:’0.5’},
+              {label:’VIP rapide’, type:’tampons’, total:’5’, reward:’1 avantage VIP’, points:’100’, perEuro:’1’},
+              {label:’Récompense premium’, type:’points’, total:’10’, reward:’1 récompense premium’, points:’500’, perEuro:’1’},
+            ].map((preset) => (
+              <button
+                type="button"
+                class="program-preset-btn rounded-xl border border-sky-100 bg-sky-50/60 px-3 py-2 text-left text-xs text-slate-600 transition-all hover:border-sky-200 hover:bg-white"
+                data-type={preset.type}
+                data-total={preset.total}
+                data-reward={preset.reward}
+                data-points={preset.points}
+                data-per-euro={preset.perEuro}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">
           <div>
             <h2 class="font-display font-bold text-slate-900">Modèles rapides</h2>
@@ -123,13 +175,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
       </div>
 
-      <!-- Identité visuelle -->
+      <!-- Étape 2 : Identité -->
       <div class="card wizard-section step-2 p-6">
         <div class="mb-5">
           <h2 class="font-display font-bold text-slate-900">Identité visuelle</h2>
-          <p class="mt-1 text-sm leading-6 text-slate-500">Ajoutez les éléments qui feront reconnaître votre commerce au premier coup d’œil : nom, logo, icône de tampon et bannière.</p>
+          <p class="mt-1 text-sm leading-6 text-slate-500">Ajoutez les éléments qui feront reconnaître votre commerce au premier coup d’œil : nom, logo et icône de tampon.</p>
         </div>
-        <div class="grid sm:grid-cols-3 gap-5">
+        <div class="grid sm:grid-cols-2 gap-4 mb-5">
+          <div><label class="label" for="nom-carte">Nom de la carte *</label><input id="nom-carte" type="text" class="input" placeholder="Carte fidélité Ma Boutique" required /></div>
+          <div><label class="label" for="label-client">Label membre</label><input id="label-client" type="text" class="input" placeholder="Client, Membre, VIP..." maxlength="30" /></div>
+        </div>
+        <div class="mb-5"><label class="label" for="description">Description</label><input id="description" type="text" class="input" placeholder="Cumulez des points à chaque achat !" /></div>
+        <div class="grid sm:grid-cols-2 gap-5">
 
           <div>
             <label class="label mb-2 block">Logo</label>
@@ -151,7 +208,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             </div>
           </div>
 
-          <div>
+          <div id="tampon-icon-section">
             <label class="label mb-2 block">Icône de tampon</label>
             <div class="flex gap-1.5 mb-3">
               <label id="tampon-mode-default-label" class="flex-1 cursor-pointer rounded-xl border-2 p-2 text-center transition-all" style="border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a">
@@ -187,128 +244,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             </div>
           </div>
 
-          <div>
-            <label class="label mb-2 block">Bannière <span class="text-slate-500 font-normal text-xs">(fond)</span></label>
-            <div class="flex flex-col gap-2">
-              <div class="w-full h-16 rounded-xl border border-white/10 overflow-hidden flex items-center justify-center relative" style="background:#1e293b">
-                <img id="strip-preview-img" class="hidden w-full h-full object-cover" style="object-position:center" />
-                <span id="strip-preview-icon" class="text-slate-500 text-xs">Aucune image</span>
-              </div>
-              <div class="flex gap-1.5">
-                <input type="file" id="strip-file" accept="image/png,image/jpeg,image/webp" class="hidden" />
-                <button type="button" id="strip-btn" class="btn-secondary text-xs py-1.5 px-3 flex-1">Choisir</button>
-                <button type="button" id="strip-clear" class="hidden btn-secondary text-xs py-1.5 px-2 text-red-400">✕</button>
-              </div>
-              <input type="hidden" id="strip-url" />
-              <p id="strip-loading" class="hidden text-indigo-400 text-xs">Upload...</p>
-              <p class="text-slate-600 text-xs text-center">PNG/JPG — <strong class="text-slate-500">750×246 px</strong></p>
-              <a href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3NTAiIGhlaWdodD0iMjQ2Ij48cmVjdCB3aWR0aD0iNzUwIiBoZWlnaHQ9IjI0NiIgZmlsbD0iIzFlMjkzYiIvPjxyZWN0IHg9IjQwIiB5PSI0MCIgd2lkdGg9IjY3MCIgaGVpZ2h0PSIxNjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzYzNjZmMSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI4IDQiIHJ4PSI4Ii8+PHRleHQgeD0iMzc1IiB5PSIxMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2MzY2ZjEiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5ab25lIGJhbm5pZXJlIOKAlCA3NTAgw5cgMjQ2IHB4PC90ZXh0Pjx0ZXh0IHg9IjM3NSIgeT0iMTQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyI+TGVzIHRhbXBvbnMgc29udCBjZW50csOpcyBwYXItZGVzc3VzPC90ZXh0Pjwvc3ZnPg=="
-                download="template-banniere-fidelopass.svg" class="text-indigo-400 text-xs underline underline-offset-2 hover:text-indigo-300 text-center">⬇ Template SVG 750×246</a>
-              <div>
-                <label class="text-slate-500 text-xs mb-1.5 block">Style de la bannière</label>
-                <div class="grid grid-cols-2 gap-1.5">
-                  <label id="strip-style-rounded-label" class="cursor-pointer rounded-lg border-2 py-1.5 text-center text-xs transition-all" style="border-color:#dbeafe;background:#ffffff;color:#64748b">
-                    <input type="radio" name="strip_style" value="rounded" class="hidden" />⬜ Arrondi</label>
-                  <label id="strip-style-full-label" class="cursor-pointer rounded-lg border-2 py-1.5 text-center text-xs transition-all" style="border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a">
-                    <input type="radio" name="strip_style" value="full" class="hidden" checked />▬ Pleine largeur</label>
-                </div>
-              </div>
-              <div>
-                <label class="text-slate-500 text-xs mb-1.5 block">Placement bannière / tampons</label>
-                <div class="grid grid-cols-3 gap-1.5">
-                  {[
-                    { value: 'background', label: 'Fond' },
-                    { value: 'top', label: 'Haut' },
-                    { value: 'bottom', label: 'Bas' },
-                  ].map(({ value, label }) => (
-                    <label id={`strip-layout-${value}-label`} class="cursor-pointer rounded-lg border-2 py-1.5 text-center transition-all text-xs"
-                      style={value==='background'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff;color:#64748b'}>
-                      <input type="radio" name="strip_layout" value={value} class="hidden" checked={value==='background'} />
-                      {label}
-                    </label>
-                  ))}
-                </div>
-                <p class="text-slate-600 text-xs mt-1 leading-tight">“Bas” place la bannière sous les tampons dans l’image Wallet générée.</p>
-              </div>
-              <div id="strip-position-zone" class="hidden">
-                <label class="text-slate-500 text-xs mb-1.5 block">Position de l'image</label>
-                <div class="grid grid-cols-3 gap-1.5">
-                  {['top','center','bottom'].map(pos => (
-                    <label id={`strip-pos-${pos}-label`} class="cursor-pointer rounded-lg border-2 py-1.5 text-center transition-all text-xs"
-                      style={pos==='center'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff;color:#64748b'}>
-                      <input type="radio" name="strip_position" value={pos} class="hidden" checked={pos==='center'} />
-                      {pos==='top'?'Haut':pos==='center'?'Centre':'Bas'}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
-      <!-- Programme fidélité -->
+      <!-- Étape 3 : Programme -->
       <div class="card wizard-section step-3 p-6">
         <div class="mb-5">
           <h2 class="font-display font-bold text-slate-900">Programme fidélité</h2>
-          <p class="mt-1 text-sm leading-6 text-slate-500">Choisissez la mécanique la plus naturelle pour vos clients : tampons simples ou points plus flexibles, avec jusqu’à trois récompenses.</p>
+          <p class="mt-1 text-sm leading-6 text-slate-500">Définissez l’objectif de fidélité, la récompense principale et les paliers optionnels.</p>
         </div>
         <div class="flex flex-col gap-4">
-          <div>
-            <label class="label mb-3 block">Formules prêtes à l'emploi</label>
-            <div class="grid sm:grid-cols-3 gap-2">
-              {[
-                {label:'10 achats = 1 offert', type:'tampons', total:'10', reward:'1 produit offert', points:'100', perEuro:'1'},
-                {label:'8 visites = cadeau', type:'tampons', total:'8', reward:'1 cadeau fidélité', points:'100', perEuro:'1'},
-                {label:'1€ = 1 point', type:'points', total:'10', reward:'5€ de réduction', points:'100', perEuro:'1'},
-                {label:'2€ = 1 point', type:'points', total:'10', reward:'10€ de réduction', points:'200', perEuro:'0.5'},
-                {label:'VIP rapide', type:'tampons', total:'5', reward:'1 avantage VIP', points:'100', perEuro:'1'},
-                {label:'Récompense premium', type:'points', total:'10', reward:'1 récompense premium', points:'500', perEuro:'1'},
-              ].map((preset) => (
-                <button
-                  type="button"
-                  class="program-preset-btn rounded-xl border border-sky-100 bg-sky-50/60 px-3 py-2 text-left text-xs text-slate-600 transition-all hover:border-sky-200 hover:bg-white"
-                  data-type={preset.type}
-                  data-total={preset.total}
-                  data-reward={preset.reward}
-                  data-points={preset.points}
-                  data-per-euro={preset.perEuro}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div class="grid sm:grid-cols-2 gap-4">
-            <div><label class="label" for="nom-carte">Nom de la carte *</label><input id="nom-carte" type="text" class="input" placeholder="Carte fidélité Ma Boutique" required /></div>
-            <div><label class="label" for="label-client">Label membre</label><input id="label-client" type="text" class="input" placeholder="Client, Membre, VIP..." maxlength="30" /></div>
-          </div>
-          <div><label class="label" for="description">Description</label><input id="description" type="text" class="input" placeholder="Cumulez des points à chaque achat !" /></div>
-          <div>
-            <label class="label">Type de programme</label>
-            <div class="grid grid-cols-2 gap-3">
-              <label id="type-tampons-label" class="cursor-pointer rounded-2xl border-2 p-4 transition-all" style="border-color:#60a5fa;background:rgb(239 246 255)">
-                <input type="radio" name="type" value="tampons" class="hidden" checked />
-                <div class="flex items-center gap-3">
-                  <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">TM</span>
-                  <div>
-                    <div class="font-medium text-slate-900 text-sm">Tampons</div>
-                    <div class="text-slate-500 text-xs mt-0.5">Simple à comprendre, rapide à utiliser en caisse.</div>
-                  </div>
-                </div>
-              </label>
-              <label id="type-points-label" class="cursor-pointer rounded-2xl border-2 p-4 transition-all" style="border-color:#dbeafe;background:#ffffff">
-                <input type="radio" name="type" value="points" class="hidden" />
-                <div class="flex items-center gap-3">
-                  <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">PT</span>
-                  <div>
-                    <div class="font-medium text-slate-900 text-sm">Points</div>
-                    <div class="text-slate-500 text-xs mt-0.5">Plus souple pour les paliers VIP et les récompenses progressives.</div>
-                  </div>
-                </div>
-              </label>
-            </div>
-          </div>
           <div id="config-tampons"><label class="label" for="tampons-total">Nombre de tampons pour la récompense</label><input id="tampons-total" type="number" class="input w-32" min="1" max="20" value="10" /></div>
           <div id="config-points" class="hidden flex flex-col gap-3">
             <div class="grid grid-cols-2 gap-3">
@@ -337,39 +282,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
       </div>
 
-      <!-- Messages client -->
+      <!-- Étape 4 : Apparence -->
       <div class="card wizard-section step-4 p-6">
         <div class="mb-5">
-          <h2 class="font-display font-bold text-slate-900">Messages client</h2>
-          <p class="mt-1 text-sm leading-6 text-slate-500">Préparez les textes visibles par vos clients au moment de la création et après l’ajout dans Wallet.</p>
-        </div>
-        <div class="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label class="label" for="welcome-message">Texte d’accueil public</label>
-            <input id="welcome-message" type="text" class="input" maxlength="180" placeholder="Bienvenue chez ..., créez votre carte fidélité en 10 secondes." />
-          </div>
-          <div>
-            <label class="label" for="success-message">Message après ajout Wallet</label>
-            <input id="success-message" type="text" class="input" maxlength="180" placeholder="Votre carte est prête, montrez-la à chaque passage." />
-          </div>
-        </div>
-      </div>
-
-      <!-- Apparence -->
-      <div class="card wizard-section step-5 p-6">
-        <div class="mb-5">
           <h2 class="font-display font-bold text-slate-900">Apparence</h2>
-          <p class="mt-1 text-sm leading-6 text-slate-500">Choisissez un thème, une palette et un fond qui correspondent à votre univers. L’aperçu à droite se met à jour en direct.</p>
+          <p class="mt-1 text-sm leading-6 text-slate-500">Choisissez un thème, une palette, une bannière et un fond qui correspondent à votre univers. L’aperçu à droite se met à jour en direct.</p>
         </div>
         <label class="label mb-3 block">Thèmes prédéfinis</label>
         <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-5">
           {[
-            {name:'Nuit',fond:'#0f172a',texte:'#ffffff',accent:'#6366f1',fond2:''},
-            {name:'Rose',fond:'#3d0d1e',texte:'#fce7f3',accent:'#ec4899',fond2:'#6d1439'},
-            {name:'Forêt',fond:'#064e3b',texte:'#ffffff',accent:'#34d399',fond2:'#065f46'},
-            {name:'Océan',fond:'#0c4a6e',texte:'#ffffff',accent:'#38bdf8',fond2:'#075985'},
-            {name:'Café',fond:'#1c0e04',texte:'#fef3c7',accent:'#d97706',fond2:'#292200'},
-            {name:'Noir',fond:'#000000',texte:'#ffffff',accent:'#8b5cf6',fond2:'#18003a'},
+            {name:’Nuit’,fond:’#0f172a’,texte:’#ffffff’,accent:’#6366f1’,fond2:’’},
+            {name:’Rose’,fond:’#3d0d1e’,texte:’#fce7f3’,accent:’#ec4899’,fond2:’#6d1439’},
+            {name:’Forêt’,fond:’#064e3b’,texte:’#ffffff’,accent:’#34d399’,fond2:’#065f46’},
+            {name:’Océan’,fond:’#0c4a6e’,texte:’#ffffff’,accent:’#38bdf8’,fond2:’#075985’},
+            {name:’Café’,fond:’#1c0e04’,texte:’#fef3c7’,accent:’#d97706’,fond2:’#292200’},
+            {name:’Noir’,fond:’#000000’,texte:’#ffffff’,accent:’#8b5cf6’,fond2:’#18003a’},
           ].map(({name,fond,texte,accent,fond2})=>(
             <button type="button" class="preset-btn flex flex-col items-center gap-1.5 rounded-xl border border-sky-100 bg-white p-2 transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_40px_-28px_rgba(59,130,246,0.35)]" data-fond={fond} data-texte={texte} data-accent={accent} data-fond2={fond2}>
               <div class="w-full h-8 rounded-lg flex gap-1 p-1" style={fond2?`background:linear-gradient(135deg,${fond},${fond2})`:`background:${fond}`}>
@@ -404,72 +331,218 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           </div>
         </div>
 
-        <label class="label mb-3 block">Pattern de fond <span class="text-slate-500 font-normal text-xs">(toute la carte)</span></label>
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {[{value:'none',label:'Aucun'},{value:'dots',label:'Points'},{value:'grid',label:'Grille'},{value:'waves',label:'Vagues'},{value:'diagonal',label:'Diagonales'},{value:'confetti',label:'Confetti'}].map(({value,label})=>(
-            <label id={`pat-${value}-label`} class="cursor-pointer rounded-xl border-2 p-2.5 text-center transition-all" style={value==='none'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff'}>
-              <input type="radio" name="pattern_type" value={value} class="hidden" checked={value==='none'} />
-              <div class="w-full h-8 rounded-lg mb-1.5 overflow-hidden relative" style="background:#1e293b">
-                {value==='dots'&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pd" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="4" cy="4" r="1.5" fill="rgba(99,102,241,0.5)"/></pattern></defs><rect width="100%" height="100%" fill="url(#pd)"/></svg>}
-                {value==='grid'&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pg" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M 8 0 L 0 0 0 8" fill="none" stroke="rgba(99,102,241,0.4)" stroke-width="0.5"/></pattern></defs><rect width="100%" height="100%" fill="url(#pg)"/></svg>}
-                {value==='waves'&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pw" width="16" height="8" patternUnits="userSpaceOnUse"><path d="M 0 4 Q 4 0 8 4 Q 12 8 16 4" fill="none" stroke="rgba(99,102,241,0.5)" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#pw)"/></svg>}
-                {value==='diagonal'&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pdiag" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="2" height="8" fill="rgba(99,102,241,0.42)"/></pattern></defs><rect width="100%" height="100%" fill="url(#pdiag)"/></svg>}
-                {value==='confetti'&&<svg class="absolute inset-0 w-full h-full"><circle cx="18%" cy="30%" r="3" fill="rgba(99,102,241,0.55)"/><rect x="58%" y="18%" width="14" height="4" rx="2" transform="rotate(20)" fill="rgba(99,102,241,0.45)"/><circle cx="72%" cy="72%" r="2.5" fill="rgba(99,102,241,0.6)"/><rect x="22%" y="70%" width="12" height="4" rx="2" transform="rotate(-25)" fill="rgba(99,102,241,0.4)"/></svg>}
+        <div>
+          <button type="button" id="pattern-toggle" class="flex w-full items-center justify-between rounded-xl border border-sky-100 bg-sky-50/60 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-sky-100">
+            <span>Pattern de la bannière</span>
+            <span id="pattern-arrow" class="text-slate-400 transition-transform">▼</span>
+          </button>
+          <div id="pattern-panel" class="hidden mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {[{value:’none’,label:’Aucun’},{value:’dots’,label:’Points’},{value:’grid’,label:’Grille’},{value:’waves’,label:’Vagues’},{value:’diagonal’,label:’Diagonales’},{value:’confetti’,label:’Confetti’}].map(({value,label})=>(
+              <label id={`pat-${value}-label`} class="cursor-pointer rounded-xl border-2 p-2.5 text-center transition-all" style={value===’none’?’border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a’:’border-color:#dbeafe;background:#ffffff’}>
+                <input type="radio" name="pattern_type" value={value} class="hidden" checked={value===’none’} />
+                <div class="w-full h-8 rounded-lg mb-1.5 overflow-hidden relative" style="background:#1e293b">
+                  {value===’dots’&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pd" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="4" cy="4" r="1.5" fill="rgba(99,102,241,0.5)"/></pattern></defs><rect width="100%" height="100%" fill="url(#pd)"/></svg>}
+                  {value===’grid’&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pg" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M 8 0 L 0 0 0 8" fill="none" stroke="rgba(99,102,241,0.4)" stroke-width="0.5"/></pattern></defs><rect width="100%" height="100%" fill="url(#pg)"/></svg>}
+                  {value===’waves’&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pw" width="16" height="8" patternUnits="userSpaceOnUse"><path d="M 0 4 Q 4 0 8 4 Q 12 8 16 4" fill="none" stroke="rgba(99,102,241,0.5)" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#pw)"/></svg>}
+                  {value===’diagonal’&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pdiag" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="2" height="8" fill="rgba(99,102,241,0.42)"/></pattern></defs><rect width="100%" height="100%" fill="url(#pdiag)"/></svg>}
+                  {value===’confetti’&&<svg class="absolute inset-0 w-full h-full"><circle cx="18%" cy="30%" r="3" fill="rgba(99,102,241,0.55)"/><rect x="58%" y="18%" width="14" height="4" rx="2" transform="rotate(20)" fill="rgba(99,102,241,0.45)"/><circle cx="72%" cy="72%" r="2.5" fill="rgba(99,102,241,0.6)"/><rect x="22%" y="70%" width="12" height="4" rx="2" transform="rotate(-25)" fill="rgba(99,102,241,0.4)"/></svg>}
+                </div>
+                <div class="text-xs font-medium text-slate-900">{label}</div>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div class="mt-5 mb-5">
+          <h3 class="font-semibold text-slate-900 mb-3">Bannière</h3>
+          <div class="flex flex-col gap-2">
+            <div class="w-full h-16 rounded-xl border border-white/10 overflow-hidden flex items-center justify-center relative" style="background:#1e293b">
+              <img id="strip-preview-img" class="hidden w-full h-full object-cover" style="object-position:center" />
+              <span id="strip-preview-icon" class="text-slate-500 text-xs">Aucune image</span>
+            </div>
+            <div class="flex gap-1.5">
+              <input type="file" id="strip-file" accept="image/png,image/jpeg,image/webp" class="hidden" />
+              <button type="button" id="strip-btn" class="btn-secondary text-xs py-1.5 px-3 flex-1">Choisir</button>
+              <button type="button" id="strip-clear" class="hidden btn-secondary text-xs py-1.5 px-2 text-red-400">✕</button>
+            </div>
+            <input type="hidden" id="strip-url" />
+            <p id="strip-loading" class="hidden text-indigo-400 text-xs">Upload...</p>
+            <p class="text-slate-600 text-xs text-center">PNG/JPG — <strong class="text-slate-500">750×246 px</strong></p>
+            <a href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3NTAiIGhlaWdodD0iMjQ2Ij48cmVjdCB3aWR0aD0iNzUwIiBoZWlnaHQ9IjI0NiIgZmlsbD0iIzFlMjkzYiIvPjxyZWN0IHg9IjQwIiB5PSI0MCIgd2lkdGg9IjY3MCIgaGVpZ2h0PSIxNjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzYzNjZmMSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI4IDQiIHJ4PSI4Ii8+PHRleHQgeD0iMzc1IiB5PSIxMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2MzY2ZjEiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5ab25lIGJhbm5pZXJlIOKAlCA3NTAgw5cgMjQ2IHB4PC90ZXh0Pjx0ZXh0IHg9IjM3NSIgeT0iMTQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyI+TGVzIHRhbXBvbnMgc29udCBjZW50csOpcyBwYXItZGVzc3VzPC90ZXh0Pjwvc3ZnPg=="
+              download="template-banniere-fidelopass.svg" class="text-indigo-400 text-xs underline underline-offset-2 hover:text-indigo-300 text-center">⬇ Template SVG 750×246</a>
+            <div>
+              <label class="text-slate-500 text-xs mb-1.5 block">Style de la bannière</label>
+              <div class="grid grid-cols-2 gap-1.5">
+                <label id="strip-style-rounded-label" class="cursor-pointer rounded-lg border-2 py-1.5 text-center text-xs transition-all" style="border-color:#dbeafe;background:#ffffff;color:#64748b">
+                  <input type="radio" name="strip_style" value="rounded" class="hidden" />⬜ Arrondi</label>
+                <label id="strip-style-full-label" class="cursor-pointer rounded-lg border-2 py-1.5 text-center text-xs transition-all" style="border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a">
+                  <input type="radio" name="strip_style" value="full" class="hidden" checked />▬ Pleine largeur</label>
               </div>
-              <div class="text-xs font-medium text-slate-900">{label}</div>
-            </label>
-          ))}
+            </div>
+            <div>
+              <label class="text-slate-500 text-xs mb-1.5 block">Placement bannière / tampons</label>
+              <div class="grid grid-cols-3 gap-1.5">
+                {[
+                  { value: ‘background’, label: ‘Fond’ },
+                  { value: ‘top’, label: ‘Haut’ },
+                  { value: ‘bottom’, label: ‘Bas’ },
+                ].map(({ value, label }) => (
+                  <label id={`strip-layout-${value}-label`} class="cursor-pointer rounded-lg border-2 py-1.5 text-center transition-all text-xs"
+                    style={value===’background’?’border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a’:’border-color:#dbeafe;background:#ffffff;color:#64748b’}>
+                    <input type="radio" name="strip_layout" value={value} class="hidden" checked={value===’background’} />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              <p class="text-slate-600 text-xs mt-1 leading-tight">"Bas" place la bannière sous les tampons dans l’image Wallet générée.</p>
+            </div>
+            <div id="strip-position-zone" class="hidden">
+              <label class="text-slate-500 text-xs mb-1.5 block">Position de l’image</label>
+              <div class="grid grid-cols-3 gap-1.5">
+                {[‘top’,’center’,’bottom’].map(pos => (
+                  <label id={`strip-pos-${pos}-label`} class="cursor-pointer rounded-lg border-2 py-1.5 text-center transition-all text-xs"
+                    style={pos===’center’?’border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a’:’border-color:#dbeafe;background:#ffffff;color:#64748b’}>
+                    <input type="radio" name="strip_position" value={pos} class="hidden" checked={pos===’center’} />
+                    {pos===’top’?’Haut’:pos===’center’?’Centre’:’Bas’}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-5">
+          <h3 class="font-semibold text-slate-900 mb-3">Code-barres</h3>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[{value:’QR’,label:’QR Code’,tag:’QR’,desc:’Recommandé’},{value:’PDF417’,label:’Code-barres’,tag:’B1’,desc:’Linéaire’},{value:’AZTEC’,label:’Aztec’,tag:’AZ’,desc:’Compact’},{value:’NONE’,label:’Aucun’,tag:’--’,desc:’Sans code’}].map(({value,label,tag,desc})=>(
+              <label id={`barcode-${value.toLowerCase()}-label`} class="cursor-pointer rounded-2xl border-2 p-3 text-center transition-all" style={value===’QR’?’border-color:#60a5fa;background:rgb(239 246 255)’:’border-color:#dbeafe;background:#ffffff’}>
+                <input type="radio" name="barcode_type" value={value} class="hidden" checked={value===’QR’} />
+                <div class="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-100 text-xs font-bold tracking-[0.18em] text-sky-700">{tag}</div>
+                <div class="font-medium text-slate-900 text-xs">{label}</div><div class="text-slate-500 text-xs">{desc}</div>
+              </label>
+            ))}
+          </div>
         </div>
       </div>
 
-      <!-- Code-barres -->
+      <!-- Étape 5 : Messages -->
       <div class="card wizard-section step-5 p-6">
         <div class="mb-5">
-          <h2 class="font-display font-bold text-slate-900">Code-barres</h2>
-          <p class="mt-1 text-sm leading-6 text-slate-500">Le QR Code reste le meilleur choix dans la plupart des commerces. Vous pouvez aussi choisir un format plus compact ou retirer le code.</p>
+          <h2 class="font-display font-bold text-slate-900">Messages client</h2>
+          <p class="mt-1 text-sm leading-6 text-slate-500">Préparez les textes visibles par vos clients au moment de la création et après l’ajout dans Wallet.</p>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[{value:'QR',label:'QR Code',tag:'QR',desc:'Recommandé'},{value:'PDF417',label:'Code-barres',tag:'B1',desc:'Linéaire'},{value:'AZTEC',label:'Aztec',tag:'AZ',desc:'Compact'},{value:'NONE',label:'Aucun',tag:'--',desc:'Sans code'}].map(({value,label,tag,desc})=>(
-            <label id={`barcode-${value.toLowerCase()}-label`} class="cursor-pointer rounded-2xl border-2 p-3 text-center transition-all" style={value==='QR'?'border-color:#60a5fa;background:rgb(239 246 255)':'border-color:#dbeafe;background:#ffffff'}>
-              <input type="radio" name="barcode_type" value={value} class="hidden" checked={value==='QR'} />
-              <div class="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-100 text-xs font-bold tracking-[0.18em] text-sky-700">{tag}</div>
-              <div class="font-medium text-slate-900 text-xs">{label}</div><div class="text-slate-500 text-xs">{desc}</div>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      <!-- Géolocalisation -->
-      <div class="card wizard-section step-6 p-6">
-        <div class="mb-4">
-          <h2 class="font-display font-bold text-slate-900">Géolocalisation</h2>
-          <p class="mt-1 text-sm leading-6 text-slate-500">Renseignez ici l’adresse du commerce et la zone de proximité pour faire remonter la carte au bon moment autour du magasin.</p>
-        </div>
-        <div class="mb-4">
-          <label class="label" for="adresse-commerce">Adresse du commerce</label>
-          <input id="adresse-commerce" type="text" class="input" placeholder="12 rue de la Paix, 75001 Paris" />
-          <p class="text-slate-500 text-xs mt-1.5">L’adresse sert à positionner la carte autour de votre commerce et à générer les coordonnées GPS automatiquement.</p>
-        </div>
-        <label class="label" for="message-geo">Message sur l'écran de verrouillage</label>
-        <input id="message-geo" type="text" class="input" placeholder="Votre carte de fidélité vous attend !" />
-        <p class="text-slate-500 text-xs mt-1">S'affiche quand le client passe devant votre commerce.</p>
-        <div class="mt-4">
-          <label class="label" for="rayon-geo">Rayon de géolocalisation</label>
-          <div class="flex items-center gap-3">
-            <input id="rayon-geo" type="range" min="100" max="5000" step="100" value="1000" class="flex-1 accent-indigo-500" />
-            <span id="rayon-label" class="font-mono text-sm text-indigo-400 w-16 text-right">1 000 m</span>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label class="label" for="welcome-message">Texte d’accueil public</label>
+            <input id="welcome-message" type="text" class="input" maxlength="180" placeholder="Bienvenue chez ..., créez votre carte fidélité en 10 secondes." />
           </div>
-          <p class="text-slate-500 text-xs mt-1.5">Définissez la distance à laquelle Wallet peut remonter la carte autour du commerce.</p>
+          <div>
+            <label class="label" for="success-message">Message après ajout Wallet</label>
+            <input id="success-message" type="text" class="input" maxlength="180" placeholder="Votre carte est prête, montrez-la à chaque passage." />
+          </div>
         </div>
       </div>
 
+      <!-- Étape 6 : Options -->
+      <div class="card wizard-section step-6 p-6">
+        <div class="mb-5">
+          <h2 class="font-display font-bold text-slate-900">Options</h2>
+          <p class="mt-1 text-sm leading-6 text-slate-500">Activez la géolocalisation pour faire remonter la carte en boutique, et récompensez les avis Google de vos clients.</p>
+        </div>
+
+        <!-- Toggle Géolocalisation -->
+        <div class="rounded-2xl border border-sky-100 bg-sky-50/40 p-4 mb-4">
+          <div class="flex items-center justify-between gap-4 mb-3">
+            <div>
+              <p class="text-sm font-semibold text-slate-900">Géolocalisation</p>
+              <p class="text-slate-500 text-xs mt-0.5">Faire remonter la carte Wallet quand le client passe devant votre commerce.</p>
+            </div>
+            <button
+              id="geo-toggle"
+              type="button"
+              class="relative w-12 h-6 rounded-full transition-colors flex-shrink-0"
+              style="background:#334155"
+              aria-pressed="false"
+            >
+              <span id="geo-knob" class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" style="left:2px"></span>
+            </button>
+          </div>
+          <div id="geo-settings" class="hidden space-y-3">
+            <div>
+              <label class="label" for="adresse-commerce">Adresse du commerce</label>
+              <input id="adresse-commerce" type="text" class="input" placeholder="12 rue de la Paix, 75001 Paris" />
+              <p class="text-slate-500 text-xs mt-1.5">L’adresse sert à positionner la carte autour de votre commerce et à générer les coordonnées GPS automatiquement.</p>
+            </div>
+            <div>
+              <label class="label" for="message-geo">Message sur l’écran de verrouillage</label>
+              <input id="message-geo" type="text" class="input" placeholder="Votre carte de fidélité vous attend !" />
+              <p class="text-slate-500 text-xs mt-1">S’affiche quand le client passe devant votre commerce.</p>
+            </div>
+            <div>
+              <label class="label" for="rayon-geo">Rayon de géolocalisation</label>
+              <div class="flex items-center gap-3">
+                <input id="rayon-geo" type="range" min="100" max="5000" step="100" value="1000" class="flex-1 accent-indigo-500" />
+                <span id="rayon-label" class="font-mono text-sm text-indigo-400 w-16 text-right">1 000 m</span>
+              </div>
+              <p class="text-slate-500 text-xs mt-1.5">Définissez la distance à laquelle Wallet peut remonter la carte autour du commerce.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Toggle Récompense avis Google -->
+        <div class="rounded-2xl border border-sky-100 bg-white p-4">
+          <div class="flex items-center justify-between gap-4 mb-3">
+            <div>
+              <p class="text-sm font-semibold text-slate-900">Récompense avis Google</p>
+              <p class="mt-0.5 text-sm leading-6 text-slate-500">Offrez un tampon ou des points aux clients qui laissent un avis Google. Un lien unique leur est envoyé — un clic, c’est crédité.</p>
+            </div>
+            <button
+              id="review-toggle"
+              type="button"
+              class="relative w-12 h-6 rounded-full transition-colors flex-shrink-0"
+              style="background:#334155"
+              aria-pressed="false"
+            >
+              <span id="review-knob" class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" style="left:2px"></span>
+            </button>
+          </div>
+
+          <div id="review-settings" class="hidden space-y-4">
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label class="label" for="review-reward-value">Récompense offerte</label>
+                <div class="flex items-center gap-2 mt-1">
+                  <input id="review-reward-value" type="number" min="1" max="10" value="1" class="input w-24 text-center" />
+                  <span id="review-reward-unit" class="text-sm text-slate-500">tampon(s)</span>
+                </div>
+              </div>
+              <div>
+                <label class="label" for="google-maps-url">Lien Google Maps de votre commerce</label>
+                <input id="google-maps-url" type="url" class="input mt-1" placeholder="https://maps.google.com/?cid=..." />
+                <p class="text-slate-400 text-xs mt-1">Trouvez votre fiche Google Maps → Partager → Copier le lien</p>
+              </div>
+            </div>
+
+            <div id="review-link-section" class="hidden rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+              <p class="text-emerald-700 font-semibold text-sm mb-2">Lien à partager avec vos clients</p>
+              <div class="flex items-center gap-2">
+                <input id="review-link-input" type="text" readonly class="input flex-1 text-xs bg-white" />
+                <button id="copy-review-link-btn" type="button" class="btn-secondary text-sm py-2 px-3 shrink-0">Copier</button>
+              </div>
+              <p class="text-emerald-600 text-xs mt-2">Partagez ce lien par SMS, WhatsApp, push ou QR code en boutique. Chaque client ne peut réclamer qu’une seule fois.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Étape 7 : Relecture -->
       <div class="card wizard-section step-7 p-6">
         <div class="mb-4">
           <h2 class="font-display font-bold text-slate-900">Relecture & publication</h2>
-          <p class="mt-1 text-sm leading-6 text-slate-500">Avant de publier, on relit l’essentiel ensemble pour éviter les oublis sur le nom, la récompense, les messages et la proximité.</p>
+          <p class="mt-1 text-sm leading-6 text-slate-500">Avant de publier, on relit l'essentiel ensemble pour éviter les oublis sur le nom, la récompense, les messages et la proximité.</p>
         </div>
         <div class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-          <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+          <div class="rounded-2xl border border-sky-100 bg-sky-50/40 p-5">
             <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-600/70">Résumé</p>
             <div id="review-summary" class="mt-4 grid gap-3 sm:grid-cols-2"></div>
           </div>
@@ -478,35 +551,55 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             <ul class="mt-3 space-y-2 text-sm text-emerald-900/80">
               <li>Votre nom de carte et votre récompense doivent être clairement lisibles.</li>
               <li>Le message Wallet doit donner envie de revenir, pas seulement informer.</li>
-              <li>Le scanner et le partage s’activent juste après cette validation.</li>
+              <li>Le scanner et le partage s'activent juste après cette validation.</li>
             </ul>
-            <p class="mt-4 text-xs text-emerald-700">Vous pourrez encore revenir en arrière ensuite pour ajuster la carte si nécessaire.</p>
           </div>
         </div>
       </div>
 
+      <!-- Étape 8 : Scanner & Partage -->
       <div class="card wizard-section step-8 p-6">
         <div class="mb-4">
-          <h2 class="font-display font-bold text-slate-900">Configurer le scanner du personnel</h2>
-          <p class="mt-1 text-sm leading-6 text-slate-500">L’équipe pourra scanner les cartes depuis un simple téléphone. On vous prépare ici le lien d’installation et le QR à partager en interne.</p>
+          <h2 class="font-display font-bold text-slate-900">Scanner & Partage</h2>
+          <p class="mt-1 text-sm leading-6 text-slate-500">Configurez le scanner du personnel et partagez le QR code client. Votre carte est opérationnelle.</p>
         </div>
-        <div class="grid gap-5 lg:grid-cols-[220px_1fr] lg:items-center">
-          <div class="rounded-2xl border border-sky-100 bg-sky-50/60 p-4 text-center">
-            <div id="scanner-qr-container" class="flex justify-center"></div>
-            <p class="mt-3 text-xs text-slate-500">QR d’installation pour l’équipe</p>
-          </div>
-          <div class="space-y-3 text-sm text-slate-600">
-            <p class="font-medium text-slate-900">Le personnel scanne ce QR pour ouvrir l’espace scanner sur son téléphone.</p>
-            <ol class="space-y-2 text-slate-500">
-              <li>1. Ouvrez le lien d’installation sur le téléphone du personnel.</li>
-              <li>2. Ajoutez l’accès scanner à l’écran d’accueil si besoin.</li>
-              <li>3. Autorisez la caméra puis utilisez l’onglet Scan en caisse.</li>
-            </ol>
-            <div class="flex flex-wrap gap-2">
-              <a id="scanner-install-link" href="/app/install" target="_blank" rel="noreferrer" class="btn-secondary text-sm py-2 px-4">Ouvrir la page d’installation</a>
-              <a href="/app/scan" target="_blank" rel="noreferrer" class="btn-secondary text-sm py-2 px-4">Tester le scanner</a>
+        <!-- Scanner personnel -->
+        <div class="mb-6">
+          <h3 class="font-semibold text-slate-900 mb-3">Configurer le scanner du personnel</h3>
+          <div class="grid gap-5 lg:grid-cols-[220px_1fr] lg:items-center">
+            <div class="rounded-2xl border border-sky-100 bg-sky-50/60 p-4 text-center">
+              <div id="scanner-qr-container" class="flex justify-center"></div>
+              <p class="mt-3 text-xs text-slate-500">QR d’installation pour l’équipe</p>
+            </div>
+            <div class="space-y-3 text-sm text-slate-600">
+              <p class="font-medium text-slate-900">Le personnel scanne ce QR pour ouvrir l’espace scanner sur son téléphone.</p>
+              <ol class="space-y-2 text-slate-500">
+                <li>1. Ouvrez le lien d’installation sur le téléphone du personnel.</li>
+                <li>2. Ajoutez l’accès scanner à l’écran d’accueil si besoin.</li>
+                <li>3. Autorisez la caméra puis utilisez l’onglet Scan en caisse.</li>
+              </ol>
+              <div class="flex flex-wrap gap-2">
+                <a id="scanner-install-link" href="/app/install" target="_blank" rel="noreferrer" class="btn-secondary text-sm py-2 px-4">Ouvrir la page d’installation</a>
+                <a href="/app/scan" target="_blank" rel="noreferrer" class="btn-secondary text-sm py-2 px-4">Tester le scanner</a>
+              </div>
             </div>
           </div>
+        </div>
+        <!-- QR code client + affiches -->
+        <div>
+          <h3 class="font-semibold text-slate-900 mb-3">QR code client & affiches</h3>
+          <div class="text-center mb-3">
+            <p class="text-slate-400 text-xs mb-3">QR code à afficher dans votre commerce</p>
+            <div id="qr-container" class="flex justify-center"></div>
+            <p class="text-slate-500 text-xs mt-3">Les clients scannent ce QR pour ajouter la carte</p>
+          </div>
+          <div class="grid sm:grid-cols-2 gap-2 mt-4 text-left">
+            <button id="download-qr-btn" type="button" class="btn-secondary text-sm py-2.5">Télécharger le QR code</button>
+            <a id="poster-link-minimal" href="#" target="_blank" rel="noreferrer" class="btn-secondary text-sm py-2.5 text-center">Affiche A4 minimal</a>
+            <a id="poster-link-premium" href="#" target="_blank" rel="noreferrer" class="btn-secondary text-sm py-2.5 text-center">Affiche A4 premium</a>
+            <a id="poster-link-promo" href="#" target="_blank" rel="noreferrer" class="btn-secondary text-sm py-2.5 text-center">Affiche A4 promo</a>
+          </div>
+          <p class="text-slate-600 text-xs mt-3">Ouvrez un modèle A4, imprimez-le ou exportez-le en PDF pour l’afficher dans votre commerce.</p>
         </div>
       </div>
 
@@ -609,63 +702,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
       </div>
 
-      <!-- Récompense avis Google -->
-      <div class="wizard-section step-9 hidden card p-6">
-        <div class="flex items-center justify-between gap-4 mb-5">
-          <div>
-            <h2 class="font-display font-bold text-slate-900">Récompense avis Google</h2>
-            <p class="mt-1 text-sm leading-6 text-slate-500">Offrez un tampon ou des points aux clients qui laissent un avis Google. Un lien unique leur est envoyé — un clic, c'est crédité.</p>
-          </div>
-          <button
-            id="review-toggle"
-            type="button"
-            class="relative w-12 h-6 rounded-full transition-colors flex-shrink-0"
-            style="background:#334155"
-            aria-pressed="false"
-          >
-            <span id="review-knob" class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" style="left:2px"></span>
-          </button>
-        </div>
-
-        <div id="review-settings" class="hidden space-y-4">
-          <div class="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label class="label" for="review-reward-value">Récompense offerte</label>
-              <div class="flex items-center gap-2 mt-1">
-                <input id="review-reward-value" type="number" min="1" max="10" value="1" class="input w-24 text-center" />
-                <span id="review-reward-unit" class="text-sm text-slate-500">tampon(s)</span>
-              </div>
-            </div>
-            <div>
-              <label class="label" for="google-maps-url">Lien Google Maps de votre commerce</label>
-              <input id="google-maps-url" type="url" class="input mt-1" placeholder="https://maps.google.com/?cid=..." />
-              <p class="text-slate-400 text-xs mt-1">Trouvez votre fiche Google Maps → Partager → Copier le lien</p>
-            </div>
-          </div>
-
-          <div id="review-link-section" class="hidden rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-            <p class="text-emerald-700 font-semibold text-sm mb-2">Lien à partager avec vos clients</p>
-            <div class="flex items-center gap-2">
-              <input id="review-link-input" type="text" readonly class="input flex-1 text-xs bg-white" />
-              <button id="copy-review-link-btn" type="button" class="btn-secondary text-sm py-2 px-3 shrink-0">Copier</button>
-            </div>
-            <p class="text-emerald-600 text-xs mt-2">Partagez ce lien par SMS, WhatsApp, push ou QR code en boutique. Chaque client ne peut réclamer qu'une seule fois.</p>
-          </div>
-        </div>
-      </div>
-
-      <div id="qr-section" class="wizard-section step-9 hidden card p-4 text-center">
-        <p class="text-slate-400 text-xs mb-3">QR code à afficher dans votre commerce</p>
-        <div id="qr-container" class="flex justify-center"></div>
-        <p class="text-slate-500 text-xs mt-3">Les clients scannent ce QR pour ajouter la carte</p>
-        <div class="grid sm:grid-cols-2 gap-2 mt-4 text-left">
-          <button id="download-qr-btn" type="button" class="btn-secondary text-sm py-2.5">Télécharger le QR code</button>
-          <a id="poster-link-minimal" href="#" target="_blank" rel="noreferrer" class="btn-secondary text-sm py-2.5 text-center">Affiche A4 minimal</a>
-          <a id="poster-link-premium" href="#" target="_blank" rel="noreferrer" class="btn-secondary text-sm py-2.5 text-center">Affiche A4 premium</a>
-          <a id="poster-link-promo" href="#" target="_blank" rel="noreferrer" class="btn-secondary text-sm py-2.5 text-center">Affiche A4 promo</a>
-        </div>
-        <p class="text-slate-600 text-xs mt-3">Ouvrez un modèle A4, imprimez-le ou exportez-le en PDF pour l’afficher dans votre commerce.</p>
-      </div>
     </div>
   </div>
 </DashboardLayout>
@@ -678,7 +714,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const API = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
   const PUBLIC_SITE_URL = (import.meta.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
   const setupMode = new URLSearchParams(window.location.search).get('setup') === '1';
-  const TOTAL_STEPS = 9;
+  const TOTAL_STEPS = 8;
 
   let carteId: string | null = null;
   let logoUrl = '', stripUrl = '', tamponIconUrl = '', tamponEmoji = '';
@@ -733,18 +769,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const nextBtn = document.getElementById('next-step-btn') as HTMLButtonElement;
     const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
     const currentLabel = document.getElementById('wizard-current-label');
-    const labels = ['Template', 'Identité', 'Programme', 'Messages', 'Apparence', 'Géolocalisation', 'Relecture', 'Scanner', 'Partage'];
+    const labels = ['Type', 'Identité', 'Programme', 'Apparence', 'Messages', 'Options', 'Relecture', 'Partage'];
 
     if (currentLabel) currentLabel.textContent = `Étape ${currentStep} · ${labels[currentStep - 1]}`;
 
     prevBtn.classList.toggle('invisible', currentStep === 1);
     nextBtn.classList.toggle('hidden', currentStep === TOTAL_STEPS);
-    submitBtn.classList.toggle('hidden', currentStep >= 8);
+    submitBtn.classList.toggle('hidden', currentStep >= 7);
 
     if (currentStep < 6) nextBtn.textContent = 'Étape suivante';
     else if (currentStep === 6) nextBtn.textContent = 'Relecture & publication';
-    else if (currentStep === 7) nextBtn.textContent = carteId ? 'Scanner du personnel' : 'Créer puis continuer';
-    else if (currentStep === 8) nextBtn.textContent = 'Passer au partage';
+    else if (currentStep === 7) nextBtn.textContent = carteId ? 'Scanner & Partage' : 'Créer puis continuer';
 
     if (currentStep < 6) submitBtn.textContent = carteId ? 'Enregistrer les modifications' : 'Enregistrer le brouillon';
     else if (currentStep === 6) submitBtn.textContent = carteId ? 'Enregistrer et continuer' : 'Créer la carte';
@@ -754,10 +789,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   function showStep(step: number) {
     const target = Math.max(1, Math.min(TOTAL_STEPS, step));
     if (target >= 8 && !carteId) {
-      const err = document.getElementById('error-msg') as HTMLDivElement;
-      err.textContent = 'Créez d’abord votre carte avant de configurer le scanner et le partage.';
-      err.classList.remove('hidden');
-      currentStep = 6;
+      const err = document.getElementById(‘error-msg’) as HTMLDivElement;
+      err.textContent = ‘Créez d’abord votre carte avant de configurer le scanner et le partage.’;
+      err.classList.remove(‘hidden’);
+      currentStep = 7;
     } else {
       currentStep = target;
     }
@@ -825,6 +860,31 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     document.getElementById('gradient-angle-val')!.textContent=`${(e.target as HTMLInputElement).value}°`;
     updatePreview();
   });
+
+  // Pattern accordion
+  document.getElementById('pattern-toggle')!.addEventListener('click', () => {
+    const panel = document.getElementById('pattern-panel')!;
+    const arrow = document.getElementById('pattern-arrow')!;
+    const isOpen = !panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', isOpen);
+    arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+  });
+
+  // Géolocalisation toggle
+  let geoEnabled = false;
+  const geoToggle = document.getElementById('geo-toggle') as HTMLButtonElement;
+  const geoKnob = document.getElementById('geo-knob') as HTMLSpanElement;
+  const geoSettings = document.getElementById('geo-settings') as HTMLDivElement;
+
+  function setGeoToggle(enabled: boolean) {
+    geoEnabled = enabled;
+    geoToggle.style.background = enabled ? '#4f46e5' : '#334155';
+    geoKnob.style.left = enabled ? '26px' : '2px';
+    geoToggle.setAttribute('aria-pressed', String(enabled));
+    geoSettings.classList.toggle('hidden', !enabled);
+  }
+
+  geoToggle.addEventListener('click', () => setGeoToggle(!geoEnabled));
 
   // Strip style
   function applyStripStyle(isFull: boolean) {
@@ -1171,13 +1231,20 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     document.getElementById('config-tampons')!.classList.toggle('hidden',type!=='tampons');
     document.getElementById('config-points')!.classList.toggle('hidden',type!=='points');
     document.getElementById('vip-tiers-card')!.classList.toggle('opacity-60',type!=='points');
+    document.getElementById('tampon-icon-section')!.classList.toggle('hidden',type!=='tampons');
   }
+
+  const QR_SVG = `<svg viewBox="0 0 21 21" class="w-full h-full" style="image-rendering:pixelated"><rect x="0" y="0" width="7" height="7" fill="#111" rx="1"/><rect x="1" y="1" width="5" height="5" fill="white"/><rect x="2" y="2" width="3" height="3" fill="#111"/><rect x="14" y="0" width="7" height="7" fill="#111" rx="1"/><rect x="15" y="1" width="5" height="5" fill="white"/><rect x="16" y="2" width="3" height="3" fill="#111"/><rect x="0" y="14" width="7" height="7" fill="#111" rx="1"/><rect x="1" y="15" width="5" height="5" fill="white"/><rect x="2" y="16" width="3" height="3" fill="#111"/><rect x="9" y="9" width="3" height="3" fill="#111"/><rect x="13" y="9" width="2" height="2" fill="#111"/><rect x="16" y="9" width="3" height="3" fill="#111"/></svg>`;
+  const AZTEC_SVG = `<svg viewBox="0 0 56 56" class="w-full h-full"><circle cx="28" cy="28" r="26" fill="none" stroke="#111" stroke-width="3"/><circle cx="28" cy="28" r="20" fill="none" stroke="#111" stroke-width="3"/><circle cx="28" cy="28" r="14" fill="none" stroke="#111" stroke-width="3"/><circle cx="28" cy="28" r="8" fill="none" stroke="#111" stroke-width="3"/><rect x="24" y="24" width="8" height="8" fill="#111" rx="1"/><rect x="26" y="4" width="4" height="6" fill="#111"/><rect x="26" y="46" width="4" height="6" fill="#111"/><rect x="4" y="26" width="6" height="4" fill="#111"/><rect x="46" y="26" width="6" height="4" fill="#111"/></svg>`;
 
   // Barcode
   document.querySelectorAll('input[name="barcode_type"]').forEach(r=>r.addEventListener('change',()=>{
     const v=(document.querySelector('input[name="barcode_type"]:checked') as HTMLInputElement).value;
     ['QR','PDF417','AZTEC','NONE'].forEach(k=>document.getElementById(`barcode-${k.toLowerCase()}-label`)!.style.cssText=k===v?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff');
-    document.getElementById('prev-qr')!.classList.toggle('hidden',v!=='QR'&&v!=='AZTEC');
+    const prevQr = document.getElementById('prev-qr')!;
+    if (v === 'QR') { prevQr.classList.remove('hidden'); prevQr.innerHTML = QR_SVG; }
+    else if (v === 'AZTEC') { prevQr.classList.remove('hidden'); prevQr.innerHTML = AZTEC_SVG; }
+    else { prevQr.classList.add('hidden'); }
     document.getElementById('prev-barcode')!.classList.toggle('hidden',v!=='PDF417'&&v!=='CODE128');
     document.getElementById('preview-barcode-wrap')!.classList.toggle('hidden',v==='NONE');
     document.getElementById('g-barcode-wrap')!.classList.toggle('hidden',v==='NONE');
@@ -1402,13 +1469,19 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         document.getElementById('tampon-custom-zone')!.classList.remove('hidden');
         ['default','emoji','custom'].forEach(v=>document.getElementById(`tampon-mode-${v}-label`)!.style.cssText=v==='custom'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff');
       }
+      // Review reward fields
+      if (data.review_reward_enabled) setReviewToggle(true);
+      if (data.review_reward_value != null) set('review-reward-value', String(data.review_reward_value));
+      if (data.google_maps_url) set('google-maps-url', data.google_maps_url);
+      updateReviewUnit();
+
       updatePreview();
       const pu=publicCardUrl(data.id);
       document.getElementById('public-link-banner')!.classList.remove('hidden');
       document.getElementById('public-link-url')!.textContent=pu;
-      document.getElementById('qr-section')!.classList.remove('hidden');
       updateQrTools(data.id);
       updateScannerTools();
+      if (data.review_reward_enabled) updateReviewLink();
       updateWizardActions();
     }catch{}
   }
@@ -1471,6 +1544,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       (document.getElementById('adresse-commerce') as HTMLInputElement).value = data?.adresse ?? '';
       rayonSlider.value = String(rayon);
       rayonLabel.textContent = `${rayon.toLocaleString('fr-FR')} m`;
+      if (data?.adresse) setGeoToggle(true);
     } catch {}
   }
 
@@ -1503,6 +1577,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       success_message:gi('success-message')||null,
       rewards_config:collectRewardTiers(),
       vip_tiers:collectVipTiers(),
+      review_reward_enabled: reviewEnabled,
+      review_reward_value: parseInt((document.getElementById('review-reward-value') as HTMLInputElement).value) || 1,
+      google_maps_url: (document.getElementById('google-maps-url') as HTMLInputElement).value || null,
     };
     try{
       const res=carteId?await authFetch(`/api/cartes/${carteId}`,{method:'PATCH',body:JSON.stringify(payload)}):await authFetch('/api/cartes',{method:'POST',body:JSON.stringify(payload)});
@@ -1519,6 +1596,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (carteId) {
         updateQrTools(carteId);
         updateScannerTools();
+        if (reviewEnabled) updateReviewLink();
       }
       suc.textContent=!hadExistingCard&&setupMode?'Carte créée avec succès. Votre programme est opérationnel : vous pouvez maintenant scanner les cartes depuis votre espace Scan.':'Carte enregistrée avec succès !';suc.classList.remove('hidden');
       if (setupMode && !hadExistingCard) {

@@ -6,16 +6,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 // Lire l'URL de l'API au runtime (SSR) — pas baked au build comme PUBLIC_*
 const apiUrl = (process.env.API_URL ?? import.meta.env.PUBLIC_API_URL ?? 'https://api.fidelopass.com').replace(/\/$/, '');
 
+// Bannière "nouvel utilisateur" après inscription
+const isNew = Astro.url.searchParams.get('new') === '1';
+
 const priceIds = {
   starter_mensuel: 'price_1TLUSO7qMJeoJ4KrrIxG6TI3',
   starter_annuel:  'price_1TLUSO7qMJeoJ4KrqScU0Tfw',
   pro_mensuel:     'price_1TLUSP7qMJeoJ4Kr6jqRgTDw',
   pro_annuel:      'price_1TLUSP7qMJeoJ4KrszNXoiBO',
   accompagnement:  'price_1TLUSQ7qMJeoJ4KrYRnAjiPT',
-  scanner:         'price_1TLUSR7qMJeoJ4KraAIhkZNc',
-  sms_100:         'price_1TLUSS7qMJeoJ4KrmbPWFh9V',
-  sms_500:         'price_1TLUSS7qMJeoJ4KrR2wppPSv',
-  sms_2000:        'price_1TLUSS7qMJeoJ4Krtl3iQKiF',
 };
 
 const faq = [
@@ -35,6 +34,15 @@ const faq = [
   <meta id="api-config" data-url={apiUrl} />
   <PublicNav currentPath="/pricing" />
 
+  <!-- Bannière nouvel utilisateur -->
+  {isNew && (
+    <div class="bg-indigo-600 text-white text-center py-3 px-4">
+      <p class="text-sm font-medium">
+        🎉 Compte créé avec succès ! Choisissez votre plan pour commencer votre essai gratuit.
+      </p>
+    </div>
+  )}
+
   <!-- Header -->
   <section class="relative overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_65%,#ffffff_100%)] pt-14 pb-12">
     <div class="pointer-events-none absolute inset-0">
@@ -53,36 +61,34 @@ const faq = [
 
       <!-- Toggle mensuel / annuel -->
       <div class="inline-flex items-center gap-1 mt-8 rounded-2xl border border-slate-200 bg-white/90 p-1.5 shadow-sm">
-        <button id="toggle-monthly" type="button" class="px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500">
+        <button id="toggle-monthly" type="button" class="px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm">
           Mensuel
         </button>
-        <button id="toggle-annual" type="button" class="px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm">
+        <button id="toggle-annual" type="button" class="px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500">
           Annuel
           <span class="ml-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 font-semibold">-17%</span>
         </button>
       </div>
-      <p class="text-slate-400 text-sm mt-3">Tarifs affichés par défaut avec engagement annuel.</p>
     </div>
   </section>
 
   <!-- Plans -->
   <section class="bg-slate-50/70 py-10 pb-20">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6">
-      <div class="grid lg:grid-cols-2 gap-6 items-start">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+      <div class="grid lg:grid-cols-3 gap-6 items-start">
 
         <!-- Starter -->
         <article class="rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] flex flex-col p-8">
           <div class="inline-flex items-center gap-2 mb-3">
             <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Starter Indépendant</span>
           </div>
-          <div class="flex items-end gap-1 mb-1">
+          <div class="flex items-end gap-1 mb-3">
             <span class="font-display font-bold leading-none text-slate-900">
-              <span class="text-4xl monthly-price" data-monthly="29" data-annual="24" id="starter-display">24€</span>
+              <span class="text-4xl monthly-price" data-monthly="29" data-annual="24" id="starter-display">29€</span>
             </span>
             <span class="text-sm mb-1 text-slate-400">/mois</span>
           </div>
-          <p class="text-xs mt-0.5 text-slate-400 annual-note">Avec engagement annuel · 290€/an</p>
-          <div class="mt-3 mb-4 inline-flex items-center gap-1.5 rounded-full bg-sky-50 border border-sky-100 px-3 py-1.5 text-xs font-semibold text-sky-700 w-fit">
+          <div class="mb-4 inline-flex items-center gap-1.5 rounded-full bg-sky-50 border border-sky-100 px-3 py-1.5 text-xs font-semibold text-sky-700 w-fit">
             <span>🎁</span> 14 jours gratuits
           </div>
           <p class="text-sm leading-relaxed mb-6 text-slate-500">Pour lancer votre première carte et commencer à fidéliser.</p>
@@ -101,12 +107,15 @@ const faq = [
             {[
               "Jusqu'à 500 cartes actives",
               '1 point de vente',
+              '3 scanners inclus',
               'Apple Wallet + Google Wallet',
               'Scanner mobile + affiche QR',
               'Notifications push illimitées',
               'Carte tampons, points, VIP',
+              "Campagnes SMS (crédits à l'achat)",
               'Analytics de base',
               'Support email',
+              '5€ / scanner supplémentaire',
             ].map((f) => (
               <li class="flex items-center gap-3 text-sm">
                 <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-bold flex-shrink-0">✓</span>
@@ -126,14 +135,13 @@ const faq = [
           <div class="inline-flex items-center gap-2 mb-3">
             <span class="text-xs font-bold uppercase tracking-widest text-indigo-200">Commerce Pro</span>
           </div>
-          <div class="flex items-end gap-1 mb-1">
+          <div class="flex items-end gap-1 mb-3">
             <span class="font-display font-bold leading-none text-white">
-              <span class="text-4xl monthly-price" data-monthly="59" data-annual="49" id="pro-display">49€</span>
+              <span class="text-4xl monthly-price" data-monthly="59" data-annual="49" id="pro-display">59€</span>
             </span>
             <span class="text-sm mb-1 text-indigo-200">/mois</span>
           </div>
-          <p class="text-xs mt-0.5 text-indigo-300 annual-note">Avec engagement annuel · 590€/an</p>
-          <div class="mt-3 mb-4 inline-flex items-center gap-1.5 rounded-full bg-white/15 border border-white/20 px-3 py-1.5 text-xs font-semibold text-white w-fit">
+          <div class="mb-4 inline-flex items-center gap-1.5 rounded-full bg-white/15 border border-white/20 px-3 py-1.5 text-xs font-semibold text-white w-fit">
             <span>🎁</span> 14 jours gratuits
           </div>
           <p class="text-sm leading-relaxed mb-6 text-indigo-200">Pour fidéliser plus fort et communiquer avec vos clients.</p>
@@ -152,13 +160,16 @@ const faq = [
             {[
               "Jusqu'à 2000 cartes actives",
               '3 points de vente',
+              '6 scanners inclus',
               'Apple Wallet + Google Wallet',
               'Scanner mobile + affiche QR',
               'Push ciblées & campagnes',
               'Campagne avis Google',
+              "Campagnes SMS (crédits à l'achat)",
               'Analytics avancés',
               'Anniversaire automatique',
               'Support prioritaire',
+              '5€ / scanner supplémentaire',
             ].map((f) => (
               <li class="flex items-center gap-3 text-sm">
                 <span class="w-5 h-5 rounded-full bg-white/20 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">✓</span>
@@ -167,87 +178,73 @@ const faq = [
             ))}
           </ul>
         </article>
+
+        <!-- Sur mesure -->
+        <article class="rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] flex flex-col p-8">
+          <div class="inline-flex items-center gap-2 mb-3">
+            <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Réseau & Franchise</span>
+          </div>
+          <div class="flex items-end gap-1 mb-3">
+            <span class="font-display font-bold leading-none text-slate-900 text-4xl">Sur devis</span>
+          </div>
+          <div class="mb-4 inline-flex items-center gap-1.5 rounded-full bg-violet-50 border border-violet-100 px-3 py-1.5 text-xs font-semibold text-violet-700 w-fit">
+            <span>✦</span> Solution sur mesure
+          </div>
+          <p class="text-sm leading-relaxed mb-6 text-slate-500">Pour les réseaux, franchises et groupes avec plusieurs enseignes.</p>
+
+          <a
+            href="/contact"
+            class="w-full inline-flex items-center justify-center py-3 rounded-xl font-semibold text-sm transition-all mb-8 border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white"
+          >
+            Nous contacter
+          </a>
+
+          <ul class="space-y-3 flex-1">
+            {[
+              'Points de vente illimités',
+              'Cartes actives illimitées',
+              'Scanners illimités',
+              'Apple Wallet + Google Wallet',
+              'Push ciblées & campagnes',
+              'Campagnes SMS incluses',
+              'API + intégrations caisse',
+              'Accompagnement personnalisé',
+              'Support prioritaire dédié',
+            ].map((f) => (
+              <li class="flex items-center gap-3 text-sm">
+                <span class="w-5 h-5 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center text-xs font-bold flex-shrink-0">✓</span>
+                <span class="text-slate-700">{f}</span>
+              </li>
+            ))}
+          </ul>
+        </article>
       </div>
 
       <p class="text-center text-slate-400 text-xs mt-8">Prix HT. TVA applicable selon votre situation.</p>
 
-      <!-- Options -->
-      <div class="mt-14">
-        <h2 class="font-display text-2xl font-bold text-slate-900 mb-6 text-center">Options à la carte</h2>
-        <div class="grid sm:grid-cols-2 gap-4">
-
-          <div class="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm flex flex-col gap-3">
-            <div>
-              <p class="font-semibold text-slate-900">Accompagnement Setup</p>
-              <p class="text-slate-500 text-sm mt-1 leading-relaxed">Aide à la configuration, paramétrage initial et mise en ligne de votre première carte par notre équipe.</p>
-            </div>
-            <div class="flex items-end justify-between gap-3 mt-auto pt-2">
-              <div>
-                <span class="font-display text-2xl font-bold text-slate-900">20€</span>
-                <span class="text-slate-400 text-sm ml-1">une fois</span>
-              </div>
-              <button
-                type="button"
-                class="checkout-btn rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                data-price-monthly={priceIds.accompagnement}
-                data-price-annual={priceIds.accompagnement}
-                data-mode="payment"
-              >
-                Ajouter
-              </button>
-            </div>
+      <!-- Option Accompagnement -->
+      <div class="mt-14 max-w-md mx-auto">
+        <h2 class="font-display text-2xl font-bold text-slate-900 mb-6 text-center">Option à la carte</h2>
+        <div class="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm flex flex-col gap-3">
+          <div>
+            <p class="font-semibold text-slate-900">Accompagnement Setup</p>
+            <p class="text-slate-500 text-sm mt-1 leading-relaxed">Aide à la configuration, paramétrage initial et mise en ligne de votre première carte par notre équipe.</p>
           </div>
-
-          <div class="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm flex flex-col gap-3">
+          <div class="flex items-end justify-between gap-3 mt-auto pt-2">
             <div>
-              <p class="font-semibold text-slate-900">Scanner supplémentaire</p>
-              <p class="text-slate-500 text-sm mt-1 leading-relaxed">Accès scanner pour un point de vente additionnel, au-delà de ce que votre plan inclut.</p>
+              <span class="font-display text-2xl font-bold text-slate-900">20€</span>
+              <span class="text-slate-400 text-sm ml-1">une fois</span>
             </div>
-            <div class="flex items-end justify-between gap-3 mt-auto pt-2">
-              <div>
-                <span class="font-display text-2xl font-bold text-slate-900">5€</span>
-                <span class="text-slate-400 text-sm ml-1">une fois</span>
-              </div>
-              <button
-                type="button"
-                class="checkout-btn rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                data-price-monthly={priceIds.scanner}
-                data-price-annual={priceIds.scanner}
-                data-mode="payment"
-              >
-                Ajouter
-              </button>
-            </div>
+            <button
+              type="button"
+              class="checkout-btn rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+              data-price-monthly={priceIds.accompagnement}
+              data-price-annual={priceIds.accompagnement}
+              data-mode="payment"
+            >
+              Ajouter
+            </button>
           </div>
-        </div>
-      </div>
-
-      <!-- Crédits SMS (visible si connecté) -->
-      <div id="sms-section" class="hidden mt-10">
-        <h2 class="font-display text-2xl font-bold text-slate-900 mb-6 text-center">Crédits SMS</h2>
-        <div class="grid sm:grid-cols-3 gap-4">
-          {[
-            { label: 'Pack SMS 100', credits: '100 crédits', price: '12€', priceId: priceIds.sms_100 },
-            { label: 'Pack SMS 500', credits: '500 crédits', price: '49€', priceId: priceIds.sms_500 },
-            { label: 'Pack SMS 2000', credits: '2000 crédits', price: '159€', priceId: priceIds.sms_2000 },
-          ].map((pack) => (
-            <div class="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm text-center flex flex-col gap-3 items-center">
-              <p class="font-semibold text-slate-900">{pack.label}</p>
-              <p class="text-slate-500 text-sm">{pack.credits}</p>
-              <div>
-                <span class="font-display text-2xl font-bold text-slate-900">{pack.price}</span>
-              </div>
-              <button
-                type="button"
-                class="checkout-btn w-full rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 transition-colors"
-                data-price-monthly={pack.priceId}
-                data-price-annual={pack.priceId}
-                data-mode="payment"
-              >
-                Acheter
-              </button>
-            </div>
-          ))}
         </div>
       </div>
 
@@ -308,7 +305,7 @@ const faq = [
   // ── Toggle mensuel / annuel ───────────────────────────────────────────
   const monthlyBtn = document.getElementById('toggle-monthly') as HTMLButtonElement;
   const annualBtn  = document.getElementById('toggle-annual')  as HTMLButtonElement;
-  let currentMode: 'monthly' | 'annual' = 'annual';
+  let currentMode: 'monthly' | 'annual' = 'monthly';
 
   function setMode(mode: 'monthly' | 'annual') {
     currentMode = mode;
@@ -326,18 +323,11 @@ const faq = [
       const annual  = el.getAttribute('data-annual');
       (el as HTMLElement).textContent = (isAnnual ? annual : monthly) + '€';
     });
-
-    document.querySelectorAll('.annual-note').forEach((el) => {
-      if (el.id === 'starter-display' || el.id === 'pro-display') return;
-      (el as HTMLElement).textContent = isAnnual
-        ? el.textContent?.includes('290') ? 'Avec engagement annuel · 290€/an' : 'Avec engagement annuel · 590€/an'
-        : 'Sans engagement';
-    });
   }
 
   monthlyBtn.addEventListener('click', () => setMode('monthly'));
   annualBtn.addEventListener('click',  () => setMode('annual'));
-  setMode('annual');
+  setMode('monthly');
 
   // ── Checkout ──────────────────────────────────────────────────────────
   // Lire l'URL depuis la meta tag injectée par le serveur SSR (runtime, pas build-time)
@@ -386,13 +376,6 @@ const faq = [
 
   document.querySelectorAll('.checkout-btn').forEach((btn) => {
     btn.addEventListener('click', () => startCheckout(btn as HTMLElement));
-  });
-
-  // ── Section SMS visible si connecté ──────────────────────────────────
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    if (session) {
-      document.getElementById('sms-section')?.classList.remove('hidden');
-    }
   });
 
   // ── FAQ ───────────────────────────────────────────────────────────────

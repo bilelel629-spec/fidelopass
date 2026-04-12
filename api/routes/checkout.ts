@@ -49,7 +49,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode,
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${PUBLIC_SITE_URL}/dashboard?success=1`,
+    success_url: `${PUBLIC_SITE_URL}/onboarding?paid=1`,
     cancel_url: `${PUBLIC_SITE_URL}/pricing?cancelled=1`,
     locale: 'fr',
     allow_promotion_codes: true,

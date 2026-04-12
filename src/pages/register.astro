@@ -262,7 +262,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     const check = await fetch(apiUrl('/api/commerces/me'), {
       headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
     }).then((r) => r.json()).catch(() => ({}));
-    window.location.href = check.data?.nom ? '/dashboard' : '/onboarding';
+    window.location.href = check.data?.nom ? '/dashboard' : '/pricing?new=1';
   }
 
   // Init

@@ -3,88 +3,31 @@ import PublicFooter from '../components/marketing/PublicFooter.astro';
 import PublicNav from '../components/marketing/PublicNav.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
-const plans = [
-  {
-    name: 'Starter',
-    monthlyPrice: 35,
-    annualPrice: 25,
-    subtitle: 'Pour lancer votre première carte et commencer à fidéliser.',
-    features: [
-      { text: 'Jusqu’à 500 cartes clients actives', ok: true },
-      { text: '1 commerce / lieu', ok: true },
-      { text: '3 scanners inclus', ok: true },
-      { text: 'Carte à tampons', ok: true },
-      { text: 'Apple Wallet + Google Wallet', ok: true },
-      { text: 'Scanner mobile + affiche QR', ok: true },
-      { text: 'Lien d\'inscription public', ok: true },
-      { text: 'Support email', ok: true },
-      { text: 'Notifications push', ok: true },
-      { text: 'Carte à points & VIP', ok: true },
-      { text: 'Géolocalisation', ok: true },
-    ],
-    cta: 'Démarrer l\'essai gratuit',
-    href: '/register',
-    featured: false,
-  },
-  {
-    name: 'Pro',
-    monthlyPrice: 85,
-    annualPrice: 65,
-    subtitle: 'Pour fidéliser plus fort et communiquer avec vos clients.',
-    features: [
-      { text: 'Jusqu’à 5 000 cartes clients actives', ok: true },
-      { text: '3 lieux / commerces', ok: true },
-      { text: '6 scanners par lieu', ok: true },
-      { text: 'Tampons + Points + VIP (paliers)', ok: true },
-      { text: 'Apple Wallet + Google Wallet', ok: true },
-      { text: 'Scanner mobile + affiche QR', ok: true },
-      { text: 'Lien d\'inscription public', ok: true },
-      { text: 'Support prioritaire', ok: true },
-      { text: 'Notifications push & campagnes', ok: true },
-      { text: 'Géolocalisation client', ok: true },
-      { text: 'Statistiques avancées', ok: true },
-    ],
-    cta: 'Démarrer l\'essai gratuit',
-    href: '/register',
-    featured: true,
-  },
-  {
-    name: 'Sur mesure',
-    monthlyPrice: null,
-    annualPrice: null,
-    subtitle: 'Pour les enseignes, réseaux ou besoins spécifiques.',
-    features: [
-      { text: 'Volume de cartes adapté à vos besoins', ok: true },
-      { text: 'Nombre de lieux sur devis', ok: true },
-      { text: 'Scanners supplémentaires à partir de 5€/scanner', ok: true },
-      { text: 'Tous les types de cartes', ok: true },
-      { text: 'Apple Wallet + Google Wallet', ok: true },
-      { text: 'Multi-scanners + accès équipe', ok: true },
-      { text: 'Lien d\'inscription public', ok: true },
-      { text: 'Support dédié + onboarding', ok: true },
-      { text: 'Notifications push avancées', ok: true },
-      { text: 'Géolocalisation multi-sites', ok: true },
-      { text: 'Dashboard réseau centralisé', ok: true },
-    ],
-    cta: 'Demander un devis',
-    href: '/contact',
-    featured: false,
-  },
-];
+const priceIds = {
+  starter_mensuel: 'price_1TLUSO7qMJeoJ4KrrIxG6TI3',
+  starter_annuel:  'price_1TLUSO7qMJeoJ4KrqScU0Tfw',
+  pro_mensuel:     'price_1TLUSP7qMJeoJ4Kr6jqRgTDw',
+  pro_annuel:      'price_1TLUSP7qMJeoJ4KrszNXoiBO',
+  accompagnement:  'price_1TLUSQ7qMJeoJ4KrYRnAjiPT',
+  scanner:         'price_1TLUSR7qMJeoJ4KraAIhkZNc',
+  sms_100:         'price_1TLUSS7qMJeoJ4KrmbPWFh9V',
+  sms_500:         'price_1TLUSS7qMJeoJ4KrR2wppPSv',
+  sms_2000:        'price_1TLUSS7qMJeoJ4Krtl3iQKiF',
+};
 
 const faq = [
   { q: 'Y a-t-il un engagement minimum ?', a: 'Non. Les plans mensuels sont sans engagement. Vous pouvez annuler à tout moment depuis votre espace client, sans frais ni pénalité.' },
-  { q: 'Comment fonctionne l\'essai gratuit ?', a: 'Vous créez votre compte sans carte bancaire. Pendant 14 jours, vous configurez votre carte et votre scanner librement. À la fin, votre espace passe en lecture seule tant que vous n’avez pas choisi de plan.' },
-  { q: 'Quelle est la différence entre mensuel et annuel ?', a: 'L\'abonnement annuel vous fait économiser environ 25% par rapport au mensuel. Il est facturé en une seule fois pour 12 mois.' },
+  { q: "Comment fonctionne l'essai gratuit ?", a: "Vous créez votre compte sans carte bancaire. Pendant 14 jours, vous configurez votre carte et votre scanner librement. À la fin, votre espace passe en lecture seule tant que vous n'avez pas choisi de plan." },
+  { q: "Quelle est la différence entre mensuel et annuel ?", a: "L'abonnement annuel vous fait économiser environ 17% par rapport au mensuel. Il est facturé en une seule fois pour 12 mois." },
   { q: 'Puis-je changer de plan ?', a: 'Oui, vous pouvez évoluer ou rétrograder à tout moment. Les changements sont effectifs immédiatement.' },
-  { q: 'Mes clients doivent-ils télécharger une app ?', a: 'Non. Vos clients utilisent Apple Wallet ou Google Wallet, déjà installés sur leur téléphone. Aucun téléchargement supplémentaire.' },
+  { q: "Mes clients doivent-ils télécharger une app ?", a: "Non. Vos clients utilisent Apple Wallet ou Google Wallet, déjà installés sur leur téléphone. Aucun téléchargement supplémentaire." },
 ];
 ---
 
 <BaseLayout
   theme="light"
   title="Tarifs Fidelopass — Essai gratuit 14 jours sans carte bancaire"
-  description="3 offres Fidelopass pour tous les commerces. Starter, Pro et Sur mesure. Engagement annuel disponible. Essai gratuit 14 jours."
+  description="Plans Starter et Pro pour commerces. Essai gratuit 14 jours sans carte bancaire."
 >
   <PublicNav currentPath="/pricing" />
 
@@ -98,22 +41,20 @@ const faq = [
       <span class="mb-5 inline-flex items-center rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700 shadow-sm">Tarifs Fidelopass</span>
       <h1 class="font-display text-5xl sm:text-6xl font-bold text-slate-900 leading-tight">
         Des tarifs simples,<br/>
-        <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-500">
-          sans mauvaise surprise.
-        </span>
+        <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-500">sans mauvaise surprise.</span>
       </h1>
       <p class="text-slate-500 text-lg mt-5 max-w-xl mx-auto">
-        Essai gratuit 14 jours sur tous les plans. Aucune carte bancaire requise. Ensuite, votre espace reste accessible en lecture seule tant qu’aucun plan n’est choisi.
+        Essai gratuit 14 jours sur tous les plans. Aucune carte bancaire requise.
       </p>
 
       <!-- Toggle mensuel / annuel -->
       <div class="inline-flex items-center gap-1 mt-8 rounded-2xl border border-slate-200 bg-white/90 p-1.5 shadow-sm">
-        <button id="toggle-monthly" class="px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500">
+        <button id="toggle-monthly" type="button" class="px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500">
           Mensuel
         </button>
-        <button id="toggle-annual" class="px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm">
+        <button id="toggle-annual" type="button" class="px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm">
           Annuel
-          <span class="ml-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 font-semibold">-25%</span>
+          <span class="ml-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 font-semibold">-17%</span>
         </button>
       </div>
       <p class="text-slate-400 text-sm mt-3">Tarifs affichés par défaut avec engagement annuel.</p>
@@ -122,173 +63,197 @@ const faq = [
 
   <!-- Plans -->
   <section class="bg-slate-50/70 py-10 pb-20">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6">
-      <div class="grid lg:grid-cols-3 gap-6 items-start">
-        {plans.map((plan) => (
-          <article class:list={[
-            "rounded-[2rem] border flex flex-col p-8",
-            plan.featured
-              ? "border-indigo-400 bg-[linear-gradient(155deg,#1e1b4b_0%,#312e81_62%,#0284c7_100%)] shadow-[0_30px_80px_rgba(49,46,129,0.24)] relative"
-              : "border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)]",
-          ]}>
-            {plan.featured && (
-              <div class="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                <span class="rounded-full bg-amber-400 text-amber-900 text-xs font-bold px-4 py-1.5 shadow whitespace-nowrap">
-                  ⭐ Le plus populaire
-                </span>
-              </div>
-            )}
+    <div class="max-w-5xl mx-auto px-4 sm:px-6">
+      <div class="grid lg:grid-cols-2 gap-6 items-start">
 
-            <p class:list={["text-xs font-bold uppercase tracking-widest mb-3", plan.featured ? "text-indigo-200" : "text-slate-400"]}>
-              {plan.name}
-            </p>
+        <!-- Starter -->
+        <article class="rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] flex flex-col p-8">
+          <div class="inline-flex items-center gap-2 mb-3">
+            <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Starter Indépendant</span>
+          </div>
+          <div class="flex items-end gap-1 mb-1">
+            <span class="font-display font-bold leading-none text-slate-900">
+              <span class="text-4xl monthly-price" data-monthly="29" data-annual="24" id="starter-display">24€</span>
+            </span>
+            <span class="text-sm mb-1 text-slate-400">/mois</span>
+          </div>
+          <p class="text-xs mt-0.5 text-slate-400 annual-note">Avec engagement annuel · 290€/an</p>
+          <div class="mt-3 mb-4 inline-flex items-center gap-1.5 rounded-full bg-sky-50 border border-sky-100 px-3 py-1.5 text-xs font-semibold text-sky-700 w-fit">
+            <span>🎁</span> 14 jours gratuits
+          </div>
+          <p class="text-sm leading-relaxed mb-6 text-slate-500">Pour lancer votre première carte et commencer à fidéliser.</p>
 
-            {plan.monthlyPrice !== null && plan.annualPrice !== null ? (
-              <>
-                <div class="flex items-end gap-1 mb-1">
-                  <span class:list={["font-display font-bold leading-none", plan.featured ? "text-white" : "text-slate-900"]}>
-                    <span class="text-4xl monthly-price" data-monthly={plan.monthlyPrice} data-annual={plan.annualPrice}>
-                      {plan.annualPrice}€
-                    </span>
-                  </span>
-                  <span class:list={["text-sm mb-1 period-label", plan.featured ? "text-indigo-200" : "text-slate-400"]}>/mois</span>
-                </div>
-                <p class:list={["text-xs mt-0.5", plan.featured ? "text-indigo-300" : "text-slate-400"]}>
-                  Avec engagement annuel
-                </p>
-              </>
-            ) : (
-              <>
-                <div class="flex items-end gap-2 mb-1">
-                  <span class:list={["font-display text-4xl font-bold leading-none", plan.featured ? "text-white" : "text-slate-900"]}>Sur devis</span>
-                </div>
-                <p class:list={["text-xs mt-0.5", plan.featured ? "text-indigo-300" : "text-slate-400"]}>
-                  Proposition adaptée à votre besoin
-                </p>
-              </>
-            )}
+          <button
+            type="button"
+            class="checkout-btn w-full inline-flex items-center justify-center py-3 rounded-xl font-semibold text-sm transition-all mb-8 btn-primary"
+            data-price-monthly={priceIds.starter_mensuel}
+            data-price-annual={priceIds.starter_annuel}
+            data-mode="subscription"
+          >
+            Démarrer l'essai gratuit
+          </button>
 
-            <p class:list={["text-sm leading-relaxed mt-4 mb-6", plan.featured ? "text-indigo-200" : "text-slate-500"]}>
-              {plan.subtitle}
-            </p>
+          <ul class="space-y-3 flex-1">
+            {[
+              "Jusqu'à 500 cartes actives",
+              '1 point de vente',
+              'Apple Wallet + Google Wallet',
+              'Scanner mobile + affiche QR',
+              'Notifications push illimitées',
+              'Carte tampons, points, VIP',
+              'Analytics de base',
+              'Support email',
+            ].map((f) => (
+              <li class="flex items-center gap-3 text-sm">
+                <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-bold flex-shrink-0">✓</span>
+                <span class="text-slate-700">{f}</span>
+              </li>
+            ))}
+          </ul>
+        </article>
 
-            <a
-              href={plan.href}
-              class:list={[
-                "inline-flex items-center justify-center py-3 rounded-xl font-semibold text-sm transition-all mb-8",
-                plan.featured
-                  ? "bg-white text-indigo-700 hover:bg-indigo-50 shadow"
-                  : "btn-primary",
-              ]}
-            >
-              {plan.cta}
-            </a>
+        <!-- Pro -->
+        <article class="rounded-[2rem] border border-indigo-400 bg-[linear-gradient(155deg,#1e1b4b_0%,#312e81_62%,#0284c7_100%)] shadow-[0_30px_80px_rgba(49,46,129,0.24)] flex flex-col p-8 relative">
+          <div class="absolute -top-3.5 left-1/2 -translate-x-1/2">
+            <span class="rounded-full bg-amber-400 text-amber-900 text-xs font-bold px-4 py-1.5 shadow whitespace-nowrap">
+              ⭐ Le plus populaire
+            </span>
+          </div>
+          <div class="inline-flex items-center gap-2 mb-3">
+            <span class="text-xs font-bold uppercase tracking-widest text-indigo-200">Commerce Pro</span>
+          </div>
+          <div class="flex items-end gap-1 mb-1">
+            <span class="font-display font-bold leading-none text-white">
+              <span class="text-4xl monthly-price" data-monthly="59" data-annual="49" id="pro-display">49€</span>
+            </span>
+            <span class="text-sm mb-1 text-indigo-200">/mois</span>
+          </div>
+          <p class="text-xs mt-0.5 text-indigo-300 annual-note">Avec engagement annuel · 590€/an</p>
+          <div class="mt-3 mb-4 inline-flex items-center gap-1.5 rounded-full bg-white/15 border border-white/20 px-3 py-1.5 text-xs font-semibold text-white w-fit">
+            <span>🎁</span> 14 jours gratuits
+          </div>
+          <p class="text-sm leading-relaxed mb-6 text-indigo-200">Pour fidéliser plus fort et communiquer avec vos clients.</p>
 
-            <ul class="space-y-3 flex-1">
-              {plan.features.map((f) => (
-                <li class="flex items-center gap-3 text-sm">
-                  <span class:list={[
-                    "w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0",
-                    f.ok
-                      ? plan.featured ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-600"
-                      : "bg-slate-100 text-slate-300",
-                  ]}>
-                    {f.ok ? '✓' : '—'}
-                  </span>
-                  <span class:list={[
-                    f.ok
-                      ? plan.featured ? "text-indigo-100" : "text-slate-700"
-                      : plan.featured ? "text-indigo-400/50" : "text-slate-300",
-                  ]}>
-                    {f.text}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </article>
-        ))}
+          <button
+            type="button"
+            class="checkout-btn w-full inline-flex items-center justify-center py-3 rounded-xl font-semibold text-sm transition-all mb-8 bg-white text-indigo-700 hover:bg-indigo-50 shadow"
+            data-price-monthly={priceIds.pro_mensuel}
+            data-price-annual={priceIds.pro_annuel}
+            data-mode="subscription"
+          >
+            Démarrer l'essai gratuit
+          </button>
+
+          <ul class="space-y-3 flex-1">
+            {[
+              "Jusqu'à 2000 cartes actives",
+              '3 points de vente',
+              'Apple Wallet + Google Wallet',
+              'Scanner mobile + affiche QR',
+              'Push ciblées & campagnes',
+              'Campagne avis Google',
+              'Analytics avancés',
+              'Anniversaire automatique',
+              'Support prioritaire',
+            ].map((f) => (
+              <li class="flex items-center gap-3 text-sm">
+                <span class="w-5 h-5 rounded-full bg-white/20 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">✓</span>
+                <span class="text-indigo-100">{f}</span>
+              </li>
+            ))}
+          </ul>
+        </article>
       </div>
 
       <p class="text-center text-slate-400 text-xs mt-8">Prix HT. TVA applicable selon votre situation.</p>
-    </div>
-  </section>
 
-  <section class="bg-white py-14">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6">
-      <div class="rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-8 shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
-        <div class="grid gap-6 lg:grid-cols-[1fr_0.9fr] lg:items-center">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">Mise en place</p>
-            <h2 class="font-display text-3xl font-bold text-slate-900 mt-3">
-              Personnalisez votre carte directement depuis votre tableau de bord
-            </h2>
-            <p class="text-slate-500 text-base leading-relaxed mt-4">
-              Fidelopass est conçu pour que vous puissiez créer, ajuster et publier votre carte en autonomie. Si vous préférez être accompagné, notre équipe peut aussi préparer la mise en place avec vous.
-            </p>
-          </div>
-          <div class="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <p class="text-slate-900 font-semibold text-lg">Option accompagnement</p>
-            <p class="text-slate-500 text-sm mt-2 leading-relaxed">
-              Aide à la configuration, au paramétrage initial et à la mise en ligne de votre première carte.
-            </p>
-            <div class="mt-5 flex items-end gap-2">
-              <span class="font-display text-4xl font-bold text-slate-900">20€</span>
-              <span class="text-slate-400 text-sm mb-1">une seule fois</span>
+      <!-- Options -->
+      <div class="mt-14">
+        <h2 class="font-display text-2xl font-bold text-slate-900 mb-6 text-center">Options à la carte</h2>
+        <div class="grid sm:grid-cols-2 gap-4">
+
+          <div class="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm flex flex-col gap-3">
+            <div>
+              <p class="font-semibold text-slate-900">Accompagnement Setup</p>
+              <p class="text-slate-500 text-sm mt-1 leading-relaxed">Aide à la configuration, paramétrage initial et mise en ligne de votre première carte par notre équipe.</p>
             </div>
-            <p class="text-slate-400 text-xs mt-3">À ajouter seulement si vous souhaitez que notre équipe intervienne avec vous.</p>
+            <div class="flex items-end justify-between gap-3 mt-auto pt-2">
+              <div>
+                <span class="font-display text-2xl font-bold text-slate-900">20€</span>
+                <span class="text-slate-400 text-sm ml-1">une fois</span>
+              </div>
+              <button
+                type="button"
+                class="checkout-btn rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                data-price-monthly={priceIds.accompagnement}
+                data-price-annual={priceIds.accompagnement}
+                data-mode="payment"
+              >
+                Ajouter
+              </button>
+            </div>
+          </div>
+
+          <div class="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm flex flex-col gap-3">
+            <div>
+              <p class="font-semibold text-slate-900">Scanner supplémentaire</p>
+              <p class="text-slate-500 text-sm mt-1 leading-relaxed">Accès scanner pour un point de vente additionnel, au-delà de ce que votre plan inclut.</p>
+            </div>
+            <div class="flex items-end justify-between gap-3 mt-auto pt-2">
+              <div>
+                <span class="font-display text-2xl font-bold text-slate-900">5€</span>
+                <span class="text-slate-400 text-sm ml-1">une fois</span>
+              </div>
+              <button
+                type="button"
+                class="checkout-btn rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                data-price-monthly={priceIds.scanner}
+                data-price-annual={priceIds.scanner}
+                data-mode="payment"
+              >
+                Ajouter
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </section>
 
-  <!-- Tableau comparatif -->
-  <section class="bg-white py-20">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6">
-      <div class="text-center mb-10">
-        <h2 class="font-display text-3xl sm:text-4xl font-bold text-slate-900">Comparez les plans</h2>
-        <p class="text-slate-500 mt-2 text-sm">Ce que chaque plan inclut concrètement.</p>
+      <!-- Crédits SMS (visible si connecté) -->
+      <div id="sms-section" class="hidden mt-10">
+        <h2 class="font-display text-2xl font-bold text-slate-900 mb-6 text-center">Crédits SMS</h2>
+        <div class="grid sm:grid-cols-3 gap-4">
+          {[
+            { label: 'Pack SMS 100', credits: '100 crédits', price: '12€', priceId: priceIds.sms_100 },
+            { label: 'Pack SMS 500', credits: '500 crédits', price: '49€', priceId: priceIds.sms_500 },
+            { label: 'Pack SMS 2000', credits: '2000 crédits', price: '159€', priceId: priceIds.sms_2000 },
+          ].map((pack) => (
+            <div class="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm text-center flex flex-col gap-3 items-center">
+              <p class="font-semibold text-slate-900">{pack.label}</p>
+              <p class="text-slate-500 text-sm">{pack.credits}</p>
+              <div>
+                <span class="font-display text-2xl font-bold text-slate-900">{pack.price}</span>
+              </div>
+              <button
+                type="button"
+                class="checkout-btn w-full rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 transition-colors"
+                data-price-monthly={pack.priceId}
+                data-price-annual={pack.priceId}
+                data-mode="payment"
+              >
+                Acheter
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
-      <div class="overflow-x-auto rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
-        <table class="w-full min-w-[600px] text-left border-collapse">
-          <thead>
-            <tr class="border-b-2 border-slate-100">
-              <th class="pb-4 pr-6 text-slate-400 font-medium text-sm w-2/5">Fonctionnalité</th>
-              <th class="pb-4 px-4 text-center text-slate-700 font-semibold text-sm">Starter</th>
-              <th class="pb-4 px-4 text-center text-indigo-600 font-semibold text-sm">Pro</th>
-              <th class="pb-4 px-4 text-center text-slate-700 font-semibold text-sm">Sur mesure</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[
-              ['Apple / Google Wallet', '✓', '✓', '✓'],
-              ['Affiche QR + lien public', '✓', '✓', '✓'],
-              ['Scanner mobile boutique', '✓', '✓', '✓ multi'],
-              ['Carte à tampons', '✓', '✓', '✓'],
-              ['Carte à points', '✓', '✓', '✓'],
-              ['Carte VIP (paliers)', '✓', '✓', '✓'],
-              ['Notifications push', '✓', '✓', '✓ avancées'],
-              ['Géolocalisation', '✓', '✓', '✓'],
-              ['Statistiques', 'Basiques', 'Avancées', 'Sur mesure'],
-              ['Lieux / commerces', '1 lieu', '3 lieux', 'Sur devis'],
-              ['Scanners inclus', '3', '6 / lieu', 'Sur devis'],
-              ['Support', 'Email', 'Prioritaire', 'Dédié'],
-            ].map((row, i) => (
-              <tr class:list={["border-b border-slate-50 text-sm", i % 2 === 1 && "bg-slate-50/50"]}>
-                <td class="py-3.5 pr-6 text-slate-700 font-medium">{row[0]}</td>
-                <td class:list={["py-3.5 px-4 text-center", row[1] === '—' ? "text-slate-300" : "text-slate-600"]}>{row[1]}</td>
-                <td class:list={["py-3.5 px-4 text-center font-medium", row[2] === '—' ? "text-slate-300" : "text-indigo-600"]}>{row[2]}</td>
-                <td class:list={["py-3.5 px-4 text-center", row[3] === '—' ? "text-slate-300" : "text-slate-600"]}>{row[3]}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+
+      <!-- Message d'erreur checkout -->
+      <div id="checkout-error" class="hidden mt-6 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-red-600 text-sm text-center"></div>
     </div>
   </section>
 
   <!-- FAQ -->
-  <section class="bg-slate-50/70 py-20">
+  <section class="bg-white py-20">
     <div class="max-w-3xl mx-auto px-4 sm:px-6">
       <div class="text-center mb-10">
         <h2 class="font-display text-3xl sm:text-4xl font-bold text-slate-900">Questions fréquentes</h2>
@@ -313,7 +278,7 @@ const faq = [
   <section class="bg-[linear-gradient(135deg,#0f172a_0%,#312e81_55%,#0284c7_100%)] py-20">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 text-center">
       <h2 class="font-display text-4xl font-bold text-white">Commencez votre essai gratuit</h2>
-      <p class="text-indigo-200 text-lg mt-4">14 jours offerts. Aucune carte bancaire. Puis lecture seule tant qu’aucun plan n’est choisi.</p>
+      <p class="text-indigo-200 text-lg mt-4">14 jours offerts. Aucune carte bancaire.</p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center mt-8">
         <a href="/register" class="inline-flex items-center justify-center bg-white text-indigo-700 font-bold px-8 py-4 rounded-xl hover:bg-indigo-50 transition-colors text-base shadow-lg">
           Démarrer l'essai gratuit
@@ -329,10 +294,20 @@ const faq = [
 </BaseLayout>
 
 <script>
+  import { createClient } from '@supabase/supabase-js';
+
+  const supabase = createClient(
+    import.meta.env.PUBLIC_SUPABASE_URL,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+  );
+
+  // ── Toggle mensuel / annuel ───────────────────────────────────────────
   const monthlyBtn = document.getElementById('toggle-monthly') as HTMLButtonElement;
-  const annualBtn = document.getElementById('toggle-annual') as HTMLButtonElement;
+  const annualBtn  = document.getElementById('toggle-annual')  as HTMLButtonElement;
+  let currentMode: 'monthly' | 'annual' = 'annual';
 
   function setMode(mode: 'monthly' | 'annual') {
+    currentMode = mode;
     const isAnnual = mode === 'annual';
 
     monthlyBtn.className = isAnnual
@@ -344,28 +319,82 @@ const faq = [
 
     document.querySelectorAll('.monthly-price').forEach((el) => {
       const monthly = el.getAttribute('data-monthly');
-      const annual = el.getAttribute('data-annual');
-      el.textContent = (isAnnual ? annual : monthly) + '€';
-    });
-
-    document.querySelectorAll('.period-label').forEach((el) => {
-      el.textContent = '/mois';
+      const annual  = el.getAttribute('data-annual');
+      (el as HTMLElement).textContent = (isAnnual ? annual : monthly) + '€';
     });
 
     document.querySelectorAll('.annual-note').forEach((el) => {
-      el.textContent = isAnnual ? 'Avec engagement annuel' : 'Sans engagement';
+      if (el.id === 'starter-display' || el.id === 'pro-display') return;
+      (el as HTMLElement).textContent = isAnnual
+        ? el.textContent?.includes('290') ? 'Avec engagement annuel · 290€/an' : 'Avec engagement annuel · 590€/an'
+        : 'Sans engagement';
     });
   }
 
   monthlyBtn.addEventListener('click', () => setMode('monthly'));
-  annualBtn.addEventListener('click', () => setMode('annual'));
+  annualBtn.addEventListener('click',  () => setMode('annual'));
   setMode('annual');
 
-  // FAQ
+  // ── Checkout ──────────────────────────────────────────────────────────
+  const API = (import.meta.env.PUBLIC_API_URL ?? '').trim();
+  const errorEl = document.getElementById('checkout-error') as HTMLDivElement;
+
+  async function startCheckout(btn: HTMLElement) {
+    const priceMonthly = btn.dataset.priceMonthly ?? '';
+    const priceAnnual  = btn.dataset.priceAnnual  ?? '';
+    const mode = (btn.dataset.mode ?? 'subscription') as 'subscription' | 'payment';
+    const priceId = (mode === 'payment' || priceMonthly === priceAnnual)
+      ? priceMonthly
+      : currentMode === 'annual' ? priceAnnual : priceMonthly;
+
+    errorEl.classList.add('hidden');
+    const origText = (btn as HTMLButtonElement).textContent ?? '';
+    (btn as HTMLButtonElement).disabled = true;
+    (btn as HTMLButtonElement).textContent = 'Redirection…';
+
+    // Vérifie si connecté
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API}/api/checkout/create-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ priceId, mode }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Erreur serveur');
+      window.location.href = data.url;
+    } catch (err) {
+      errorEl.textContent = err instanceof Error ? err.message : 'Erreur lors de la création du paiement.';
+      errorEl.classList.remove('hidden');
+      (btn as HTMLButtonElement).disabled = false;
+      (btn as HTMLButtonElement).textContent = origText;
+    }
+  }
+
+  document.querySelectorAll('.checkout-btn').forEach((btn) => {
+    btn.addEventListener('click', () => startCheckout(btn as HTMLElement));
+  });
+
+  // ── Section SMS visible si connecté ──────────────────────────────────
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (session) {
+      document.getElementById('sms-section')?.classList.remove('hidden');
+    }
+  });
+
+  // ── FAQ ───────────────────────────────────────────────────────────────
   document.querySelectorAll('#pricing-faq [data-faq]').forEach((item) => {
-    const btn = item.querySelector('button') as HTMLButtonElement;
+    const btn    = item.querySelector('button') as HTMLButtonElement;
     const answer = item.querySelector('.faq-answer') as HTMLDivElement;
-    const icon = item.querySelector('.faq-icon') as HTMLSpanElement;
+    const icon   = item.querySelector('.faq-icon') as HTMLSpanElement;
     btn.addEventListener('click', () => {
       const open = btn.getAttribute('aria-expanded') === 'true';
       btn.setAttribute('aria-expanded', open ? 'false' : 'true');

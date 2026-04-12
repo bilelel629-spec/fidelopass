@@ -14,6 +14,8 @@ import { adminRoutes } from './routes/admin';
 import { dashboardRoutes } from './routes/dashboard';
 import { uploadRoutes } from './routes/upload';
 import { reviewRoutes } from './routes/review';
+import { checkoutRoutes } from './routes/checkout';
+import { stripeWebhookRoutes } from './routes/stripe-webhook';
 
 const app = new Hono();
 
@@ -35,6 +37,8 @@ app.route('/api/admin', adminRoutes);
 app.route('/api/dashboard', dashboardRoutes);
 app.route('/api/upload', uploadRoutes);
 app.route('/api/review', reviewRoutes);
+app.route('/api/checkout', checkoutRoutes);
+app.route('/api/stripe-webhook', stripeWebhookRoutes);
 
 app.get('/api/health', (c) => c.json({ ok: true, ts: new Date().toISOString() }));
 app.notFound((c) => c.json({ error: 'Route introuvable' }, 404));

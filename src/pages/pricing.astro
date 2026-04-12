@@ -3,6 +3,9 @@ import PublicFooter from '../components/marketing/PublicFooter.astro';
 import PublicNav from '../components/marketing/PublicNav.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
+// Lire l'URL de l'API au runtime (SSR) — pas baked au build comme PUBLIC_*
+const apiUrl = (process.env.API_URL ?? import.meta.env.PUBLIC_API_URL ?? 'https://api.fidelopass.com').replace(/\/$/, '');
+
 const priceIds = {
   starter_mensuel: 'price_1TLUSO7qMJeoJ4KrrIxG6TI3',
   starter_annuel:  'price_1TLUSO7qMJeoJ4KrqScU0Tfw',
@@ -29,6 +32,7 @@ const faq = [
   title="Tarifs Fidelopass — Essai gratuit 14 jours sans carte bancaire"
   description="Plans Starter et Pro pour commerces. Essai gratuit 14 jours sans carte bancaire."
 >
+  <meta id="api-config" data-url={apiUrl} />
   <PublicNav currentPath="/pricing" />
 
   <!-- Header -->
@@ -336,7 +340,8 @@ const faq = [
   setMode('annual');
 
   // ── Checkout ──────────────────────────────────────────────────────────
-  const API = (import.meta.env.PUBLIC_API_URL ?? '').trim();
+  // Lire l'URL depuis la meta tag injectée par le serveur SSR (runtime, pas build-time)
+  const API = (document.getElementById('api-config') as HTMLMetaElement)?.dataset.url ?? '';
   const errorEl = document.getElementById('checkout-error') as HTMLDivElement;
 
   async function startCheckout(btn: HTMLElement) {

@@ -29,6 +29,7 @@ interface CarteData {
   pattern_type?: string | null;
   tampon_emoji?: string | null;
   strip_layout?: string | null;
+  google_maps_url?: string | null;
   rewards_config?: Array<{ seuil: number; recompense: string }> | null;
   vip_tiers?: Array<{ nom: string; seuil: number; avantage?: string }> | null;
   commerces: {
@@ -228,6 +229,12 @@ export async function generateApplePass(
           key: 'paliers_vip',
           label: 'Paliers VIP',
           value: vipText,
+        }] : []),
+        ...(carte.google_maps_url ? [{
+          key: 'avis_google',
+          label: 'Laisser un avis Google',
+          value: carte.google_maps_url,
+          attributedValue: `<a href='${carte.google_maps_url}'>Laisser un avis Google ⭐</a>`,
         }] : []),
         ...(walletMessage?.message ? [{
           key: 'message_wallet',

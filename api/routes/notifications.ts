@@ -249,8 +249,9 @@ notificationsRoutes.post('/review-campaign', async (c) => {
     .eq('id', commerce.id)
     .single();
   const planLimits = getPlanLimits(commerceWithPlan?.plan);
+  console.log('[review-campaign] plan:', commerceWithPlan?.plan, '| avisGoogle:', planLimits.avisGoogle);
   if (!planLimits.avisGoogle) {
-    return c.json({ error: "La campagne avis Google est réservée au plan Pro. Mettez à niveau votre abonnement pour y accéder." }, 403);
+    return c.json({ error: "La campagne avis Google est réservée au plan Pro. Mettez à niveau votre abonnement pour y accéder.", plan: commerceWithPlan?.plan ?? 'starter' }, 403);
   }
 
   // Vérifie que la fonctionnalité est activée

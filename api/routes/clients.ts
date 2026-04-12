@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { getPlanLimits } from './commerces';
+import { pushApplePassUpdate } from '../services/apple-wallet';
+import { updateGooglePassObject } from '../services/google-wallet';
 
 export const clientsRoutes = new Hono();
 
@@ -288,6 +290,59 @@ clientsRoutes.patch('/:id/adjust', authMiddleware, async (c) => {
   ]);
 
   if (updateResult.error) return c.json({ error: 'Erreur lors de la mise à jour' }, 500);
+
+  // Mise à jour Wallet en fire-and-forget (ne bloque pas la réponse)
+  const { data: clientFull } = await db
+    .from('clients')
+    .select('apple_pass_serial, google_pass_id')
+    .eq('id', clientId)
+    .single();
+
+  if (clientFull) {
+    // Google Wallet
+    if (clientFull.google_pass_id && carte) {
+      const { data: commerceData } = await db
+        .from('commerces')
+        .select('nom, logo_url, latitude, longitude, rayon_geo')
+        .eq('id', commerce.id)
+        .single();
+
+      const carteForWallet = {
+        ...carte,
+        id: client.carte_id ?? '',
+        nom: (client.cartes as { nom?: string } | null)?.nom ?? '',
+        commerces: {
+          nom: commerceData?.nom ?? '',
+          logo_url: commerceData?.logo_url ?? null,
+          latitude: commerceData?.latitude ?? null,
+          longitude: commerceData?.longitude ?? null,
+          rayon_geo: commerceData?.rayon_geo ?? null,
+        },
+      } as Parameters<typeof updateGooglePassObject>[1];
+
+      updateGooglePassObject(clientFull.google_pass_id, carteForWallet, {
+        id: clientId,
+        nom: client.nom ?? null,
+        points_actuels: isPoints ? finalScore : client.points_actuels,
+        tampons_actuels: isPoints ? client.tampons_actuels : finalScore,
+        recompenses_obtenues: recompensesObtenues,
+      }).catch((err) => console.error('[adjust wallet google]', err));
+    }
+
+    // Apple Wallet
+    if (clientFull.apple_pass_serial) {
+      const { data: registrations } = await db
+        .from('apple_pass_registrations')
+        .select('push_token, pass_type_identifier')
+        .eq('client_id', clientId);
+
+      const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
+      for (const reg of registrations ?? []) {
+        pushApplePassUpdate(reg.push_token, reg.pass_type_identifier || passTypeId)
+          .catch((err) => console.error('[adjust wallet apple]', err));
+      }
+    }
+  }
 
   return c.json({
     client: {

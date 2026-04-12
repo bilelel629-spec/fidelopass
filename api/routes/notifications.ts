@@ -4,7 +4,7 @@ import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { getPlanLimits } from './commerces';
 import { sendPushNotification, sendPersonalizedPushNotifications } from '../services/push';
-import { pushApplePassUpdate, pushApplePassAlert } from '../services/apple-wallet';
+import { pushApplePassUpdate } from '../services/apple-wallet';
 import { sendGoogleWalletMessage } from '../services/google-wallet';
 
 export const notificationsRoutes = new Hono();
@@ -316,6 +316,25 @@ notificationsRoutes.post('/review-campaign', async (c) => {
 
   let nbEnvoyes = 0;
 
+  // ── Étape clé pour Apple Wallet ─────────────────────────────────────
+  // Apple Wallet fonctionne via un push SILENCIEUX (payload={}, apns-push-type:background).
+  // Quand iOS reçoit ce push, il appelle GET /apple/v1/passes/:type/:serial pour
+  // récupérer le pass mis à jour. Le pass injecte `latestNotification` (depuis la table
+  // `notifications`) dans un backField "message_wallet" avec un `changeMessage`.
+  // C'est ce changeMessage qui déclenche la bannière visible sur l'iPhone — PAS le payload APNs.
+  //
+  // Donc : on insère d'abord dans `notifications` pour que iOS récupère le bon message,
+  // puis on envoie le push silencieux.
+  await db.from('notifications').insert({
+    commerce_id: commerce.id,
+    titre,
+    message,
+    type: 'promo',
+    nb_destinataires: eligibles.length,
+    nb_delivrees: 0,
+  });
+  console.log('[review-campaign] notification insérée dans la table pour que Apple Wallet la détecte au fetch du pass');
+
   // 1. Web push (FCM) — lien personnalisé par client
   if (fcmEligibles.length > 0) {
     const fcmRecipients = fcmEligibles.map((cl) => ({
@@ -341,9 +360,10 @@ notificationsRoutes.post('/review-campaign', async (c) => {
   }
   console.log('[review-campaign] Google Wallet traités:', googleEligibles.length);
 
-  // 3. Apple Wallet — push ALERT visible (titre + corps, apns-push-type:alert priority:10)
-  //    Contrairement au push silencieux (background + {}), celui-ci s'affiche comme
-  //    une notification normale sur l'écran de verrouillage tout en rafraîchissant le pass.
+  // 3. Apple Wallet — push SILENCIEUX (payload={}, apns-push-type:background, priority:5)
+  //    iOS reçoit le push → appelle GET /apple/v1/passes/:type/:serial
+  //    → le pass est régénéré avec latestNotification (inséré ci-dessus)
+  //    → backField "message_wallet" change → iOS affiche le changeMessage en bannière visible
   if (appleEligibles.length > 0) {
     const appleIds = appleEligibles.map((cl) => cl.id);
     const { data: registrations } = await db
@@ -355,13 +375,11 @@ notificationsRoutes.post('/review-campaign', async (c) => {
 
     const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
     await Promise.allSettled(
-      (registrations ?? []).map((r) => pushApplePassAlert(
+      (registrations ?? []).map((r) => pushApplePassUpdate(
         r.push_token,
         r.pass_type_identifier || passTypeId,
-        titre,
-        message,
       ).then(() => { nbEnvoyes++; })
-        .catch((err) => console.error('[review-campaign apple wallet alert]', err))),
+        .catch((err) => console.error('[review-campaign apple wallet]', err))),
     );
   }
 

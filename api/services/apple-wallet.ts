@@ -327,38 +327,19 @@ export async function generateApplePass(
 }
 
 /**
- * Envoie un push silencieux APNs pour rafraîchir un pass Wallet.
- * Payload `{}` + apns-push-type:background — invisible pour l'utilisateur.
- * Conforme à la spec PassKit : https://developer.apple.com/documentation/passkit/sending_push_notifications
+ * Envoie un push silencieux APNs pour déclencher le rafraîchissement d'un pass Wallet.
+ *
+ * Mécanisme Apple Wallet (spec PassKit) :
+ *   1. On envoie payload={} + apns-push-type:background + priority:5
+ *   2. iOS reçoit le push silencieux → appelle GET /apple/v1/passes/:type/:serial
+ *   3. Le serveur régénère le pass avec les nouvelles valeurs de champs
+ *   4. Si un champ a un `changeMessage` et que sa valeur a changé,
+ *      iOS affiche ce changeMessage comme une bannière de notification visible
+ *
+ * ⚠️  La notification visible vient du `changeMessage` dans le pass.json,
+ *     PAS du payload APNs. Le payload DOIT être {} pour les passes Wallet.
  */
 export async function pushApplePassUpdate(pushToken: string, passTypeIdentifier: string): Promise<void> {
-  return sendApnsRequest(pushToken, passTypeIdentifier, '{}', 'background', '5');
-}
-
-/**
- * Envoie un push visible APNs avec titre et corps pour les campagnes (avis Google, etc.).
- * Payload aps.alert + apns-push-type:alert — s'affiche comme une notification normale.
- * Le pass est également rafraîchi car le topic est le passTypeIdentifier.
- */
-export async function pushApplePassAlert(
-  pushToken: string,
-  passTypeIdentifier: string,
-  title: string,
-  body: string,
-): Promise<void> {
-  const payload = JSON.stringify({ aps: { alert: { title, body }, sound: 'default' } });
-  console.log('[pushApplePassAlert] payload size:', Buffer.byteLength(payload, 'utf8'), 'bytes | topic:', passTypeIdentifier);
-  return sendApnsRequest(pushToken, passTypeIdentifier, payload, 'alert', '10');
-}
-
-/** Fonction interne commune pour les requêtes APNs HTTP/2 */
-async function sendApnsRequest(
-  pushToken: string,
-  passTypeIdentifier: string,
-  payload: string,
-  pushType: 'background' | 'alert',
-  priority: '5' | '10',
-): Promise<void> {
   const cert = readSecretFileOrEnv('signer.pem', 'APPLE_SIGNER_CERT_PEM');
   const key = readSecretFileOrEnv('key.pem', 'APPLE_SIGNER_KEY_PEM');
   const endpoint = process.env.APPLE_APNS_ENDPOINT ?? 'https://api.push.apple.com';
@@ -383,8 +364,8 @@ async function sendApnsRequest(
       ':method': 'POST',
       ':path': `/3/device/${pushToken}`,
       'apns-topic': passTypeIdentifier,
-      'apns-priority': priority,
-      'apns-push-type': pushType,
+      'apns-priority': '5',
+      'apns-push-type': 'background',
     });
 
     request.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
@@ -397,9 +378,9 @@ async function sendApnsRequest(
         return;
       }
       const body = Buffer.concat(chunks).toString('utf8');
-      finish(new Error(`APNs push failed (${status}) ${body}`));
+      finish(new Error(`APNs Wallet update failed (${status}) ${body}`));
     });
     request.on('error', finish);
-    request.end(payload);
+    request.end('{}');
   });
 }

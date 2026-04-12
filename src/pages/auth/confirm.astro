@@ -91,5 +91,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     await redirectAfterAuth();
   }
 
-  await confirmFromEmailLink();
+  // Le SDK Supabase échange automatiquement le fragment #access_token au premier getSession().
+  // Ce cas couvre les callbacks OAuth (Apple, Google) qui redirigent ici.
+  const { data: { session: oauthSession } } = await supabase.auth.getSession();
+  if (oauthSession) {
+    message.textContent = 'Connexion réussie. Redirection...';
+    await redirectAfterAuth();
+  } else {
+    await confirmFromEmailLink();
+  }
 </script>

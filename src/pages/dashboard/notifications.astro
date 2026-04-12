@@ -218,15 +218,23 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (!res.ok) {
         errEl.textContent = data.error ?? 'Erreur lors de l\'envoi.';
         errEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Envoyer le lien avis Google à mes clients';
         return;
       }
 
-      if (data.nb_envoyes === 0 && data.message) {
-        okEl.textContent = data.message;
+      if (data.nb_envoyes === 0) {
+        // Aucun envoi : expliquer pourquoi
+        const reason = data.message ?? `Aucun envoi possible : ${data.nb_eligibles} client(s) éligible(s) mais sans canal de notification actif (pas de token FCM ni de Wallet).`;
+        errEl.textContent = reason;
+        errEl.classList.remove('hidden');
       } else {
-        okEl.textContent = `Lien envoyé à ${data.nb_envoyes} client(s) sur ${data.nb_eligibles} éligibles. ${data.nb_deja_reclame} avaient déjà réclamé.`;
+        const detail = data.detail
+          ? ` (FCM: ${data.detail.fcm}, Google Wallet: ${data.detail.google_wallet}, Apple Wallet: ${data.detail.apple_wallet})`
+          : '';
+        okEl.textContent = `Lien envoyé à ${data.nb_envoyes} client(s) sur ${data.nb_eligibles} éligibles. ${data.nb_deja_reclame} avaient déjà réclamé.${detail}`;
+        okEl.classList.remove('hidden');
       }
-      okEl.classList.remove('hidden');
     } catch {
       errEl.textContent = 'Erreur réseau. Réessayez.';
       errEl.classList.remove('hidden');

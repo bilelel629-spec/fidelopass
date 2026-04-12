@@ -234,36 +234,41 @@ notificationsRoutes.post('/review-campaign', async (c) => {
   const db = createServiceClient();
   const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
 
-  const { data: commerce } = await db
+  // Récupère le commerce ET le plan en une seule requête
+  const { data: commerce, error: commerceError } = await db
     .from('commerces')
-    .select('id')
+    .select('id, plan')
     .eq('user_id', userId)
     .single();
+
+  console.log('[review-campaign] commerce:', commerce?.id, '| plan:', commerce?.plan, '| error:', commerceError?.message);
 
   if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
 
   // Vérification plan : avis Google réservé au plan Pro
-  const { data: commerceWithPlan } = await db
-    .from('commerces')
-    .select('plan')
-    .eq('id', commerce.id)
-    .single();
-  const planLimits = getPlanLimits(commerceWithPlan?.plan);
-  console.log('[review-campaign] plan:', commerceWithPlan?.plan, '| avisGoogle:', planLimits.avisGoogle);
+  const planLimits = getPlanLimits(commerce.plan);
+  console.log('[review-campaign] planLimits.avisGoogle:', planLimits.avisGoogle);
   if (!planLimits.avisGoogle) {
-    return c.json({ error: "La campagne avis Google est réservée au plan Pro. Mettez à niveau votre abonnement pour y accéder.", plan: commerceWithPlan?.plan ?? 'starter' }, 403);
+    return c.json({
+      error: `La campagne avis Google est réservée au plan Pro. Plan actuel : ${commerce.plan ?? 'starter (colonne plan absente ou null)'}. Mettez à niveau votre abonnement.`,
+      plan: commerce.plan ?? null,
+    }, 403);
   }
 
-  // Vérifie que la fonctionnalité est activée
-  const { data: carte } = await db
+  // Vérifie que la fonctionnalité est activée sur la carte
+  const { data: carte, error: carteError } = await db
     .from('cartes')
     .select('id, nom, type, review_reward_enabled, review_reward_value')
     .eq('commerce_id', commerce.id)
     .eq('actif', true)
     .single();
 
-  if (!carte) return c.json({ error: 'Carte introuvable' }, 404);
-  if (!carte.review_reward_enabled) return c.json({ error: 'Activez d\'abord la récompense avis Google sur votre carte.' }, 403);
+  console.log('[review-campaign] carte:', carte?.id, '| review_reward_enabled:', carte?.review_reward_enabled, '| error:', carteError?.message);
+
+  if (!carte) return c.json({ error: 'Carte active introuvable' }, 404);
+  if (!carte.review_reward_enabled) {
+    return c.json({ error: "Activez d'abord la récompense avis Google dans l'éditeur de carte (étape Options)." }, 403);
+  }
 
   // Récupère les clients qui n'ont pas encore réclamé
   const { data: alreadyClaimed } = await db
@@ -280,8 +285,26 @@ notificationsRoutes.post('/review-campaign', async (c) => {
 
   const eligibles = (clients ?? []).filter((cl) => !claimedIds.has(cl.id));
 
+  console.log('[review-campaign] total clients:', (clients ?? []).length, '| eligibles:', eligibles.length, '| already claimed:', claimedIds.size);
+
   if (eligibles.length === 0) {
-    return c.json({ message: 'Tous vos clients ont déjà réclamé leur récompense.', nb_envoyes: 0 }, 200);
+    return c.json({ message: 'Tous vos clients ont déjà réclamé leur récompense.', nb_envoyes: 0, nb_eligibles: 0, nb_deja_reclame: claimedIds.size }, 200);
+  }
+
+  // Canaux disponibles
+  const fcmEligibles = eligibles.filter((cl) => cl.push_enabled && cl.fcm_token);
+  const googleEligibles = eligibles.filter((cl) => !!cl.google_pass_id);
+  const appleEligibles = eligibles.filter((cl) => !!cl.apple_pass_serial);
+
+  console.log('[review-campaign] canaux — FCM:', fcmEligibles.length, '| Google Wallet:', googleEligibles.length, '| Apple Wallet:', appleEligibles.length);
+
+  if (fcmEligibles.length === 0 && googleEligibles.length === 0 && appleEligibles.length === 0) {
+    return c.json({
+      message: `${eligibles.length} client(s) éligible(s) mais aucun n'a de canal de notification actif (pas de token push, pas de Wallet).`,
+      nb_envoyes: 0,
+      nb_eligibles: eligibles.length,
+      nb_deja_reclame: claimedIds.size,
+    }, 200);
   }
 
   const unit = carte.type === 'tampons'
@@ -294,52 +317,58 @@ notificationsRoutes.post('/review-campaign', async (c) => {
   let nbEnvoyes = 0;
 
   // 1. Web push (FCM) — lien personnalisé par client
-  const fcmRecipients = eligibles
-    .filter((cl) => cl.push_enabled && cl.fcm_token)
-    .map((cl) => ({
+  if (fcmEligibles.length > 0) {
+    const fcmRecipients = fcmEligibles.map((cl) => ({
       token: cl.fcm_token as string,
       clickUrl: `${PUBLIC_SITE_URL}/review/${carte.id}?client_id=${cl.id}`,
     }));
-
-  if (fcmRecipients.length > 0) {
     const sent = await sendPersonalizedPushNotifications(fcmRecipients, titre, message).catch((err) => {
       console.error('[review-campaign fcm]', err);
       return 0;
     });
+    console.log('[review-campaign] FCM envoyés:', sent, '/', fcmEligibles.length);
     nbEnvoyes += sent;
   }
 
   // 2. Google Wallet — message avec lien cliquable
-  const googleClients = eligibles.filter((cl) => !!cl.google_pass_id);
-  for (const cl of googleClients) {
+  for (const cl of googleEligibles) {
     const reviewUrl = `${PUBLIC_SITE_URL}/review/${carte.id}?client_id=${cl.id}`;
     await sendGoogleWalletMessage(
       cl.google_pass_id as string,
       titre,
       `${message}\n👉 ${reviewUrl}`,
-    ).then(() => { nbEnvoyes++; }).catch((err) => console.error('[review-campaign google]', err));
+    ).then(() => { nbEnvoyes++; }).catch((err) => console.error('[review-campaign google wallet]', err));
   }
+  console.log('[review-campaign] Google Wallet traités:', googleEligibles.length);
 
-  // 3. Apple Wallet — push silencieux (la carte se rafraîchit, le lien est dans les back fields via /review/{id})
-  const appleClients = eligibles.filter((cl) => !!cl.apple_pass_serial);
-  if (appleClients.length > 0) {
-    const appleIds = appleClients.map((cl) => cl.id);
+  // 3. Apple Wallet — push silencieux (la carte se rafraîchit avec le lien dans les back fields)
+  if (appleEligibles.length > 0) {
+    const appleIds = appleEligibles.map((cl) => cl.id);
     const { data: registrations } = await db
       .from('apple_pass_registrations')
       .select('client_id, push_token, pass_type_identifier')
       .in('client_id', appleIds);
 
+    console.log('[review-campaign] Apple registrations trouvées:', (registrations ?? []).length, '/', appleEligibles.length);
+
     const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
     await Promise.allSettled(
       (registrations ?? []).map((r) => pushApplePassUpdate(r.push_token, r.pass_type_identifier || passTypeId)
         .then(() => { nbEnvoyes++; })
-        .catch((err) => console.error('[review-campaign apple]', err))),
+        .catch((err) => console.error('[review-campaign apple wallet]', err))),
     );
   }
+
+  console.log('[review-campaign] TOTAL envoyés:', nbEnvoyes, '/ eligibles:', eligibles.length);
 
   return c.json({
     nb_eligibles: eligibles.length,
     nb_envoyes: nbEnvoyes,
     nb_deja_reclame: claimedIds.size,
+    detail: {
+      fcm: fcmEligibles.length,
+      google_wallet: googleEligibles.length,
+      apple_wallet: appleEligibles.length,
+    },
   }, 201);
 });

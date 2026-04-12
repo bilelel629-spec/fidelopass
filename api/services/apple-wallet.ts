@@ -200,7 +200,7 @@ export async function generateApplePass(
           value: client.nom ?? 'Fidèle client',
         },
       ],
-      // auxiliaryFields : ligne suivante
+      // auxiliaryFields : ligne sous les secondaryFields (max 2 sur storeCard)
       auxiliaryFields: [
         {
           key: 'recompense',
@@ -208,6 +208,12 @@ export async function generateApplePass(
           value: carte.recompense_description ?? '—',
           changeMessage: 'Votre récompense Fidelopass a été mise à jour.',
         },
+        ...(carte.google_maps_url ? [{
+          key: 'avis_google',
+          label: 'Laisser un avis Google ⭐',
+          value: 'Gagner 1 tampon →',
+          attributedValue: `<a href='${carte.google_maps_url}'>Laisser un avis Google ⭐</a>`,
+        }] : []),
       ],
       backFields: [
         {
@@ -231,7 +237,7 @@ export async function generateApplePass(
           value: vipText,
         }] : []),
         ...(carte.google_maps_url ? [{
-          key: 'avis_google',
+          key: 'avis_google_back',
           label: 'Laisser un avis Google',
           value: carte.google_maps_url,
           attributedValue: `<a href='${carte.google_maps_url}'>Laisser un avis Google ⭐</a>`,

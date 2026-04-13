@@ -143,6 +143,37 @@ const firebasePushConfig = {
       </div>
     </div>
 
+    <!-- Bloc avis Google (conditionnel : ?nouveau=1 + review_reward_enabled) -->
+    <div id="review-block" class="hidden w-full max-w-sm mt-4">
+      <div class="card p-5">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center text-2xl" style="background:rgba(245,158,11,0.15)">⭐</div>
+          <div>
+            <p class="text-white font-semibold text-sm">Gagnez votre récompense !</p>
+            <p id="review-reward-label" class="text-slate-400 text-xs mt-0.5">Laissez un avis Google et recevez votre cadeau</p>
+          </div>
+        </div>
+        <a id="review-google-link" href="#" target="_blank" rel="noopener noreferrer"
+          class="flex items-center justify-center gap-2 w-full py-3.5 px-4 rounded-xl font-semibold text-sm text-white mb-3 transition hover:opacity-90"
+          style="background:linear-gradient(135deg,#f59e0b,#ef4444)">
+          <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Laisser un avis Google
+        </a>
+        <p id="review-timer-msg" class="text-slate-500 text-xs text-center mb-2">
+          Le bouton pour réclamer sera disponible dans <span id="review-timer-count">30</span>s…
+        </p>
+        <button id="review-claimed-btn"
+          class="hidden w-full py-3 px-4 rounded-xl border font-semibold text-sm transition"
+          style="border-color:rgba(52,211,153,0.3);background:rgba(52,211,153,0.08);color:#6ee7b7">
+          J'ai laissé mon avis — Réclamer ma récompense
+        </button>
+        <div id="review-claimed-success" class="hidden text-center py-2">
+          <p class="font-semibold text-sm" style="color:#6ee7b7">Récompense obtenue !</p>
+          <p id="review-claimed-detail" class="text-slate-400 text-xs mt-1"></p>
+        </div>
+      </div>
+    </div>
+
     <div id="error-content" class="hidden text-center">
       <p class="text-red-400">Carte introuvable ou expirée.</p>
     </div>
@@ -534,6 +565,7 @@ const firebasePushConfig = {
       };
       refreshPushUi();
       renderClientProgress(data);
+      checkShowReviewBlock(data.id);
 
       const seenKey = rewardSeenKey(data.id);
       const previousRewards = Number(localStorage.getItem(seenKey) ?? '0');
@@ -613,6 +645,7 @@ const firebasePushConfig = {
       walletClient = data.data;
       rememberClient(walletClient);
       refreshPushUi();
+      checkShowReviewBlock(walletClient.id);
       if (pushConsent && isPushConfigured && supportsMarketingWebPush) {
         await maybeActivatePush(walletClient.id, { showFeedback: true, source: 'create' });
       }
@@ -821,6 +854,96 @@ const firebasePushConfig = {
       }
     }
   });
+
+  // ── Bloc avis Google ─────────────────────────────────────────────
+  let reviewTimerInterval = null;
+
+  function reviewClaimedKey(clientId) {
+    return `fidelopass_review_claimed_${carteId}_${clientId}`;
+  }
+
+  function checkShowReviewBlock(clientId) {
+    if (!clientId) return;
+    if (!carteData?.carte?.review_reward_enabled) return;
+    if (!carteData?.carte?.google_maps_url) return;
+    const isNew = new URLSearchParams(window.location.search).get('nouveau') === '1';
+    if (!isNew) return;
+    try {
+      if (localStorage.getItem(reviewClaimedKey(clientId)) === '1') return;
+    } catch { /* ignore */ }
+    showReviewBlock(clientId);
+  }
+
+  function showReviewBlock(clientId) {
+    if (reviewTimerInterval) return; // already shown
+    const block = document.getElementById('review-block');
+    if (!block.classList.contains('hidden')) return;
+
+    const val = carteData?.carte?.review_reward_value ?? 1;
+    const type = carteData?.carte?.type ?? 'tampons';
+    const unit = type === 'points'
+      ? (val === 1 ? '1 point offert' : `${val} points offerts`)
+      : (val === 1 ? '1 tampon offert' : `${val} tampons offerts`);
+    document.getElementById('review-reward-label').textContent = `Laissez un avis Google et recevez ${unit}`;
+    document.getElementById('review-google-link').href = carteData.carte.google_maps_url;
+
+    block.classList.remove('hidden');
+    block.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    let remaining = 30;
+    document.getElementById('review-timer-count').textContent = String(remaining);
+    const timerMsg = document.getElementById('review-timer-msg');
+    const claimedBtn = document.getElementById('review-claimed-btn');
+
+    reviewTimerInterval = setInterval(() => {
+      remaining--;
+      document.getElementById('review-timer-count').textContent = String(remaining);
+      if (remaining <= 0) {
+        clearInterval(reviewTimerInterval);
+        timerMsg.classList.add('hidden');
+        claimedBtn.classList.remove('hidden');
+      }
+    }, 1000);
+
+    claimedBtn.addEventListener('click', async () => {
+      claimedBtn.disabled = true;
+      claimedBtn.textContent = 'Envoi en cours…';
+      try {
+        const res = await fetch(apiUrl(`/api/clients/${clientId}/claim-review`), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ carte_id: carteId }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          if (res.status === 409) {
+            try { localStorage.setItem(reviewClaimedKey(clientId), '1'); } catch { /* ignore */ }
+            claimedBtn.classList.add('hidden');
+            document.getElementById('review-claimed-success').classList.remove('hidden');
+            document.getElementById('review-claimed-detail').textContent = 'Vous avez déjà réclamé cette récompense.';
+            return;
+          }
+          throw new Error(data.error ?? 'Erreur');
+        }
+        try { localStorage.setItem(reviewClaimedKey(clientId), '1'); } catch { /* ignore */ }
+        claimedBtn.classList.add('hidden');
+        const successEl = document.getElementById('review-claimed-success');
+        const detailEl = document.getElementById('review-claimed-detail');
+        successEl.classList.remove('hidden');
+        const rv = data.reward_value ?? 1;
+        const rt = data.type ?? 'tampons';
+        const ru = rt === 'points'
+          ? (rv === 1 ? '1 point' : `${rv} points`)
+          : (rv === 1 ? '1 tampon' : `${rv} tampons`);
+        detailEl.textContent = `${ru} ajouté(s) à votre carte. Merci pour votre avis !`;
+        await fireWelcomeConfetti();
+      } catch (err) {
+        claimedBtn.disabled = false;
+        claimedBtn.textContent = "J'ai laissé mon avis — Réclamer ma récompense";
+        showError(err.message ?? 'Erreur. Réessayez.');
+      }
+    });
+  }
 
   loadCarte();
 </script>

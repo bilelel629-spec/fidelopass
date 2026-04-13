@@ -6,6 +6,9 @@ import { getPlanLimits } from './commerces';
 import { sendPushNotification, sendPersonalizedPushNotifications } from '../services/push';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { sendGoogleWalletMessage } from '../services/google-wallet';
+import { sendSMS, personnaliserMessage } from '../../src/lib/brevo-sms';
+
+const PUBLIC_SITE_URL_NOTIF = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
 
 export const notificationsRoutes = new Hono();
 
@@ -237,7 +240,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
   // Récupère le commerce ET le plan en une seule requête
   const { data: commerce, error: commerceError } = await db
     .from('commerces')
-    .select('id, plan')
+    .select('id, plan, nom, sms_review_enabled, sms_credits')
     .eq('user_id', userId)
     .single();
 
@@ -258,7 +261,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
   // Vérifie que la fonctionnalité est activée sur la carte
   const { data: carte, error: carteError } = await db
     .from('cartes')
-    .select('id, nom, type, review_reward_enabled, review_reward_value')
+    .select('id, nom, type, review_reward_enabled, review_reward_value, google_maps_url')
     .eq('commerce_id', commerce.id)
     .eq('actif', true)
     .single();
@@ -280,7 +283,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
 
   const { data: clients } = await db
     .from('clients')
-    .select('id, fcm_token, push_enabled, google_pass_id, apple_pass_serial')
+    .select('id, nom, telephone, fcm_token, push_enabled, google_pass_id, apple_pass_serial')
     .eq('commerce_id', commerce.id);
 
   const eligibles = (clients ?? []).filter((cl) => !claimedIds.has(cl.id));
@@ -385,14 +388,40 @@ notificationsRoutes.post('/review-campaign', async (c) => {
 
   console.log('[review-campaign] TOTAL envoyés:', nbEnvoyes, '/ eligibles:', eligibles.length);
 
+  // 4. SMS (si toggle activé et crédits disponibles)
+  let nbSmsEnvoyes = 0;
+  if (commerce.sms_review_enabled && (commerce.sms_credits ?? 0) > 0) {
+    const lienAvis = (carte as { google_maps_url?: string | null }).google_maps_url ?? '';
+    const smsEligibles = eligibles.filter((cl) => !!(cl as { telephone?: string | null }).telephone);
+    console.log('[review-campaign] SMS éligibles:', smsEligibles.length);
+
+    for (const cl of smsEligibles) {
+      const telephone = (cl as { telephone: string }).telephone;
+      const msg = personnaliserMessage(
+        'Bonjour {prenom} ! Laissez un avis Google sur {commerce} et recevez votre récompense : {lien_avis}',
+        {
+          prenom: (cl as { nom?: string | null }).nom ?? '',
+          commerce: (commerce.nom as string | null) ?? '',
+          lien_avis: lienAvis,
+          lien_carte: `${PUBLIC_SITE_URL_NOTIF}/carte/${carte.id}`,
+        },
+      );
+      const result = await sendSMS(telephone, msg, commerce.id, cl.id, 'review');
+      if (result.success) nbSmsEnvoyes++;
+    }
+    console.log('[review-campaign] SMS envoyés:', nbSmsEnvoyes);
+  }
+
   return c.json({
     nb_eligibles: eligibles.length,
     nb_envoyes: nbEnvoyes,
     nb_deja_reclame: claimedIds.size,
+    nb_sms: nbSmsEnvoyes,
     detail: {
       fcm: fcmEligibles.length,
       google_wallet: googleEligibles.length,
       apple_wallet: appleEligibles.length,
+      sms: nbSmsEnvoyes,
     },
   }, 201);
 });

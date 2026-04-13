@@ -5,6 +5,9 @@ import { authMiddleware } from '../middleware/auth';
 import { getPlanLimits } from './commerces';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { updateGooglePassObject } from '../services/google-wallet';
+import { scheduleSMS, personnaliserMessage } from '../../src/lib/brevo-sms';
+
+const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
 
 export const clientsRoutes = new Hono();
 
@@ -154,7 +157,7 @@ clientsRoutes.post('/', async (c) => {
   // Vérification limite de cartes selon plan
   const { data: commerce } = await db
     .from('commerces')
-    .select('id, plan')
+    .select('id, plan, nom, sms_welcome_enabled, sms_welcome_message, sms_credits')
     .eq('id', carte.commerce_id)
     .single();
 
@@ -224,6 +227,21 @@ clientsRoutes.post('/', async (c) => {
     .single();
 
   if (error) return c.json({ error: 'Erreur lors de la création du client' }, 500);
+
+  // SMS bienvenue planifié 60 min après l'inscription
+  if (commerce && commerce.sms_welcome_enabled && (commerce.sms_credits ?? 0) > 0 && data.telephone) {
+    const defaultMsg = 'Bonjour {prenom} ! Bienvenue chez {commerce}. Retrouvez votre carte de fidélité ici : {lien_carte}';
+    const msg = personnaliserMessage(
+      (commerce.sms_welcome_message as string | null) ?? defaultMsg,
+      {
+        prenom: data.nom ?? '',
+        commerce: (commerce.nom as string | null) ?? '',
+        lien_carte: `${PUBLIC_SITE_URL}/carte/${data.id}`,
+      },
+    );
+    scheduleSMS(data.telephone, msg, commerce.id, data.id, 'bienvenue', 60)
+      .catch((err) => console.error('[clients] scheduleSMS bienvenue:', err));
+  }
 
   return c.json({ data }, 201);
 });
@@ -350,6 +368,66 @@ clientsRoutes.patch('/:id/adjust', authMiddleware, async (c) => {
       recompenses_obtenues: recompensesObtenues,
     },
   });
+});
+
+/** POST /api/clients/:id/claim-review — Réclame la récompense avis Google */
+clientsRoutes.post('/:id/claim-review', async (c) => {
+  const clientId = c.req.param('id');
+  const body = await c.req.json().catch(() => null);
+
+  const schema = z.object({ carte_id: z.string().uuid() });
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) return c.json({ error: 'carte_id requis' }, 400);
+
+  const db = createServiceClient();
+
+  // Anti-double-claim
+  const { data: existing } = await db
+    .from('review_rewards')
+    .select('id')
+    .eq('client_id', clientId)
+    .eq('carte_id', parsed.data.carte_id)
+    .maybeSingle();
+
+  if (existing) return c.json({ error: 'Récompense déjà réclamée' }, 409);
+
+  const { data: client } = await db
+    .from('clients')
+    .select('id, nom, commerce_id, points_actuels, tampons_actuels')
+    .eq('id', clientId)
+    .single();
+
+  if (!client) return c.json({ error: 'Client introuvable' }, 404);
+
+  const { data: carte } = await db
+    .from('cartes')
+    .select('id, type, review_reward_enabled, review_reward_value')
+    .eq('id', parsed.data.carte_id)
+    .eq('actif', true)
+    .single();
+
+  if (!carte) return c.json({ error: 'Carte introuvable' }, 404);
+  if (!carte.review_reward_enabled) return c.json({ error: 'Récompense avis non activée' }, 403);
+
+  // Insérer la réclamation
+  await db.from('review_rewards').insert({
+    client_id: clientId,
+    carte_id: parsed.data.carte_id,
+    commerce_id: client.commerce_id,
+  });
+
+  // Créditer le client
+  const rewardValue = carte.review_reward_value ?? 1;
+  const isPoints = carte.type === 'points';
+  const currentScore = isPoints ? (client.points_actuels ?? 0) : (client.tampons_actuels ?? 0);
+  const newScore = currentScore + rewardValue;
+
+  await db.from('clients').update({
+    ...(isPoints ? { points_actuels: newScore } : { tampons_actuels: newScore }),
+    updated_at: new Date().toISOString(),
+  }).eq('id', clientId);
+
+  return c.json({ ok: true, reward_value: rewardValue, type: carte.type });
 });
 
 /** PATCH /api/clients/:id/fcm — Met à jour le token FCM */

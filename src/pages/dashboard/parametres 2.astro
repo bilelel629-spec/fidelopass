@@ -1,0 +1,162 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Paramètres — Fidelopass" activeNav="parametres">
+  <div class="mb-8">
+    <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Configuration</p>
+    <h1 class="font-display text-3xl font-bold text-slate-900 mt-2">Paramètres</h1>
+    <p class="text-slate-600 text-sm mt-2">Renseignez les informations de votre commerce et la zone de proximité de votre carte Wallet.</p>
+  </div>
+
+  <div class="max-w-2xl flex flex-col gap-6">
+    <!-- Infos commerce -->
+    <div class="card p-6">
+      <h2 class="font-display font-bold text-slate-900 mb-5">Informations générales</h2>
+      <form id="settings-form" class="flex flex-col gap-5">
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label class="label" for="nom">Nom du commerce</label>
+            <input id="nom" type="text" class="input" placeholder="Ma Boutique" required />
+          </div>
+          <div>
+            <label class="label" for="telephone">Téléphone</label>
+            <input id="telephone" type="tel" class="input" placeholder="06 12 34 56 78" />
+          </div>
+        </div>
+
+        <div>
+          <label class="label" for="adresse">Adresse complète</label>
+          <input id="adresse" type="text" class="input" placeholder="12 rue de la Paix, 75001 Paris" />
+          <p class="text-slate-500 text-xs mt-1.5 flex items-center gap-1.5">
+            <span id="geo-status" class="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block"></span>
+            <span id="geo-label">Coordonnées GPS générées automatiquement à la sauvegarde</span>
+          </p>
+        </div>
+
+        <div>
+          <label class="label" for="rayon-geo">Rayon de géolocalisation</label>
+          <div class="flex items-center gap-3">
+            <input id="rayon-geo" type="range" min="100" max="5000" step="100" value="1000" class="flex-1 accent-indigo-500" />
+            <span id="rayon-label" class="font-mono text-sm text-indigo-400 w-16 text-right">1 000 m</span>
+          </div>
+          <p class="text-slate-500 text-xs mt-1">Apple Wallet utilise ce rayon pour afficher la carte près du commerce. Google Wallet utilise aussi les coordonnées du commerce pour faire remonter la carte à proximité.</p>
+        </div>
+
+        <div>
+          <label class="label" for="email-commerce">Email contact</label>
+          <input id="email-commerce" type="email" class="input" placeholder="contact@moncommerce.fr" />
+        </div>
+
+        <div id="error-msg" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"></div>
+        <div id="success-msg" class="hidden text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3"></div>
+
+        <div class="flex gap-3">
+          <button type="submit" class="btn-primary px-6 py-2.5">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Zone danger -->
+    <div class="card p-6 border border-red-100">
+      <h2 class="font-display font-bold text-slate-900 mb-1">Déconnexion</h2>
+      <p class="text-slate-600 text-sm mb-4">Vous serez redirigé vers la page de connexion.</p>
+      <button id="logout-btn" class="btn-secondary text-red-600 hover:text-red-600 hover:bg-red-50 border-red-200 px-5 py-2">
+        Se déconnecter
+      </button>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script>
+  import { authFetch } from '../../lib/api';
+  import { signOut } from '../../lib/auth';
+
+  // Slider rayon
+  const rayonSlider = document.getElementById('rayon-geo') as HTMLInputElement;
+  const rayonLabel = document.getElementById('rayon-label')!;
+  rayonSlider.addEventListener('input', () => {
+    rayonLabel.textContent = `${parseInt(rayonSlider.value).toLocaleString('fr-FR')} m`;
+  });
+
+  async function loadSettings() {
+    try {
+      const res = await authFetch('/api/commerces/me');
+      if (!res.ok) return;
+      const { data } = await res.json();
+      if (!data) return;
+
+      (document.getElementById('nom') as HTMLInputElement).value = data.nom ?? '';
+      (document.getElementById('telephone') as HTMLInputElement).value = data.telephone ?? '';
+      (document.getElementById('adresse') as HTMLInputElement).value = data.adresse ?? '';
+      (document.getElementById('email-commerce') as HTMLInputElement).value = data.email ?? '';
+      (document.getElementById('rayon-geo') as HTMLInputElement).value = String(data.rayon_geo ?? 1000);
+      rayonLabel.textContent = `${(data.rayon_geo ?? 1000).toLocaleString('fr-FR')} m`;
+
+      // Indicateur GPS
+      if (data.latitude && data.longitude) {
+        document.getElementById('geo-status')!.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block';
+        document.getElementById('geo-label')!.textContent =
+          `GPS : ${data.latitude.toFixed(5)}, ${data.longitude.toFixed(5)}`;
+      }
+    } catch { /* silencieux */ }
+  }
+
+  const form = document.getElementById('settings-form') as HTMLFormElement;
+  const errorMsg = document.getElementById('error-msg') as HTMLDivElement;
+  const successMsg = document.getElementById('success-msg') as HTMLDivElement;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorMsg.classList.add('hidden');
+    successMsg.classList.add('hidden');
+
+    const btn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+    btn.disabled = true;
+    btn.textContent = 'Enregistrement...';
+
+    const adresse = (document.getElementById('adresse') as HTMLInputElement).value;
+
+    try {
+      const res = await authFetch('/api/commerces/me', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          nom: (document.getElementById('nom') as HTMLInputElement).value,
+          telephone: (document.getElementById('telephone') as HTMLInputElement).value || null,
+          adresse: adresse || null,
+          email: (document.getElementById('email-commerce') as HTMLInputElement).value || null,
+          rayon_geo: parseInt(rayonSlider.value),
+        }),
+      });
+
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Erreur');
+      const { data } = await res.json();
+
+      successMsg.textContent = 'Paramètres enregistrés.';
+      successMsg.classList.remove('hidden');
+
+      // Mise à jour indicateur GPS
+      if (data?.latitude && data?.longitude) {
+        document.getElementById('geo-status')!.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block';
+        document.getElementById('geo-label')!.textContent =
+          `GPS : ${data.latitude.toFixed(5)}, ${data.longitude.toFixed(5)}`;
+      } else if (adresse) {
+        document.getElementById('geo-status')!.className = 'w-1.5 h-1.5 rounded-full bg-amber-400 inline-block';
+        document.getElementById('geo-label')!.textContent = 'Adresse non trouvée — vérifiez le format';
+      }
+    } catch (err: unknown) {
+      errorMsg.textContent = err instanceof Error ? err.message : 'Erreur lors de l\'enregistrement.';
+      errorMsg.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Enregistrer';
+    }
+  });
+
+  document.getElementById('logout-btn')!.addEventListener('click', async () => {
+    await signOut();
+    window.location.href = '/login';
+  });
+
+  loadSettings();
+</script>

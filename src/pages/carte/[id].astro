@@ -299,7 +299,7 @@ const firebasePushConfig = {
       latestPushStatus = 'disabled';
       setPushHelper({
         title: 'Notifications désactivées',
-        text: 'Vous pourrez les réactiver plus tard depuis cette page si vous changez d’avis.',
+        text: "Vous pourrez les réactiver plus tard depuis cette page si vous changez d’avis.",
       });
       return;
     }
@@ -333,7 +333,7 @@ const firebasePushConfig = {
     setPushHelper({
       title: clientId ? 'Dernière étape très rapide' : 'Notifications prêtes',
       text: clientId
-        ? 'Touchez simplement pour autoriser les notifications et finaliser l’activation pour cette carte.'
+        ? "Touchez simplement pour autoriser les notifications et finaliser l’activation pour cette carte."
         : 'Nous vous proposerons automatiquement les notifications dès que votre carte sera créée.',
       actionLabel: 'Activer maintenant',
       actionHidden: !clientId,
@@ -809,7 +809,7 @@ const firebasePushConfig = {
       }
 
       const client = await ensureClient();
-      showSuccess('Carte prête. Apple Wallet va s’ouvrir pour finaliser l’ajout.');
+      showSuccess("Carte prête. Apple Wallet va s’ouvrir pour finaliser l’ajout.");
       rememberWalletRedirect('apple');
       redirecting = true;
       window.location.assign(apiUrl(`/api/wallet/apple/${carteId}?client_id=${encodeURIComponent(client.id)}`));
@@ -851,7 +851,7 @@ const firebasePushConfig = {
       }
 
       const { saveUrl } = await res.json();
-      showSuccess('Carte prête. Google Wallet va s’ouvrir pour finaliser l’ajout.');
+      showSuccess("Carte prête. Google Wallet va s’ouvrir pour finaliser l’ajout.");
       rememberWalletRedirect('google');
       redirecting = true;
       window.location.assign(saveUrl);

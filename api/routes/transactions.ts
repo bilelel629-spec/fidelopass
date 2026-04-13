@@ -4,6 +4,7 @@ import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { updateGooglePassObject } from '../services/google-wallet';
 import { pushApplePassUpdate } from '../services/apple-wallet';
+import { sendPushNotification } from '../services/push';
 
 export const transactionsRoutes = new Hono();
 
@@ -85,18 +86,23 @@ transactionsRoutes.post('/', async (c) => {
       newPoints += parsed.data.valeur;
       if (newPoints >= carte.points_recompense) {
         recompensesObtenues += Math.floor(newPoints / carte.points_recompense);
-        newPoints = newPoints % carte.points_recompense;
+        // Plafonne au seuil — le reset se fait quand le commerçant attribue la récompense
+        newPoints = carte.points_recompense;
       }
       break;
     case 'ajout_tampon':
       newTampons += parsed.data.valeur;
       if (newTampons >= carte.tampons_total) {
         recompensesObtenues += Math.floor(newTampons / carte.tampons_total);
-        newTampons = newTampons % carte.tampons_total;
+        // Plafonne au seuil — le reset se fait quand le commerçant attribue la récompense
+        newTampons = carte.tampons_total;
       }
       break;
     case 'recompense':
+      // Reset du score + décrémentation de la récompense quand le commerçant l'attribue
       recompensesObtenues = Math.max(0, recompensesObtenues - parsed.data.valeur);
+      if (carte.type === 'tampons') newTampons = 0;
+      else newPoints = 0;
       break;
     case 'reset':
       newPoints = 0;
@@ -127,6 +133,31 @@ transactionsRoutes.post('/', async (c) => {
 
   if (updateResult.error || transactionResult.error) {
     return c.json({ error: 'Erreur lors de l\'enregistrement' }, 500);
+  }
+
+  // Push notification client (fire-and-forget)
+  const rewardJustEarned = recompensesObtenues > client.recompenses_obtenues;
+  const rewardJustUsed = parsed.data.type === 'recompense';
+  const clientFcmToken = (client as { fcm_token?: string | null }).fcm_token;
+  const clientPushEnabled = (client as { push_enabled?: boolean }).push_enabled;
+
+  if (clientPushEnabled && clientFcmToken) {
+    const carteTyped = carte as { recompense_description?: string; commerces?: { nom?: string } };
+    if (rewardJustEarned) {
+      const desc = carteTyped.recompense_description ?? 'votre récompense';
+      sendPushNotification(
+        [clientFcmToken],
+        '🎉 Récompense disponible !',
+        `Félicitations ! Vous pouvez maintenant bénéficier de votre récompense : ${desc}. Montrez votre carte au commerce.`,
+      ).catch((err) => console.error('[push reward earned]', err));
+    } else if (rewardJustUsed) {
+      const commerceNom = carteTyped.commerces?.nom ?? 'votre commerce';
+      sendPushNotification(
+        [clientFcmToken],
+        '✅ Récompense attribuée !',
+        `Votre récompense a été attribuée. Merci de votre fidélité chez ${commerceNom}.`,
+      ).catch((err) => console.error('[push reward used]', err));
+    }
   }
 
   const walletUpdates: Array<Promise<{ provider: string; ok: boolean; count?: number; error?: string }>> = [];

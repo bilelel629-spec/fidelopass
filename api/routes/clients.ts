@@ -285,7 +285,8 @@ clientsRoutes.patch('/:id/adjust', authMiddleware, async (c) => {
     const seuil = isPoints ? (carte?.points_recompense ?? 100) : (carte?.tampons_total ?? 10);
     if (newScore >= seuil) {
       recompensesObtenues += Math.floor(newScore / seuil);
-      finalScore = newScore % seuil;
+      // Plafonne au seuil — le reset se fait explicitement quand le commerçant attribue la récompense
+      finalScore = seuil;
     }
   }
 

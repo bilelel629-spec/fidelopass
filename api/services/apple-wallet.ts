@@ -178,7 +178,7 @@ export async function generateApplePass(
     foregroundColor: hexToRgb(carte.couleur_texte),
     backgroundColor: hexToRgb(carte.couleur_fond),
     labelColor: hexToRgb(carte.couleur_accent),
-    logoText: carte.commerces.nom,
+    logoText: carte.nom,
     authenticationToken: client.id,
     storeCard: {
       // headerFields : coin supérieur droit (solde)

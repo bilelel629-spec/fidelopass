@@ -4,7 +4,7 @@ import PublicNav from '../components/marketing/PublicNav.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
 // Lire l'URL de l'API au runtime (SSR) — pas baked au build comme PUBLIC_*
-const apiUrl = (process.env.API_URL ?? import.meta.env.PUBLIC_API_URL ?? 'https://api.fidelopass.com').replace(/\/$/, '');
+const apiUrl = (process.env.API_URL || import.meta.env.PUBLIC_API_URL || 'https://api.fidelopass.com').replace(/\/$/, '');
 
 // Bannière "nouvel utilisateur" après inscription
 const isNew = Astro.url.searchParams.get('new') === '1';

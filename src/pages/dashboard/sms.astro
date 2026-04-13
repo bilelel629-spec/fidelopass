@@ -1,7 +1,7 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
-const apiUrlRuntime = (process.env.API_URL ?? import.meta.env.PUBLIC_API_URL ?? 'https://api.fidelopass.com').replace(/\/$/, '');
+const apiUrlRuntime = (process.env.API_URL || import.meta.env.PUBLIC_API_URL || 'https://api.fidelopass.com').replace(/\/$/, '');
 
 const priceIds = {
   sms_100:  'price_1TLUSS7qMJeoJ4KrmbPWFh9V',

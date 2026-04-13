@@ -188,7 +188,6 @@ const firebasePushConfig = {
   const API = (document.getElementById('api-config'))?.dataset.url || 'https://api.fidelopass.com';
   const apiUrl = (path) => `${API}${path}`;
 
-  // Déclarées ici pour éviter TDZ quand refreshPushUi() accède walletClient avant la déclaration à la fin du script
   let walletClient = null;
   let walletClientPromise = null;
 
@@ -203,7 +202,7 @@ const firebasePushConfig = {
     && pushConfig?.vapidKey
   );
 
-  // ── Checkbox consentement ────────────────────────────────────────
+  // ── Checkbox consentement — null-safe ───────────────────────────
   const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
     || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -215,54 +214,59 @@ const firebasePushConfig = {
   const consentBox = document.getElementById('consent-box');
   const consentCheck = document.getElementById('consent-check');
   const consentIcon = document.getElementById('consent-check-icon');
-  const consentText = consentBox.querySelector('p.text-slate-400');
+  // querySelector null-safe : consentBox peut être null si DOM partiel
+  const consentText = consentBox ? consentBox.querySelector('p.text-slate-400') : null;
   const pushHelper = document.getElementById('push-helper');
   const pushHelperTitle = document.getElementById('push-helper-title');
   const pushHelperText = document.getElementById('push-helper-text');
   const pushHelperAction = document.getElementById('push-helper-action');
 
   function renderConsentState() {
-    document.getElementById('consent-value').value = String(pushConsent);
+    const val = document.getElementById(‘consent-value’);
+    if (val) val.value = String(pushConsent);
+    if (!consentBox || !consentCheck || !consentIcon) return;
     if (pushConsent) {
-      consentBox.style.cssText = 'border-color:#6366f1;background:rgb(99 102 241/0.1)';
-      consentCheck.style.cssText = 'border-color:#6366f1;background:#6366f1;width:20px;height:20px;border-radius:4px;border-width:2px;display:flex;align-items:center;justify-content:center;transition:all 0.15s';
-      consentIcon.classList.remove('hidden');
+      consentBox.style.cssText = ‘border-color:#6366f1;background:rgb(99 102 241/0.1)’;
+      consentCheck.style.cssText = ‘border-color:#6366f1;background:#6366f1;width:20px;height:20px;border-radius:4px;border-width:2px;display:flex;align-items:center;justify-content:center;transition:all 0.15s’;
+      consentIcon.classList.remove(‘hidden’);
       return;
     }
 
-    consentBox.style.cssText = 'border-color:#334155;background:transparent';
-    consentCheck.style.cssText = 'border-color:#475569;background:transparent;width:20px;height:20px;border-radius:4px;border-width:2px;display:flex;align-items:center;justify-content:center;transition:all 0.15s';
-    consentIcon.classList.add('hidden');
+    consentBox.style.cssText = ‘border-color:#334155;background:transparent’;
+    consentCheck.style.cssText = ‘border-color:#475569;background:transparent;width:20px;height:20px;border-radius:4px;border-width:2px;display:flex;align-items:center;justify-content:center;transition:all 0.15s’;
+    consentIcon.classList.add(‘hidden’);
   }
 
-  function setPushHelper({ title, text, actionLabel = '', actionHidden = true, actionDisabled = false } = {}) {
+  function setPushHelper({ title, text, actionLabel = ‘’, actionHidden = true, actionDisabled = false } = {}) {
+    if (!pushHelper || !pushHelperAction || !pushHelperTitle || !pushHelperText) return;
     if (!title && !text) {
-      pushHelper.classList.add('hidden');
-      pushHelperAction.classList.add('hidden');
-      pushHelperAction.textContent = 'Activer maintenant';
-      pushHelperTitle.textContent = '';
-      pushHelperText.textContent = '';
+      pushHelper.classList.add(‘hidden’);
+      pushHelperAction.classList.add(‘hidden’);
+      pushHelperAction.textContent = ‘Activer maintenant’;
+      pushHelperTitle.textContent = ‘’;
+      pushHelperText.textContent = ‘’;
       return;
     }
 
-    pushHelper.classList.remove('hidden');
-    pushHelperTitle.textContent = title ?? '';
-    pushHelperText.textContent = text ?? '';
-    pushHelperAction.textContent = actionLabel || 'Activer maintenant';
+    pushHelper.classList.remove(‘hidden’);
+    pushHelperTitle.textContent = title ?? ‘’;
+    pushHelperText.textContent = text ?? ‘’;
+    pushHelperAction.textContent = actionLabel || ‘Activer maintenant’;
     pushHelperAction.disabled = actionDisabled;
-    pushHelperAction.classList.toggle('hidden', actionHidden);
+    pushHelperAction.classList.toggle(‘hidden’, actionHidden);
   }
 
   function refreshPushUi() {
     renderConsentState();
+    if (!consentBox || !consentText) return;
 
     if (!isPushConfigured) {
-      consentText.textContent = 'Les notifications sont en cours de configuration. Vous pourrez les activer prochainement.';
-      consentBox.style.opacity = '0.6';
-      consentBox.style.cursor = 'not-allowed';
+      consentText.textContent = ‘Les notifications sont en cours de configuration. Vous pourrez les activer prochainement.’;
+      consentBox.style.opacity = ‘0.6’;
+      consentBox.style.cursor = ‘not-allowed’;
       setPushHelper({
-        title: 'Notifications bientôt disponibles',
-        text: 'Ce commerce finalise encore la configuration technique des notifications.',
+        title: ‘Notifications bientôt disponibles’,
+        text: ‘Ce commerce finalise encore la configuration technique des notifications.’,
       });
       return;
     }
@@ -285,11 +289,11 @@ const firebasePushConfig = {
       return;
     }
 
-    consentBox.style.opacity = '1';
-    consentBox.style.cursor = 'pointer';
+    consentBox.style.opacity = ‘1’;
+    consentBox.style.cursor = ‘pointer’;
     consentText.textContent = pushConsent
-      ? 'Activé par défaut pour recevoir vos offres, promotions et rappels de fidélité. Désactivable à tout moment.'
-      : 'Désactivé pour cette carte. Vous pourrez les réactiver plus tard.';
+      ? ‘Activé par défaut pour recevoir vos offres, promotions et rappels de fidélité. Désactivable à tout moment.’
+      : ‘Désactivé pour cette carte. Vous pourrez les réactiver plus tard.’;
 
     if (!pushConsent) {
       latestPushStatus = 'disabled';
@@ -340,21 +344,17 @@ const firebasePushConfig = {
     pushConsent = false;
   }
 
-  consentBox.addEventListener('click', () => {
+  consentBox?.addEventListener('click', () => {
     if (!isPushConfigured) {
       showError('Les notifications push ne sont pas encore configurées pour ce site.');
       return;
     }
-
-    if (!supportsMarketingWebPush) {
-      return;
-    }
-
+    if (!supportsMarketingWebPush) return;
     pushConsent = !pushConsent;
     refreshPushUi();
   });
 
-  pushHelperAction.addEventListener('click', async () => {
+  pushHelperAction?.addEventListener('click', async () => {
     const clientId = walletClient?.id ?? readRememberedClient()?.id;
     if (!clientId) return;
     await maybeActivatePush(clientId, { showFeedback: true, source: 'helper' });
@@ -457,8 +457,11 @@ const firebasePushConfig = {
 
   async function loadCarte() {
     try {
-      const res = await fetch(apiUrl(`/api/cartes/${carteId}/public`));
-      if (!res.ok) throw new Error();
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000); // 10s max
+      const res = await fetch(apiUrl(`/api/cartes/${carteId}/public`), { signal: controller.signal });
+      clearTimeout(timeout);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const { data } = await res.json();
       carteData = data;
 

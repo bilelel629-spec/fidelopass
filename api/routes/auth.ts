@@ -7,8 +7,6 @@ export const authRoutes = new Hono();
 const supabaseUrl = process.env.SUPABASE_URL ?? '';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY ?? '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
-const registerAccessKey = (process.env.REGISTER_ACCESS_KEY ?? 'Fidelopass3.0').trim();
-
 const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
@@ -25,15 +23,10 @@ const loginSchema = z.object({
 const registerRequestSchema = z.object({
   email: z.string().email('Email invalide'),
   password: z.string().min(8, 'Mot de passe trop court'),
-  usage_key: z.string().min(1, 'Clé d\'utilisation requise'),
 });
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
-}
-
-function isValidUsageKey(value: string): boolean {
-  return value.trim() === registerAccessKey;
 }
 
 async function findUserByEmail(email: string) {
@@ -78,10 +71,6 @@ async function handleRegisterRequest(body: unknown) {
 
   if (!parsed.success) {
     return { status: 400, payload: { error: parsed.error.errors[0]?.message ?? 'Données invalides' } };
-  }
-
-  if (!isValidUsageKey(parsed.data.usage_key)) {
-    return { status: 403, payload: { error: 'Clé d\'utilisation invalide.' } };
   }
 
   const email = normalizeEmail(parsed.data.email);

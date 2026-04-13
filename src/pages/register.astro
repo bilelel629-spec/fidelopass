@@ -163,8 +163,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
   );
 
-  const API = (import.meta.env.PUBLIC_API_URL ?? '').trim();
-  const USAGE_KEY = (import.meta.env.PUBLIC_REGISTER_ACCESS_KEY ?? 'Fidelopass3.0').trim();
+  const API = (import.meta.env.PUBLIC_API_URL || '').trim();
   const PENDING_KEY = 'fidelopass.pending-registration';
 
   const methodStep = document.getElementById('method-step') as HTMLDivElement;
@@ -203,12 +202,13 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   const show = (el: HTMLDivElement, msg: string) => { el.textContent = msg; el.classList.remove('hidden'); };
   const normalize = (s: string) => s.trim().toLowerCase();
 
-  const getError = (err: unknown, fallback: string) => {
+  const getError = (err: unknown, fallback: string, context: 'register' | 'verify' | 'oauth' = 'register') => {
     if (!(err instanceof Error)) return fallback;
     if (/unsupported provider/i.test(err.message)) return 'Inscription Google indisponible. Vérifiez la configuration Supabase.';
     if (/rate limit|too many/i.test(err.message)) return 'Limite d\'envoi atteinte. Réessayez dans quelques minutes.';
     if (/already confirmed|déjà confirmée/i.test(err.message)) return 'Cette adresse est déjà confirmée. Connectez-vous.';
-    if (/expired|invalid/i.test(err.message)) return 'Code invalide ou expiré. Demandez-en un nouveau.';
+    // "Code invalide ou expiré" ne s'applique qu'à l'étape OTP, pas à la demande de code
+    if (context === 'verify' && /expired|invalid/i.test(err.message)) return 'Code invalide ou expiré. Demandez-en un nouveau.';
     return err.message || fallback;
   };
 
@@ -245,7 +245,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     try {
       const res = await fetch(apiUrl(endpoint), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, usage_key: USAGE_KEY }),
+        body: JSON.stringify({ email, password }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? 'Impossible d\'envoyer le code.');
@@ -337,7 +337,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       savePending({ email, password });
       setStep('verify', email);
       show(verifySuccessMsg, 'Code envoyé. Vérifiez votre boîte mail.');
-    } catch (err: unknown) { show(errorMsg, getError(err, 'Une erreur est survenue.')); }
+    } catch (err: unknown) { show(errorMsg, getError(err, 'Une erreur est survenue.', 'register')); }
     finally { requestCodeBtn.disabled = false; requestCodeBtn.textContent = 'Recevoir mon code'; }
   });
 
@@ -352,7 +352,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       const { error } = await supabase.auth.verifyOtp({ email: pending.email, token, type: 'email' });
       if (error) throw new Error(error.message);
       clearPending(); show(verifySuccessMsg, 'Email confirmé. Redirection...'); await redirectAfterAuth();
-    } catch (err: unknown) { show(verifyErrorMsg, getError(err, 'Une erreur est survenue.')); }
+    } catch (err: unknown) { show(verifyErrorMsg, getError(err, 'Une erreur est survenue.', 'verify')); }
     finally { verifyBtn.disabled = false; verifyBtn.textContent = 'Vérifier et activer mon compte'; }
   });
 
@@ -363,7 +363,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     try {
       await requestCode(pending.email, pending.password, 'resend');
       show(verifySuccessMsg, 'Nouveau code envoyé.');
-    } catch (err: unknown) { show(verifyErrorMsg, getError(err, 'Impossible de renvoyer.')); }
+    } catch (err: unknown) { show(verifyErrorMsg, getError(err, 'Impossible de renvoyer.', 'verify')); }
     finally { resendBtn.disabled = false; resendBtn.textContent = 'Renvoyer le code'; }
   });
 

@@ -1,8 +1,10 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 const { id } = Astro.params;
+// Lire l'URL de l'API au runtime SSR — pas baked au build comme PUBLIC_*
 const apiBase = (
-  import.meta.env.PUBLIC_API_URL
+  process.env.API_URL
+  ?? import.meta.env.PUBLIC_API_URL
   ?? (import.meta.env.PROD ? 'https://api.fidelopass.com' : 'http://localhost:3001')
 ).replace(/\/$/, '');
 const firebasePushConfig = {
@@ -16,6 +18,7 @@ const firebasePushConfig = {
 ---
 
 <BaseLayout title="Ajouter à mon Wallet — Fidelopass">
+  <meta id="api-config" data-url={apiBase} />
   <div class="min-h-screen flex flex-col items-center justify-center px-4 py-12">
 
     <div id="loading" class="text-center">
@@ -180,8 +183,9 @@ const firebasePushConfig = {
   </div>
 </BaseLayout>
 
-<script define:vars={{ carteId: id, apiBase, firebasePushConfig }}>
-  const API = apiBase;
+<script define:vars={{ carteId: id, firebasePushConfig }}>
+  // Lire l'URL API depuis le meta tag injecté par SSR (pas baked au build)
+  const API = (document.getElementById('api-config'))?.dataset.url ?? 'https://api.fidelopass.com';
   const apiUrl = (path) => `${API}${path}`;
 
   // Déclarées ici pour éviter TDZ quand refreshPushUi() accède walletClient avant la déclaration à la fin du script

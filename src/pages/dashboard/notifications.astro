@@ -56,10 +56,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <h2 class="font-display font-bold text-slate-900">Avis Google automatique (+1h)</h2>
           <p class="text-slate-500 text-sm mt-1">Envoie automatiquement un push 60 minutes après l'installation de la carte pour inviter le client à laisser un avis Google.</p>
         </div>
-        <span id="review-auto-pro-badge" class="hidden rounded-full border border-amber-200 bg-amber-100 px-2 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-700">Pro</span>
+        <span class="rounded-full border border-amber-200 bg-amber-100 px-2 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-700">Pro uniquement</span>
+      </div>
+      <div id="review-auto-plan-info" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-600 text-sm mb-4">
+        Plan actuel: <span id="review-auto-plan-value" class="font-semibold text-slate-900">Chargement...</span>
       </div>
       <div id="review-auto-locked" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-700 text-sm mb-4">
-        Cette automatisation est disponible uniquement sur le plan Pro.
+        Cette fonctionnalite est reservee au plan Pro. Ce n'est pas un bug. Passez au plan Pro pour l'activer depuis cette page.
+        <a href="/pricing" class="font-semibold underline ml-1">Voir les plans</a>
       </div>
       <div id="review-auto-error" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-3"></div>
       <div id="review-auto-success" class="hidden text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 mb-3"></div>
@@ -205,8 +209,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const reviewAutoToggle = document.getElementById('review-auto-toggle') as HTMLButtonElement;
   const reviewAutoKnob = document.getElementById('review-auto-knob') as HTMLSpanElement;
   const reviewAutoStatus = document.getElementById('review-auto-status') as HTMLParagraphElement;
+  const reviewAutoPlanValue = document.getElementById('review-auto-plan-value') as HTMLSpanElement;
   const reviewAutoLocked = document.getElementById('review-auto-locked') as HTMLDivElement;
-  const reviewAutoBadge = document.getElementById('review-auto-pro-badge') as HTMLSpanElement;
   const reviewAutoError = document.getElementById('review-auto-error') as HTMLDivElement;
   const reviewAutoSuccess = document.getElementById('review-auto-success') as HTMLDivElement;
   let reviewAutoEnabled = false;
@@ -229,13 +233,19 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (!res.ok) throw new Error(payload.error ?? 'Impossible de charger le réglage.');
 
       reviewAutoIsPro = Boolean(payload?.data?.is_pro);
+      const plan = String(payload?.data?.plan ?? 'starter');
+      reviewAutoPlanValue.textContent = plan === 'pro' ? 'Pro' : 'Starter';
       setReviewAutoToggle(Boolean(payload?.data?.enabled));
 
       if (!reviewAutoIsPro) {
         reviewAutoLocked.classList.remove('hidden');
-        reviewAutoBadge.classList.remove('hidden');
         reviewAutoToggle.disabled = true;
         reviewAutoToggle.classList.add('opacity-40', 'cursor-not-allowed');
+        reviewAutoStatus.textContent = 'Plan Starter: indisponible. Activez le plan Pro pour debloquer cette automatisation.';
+      } else {
+        reviewAutoStatus.textContent = reviewAutoEnabled
+          ? 'Plan Pro: automatisation active (envoi 1h apres installation).'
+          : 'Plan Pro: vous pouvez activer cette automatisation.';
       }
     } catch {
       reviewAutoStatus.textContent = 'Impossible de charger le statut.';

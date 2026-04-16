@@ -49,24 +49,36 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </form>
     </div>
 
-    <!-- Campagne avis Google -->
-    <div class="card p-6 border-amber-100 bg-amber-50/40">
-      <div class="flex items-start gap-3 mb-4">
-        <span class="text-2xl">⭐</span>
+    <!-- Push auto avis Google -->
+    <div class="card p-6 border-sky-100 bg-sky-50/40">
+      <div class="flex items-start justify-between gap-3 mb-4">
         <div>
-          <h2 class="font-display font-bold text-slate-900">Campagne avis Google</h2>
-          <p class="text-slate-500 text-sm mt-1">Envoie à chaque client son lien personnalisé pour laisser un avis et réclamer sa récompense. Seuls les clients n'ayant pas encore réclamé reçoivent le message.</p>
+          <h2 class="font-display font-bold text-slate-900">Avis Google automatique (+1h)</h2>
+          <p class="text-slate-500 text-sm mt-1">Envoie automatiquement un push 60 minutes après l'installation de la carte pour inviter le client à laisser un avis Google.</p>
         </div>
+        <span id="review-auto-pro-badge" class="hidden rounded-full border border-amber-200 bg-amber-100 px-2 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-700">Pro</span>
       </div>
-      <div id="review-campaign-locked" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-700 text-sm mb-4">
-        La récompense avis Google n'est pas activée sur votre carte. Activez-la dans <a href="/dashboard/carte" class="font-semibold underline">l'éditeur de carte → étape 6 Options</a>.
+      <div id="review-auto-locked" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-700 text-sm mb-4">
+        Cette automatisation est disponible uniquement sur le plan Pro.
       </div>
-      <div id="review-campaign-error" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-3"></div>
-      <div id="review-campaign-success" class="hidden text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 mb-3"></div>
-      <button id="review-campaign-btn" type="button" class="btn-primary py-3 w-full">
-        Envoyer le lien avis Google à mes clients
-      </button>
-      <p class="text-slate-400 text-xs mt-2 text-center">Chaque client reçoit un lien unique · Une réclamation par client</p>
+      <div id="review-auto-error" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-3"></div>
+      <div id="review-auto-success" class="hidden text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 mb-3"></div>
+      <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
+        <div>
+          <p class="text-slate-800 text-sm font-medium">Activer le push avis Google automatique</p>
+          <p class="text-slate-500 text-xs mt-0.5">Le lien Google Maps de la carte active est utilisé dans le push.</p>
+        </div>
+        <button
+          id="review-auto-toggle"
+          type="button"
+          class="relative w-12 h-6 rounded-full transition-colors flex-shrink-0"
+          style="background:#334155"
+          aria-pressed="false"
+        >
+          <span id="review-auto-knob" class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" style="left:2px"></span>
+        </button>
+      </div>
+      <p id="review-auto-status" class="text-slate-500 text-xs mt-2 text-center">Chargement du statut...</p>
     </div>
 
   <!-- Historique -->
@@ -189,62 +201,77 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   }
 
-  // Campagne avis Google
-  async function checkReviewCampaignStatus() {
-    try {
-      const res = await authFetch('/api/cartes');
-      if (!res.ok) return;
-      const { data } = await res.json();
-      if (!data?.review_reward_enabled) {
-        document.getElementById('review-campaign-locked')!.classList.remove('hidden');
-        (document.getElementById('review-campaign-btn') as HTMLButtonElement).disabled = true;
-      }
-    } catch { /* silencieux */ }
+  // Push auto avis Google (+1h)
+  const reviewAutoToggle = document.getElementById('review-auto-toggle') as HTMLButtonElement;
+  const reviewAutoKnob = document.getElementById('review-auto-knob') as HTMLSpanElement;
+  const reviewAutoStatus = document.getElementById('review-auto-status') as HTMLParagraphElement;
+  const reviewAutoLocked = document.getElementById('review-auto-locked') as HTMLDivElement;
+  const reviewAutoBadge = document.getElementById('review-auto-pro-badge') as HTMLSpanElement;
+  const reviewAutoError = document.getElementById('review-auto-error') as HTMLDivElement;
+  const reviewAutoSuccess = document.getElementById('review-auto-success') as HTMLDivElement;
+  let reviewAutoEnabled = false;
+  let reviewAutoIsPro = false;
+
+  function setReviewAutoToggle(enabled: boolean) {
+    reviewAutoEnabled = enabled;
+    reviewAutoToggle.style.background = enabled ? '#4f46e5' : '#334155';
+    reviewAutoKnob.style.left = enabled ? '26px' : '2px';
+    reviewAutoToggle.setAttribute('aria-pressed', String(enabled));
+    reviewAutoStatus.textContent = enabled
+      ? 'Automatisation active: push envoyé 1h après installation.'
+      : 'Automatisation inactive.';
   }
 
-  document.getElementById('review-campaign-btn')?.addEventListener('click', async () => {
-    const btn = document.getElementById('review-campaign-btn') as HTMLButtonElement;
-    const errEl = document.getElementById('review-campaign-error') as HTMLDivElement;
-    const okEl  = document.getElementById('review-campaign-success') as HTMLDivElement;
-    errEl.classList.add('hidden');
-    okEl.classList.add('hidden');
-    btn.disabled = true;
-    btn.textContent = 'Envoi en cours…';
-
+  async function loadReviewAutoSettings() {
     try {
-      const res = await authFetch('/api/notifications/review-campaign', { method: 'POST' });
-      const data = await res.json();
+      const res = await authFetch('/api/notifications/review-reminder-settings');
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error ?? 'Impossible de charger le réglage.');
 
-      if (!res.ok) {
-        errEl.textContent = data.error ?? 'Erreur lors de l\'envoi.';
-        errEl.classList.remove('hidden');
-        btn.disabled = false;
-        btn.textContent = 'Envoyer le lien avis Google à mes clients';
-        return;
-      }
+      reviewAutoIsPro = Boolean(payload?.data?.is_pro);
+      setReviewAutoToggle(Boolean(payload?.data?.enabled));
 
-      if (data.nb_envoyes === 0) {
-        // Aucun envoi : expliquer pourquoi
-        const reason = data.message ?? `Aucun envoi possible : ${data.nb_eligibles} client(s) éligible(s) mais sans canal de notification actif (pas de token FCM ni de Wallet).`;
-        errEl.textContent = reason;
-        errEl.classList.remove('hidden');
-      } else {
-        const detail = data.detail
-          ? ` (FCM: ${data.detail.fcm}, Google Wallet: ${data.detail.google_wallet}, Apple Wallet: ${data.detail.apple_wallet})`
-          : '';
-        okEl.textContent = `Lien envoyé à ${data.nb_envoyes} client(s) sur ${data.nb_eligibles} éligibles. ${data.nb_deja_reclame} avaient déjà réclamé.${detail}`;
-        okEl.classList.remove('hidden');
+      if (!reviewAutoIsPro) {
+        reviewAutoLocked.classList.remove('hidden');
+        reviewAutoBadge.classList.remove('hidden');
+        reviewAutoToggle.disabled = true;
+        reviewAutoToggle.classList.add('opacity-40', 'cursor-not-allowed');
       }
     } catch {
-      errEl.textContent = 'Erreur réseau. Réessayez.';
-      errEl.classList.remove('hidden');
+      reviewAutoStatus.textContent = 'Impossible de charger le statut.';
+    }
+  }
+
+  reviewAutoToggle.addEventListener('click', async () => {
+    if (!reviewAutoIsPro) return;
+
+    reviewAutoError.classList.add('hidden');
+    reviewAutoSuccess.classList.add('hidden');
+    reviewAutoToggle.disabled = true;
+
+    try {
+      const nextValue = !reviewAutoEnabled;
+      const res = await authFetch('/api/notifications/review-reminder-settings', {
+        method: 'PATCH',
+        body: JSON.stringify({ enabled: nextValue }),
+      });
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error ?? 'Impossible de mettre à jour le réglage.');
+
+      setReviewAutoToggle(nextValue);
+      reviewAutoSuccess.textContent = nextValue
+        ? 'Automatisation activée.'
+        : 'Automatisation désactivée.';
+      reviewAutoSuccess.classList.remove('hidden');
+    } catch (err: unknown) {
+      reviewAutoError.textContent = err instanceof Error ? err.message : 'Erreur réseau. Réessayez.';
+      reviewAutoError.classList.remove('hidden');
     } finally {
-      btn.disabled = false;
-      btn.textContent = 'Envoyer le lien avis Google à mes clients';
+      reviewAutoToggle.disabled = false;
     }
   });
 
   loadSummary();
   loadHistory();
-  checkReviewCampaignStatus();
+  loadReviewAutoSettings();
 </script>

@@ -14,6 +14,64 @@ export const notificationsRoutes = new Hono();
 
 notificationsRoutes.use('*', authMiddleware);
 
+/** GET /api/notifications/review-reminder-settings — Réglage push auto avis Google (+1h) */
+notificationsRoutes.get('/review-reminder-settings', async (c) => {
+  const userId = c.get('userId') as string;
+  const db = createServiceClient();
+
+  const { data: commerce } = await db
+    .from('commerces')
+    .select('id, plan, sms_review_enabled')
+    .eq('user_id', userId)
+    .single();
+
+  if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
+
+  const planLimits = getPlanLimits(commerce.plan);
+  return c.json({
+    data: {
+      enabled: Boolean(commerce.sms_review_enabled),
+      plan: commerce.plan ?? 'starter',
+      is_pro: Boolean(planLimits.avisGoogle),
+      delay_minutes: 60,
+    },
+  });
+});
+
+/** PATCH /api/notifications/review-reminder-settings — Active/désactive le push auto avis Google (+1h) */
+notificationsRoutes.patch('/review-reminder-settings', async (c) => {
+  const userId = c.get('userId') as string;
+  const body = await c.req.json().catch(() => null);
+  const parsed = z.object({ enabled: z.boolean() }).safeParse(body);
+
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides' }, 400);
+  }
+
+  const db = createServiceClient();
+  const { data: commerce } = await db
+    .from('commerces')
+    .select('id, plan')
+    .eq('user_id', userId)
+    .single();
+
+  if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
+
+  const planLimits = getPlanLimits(commerce.plan);
+  if (!planLimits.avisGoogle) {
+    return c.json({ error: 'Cette automatisation est réservée au plan Pro.' }, 403);
+  }
+
+  const { error } = await db
+    .from('commerces')
+    .update({ sms_review_enabled: parsed.data.enabled })
+    .eq('id', commerce.id);
+
+  if (error) return c.json({ error: 'Impossible de mettre à jour le réglage.' }, 500);
+
+  return c.json({ ok: true, data: { enabled: parsed.data.enabled, delay_minutes: 60 } });
+});
+
 /** GET /api/notifications/summary — Résumé des canaux réellement disponibles */
 notificationsRoutes.get('/summary', async (c) => {
   const userId = c.get('userId') as string;

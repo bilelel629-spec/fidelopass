@@ -482,56 +482,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           </p>
         </div>
 
-        <!-- Toggle Récompense avis Google -->
-        <div class="hidden rounded-2xl border border-sky-100 bg-white p-4">
-          <div class="flex items-center justify-between gap-4 mb-3">
-            <div>
-              <div class="flex items-center gap-2">
-                <p class="text-sm font-semibold text-slate-900">Récompense avis Google</p>
-                <span id="review-pro-badge" class="hidden rounded-full bg-amber-100 border border-amber-200 px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-700">Pro</span>
-              </div>
-              <p class="mt-0.5 text-sm leading-6 text-slate-500">Offrez un tampon ou des points aux clients qui laissent un avis Google. Un lien unique leur est envoyé — un clic, c'est crédité.</p>
-            </div>
-            <button
-              id="review-toggle"
-              type="button"
-              class="relative w-12 h-6 rounded-full transition-colors flex-shrink-0"
-              style="background:#334155"
-              aria-pressed="false"
-            >
-              <span id="review-knob" class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" style="left:2px"></span>
-            </button>
-          </div>
-          <p id="review-upgrade-msg" class="hidden text-xs text-amber-700 mb-3">
-            La récompense avis Google est réservée au plan Pro. <a href="/dashboard/parametres" class="font-semibold underline">Voir les plans →</a>
-          </p>
-
-          <div id="review-settings" class="hidden space-y-4">
-            <div class="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label class="label" for="review-reward-value">Récompense offerte</label>
-                <div class="flex items-center gap-2 mt-1">
-                  <input id="review-reward-value" type="number" min="1" max="10" value="1" class="input w-24 text-center" />
-                  <span id="review-reward-unit" class="text-sm text-slate-500">tampon(s)</span>
-                </div>
-              </div>
-              <div>
-                <label class="label" for="google-maps-url">Lien Google Maps de votre commerce</label>
-                <input id="google-maps-url" type="url" class="input mt-1" placeholder="https://maps.google.com/?cid=..." />
-                <p class="text-slate-400 text-xs mt-1">Trouvez votre fiche Google Maps → Partager → Copier le lien</p>
-              </div>
-            </div>
-
-            <div id="review-link-section" class="hidden rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-              <p class="text-emerald-700 font-semibold text-sm mb-2">Lien à partager avec vos clients</p>
-              <div class="flex items-center gap-2">
-                <input id="review-link-input" type="text" readonly class="input flex-1 text-xs bg-white" />
-                <button id="copy-review-link-btn" type="button" class="btn-secondary text-sm py-2 px-3 shrink-0">Copier</button>
-              </div>
-              <p class="text-emerald-600 text-xs mt-2">Partagez ce lien par SMS, WhatsApp, push ou QR code en boutique. Chaque client ne peut réclamer qu'une seule fois.</p>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- Étape 7 : Scanner & Partage -->
@@ -1444,19 +1394,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         document.getElementById('tampon-custom-zone')!.classList.remove('hidden');
         ['default','emoji','custom'].forEach(v=>document.getElementById(`tampon-mode-${v}-label`)!.style.cssText=v==='custom'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff');
       }
-      // Review reward fields
-      if (data.review_reward_enabled) setReviewToggle(true);
-      if (data.review_reward_value != null) set('review-reward-value', String(data.review_reward_value));
-      if (data.google_maps_url) set('google-maps-url', data.google_maps_url);
-      updateReviewUnit();
-
       updatePreview();
       const pu=publicCardUrl(data.id);
       document.getElementById('public-link-banner')!.classList.remove('hidden');
       document.getElementById('public-link-url')!.textContent=pu;
       updateQrTools(data.id);
       updateScannerTools();
-      if (data.review_reward_enabled) updateReviewLink();
       updateWizardActions();
     }catch{}
   }
@@ -1552,9 +1495,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       success_message:gi('success-message')||null,
       rewards_config:collectRewardTiers(),
       vip_tiers:collectVipTiers(),
-      review_reward_enabled: reviewEnabled,
-      review_reward_value: parseInt((document.getElementById('review-reward-value') as HTMLInputElement).value) || 1,
-      google_maps_url: (document.getElementById('google-maps-url') as HTMLInputElement).value || null,
     };
     try{
       const res=carteId?await authFetch(`/api/cartes/${carteId}`,{method:'PATCH',body:JSON.stringify(payload)}):await authFetch('/api/cartes',{method:'POST',body:JSON.stringify(payload)});
@@ -1571,7 +1511,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (carteId) {
         updateQrTools(carteId);
         updateScannerTools();
-        if (reviewEnabled) updateReviewLink();
       }
       suc.textContent=!hadExistingCard&&setupMode?'Carte créée avec succès. Votre programme est opérationnel : vous pouvez maintenant scanner les cartes depuis votre espace Scan.':'Carte enregistrée avec succès !';suc.classList.remove('hidden');
       if (setupMode && !hadExistingCard) {
@@ -1583,53 +1522,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       err.textContent=e instanceof Error?e.message:'Erreur inattendue.';err.classList.remove('hidden');
     }finally{btn.disabled=false;}
   });
-
-  // ── Récompense avis Google ─────────────────────────────────────────
-  let reviewEnabled = false;
-
-  const reviewToggle = document.getElementById('review-toggle') as HTMLButtonElement;
-  const reviewKnob   = document.getElementById('review-knob') as HTMLSpanElement;
-  const reviewSettings = document.getElementById('review-settings') as HTMLDivElement;
-  const reviewLinkSection = document.getElementById('review-link-section') as HTMLDivElement;
-  const reviewLinkInput = document.getElementById('review-link-input') as HTMLInputElement;
-  const reviewRewardValue = document.getElementById('review-reward-value') as HTMLInputElement;
-  const reviewRewardUnit  = document.getElementById('review-reward-unit') as HTMLSpanElement;
-  const googleMapsUrl = document.getElementById('google-maps-url') as HTMLInputElement;
-
-  function setReviewToggle(enabled: boolean) {
-    reviewEnabled = enabled;
-    reviewToggle.style.background = enabled ? '#4f46e5' : '#334155';
-    reviewKnob.style.left = enabled ? '26px' : '2px';
-    reviewToggle.setAttribute('aria-pressed', String(enabled));
-    reviewSettings.classList.toggle('hidden', !enabled);
-  }
-
-  function updateReviewLink() {
-    if (!carteId) return;
-    reviewLinkSection.classList.remove('hidden');
-    // Le lien inclut la carte — le client_id sera ajouté automatiquement quand la carte est partagée
-    reviewLinkInput.value = `${PUBLIC_SITE_URL}/review/${carteId}?client_id={CLIENT_ID}`;
-  }
-
-  reviewToggle.addEventListener('click', () => setReviewToggle(!reviewEnabled));
-
-  // Met à jour l'unité selon le type de carte
-  function updateReviewUnit() {
-    const typeEl = document.querySelector('input[name="type"]:checked') as HTMLInputElement | null;
-    const type = typeEl?.value ?? 'tampons';
-    reviewRewardUnit.textContent = type === 'tampons' ? 'tampon(s)' : 'point(s)';
-  }
-  document.querySelectorAll('input[name="type"]').forEach((r) => r.addEventListener('change', updateReviewUnit));
-
-  document.getElementById('copy-review-link-btn')?.addEventListener('click', () => {
-    navigator.clipboard.writeText(reviewLinkInput.value).then(() => {
-      const b = document.getElementById('copy-review-link-btn')!;
-      b.textContent = 'Copié !';
-      setTimeout(() => { b.textContent = 'Copier'; }, 2000);
-    });
-  });
-
-  // updateReviewLink est appelé après chaque save (quand carteId est connu)
 
   // ── Restrictions par plan ──────────────────────────────────────────
   async function loadPlanRestrictions() {
@@ -1648,17 +1540,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         annivBtn.disabled = false;
         annivBtn.classList.remove('opacity-40', 'cursor-not-allowed');
         document.getElementById('anniv-pro-badge')!.classList.add('hidden');
-      }
-
-      // Avis Google : verrouillé sur starter
-      if (isStarter) {
-        const reviewBtn = document.getElementById('review-toggle') as HTMLButtonElement;
-        reviewBtn.disabled = true;
-        reviewBtn.classList.add('opacity-40', 'cursor-not-allowed');
-        document.getElementById('review-pro-badge')!.classList.remove('hidden');
-        document.getElementById('review-upgrade-msg')!.classList.remove('hidden');
-        // Désactiver aussi le toggle si activé
-        if (reviewEnabled) setReviewToggle(false);
       }
 
       // Afficher compteur de cartes si proche de la limite

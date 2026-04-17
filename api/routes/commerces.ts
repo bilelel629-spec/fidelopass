@@ -15,7 +15,7 @@ const updateSchema = z.object({
   email: z.string().email().nullable().optional(),
   logo_url: z.string().url().nullable().optional(),
   rayon_geo: z.number().int().min(100).max(50000).optional(),
-  plan: z.enum(['starter', 'pro']).optional(),
+  onboarding_completed: z.boolean().optional(),
 });
 
 export const PLAN_LIMITS = {
@@ -117,4 +117,3 @@ commercesRoutes.patch('/me', async (c) => {
 
   return c.json({ data });
 });
-

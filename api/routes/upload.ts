@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
+import { paidMiddleware } from '../middleware/paid';
 import { randomUUID } from 'crypto';
 
 export const uploadRoutes = new Hono();
@@ -16,7 +17,7 @@ async function ensureBucket(db: ReturnType<typeof createServiceClient>) {
 }
 
 /** POST /api/upload — Upload d'une image vers Supabase Storage */
-uploadRoutes.post('/', authMiddleware, async (c) => {
+uploadRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   const userId = c.get('userId') as string;
 
   const body = await c.req.parseBody();

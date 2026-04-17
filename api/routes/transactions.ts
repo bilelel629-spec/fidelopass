@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
+import { paidMiddleware } from '../middleware/paid';
 import { updateGooglePassObject } from '../services/google-wallet';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { sendPushNotification } from '../services/push';
@@ -9,6 +10,7 @@ import { sendPushNotification } from '../services/push';
 export const transactionsRoutes = new Hono();
 
 transactionsRoutes.use('*', authMiddleware);
+transactionsRoutes.use('*', paidMiddleware);
 
 const transactionSchema = z.object({
   client_id: z.string().uuid(),

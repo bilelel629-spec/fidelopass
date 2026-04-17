@@ -1,0 +1,173 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  theme="light"
+  title="Finaliser votre abonnement — Fidelopass"
+  description="Ajoutez l’option d’accompagnement setup avant de finaliser le paiement Stripe."
+>
+  <section class="min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_62%,#ffffff_100%)] px-4 py-10 sm:py-14 relative overflow-hidden">
+    <div class="pointer-events-none absolute -top-20 right-[-10rem] h-[28rem] w-[28rem] rounded-full bg-cyan-200/35 blur-3xl"></div>
+    <div class="pointer-events-none absolute bottom-[-8rem] left-[-8rem] h-[24rem] w-[24rem] rounded-full bg-blue-100/80 blur-3xl"></div>
+
+    <div class="max-w-3xl mx-auto">
+      <a href="/" class="inline-flex items-center mb-6">
+        <img src="/logo-premium-cropped.png" alt="Fidelopass" class="h-14 w-auto object-contain" />
+      </a>
+
+      <div class="bg-white/92 border border-sky-100 shadow-[0_32px_70px_-34px_rgba(37,99,235,0.28)] rounded-[2rem] p-6 sm:p-8">
+        <p class="text-[0.7rem] font-semibold uppercase tracking-[0.26em] text-sky-700/75">Étape 2 sur 2</p>
+        <h1 class="font-display text-3xl sm:text-4xl font-bold text-slate-900 mt-3">Finalisez votre commande</h1>
+        <p class="text-slate-500 text-base mt-3 leading-relaxed">
+          Vous pouvez ajouter l’accompagnement setup avant la redirection vers Stripe.
+        </p>
+
+        <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+          <p class="text-xs uppercase tracking-[0.16em] text-slate-400 font-semibold">Plan sélectionné</p>
+          <p id="summary-plan" class="text-slate-900 font-semibold mt-2">—</p>
+          <p id="summary-billing" class="text-slate-500 text-sm mt-1">—</p>
+        </div>
+
+        <label class="mt-5 flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 cursor-pointer">
+          <input id="setup-addon" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+          <span class="text-sm text-slate-700 leading-relaxed">
+            Ajouter <strong>Accompagnement Setup (+20€ une seule fois)</strong><br />
+            <span class="text-xs text-slate-500">Configuration initiale réalisée avec notre équipe.</span>
+          </span>
+        </label>
+
+        <div id="setup-error" class="hidden mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"></div>
+
+        <div class="grid sm:grid-cols-2 gap-3 mt-6">
+          <a href="/abonnement/choix" class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+            Retour au choix du plan
+          </a>
+          <button id="btn-checkout" type="button" class="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-900 transition-colors">
+            Continuer vers Stripe
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  import { createClient } from '@supabase/supabase-js';
+
+  const supabase = createClient(
+    import.meta.env.PUBLIC_SUPABASE_URL,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+  );
+
+  const API = (import.meta.env.PUBLIC_API_URL || 'https://api.fidelopass.com').replace(/\/$/, '');
+  const STORAGE_KEY = 'fidelopass.checkout.selection';
+
+  const summaryPlan = document.getElementById('summary-plan') as HTMLParagraphElement;
+  const summaryBilling = document.getElementById('summary-billing') as HTMLParagraphElement;
+  const setupAddon = document.getElementById('setup-addon') as HTMLInputElement;
+  const errorEl = document.getElementById('setup-error') as HTMLDivElement;
+  const checkoutBtn = document.getElementById('btn-checkout') as HTMLButtonElement;
+
+  type Selection = {
+    plan: 'starter' | 'pro';
+    mode: 'monthly' | 'annual';
+    priceId: string;
+    selectedAt: number;
+  };
+
+  function loadSelection(): Selection | null {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as Partial<Selection>;
+      if (!parsed.plan || !parsed.mode || !parsed.priceId) return null;
+      if (parsed.plan !== 'starter' && parsed.plan !== 'pro') return null;
+      if (parsed.mode !== 'monthly' && parsed.mode !== 'annual') return null;
+      return parsed as Selection;
+    } catch {
+      return null;
+    }
+  }
+
+  function describeSelection(selection: Selection) {
+    const planLabel = selection.plan === 'pro' ? 'Plan Pro' : 'Plan Starter';
+    const billingLabel = selection.mode === 'annual' ? 'Facturation annuelle' : 'Facturation mensuelle';
+    summaryPlan.textContent = planLabel;
+    summaryBilling.textContent = billingLabel;
+  }
+
+  async function requireSessionAndBilling() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.replace('/register');
+      return null;
+    }
+
+    const billing = await fetch(`${API}/api/billing/status`, {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+    }).then((r) => r.json()).catch(() => ({}));
+
+    if (billing?.data?.has_access) {
+      window.location.replace(billing?.data?.onboarding_completed ? '/dashboard' : '/onboarding');
+      return null;
+    }
+
+    return session;
+  }
+
+  const selection = loadSelection();
+  if (!selection) {
+    window.location.replace('/abonnement/choix');
+  } else {
+    describeSelection(selection);
+  }
+
+  await requireSessionAndBilling();
+
+  checkoutBtn.addEventListener('click', async () => {
+    errorEl.classList.add('hidden');
+    checkoutBtn.disabled = true;
+    checkoutBtn.textContent = 'Redirection…';
+
+    try {
+      const currentSelection = loadSelection();
+      if (!currentSelection) {
+        window.location.replace('/abonnement/choix');
+        return;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        window.location.replace('/register');
+        return;
+      }
+
+      const res = await fetch(`${API}/api/checkout/create-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          priceId: currentSelection.priceId,
+          mode: 'subscription',
+          includeAccompagnement: setupAddon.checked,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? 'Impossible de créer la session Stripe.');
+      if (!data.url) throw new Error('Lien Stripe introuvable.');
+      window.location.href = data.url;
+    } catch (error) {
+      errorEl.textContent = error instanceof Error ? error.message : 'Erreur lors de la création du paiement.';
+      errorEl.classList.remove('hidden');
+      checkoutBtn.disabled = false;
+      checkoutBtn.textContent = 'Continuer vers Stripe';
+    }
+  });
+</script>

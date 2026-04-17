@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
+import { paidMiddleware } from '../middleware/paid';
 
 export const cartesRoutes = new Hono();
 
@@ -66,7 +67,7 @@ const carteSchema = z.object({
 });
 
 /** GET /api/cartes — Récupère la carte du commerce connecté */
-cartesRoutes.get('/', authMiddleware, async (c) => {
+cartesRoutes.get('/', authMiddleware, paidMiddleware, async (c) => {
   const userId = c.get('userId') as string;
   const db = createServiceClient();
 
@@ -114,7 +115,7 @@ cartesRoutes.get('/:id/public', async (c) => {
 });
 
 /** POST /api/cartes — Crée une carte */
-cartesRoutes.post('/', authMiddleware, async (c) => {
+cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   const userId = c.get('userId') as string;
   const body = await c.req.json().catch(() => null);
   const parsed = carteSchema.safeParse(body);
@@ -234,7 +235,7 @@ cartesRoutes.post('/', authMiddleware, async (c) => {
 });
 
 /** PATCH /api/cartes/:id — Met à jour une carte */
-cartesRoutes.patch('/:id', authMiddleware, async (c) => {
+cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   const carteId = c.req.param('id');
   const userId = c.get('userId') as string;
   const body = await c.req.json().catch(() => null);

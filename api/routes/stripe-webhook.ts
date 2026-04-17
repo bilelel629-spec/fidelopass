@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import Stripe from 'stripe';
 import { createServiceClient } from '../../src/lib/supabase';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 export const stripeWebhookRoutes = new Hono();
 
@@ -8,6 +10,48 @@ function getStripe() {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error('STRIPE_SECRET_KEY manquant');
   return new Stripe(key);
+}
+
+type PlanName = 'starter' | 'pro' | null;
+
+function loadPriceIds() {
+  try {
+    const raw = readFileSync(resolve(process.cwd(), 'stripe-price-ids.json'), 'utf8');
+    return JSON.parse(raw) as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+function resolvePlanFromPriceId(priceId: string | null, priceIds: Record<string, string>): PlanName {
+  if (!priceId) return null;
+
+  const starterIds = new Set([
+    priceIds.starter_mensuel,
+    priceIds.starter_annuel_mensuel,
+    priceIds.starter_annuel_once,
+    priceIds.starter_annuel,
+  ].filter(Boolean));
+
+  const proIds = new Set([
+    priceIds.pro_mensuel,
+    priceIds.pro_annuel_mensuel,
+    priceIds.pro_annuel_once,
+    priceIds.pro_annuel,
+  ].filter(Boolean));
+
+  if (starterIds.has(priceId)) return 'starter';
+  if (proIds.has(priceId)) return 'pro';
+  return null;
+}
+
+function normalizeBillingStatusFromSubscription(status: string | null | undefined) {
+  if (!status) return 'unpaid';
+  if (status === 'active') return 'active';
+  if (status === 'trialing') return 'trialing';
+  if (status === 'past_due') return 'past_due';
+  if (status === 'canceled') return 'canceled';
+  return 'unpaid';
 }
 
 /** Retrouve commerce_id depuis une session ou subscription Stripe */
@@ -50,6 +94,7 @@ stripeWebhookRoutes.post('/', async (c) => {
   }
 
   const db = createServiceClient();
+  const priceIds = loadPriceIds();
   console.log('[stripe-webhook] Event :', event.type);
 
   try {
@@ -70,30 +115,33 @@ stripeWebhookRoutes.post('/', async (c) => {
           await db.from('commerces').update({ stripe_customer_id: session.customer }).eq('id', commerceId);
         }
 
-        const priceId = session.line_items?.data?.[0]?.price?.id ?? null;
-        console.log('[stripe-webhook] checkout.session.completed | commerce:', commerceId, '| price:', priceId);
-
-        // Détection du produit via les IDs de prix enregistrés
-        let priceIds: Record<string, string> = {};
-        try {
-          const { readFileSync } = await import('fs');
-          const { resolve } = await import('path');
-          const raw = readFileSync(resolve(process.cwd(), 'stripe-price-ids.json'), 'utf8');
-          priceIds = JSON.parse(raw);
-        } catch {
-          console.warn('[stripe-webhook] stripe-price-ids.json non trouvé, utilisation des metadata');
+        if (session.metadata?.onboarding_addon === 'true') {
+          await db.from('commerces').update({ onboarding_purchased: true }).eq('id', commerceId);
+          console.log('[stripe-webhook] → onboarding_purchased = true (addon inclus au checkout abonnement)');
         }
 
-        if (priceId === priceIds.starter_mensuel || priceId === priceIds.starter_annuel) {
-          await db.from('commerces').update({ plan: 'starter' }).eq('id', commerceId);
-          console.log('[stripe-webhook] → plan = starter');
-        } else if (priceId === priceIds.pro_mensuel || priceId === priceIds.pro_annuel) {
-          await db.from('commerces').update({ plan: 'pro' }).eq('id', commerceId);
-          console.log('[stripe-webhook] → plan = pro');
-        } else if (priceId === priceIds.accompagnement) {
-          await db.from('commerces').update({ onboarding_purchased: true }).eq('id', commerceId);
-          console.log('[stripe-webhook] → onboarding_purchased = true');
-        } else if (priceId === priceIds.scanner) {
+        const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 20 });
+        const purchasedPriceIds = lineItems.data
+          .map((item) => item.price?.id)
+          .filter((id): id is string => Boolean(id));
+        const firstPriceId = purchasedPriceIds[0] ?? null;
+        const matchedPlan = purchasedPriceIds
+          .map((id) => resolvePlanFromPriceId(id, priceIds))
+          .find((plan): plan is 'starter' | 'pro' => Boolean(plan)) ?? null;
+        const hasAccompagnementLineItem = Boolean(priceIds.accompagnement) && purchasedPriceIds.includes(priceIds.accompagnement);
+
+        console.log('[stripe-webhook] checkout.session.completed | commerce:', commerceId, '| prices:', purchasedPriceIds);
+
+        if (matchedPlan) {
+          await db
+            .from('commerces')
+            .update({
+              plan: matchedPlan,
+              billing_status: session.mode === 'subscription' ? 'trialing' : 'active',
+            })
+            .eq('id', commerceId);
+          console.log('[stripe-webhook] → plan =', matchedPlan);
+        } else if (firstPriceId === priceIds.scanner) {
           await db.rpc('increment_scanners_count', { commerce_id_input: commerceId }).catch(() => {
             return db.from('commerces')
               .select('scanners_count')
@@ -102,32 +150,42 @@ stripeWebhookRoutes.post('/', async (c) => {
               .then(({ data }) => db.from('commerces').update({ scanners_count: (data?.scanners_count ?? 1) + 1 }).eq('id', commerceId));
           });
           console.log('[stripe-webhook] → scanners_count + 1');
-        } else if (priceId === priceIds.sms_100) {
+        } else if (firstPriceId === priceIds.sms_100) {
           const { data } = await db.from('commerces').select('sms_credits').eq('id', commerceId).single();
           await db.from('commerces').update({ sms_credits: (data?.sms_credits ?? 0) + 100 }).eq('id', commerceId);
           console.log('[stripe-webhook] → sms_credits + 100');
-        } else if (priceId === priceIds.sms_500) {
+        } else if (firstPriceId === priceIds.sms_500) {
           const { data } = await db.from('commerces').select('sms_credits').eq('id', commerceId).single();
           await db.from('commerces').update({ sms_credits: (data?.sms_credits ?? 0) + 500 }).eq('id', commerceId);
           console.log('[stripe-webhook] → sms_credits + 500');
-        } else if (priceId === priceIds.sms_2000) {
+        } else if (firstPriceId === priceIds.sms_2000) {
           const { data } = await db.from('commerces').select('sms_credits').eq('id', commerceId).single();
           await db.from('commerces').update({ sms_credits: (data?.sms_credits ?? 0) + 2000 }).eq('id', commerceId);
           console.log('[stripe-webhook] → sms_credits + 2000');
         } else {
           // Fallback : utilise les metadata du price
-          const price = await stripe.prices.retrieve(priceId ?? '').catch(() => null);
+          const price = await stripe.prices.retrieve(firstPriceId ?? '').catch(() => null);
           const action = price?.metadata?.action;
           const plan = price?.metadata?.plan;
-          if (plan === 'starter') await db.from('commerces').update({ plan: 'starter' }).eq('id', commerceId);
-          else if (plan === 'pro') await db.from('commerces').update({ plan: 'pro' }).eq('id', commerceId);
-          else if (action === 'onboarding_purchased') await db.from('commerces').update({ onboarding_purchased: true }).eq('id', commerceId);
+          if (plan === 'starter') {
+            await db.from('commerces').update({ plan: 'starter', billing_status: session.mode === 'subscription' ? 'trialing' : 'active' }).eq('id', commerceId);
+          } else if (plan === 'pro') {
+            await db.from('commerces').update({ plan: 'pro', billing_status: session.mode === 'subscription' ? 'trialing' : 'active' }).eq('id', commerceId);
+          } else if (action === 'onboarding_purchased') {
+            await db.from('commerces').update({ onboarding_purchased: true }).eq('id', commerceId);
+          }
           else if (action === 'sms_credits') {
             const credits = parseInt(price?.metadata?.credits ?? '0');
             const { data } = await db.from('commerces').select('sms_credits').eq('id', commerceId).single();
             await db.from('commerces').update({ sms_credits: (data?.sms_credits ?? 0) + credits }).eq('id', commerceId);
           }
         }
+
+        if (hasAccompagnementLineItem) {
+          await db.from('commerces').update({ onboarding_purchased: true }).eq('id', commerceId);
+          console.log('[stripe-webhook] → onboarding_purchased = true (line item)');
+        }
+
         break;
       }
 
@@ -138,11 +196,12 @@ stripeWebhookRoutes.post('/', async (c) => {
         if (!commerceId) break;
 
         const priceId = sub.items.data[0]?.price?.id ?? null;
-        const plan = sub.items.data[0]?.price?.metadata?.plan;
+        const plan = resolvePlanFromPriceId(priceId, priceIds) ?? sub.items.data[0]?.price?.metadata?.plan ?? null;
         const trialEnd = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null;
 
         const updates: Record<string, unknown> = {
           stripe_subscription_id: sub.id,
+          billing_status: normalizeBillingStatusFromSubscription(sub.status),
           ...(trialEnd ? { trial_ends_at: trialEnd } : {}),
         };
 
@@ -157,8 +216,8 @@ stripeWebhookRoutes.post('/', async (c) => {
         const sub = event.data.object as Stripe.Subscription;
         const commerceId = await getCommerceIdFromMetadata(sub.metadata);
         if (!commerceId) break;
-        await db.from('commerces').update({ plan: 'starter', stripe_subscription_id: null }).eq('id', commerceId);
-        console.log('[stripe-webhook] subscription deleted → plan = starter | commerce:', commerceId);
+        await db.from('commerces').update({ stripe_subscription_id: null, billing_status: 'canceled' }).eq('id', commerceId);
+        console.log('[stripe-webhook] subscription deleted → billing_status = canceled | commerce:', commerceId);
         break;
       }
 
@@ -187,8 +246,8 @@ stripeWebhookRoutes.post('/', async (c) => {
         }
         if (!commerceId) break;
 
-        await db.from('commerces').update({ plan: 'starter' }).eq('id', commerceId);
-        console.log('[stripe-webhook] invoice.payment_failed → plan = starter | commerce:', commerceId);
+        await db.from('commerces').update({ billing_status: 'past_due' }).eq('id', commerceId);
+        console.log('[stripe-webhook] invoice.payment_failed → billing_status = past_due | commerce:', commerceId);
         break;
       }
 

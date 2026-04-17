@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
+import { paidMiddleware } from '../middleware/paid';
 import { getPlanLimits } from './commerces';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { updateGooglePassObject } from '../services/google-wallet';
@@ -69,7 +70,7 @@ clientsRoutes.get('/public/:id', async (c) => {
 });
 
 /** GET /api/clients/:id — Récupère un client (utilisé par le scanner) */
-clientsRoutes.get('/:id', authMiddleware, async (c) => {
+clientsRoutes.get('/:id', authMiddleware, paidMiddleware, async (c) => {
   const clientId = c.req.param('id');
   const userId = c.get('userId') as string;
   const db = createServiceClient();
@@ -95,7 +96,7 @@ clientsRoutes.get('/:id', authMiddleware, async (c) => {
 });
 
 /** GET /api/clients — Liste les clients du commerce */
-clientsRoutes.get('/', authMiddleware, async (c) => {
+clientsRoutes.get('/', authMiddleware, paidMiddleware, async (c) => {
   const userId = c.get('userId') as string;
   const search = c.req.query('search') ?? '';
   const db = createServiceClient();
@@ -247,7 +248,7 @@ clientsRoutes.post('/', async (c) => {
 });
 
 /** PATCH /api/clients/:id/adjust — Ajustement manuel du score (+ ou -) par le commerçant */
-clientsRoutes.patch('/:id/adjust', authMiddleware, async (c) => {
+clientsRoutes.patch('/:id/adjust', authMiddleware, paidMiddleware, async (c) => {
   const clientId = c.req.param('id');
   const userId = c.get('userId') as string;
   const body = await c.req.json().catch(() => null);

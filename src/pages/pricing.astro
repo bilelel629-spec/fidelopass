@@ -3,21 +3,8 @@ import PublicFooter from '../components/marketing/PublicFooter.astro';
 import PublicNav from '../components/marketing/PublicNav.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
-// Lire l'URL de l'API au runtime (SSR) — pas baked au build comme PUBLIC_*
-const apiUrl = (process.env.API_URL || import.meta.env.PUBLIC_API_URL || 'https://api.fidelopass.com').replace(/\/$/, '');
-
 // Bannière "nouvel utilisateur" après inscription
 const isNew = Astro.url.searchParams.get('new') === '1';
-
-const priceIds = {
-  starter_mensuel:        'price_1TLWbz7qMJeoJ4KrW4C8UFLr',
-  starter_annuel_once:    'price_1TLWbz7qMJeoJ4KrpUsFIFPs',
-  starter_annuel_mensuel: 'price_1TLWbz7qMJeoJ4KrUuITfZUO',
-  pro_mensuel:            'price_1TLWc07qMJeoJ4KrbyyfYOlH',
-  pro_annuel_once:        'price_1TLWc07qMJeoJ4KrP8wZXL9U',
-  pro_annuel_mensuel:     'price_1TLWc07qMJeoJ4KrvqLZfE0u',
-  accompagnement:         'price_1TLUSQ7qMJeoJ4KrYRnAjiPT',
-};
 
 const faq = [
   { q: 'Y a-t-il un engagement minimum ?', a: "Les plans mensuels sont sans engagement, résiliables à tout moment. L'option annuelle avec engagement est sur 12 mois. Le paiement annuel en une fois est non remboursable." },
@@ -33,7 +20,6 @@ const faq = [
   title="Tarifs Fidelopass — Essai gratuit 14 jours sans carte bancaire"
   description="Plans Starter et Pro pour commerces. Essai gratuit 14 jours sans carte bancaire."
 >
-  <meta id="api-config" data-url={apiUrl} />
   <PublicNav currentPath="/pricing" />
 
   <!-- Bannière nouvel utilisateur -->
@@ -100,16 +86,19 @@ const faq = [
 
           <p class="text-sm leading-relaxed mb-5 text-slate-500">Pour lancer votre première carte et commencer à fidéliser.</p>
 
-          <!-- CTA unique -->
-          <div class="mb-6">
+          <!-- CTA -->
+          <div class="mb-6 space-y-2.5">
             <a
               href="/register"
-              class="checkout-btn w-full inline-flex items-center justify-center py-3 rounded-xl font-semibold text-sm transition-all btn-primary"
-              data-checkout-price-monthly={priceIds.starter_mensuel}
-              data-checkout-price-annual={priceIds.starter_annuel_mensuel}
-              data-checkout-mode="subscription"
+              class="w-full inline-flex items-center justify-center py-3 rounded-xl font-semibold text-sm transition-all btn-primary"
             >
               Démarrer l'essai gratuit
+            </a>
+            <a
+              href="/register"
+              class="w-full inline-flex items-center justify-center py-3 rounded-xl font-semibold text-sm transition-all border border-slate-200 text-slate-700 hover:bg-slate-50"
+            >
+              Starter + Setup (+20€ une fois)
             </a>
             <p class="text-center text-xs text-slate-400 mt-2">14 jours gratuits · Annuler à tout moment</p>
           </div>
@@ -162,16 +151,19 @@ const faq = [
 
           <p class="text-sm leading-relaxed mb-5 text-indigo-200">Pour fidéliser plus fort et communiquer avec vos clients.</p>
 
-          <!-- CTA unique -->
-          <div class="mb-6">
+          <!-- CTA -->
+          <div class="mb-6 space-y-2.5">
             <a
               href="/register"
-              class="checkout-btn w-full inline-flex items-center justify-center py-3 rounded-xl font-semibold text-sm transition-all bg-white text-indigo-700 hover:bg-indigo-50 shadow"
-              data-checkout-price-monthly={priceIds.pro_mensuel}
-              data-checkout-price-annual={priceIds.pro_annuel_mensuel}
-              data-checkout-mode="subscription"
+              class="w-full inline-flex items-center justify-center py-3 rounded-xl font-semibold text-sm transition-all bg-white text-indigo-700 hover:bg-indigo-50 shadow"
             >
               Démarrer l'essai gratuit
+            </a>
+            <a
+              href="/register"
+              class="w-full inline-flex items-center justify-center py-3 rounded-xl font-semibold text-sm transition-all border border-white/30 bg-white/10 text-white hover:bg-white/20"
+            >
+              Pro + Setup (+20€ une fois)
             </a>
             <p class="text-center text-xs text-indigo-300 mt-2">14 jours gratuits · Annuler à tout moment</p>
           </div>
@@ -245,7 +237,7 @@ const faq = [
 
       <!-- Option Accompagnement -->
       <div class="mt-14 max-w-md mx-auto">
-        <h2 class="font-display text-2xl font-bold text-slate-900 mb-6 text-center">Option à la carte</h2>
+        <h2 class="font-display text-2xl font-bold text-slate-900 mb-6 text-center">Option complémentaire</h2>
         <div class="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm flex flex-col gap-3">
           <div>
             <p class="font-semibold text-slate-900">Accompagnement Setup</p>
@@ -256,20 +248,14 @@ const faq = [
               <span class="font-display text-2xl font-bold text-slate-900">20€</span>
               <span class="text-slate-400 text-sm ml-1">une fois</span>
             </div>
-            <button
-              type="button"
-              class="checkout-btn rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-              data-checkout-price={priceIds.accompagnement}
-              data-checkout-mode="payment"
-            >
-              Ajouter
-            </button>
+            <span class="rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
+              Disponible avec Starter &amp; Pro
+            </span>
           </div>
+          <p class="text-xs text-slate-500">Cette option ne peut pas être achetée seule. Utilisez les boutons Starter + Setup ou Pro + Setup.</p>
         </div>
       </div>
 
-      <!-- Message d'erreur checkout -->
-      <div id="checkout-error" class="hidden mt-6 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-red-600 text-sm text-center"></div>
     </div>
   </section>
 
@@ -315,23 +301,12 @@ const faq = [
 </BaseLayout>
 
 <script>
-  import { createClient } from '@supabase/supabase-js';
-
-  const supabase = createClient(
-    import.meta.env.PUBLIC_SUPABASE_URL,
-    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
-  );
-
-  // ── Toggle mensuel / annuel ───────────────────────────────────────────
   const monthlyBtn = document.getElementById('toggle-monthly') as HTMLButtonElement;
-  const annualBtn  = document.getElementById('toggle-annual')  as HTMLButtonElement;
-  let currentMode: 'monthly' | 'annual' = 'annual';
+  const annualBtn = document.getElementById('toggle-annual') as HTMLButtonElement;
 
   function setMode(mode: 'monthly' | 'annual') {
-    currentMode = mode;
     const isAnnual = mode === 'annual';
 
-    // Styles toggle
     monthlyBtn.className = isAnnual
       ? 'px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500'
       : 'px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm';
@@ -339,13 +314,11 @@ const faq = [
       ? 'px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm'
       : 'px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500';
 
-    // Prix affichés
     document.querySelectorAll<HTMLElement>('.price-display').forEach((el) => {
       const val = isAnnual ? el.dataset.annual : el.dataset.monthly;
       el.textContent = val + '€';
     });
 
-    // Labels sous le prix
     const starterLabel = document.getElementById('starter-label');
     const proLabel = document.getElementById('pro-label');
     if (starterLabel) starterLabel.textContent = isAnnual ? '25€/mois · économisez 120€/an' : '35€/mois sans engagement';
@@ -353,70 +326,13 @@ const faq = [
   }
 
   monthlyBtn.addEventListener('click', () => setMode('monthly'));
-  annualBtn.addEventListener('click',  () => setMode('annual'));
-  setMode('annual'); // annuel par défaut
+  annualBtn.addEventListener('click', () => setMode('annual'));
+  setMode('annual');
 
-  // ── Checkout ──────────────────────────────────────────────────────────
-  // URL API depuis meta tag injectée par SSR (pas build-time)
-  const API = (document.getElementById('api-config') as HTMLMetaElement)?.dataset.url ?? '';
-  const errorEl = document.getElementById('checkout-error') as HTMLDivElement;
-
-  async function startCheckout(btn: HTMLElement) {
-    const isAnnual = currentMode === 'annual';
-    const priceId =
-      btn.dataset.checkoutPrice ??
-      (isAnnual ? btn.dataset.checkoutPriceAnnual : btn.dataset.checkoutPriceMonthly) ??
-      '';
-    const mode = (btn.dataset.checkoutMode ?? 'subscription') as 'subscription' | 'payment';
-
-    if (!priceId) return;
-
-    errorEl.classList.add('hidden');
-    const origText = btn.textContent ?? '';
-    (btn as HTMLButtonElement).disabled = true;
-    btn.textContent = 'Redirection…';
-
-    // Vérifie si connecté
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      window.location.href = '/register';
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API}/api/checkout/create-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ priceId, mode }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Erreur serveur');
-      window.location.href = data.url;
-    } catch (err) {
-      errorEl.textContent = err instanceof Error ? err.message : 'Erreur lors de la création du paiement.';
-      errorEl.classList.remove('hidden');
-      (btn as HTMLButtonElement).disabled = false;
-      btn.textContent = origText;
-    }
-  }
-
-  document.querySelectorAll<HTMLElement>('.checkout-btn').forEach((btn) => {
-    btn.addEventListener('click', (event) => {
-      // Fallback: sans JS, les <a> redirigent vers /register.
-      // Si JS actif, on intercepte pour lancer le checkout Stripe.
-      event.preventDefault();
-      startCheckout(btn);
-    });
-  });
-
-  // ── FAQ ───────────────────────────────────────────────────────────────
   document.querySelectorAll('#pricing-faq [data-faq]').forEach((item) => {
-    const btn    = item.querySelector('button') as HTMLButtonElement;
+    const btn = item.querySelector('button') as HTMLButtonElement;
     const answer = item.querySelector('.faq-answer') as HTMLDivElement;
-    const icon   = item.querySelector('.faq-icon') as HTMLSpanElement;
+    const icon = item.querySelector('.faq-icon') as HTMLSpanElement;
     btn.addEventListener('click', () => {
       const open = btn.getAttribute('aria-expanded') === 'true';
       btn.setAttribute('aria-expanded', open ? 'false' : 'true');

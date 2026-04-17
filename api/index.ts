@@ -18,6 +18,7 @@ import { checkoutRoutes } from './routes/checkout';
 import { stripeWebhookRoutes } from './routes/stripe-webhook';
 import { smsRoutes } from './routes/sms';
 import { cronRoutes } from './routes/cron';
+import { billingRoutes } from './routes/billing';
 
 const app = new Hono();
 
@@ -40,6 +41,7 @@ app.route('/api/dashboard', dashboardRoutes);
 app.route('/api/upload', uploadRoutes);
 app.route('/api/review', reviewRoutes);
 app.route('/api/checkout', checkoutRoutes);
+app.route('/api/billing', billingRoutes);
 app.route('/api/stripe-webhook', stripeWebhookRoutes);
 app.route('/api/sms', smsRoutes);
 app.route('/api/cron', cronRoutes);

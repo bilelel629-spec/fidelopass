@@ -44,6 +44,23 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
     import.meta.env.PUBLIC_SUPABASE_URL,
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
   );
+  const API = (import.meta.env.PUBLIC_API_URL ?? '').trim();
+
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session) window.location.replace('/login');
+  if (!session) {
+    window.location.replace('/login');
+  } else {
+    const billing = await fetch(`${API}/api/billing/status`, {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+    }).then((r) => r.json()).catch(() => ({}));
+
+    if (!billing?.data?.has_access) {
+      window.location.replace('/abonnement/choix');
+    } else if (!billing?.data?.onboarding_completed) {
+      window.location.replace('/onboarding');
+    }
+  }
 </script>

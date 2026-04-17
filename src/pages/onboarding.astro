@@ -190,6 +190,7 @@ const nextSteps = [
   const commerceForm = document.getElementById('commerce-form') as HTMLFormElement;
   const errorCommerce = document.getElementById('error-commerce') as HTMLDivElement;
   const button = document.getElementById('btn-commerce') as HTMLButtonElement;
+  let commerceExists = false;
 
   function showError(message: string) {
     errorCommerce.textContent = message;
@@ -197,13 +198,20 @@ const nextSteps = [
   }
 
   try {
-    const [existingCommerce, existingCarte] = await Promise.all([
-      api('/api/commerces/me'),
-      api('/api/cartes'),
-    ]);
+    const billing = await api('/api/billing/status');
+    if (!billing?.data?.has_access) {
+      window.location.replace('/abonnement/choix');
+    } else if (billing?.data?.onboarding_completed) {
+      window.location.replace('/dashboard');
+    }
 
-    if (existingCommerce.data?.nom) {
-      window.location.replace(existingCarte.data?.id ? '/dashboard' : '/dashboard/carte?setup=1');
+    const existingCommerce = await api('/api/commerces/me');
+    if (existingCommerce.data) {
+      commerceExists = true;
+      (document.getElementById('nom') as HTMLInputElement).value = existingCommerce.data.nom ?? '';
+      (document.getElementById('adresse') as HTMLInputElement).value = existingCommerce.data.adresse ?? '';
+      (document.getElementById('telephone') as HTMLInputElement).value = existingCommerce.data.telephone ?? '';
+      (document.getElementById('email-commerce') as HTMLInputElement).value = existingCommerce.data.email ?? '';
     }
   } catch (error) {
     showError(error instanceof Error ? error.message : 'Impossible de vérifier votre compte.');
@@ -221,15 +229,23 @@ const nextSteps = [
       adresse: (document.getElementById('adresse') as HTMLInputElement).value || null,
       telephone: (document.getElementById('telephone') as HTMLInputElement).value || null,
       email: (document.getElementById('email-commerce') as HTMLInputElement).value || null,
+      onboarding_completed: true,
     };
 
     try {
-      await api('/api/commerces', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
+      if (commerceExists) {
+        await api('/api/commerces/me', {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+      } else {
+        await api('/api/commerces', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+      }
 
-      window.location.href = '/dashboard/carte?setup=1';
+      window.location.href = '/dashboard';
     } catch (error) {
       showError(error instanceof Error ? error.message : 'Erreur lors de la création du commerce.');
       button.disabled = false;

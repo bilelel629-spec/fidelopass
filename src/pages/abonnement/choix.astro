@@ -1,0 +1,194 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  theme="light"
+  title="Choisir un abonnement — Fidelopass"
+  description="Choisissez votre plan Fidelopass pour activer votre espace commerçant."
+>
+  <section class="min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_62%,#ffffff_100%)] px-4 py-10 sm:py-14 relative overflow-hidden">
+    <div class="pointer-events-none absolute -top-20 right-[-10rem] h-[28rem] w-[28rem] rounded-full bg-cyan-200/35 blur-3xl"></div>
+    <div class="pointer-events-none absolute bottom-[-8rem] left-[-8rem] h-[24rem] w-[24rem] rounded-full bg-blue-100/80 blur-3xl"></div>
+
+    <div class="max-w-5xl mx-auto">
+      <a href="/" class="inline-flex items-center mb-6">
+        <img src="/logo-premium-cropped.png" alt="Fidelopass" class="h-14 w-auto object-contain" />
+      </a>
+
+      <div class="max-w-2xl">
+        <p class="text-[0.7rem] font-semibold uppercase tracking-[0.26em] text-sky-700/75">Activation abonnement</p>
+        <h1 class="font-display text-4xl sm:text-5xl font-bold text-slate-900 leading-tight mt-3">
+          Choisissez votre plan pour activer l’accès à l’outil.
+        </h1>
+        <p class="text-slate-500 text-base mt-4 leading-relaxed">
+          Vous pourrez ajouter l’option <strong>Accompagnement Setup (20€)</strong> à l’étape suivante avant Stripe.
+        </p>
+      </div>
+
+      <div class="inline-flex items-center gap-1 mt-8 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
+        <button id="toggle-monthly" type="button" class="px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500">
+          Mensuel
+        </button>
+        <button id="toggle-annual" type="button" class="px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm">
+          Annuel
+          <span class="ml-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 font-semibold">-29%</span>
+        </button>
+      </div>
+
+      <div id="choice-error" class="hidden mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"></div>
+
+      <div class="grid lg:grid-cols-2 gap-6 mt-8">
+        <article class="rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] p-8">
+          <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Starter</p>
+          <div class="flex items-end gap-1 mt-3">
+            <span class="font-display font-bold leading-none text-slate-900 text-4xl plan-price" data-monthly="35" data-annual="25">35€</span>
+            <span class="text-sm mb-1 text-slate-400">/mois</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-2 plan-price-label" data-monthly="35€/mois sans engagement" data-annual="25€/mois · engagement annuel">
+            35€/mois sans engagement
+          </p>
+          <ul class="space-y-2.5 mt-6 text-sm text-slate-600">
+            <li>• Jusqu’à 500 cartes actives</li>
+            <li>• 1 lieu / commerce</li>
+            <li>• Notifications push incluses</li>
+            <li>• Carte points, tampons et VIP</li>
+            <li>• Géolocalisation Wallet</li>
+          </ul>
+          <button
+            type="button"
+            class="plan-select-btn mt-7 w-full rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-900 transition-colors"
+            data-plan="starter"
+            data-price-monthly="price_1TLWbz7qMJeoJ4KrW4C8UFLr"
+            data-price-annual="price_1TLWbz7qMJeoJ4KrUuITfZUO"
+          >
+            Continuer avec Starter
+          </button>
+        </article>
+
+        <article class="rounded-[2rem] border border-indigo-400 bg-[linear-gradient(155deg,#1e1b4b_0%,#312e81_62%,#0284c7_100%)] shadow-[0_30px_80px_rgba(49,46,129,0.24)] p-8 text-white">
+          <div class="inline-flex rounded-full bg-amber-400 px-3 py-1 text-[0.7rem] font-bold uppercase tracking-[0.16em] text-amber-900">
+            Le plus choisi
+          </div>
+          <p class="text-xs font-bold uppercase tracking-widest text-indigo-200 mt-4">Pro</p>
+          <div class="flex items-end gap-1 mt-3">
+            <span class="font-display font-bold leading-none text-4xl plan-price" data-monthly="65" data-annual="49">65€</span>
+            <span class="text-sm mb-1 text-indigo-200">/mois</span>
+          </div>
+          <p class="text-xs text-indigo-200 mt-2 plan-price-label" data-monthly="65€/mois sans engagement" data-annual="49€/mois · engagement annuel">
+            65€/mois sans engagement
+          </p>
+          <ul class="space-y-2.5 mt-6 text-sm text-indigo-100">
+            <li>• Jusqu’à 2000 cartes actives</li>
+            <li>• 3 lieux / commerces</li>
+            <li>• Push auto avis Google (+1h)</li>
+            <li>• Analytics avancés</li>
+            <li>• Support prioritaire</li>
+          </ul>
+          <button
+            type="button"
+            class="plan-select-btn mt-7 w-full rounded-xl bg-white px-5 py-3 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 transition-colors"
+            data-plan="pro"
+            data-price-monthly="price_1TLWc07qMJeoJ4KrbyyfYOlH"
+            data-price-annual="price_1TLWc07qMJeoJ4KrvqLZfE0u"
+          >
+            Continuer avec Pro
+          </button>
+        </article>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  import { createClient } from '@supabase/supabase-js';
+
+  const supabase = createClient(
+    import.meta.env.PUBLIC_SUPABASE_URL,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+  );
+
+  const API = (import.meta.env.PUBLIC_API_URL || 'https://api.fidelopass.com').replace(/\/$/, '');
+  const STORAGE_KEY = 'fidelopass.checkout.selection';
+  const monthlyBtn = document.getElementById('toggle-monthly') as HTMLButtonElement;
+  const annualBtn = document.getElementById('toggle-annual') as HTMLButtonElement;
+  const errorEl = document.getElementById('choice-error') as HTMLDivElement;
+
+  let currentMode: 'monthly' | 'annual' = 'annual';
+
+  function setMode(mode: 'monthly' | 'annual') {
+    currentMode = mode;
+    const isAnnual = mode === 'annual';
+    monthlyBtn.className = isAnnual
+      ? 'px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500'
+      : 'px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm';
+    annualBtn.className = isAnnual
+      ? 'px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm'
+      : 'px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500';
+
+    document.querySelectorAll<HTMLElement>('.plan-price').forEach((el) => {
+      el.textContent = `${isAnnual ? el.dataset.annual : el.dataset.monthly}€`;
+    });
+    document.querySelectorAll<HTMLElement>('.plan-price-label').forEach((el) => {
+      el.textContent = isAnnual ? el.dataset.annual ?? '' : el.dataset.monthly ?? '';
+    });
+  }
+
+  async function requireSessionAndBilling() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.replace('/register');
+      return null;
+    }
+
+    const billing = await fetch(`${API}/api/billing/status`, {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+    }).then((r) => r.json()).catch(() => ({}));
+
+    if (billing?.data?.has_access) {
+      window.location.replace(billing?.data?.onboarding_completed ? '/dashboard' : '/onboarding');
+      return null;
+    }
+
+    return session;
+  }
+
+  async function choosePlan(btn: HTMLButtonElement) {
+    errorEl.classList.add('hidden');
+    const session = await requireSessionAndBilling();
+    if (!session) return;
+
+    const priceId = currentMode === 'annual' ? btn.dataset.priceAnnual : btn.dataset.priceMonthly;
+    if (!priceId) {
+      errorEl.textContent = "Impossible de récupérer l'identifiant de prix Stripe.";
+      errorEl.classList.remove('hidden');
+      return;
+    }
+
+    const selection = {
+      plan: btn.dataset.plan,
+      mode: currentMode,
+      priceId,
+      selectedAt: Date.now(),
+    };
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(selection));
+    window.location.href = '/abonnement/setup';
+  }
+
+  setMode('annual');
+
+  const cancelled = new URLSearchParams(window.location.search).get('cancelled');
+  if (cancelled === '1') {
+    errorEl.textContent = 'Paiement annulé. Vous pouvez reprendre votre sélection.';
+    errorEl.classList.remove('hidden');
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('.plan-select-btn').forEach((btn) => {
+    btn.addEventListener('click', () => choosePlan(btn));
+  });
+
+  await requireSessionAndBilling();
+</script>

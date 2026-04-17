@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
+import { paidMiddleware } from '../middleware/paid';
 import { getPlanLimits } from './commerces';
 import { sendPushNotification, sendPersonalizedPushNotifications } from '../services/push';
 import { pushApplePassUpdate } from '../services/apple-wallet';
@@ -13,6 +14,7 @@ const PUBLIC_SITE_URL_NOTIF = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidel
 export const notificationsRoutes = new Hono();
 
 notificationsRoutes.use('*', authMiddleware);
+notificationsRoutes.use('*', paidMiddleware);
 
 /** GET /api/notifications/review-reminder-settings — Réglage push auto avis Google (+1h) */
 notificationsRoutes.get('/review-reminder-settings', async (c) => {

@@ -2,11 +2,13 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
+import { paidMiddleware } from '../middleware/paid';
 import { sendSMS, personnaliserMessage } from '../../src/lib/brevo-sms';
 
 export const smsRoutes = new Hono();
 
 smsRoutes.use('*', authMiddleware);
+smsRoutes.use('*', paidMiddleware);
 
 const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
 

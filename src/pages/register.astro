@@ -259,10 +259,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   async function redirectAfterAuth() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { window.location.href = '/login'; return; }
-    const check = await fetch(apiUrl('/api/commerces/me'), {
+    const billing = await fetch(apiUrl('/api/billing/status'), {
       headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
     }).then((r) => r.json()).catch(() => ({}));
-    window.location.href = check.data?.nom ? '/dashboard' : '/pricing?new=1';
+
+    if (!billing?.data?.has_access) {
+      window.location.href = '/abonnement/choix';
+      return;
+    }
+
+    window.location.href = billing?.data?.onboarding_completed ? '/dashboard' : '/onboarding';
   }
 
   // Init

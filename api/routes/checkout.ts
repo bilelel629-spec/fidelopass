@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import Stripe from 'stripe';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { authMiddleware } from '../middleware/auth';
 import { createServiceClient } from '../../src/lib/supabase';
 
@@ -15,7 +17,25 @@ function getStripe() {
 const createSessionSchema = z.object({
   priceId: z.string().min(1),
   mode: z.enum(['subscription', 'payment']),
+  includeAccompagnement: z.boolean().optional().default(false),
 });
+
+function loadPriceIds() {
+  try {
+    const raw = readFileSync(resolve(process.cwd(), 'stripe-price-ids.json'), 'utf8');
+    return JSON.parse(raw) as Record<string, string>;
+  } catch {
+    return {
+      starter_mensuel: 'price_1TLWbz7qMJeoJ4KrW4C8UFLr',
+      starter_annuel_once: 'price_1TLWbz7qMJeoJ4KrpUsFIFPs',
+      starter_annuel_mensuel: 'price_1TLWbz7qMJeoJ4KrUuITfZUO',
+      pro_mensuel: 'price_1TLWc07qMJeoJ4KrbyyfYOlH',
+      pro_annuel_once: 'price_1TLWc07qMJeoJ4KrP8wZXL9U',
+      pro_annuel_mensuel: 'price_1TLWc07qMJeoJ4KrvqLZfE0u',
+      accompagnement: 'price_1TLUSQ7qMJeoJ4KrYRnAjiPT',
+    } satisfies Record<string, string>;
+  }
+}
 
 /** POST /api/checkout/create-session */
 checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
@@ -27,34 +47,88 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
     return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides' }, 400);
   }
 
-  const { priceId, mode } = parsed.data;
+  const { priceId, mode, includeAccompagnement } = parsed.data;
+  const priceIds = loadPriceIds();
+  const planPriceIds = new Set([
+    priceIds.starter_mensuel,
+    priceIds.starter_annuel_once,
+    priceIds.starter_annuel_mensuel,
+    priceIds.pro_mensuel,
+    priceIds.pro_annuel_once,
+    priceIds.pro_annuel_mensuel,
+  ].filter(Boolean));
+
+  const isPlanCheckout = planPriceIds.has(priceId);
+  const isAccompagnementOnly = priceId === priceIds.accompagnement;
+
+  if (isAccompagnementOnly) {
+    return c.json({ error: "L'option Accompagnement Setup est disponible uniquement en complément d'un pack Starter ou Pro." }, 400);
+  }
+
+  if (mode === 'subscription' && !isPlanCheckout) {
+    return c.json({ error: 'Ce plan abonnement est invalide.' }, 400);
+  }
+
+  if (isPlanCheckout && mode !== 'subscription') {
+    return c.json({ error: 'Ce plan doit être payé en mode abonnement.' }, 400);
+  }
+
+  if (includeAccompagnement && (mode !== 'subscription' || !isPlanCheckout)) {
+    return c.json({ error: "L'option Accompagnement Setup ne peut être ajoutée qu'à un abonnement Starter ou Pro." }, 400);
+  }
 
   const db = createServiceClient();
-  const { data: commerce } = await db
+  const { data: { user } } = await db.auth.admin.getUserById(userId);
+  const email = user?.email ?? undefined;
+
+  const { data: existingCommerce } = await db
     .from('commerces')
     .select('id, stripe_customer_id')
     .eq('user_id', userId)
     .single();
 
-  if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
-
-  // Récupère l'email depuis auth.users
-  const { data: { user } } = await db.auth.admin.getUserById(userId);
-  const email = user?.email ?? undefined;
+  let commerce = existingCommerce;
+  if (!commerce) {
+    const fallbackName = (email?.split('@')[0] ?? 'Mon commerce').trim() || 'Mon commerce';
+    const { data: createdCommerce, error: createCommerceError } = await db
+      .from('commerces')
+      .insert({
+        user_id: userId,
+        nom: fallbackName,
+        onboarding_completed: false,
+        billing_status: 'unpaid',
+      })
+      .select('id, stripe_customer_id')
+      .single();
+    if (createCommerceError || !createdCommerce) {
+      return c.json({ error: "Impossible d'initialiser le commerce avant le paiement." }, 500);
+    }
+    commerce = createdCommerce;
+  }
 
   const stripe = getStripe();
 
   const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
 
+  const lineItems = [{ price: priceId, quantity: 1 }];
+  if (includeAccompagnement && priceIds.accompagnement) {
+    lineItems.push({ price: priceIds.accompagnement, quantity: 1 });
+  }
+
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode,
-    line_items: [{ price: priceId, quantity: 1 }],
+    line_items: lineItems,
     success_url: `${PUBLIC_SITE_URL}/onboarding?paid=1`,
-    cancel_url: `${PUBLIC_SITE_URL}/pricing?cancelled=1`,
+    cancel_url: `${PUBLIC_SITE_URL}/abonnement/choix?cancelled=1`,
     locale: 'fr',
     allow_promotion_codes: true,
     automatic_tax: { enabled: false },
-    metadata: { commerce_id: commerce.id, user_id: userId },
+    metadata: {
+      commerce_id: commerce.id,
+      user_id: userId,
+      base_price_id: priceId,
+      onboarding_addon: includeAccompagnement ? 'true' : 'false',
+    },
     ...(email ? { customer_email: email } : {}),
     ...(commerce.stripe_customer_id ? { customer: commerce.stripe_customer_id } : {}),
   };
@@ -62,11 +136,21 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   if (mode === 'subscription') {
     sessionParams.subscription_data = {
       trial_period_days: 14,
-      metadata: { commerce_id: commerce.id, user_id: userId },
+      metadata: {
+        commerce_id: commerce.id,
+        user_id: userId,
+        base_price_id: priceId,
+        onboarding_addon: includeAccompagnement ? 'true' : 'false',
+      },
     };
   }
 
-  const session = await stripe.checkout.sessions.create(sessionParams);
-
-  return c.json({ url: session.url });
+  try {
+    const session = await stripe.checkout.sessions.create(sessionParams);
+    return c.json({ url: session.url });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Erreur Stripe lors de la création de session.';
+    console.error('[checkout] create-session error:', message);
+    return c.json({ error: message }, 400);
+  }
 });

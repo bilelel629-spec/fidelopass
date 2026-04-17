@@ -122,10 +122,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   async function redirectAfterAuth() {
     const { data: { session: s } } = await supabase.auth.getSession();
-    const check = await fetch(apiUrl('/api/commerces/me'), {
+    const billing = await fetch(apiUrl('/api/billing/status'), {
       headers: { Authorization: `Bearer ${s?.access_token}`, 'Content-Type': 'application/json' },
     }).then(r => r.json()).catch(() => ({}));
-    window.location.href = check.data?.nom ? '/dashboard' : '/onboarding';
+
+    if (!billing?.data?.has_access) {
+      window.location.href = '/abonnement/choix';
+      return;
+    }
+
+    window.location.href = billing?.data?.onboarding_completed ? '/dashboard' : '/onboarding';
   }
 
   const { data: { session } } = await supabase.auth.getSession();

@@ -1,11 +1,13 @@
 import { Hono } from 'hono';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
+import { paidMiddleware } from '../middleware/paid';
 import { getPlanLimits } from './commerces';
 
 export const dashboardRoutes = new Hono();
 
 dashboardRoutes.use('*', authMiddleware);
+dashboardRoutes.use('*', paidMiddleware);
 
 /** GET /api/dashboard/stats */
 dashboardRoutes.get('/stats', async (c) => {

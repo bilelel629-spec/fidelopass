@@ -33,7 +33,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
           <input id="setup-addon" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
           <span class="text-sm text-slate-700 leading-relaxed">
             Ajouter <strong>Accompagnement Setup (+20€ une seule fois)</strong><br />
-            <span class="text-xs text-slate-500">Configuration initiale réalisée avec notre équipe.</span>
+            <span class="text-xs text-slate-500">
+              Un designer configure votre première carte pour qu’elle soit adaptée à votre commerce
+              (logo, couleurs, structure, rendu Wallet), selon les options de personnalisation disponibles sur la plateforme.
+              Ensuite, votre abonnement sélectionné démarre normalement.
+            </span>
           </span>
         </label>
 
@@ -72,6 +76,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   type Selection = {
     plan: 'starter' | 'pro';
     mode: 'monthly' | 'annual';
+    annualPaymentType?: 'subscription' | 'payment';
+    checkoutMode?: 'subscription' | 'payment';
     priceId: string;
     selectedAt: number;
   };
@@ -84,6 +90,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       if (!parsed.plan || !parsed.mode || !parsed.priceId) return null;
       if (parsed.plan !== 'starter' && parsed.plan !== 'pro') return null;
       if (parsed.mode !== 'monthly' && parsed.mode !== 'annual') return null;
+      if (parsed.checkoutMode && parsed.checkoutMode !== 'subscription' && parsed.checkoutMode !== 'payment') return null;
+      if (parsed.annualPaymentType && parsed.annualPaymentType !== 'subscription' && parsed.annualPaymentType !== 'payment') return null;
       return parsed as Selection;
     } catch {
       return null;
@@ -92,7 +100,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   function describeSelection(selection: Selection) {
     const planLabel = selection.plan === 'pro' ? 'Plan Pro' : 'Plan Starter';
-    const billingLabel = selection.mode === 'annual' ? 'Facturation annuelle' : 'Facturation mensuelle';
+    const billingLabel = selection.mode === 'annual'
+      ? (selection.annualPaymentType === 'payment'
+        ? 'Facturation annuelle — paiement en une fois'
+        : 'Facturation annuelle — paiement mensuel (engagement 12 mois)')
+      : 'Facturation mensuelle — résiliable à tout moment';
     summaryPlan.textContent = planLabel;
     summaryBilling.textContent = billingLabel;
   }
@@ -119,14 +131,14 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     return session;
   }
 
-  const selection = loadSelection();
-  if (!selection) {
+  const initialSelection = loadSelection();
+  if (!initialSelection) {
     window.location.replace('/abonnement/choix');
   } else {
-    describeSelection(selection);
+    describeSelection(initialSelection);
   }
 
-  await requireSessionAndBilling();
+  void requireSessionAndBilling();
 
   checkoutBtn.addEventListener('click', async () => {
     errorEl.classList.add('hidden');
@@ -154,7 +166,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         },
         body: JSON.stringify({
           priceId: currentSelection.priceId,
-          mode: 'subscription',
+          mode: currentSelection.checkoutMode ?? 'subscription',
           includeAccompagnement: setupAddon.checked,
         }),
       });

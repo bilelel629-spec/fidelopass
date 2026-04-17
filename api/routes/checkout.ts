@@ -37,6 +37,37 @@ function loadPriceIds() {
   }
 }
 
+function resolveExpectedMode(priceId: string, priceIds: Record<string, string>): 'subscription' | 'payment' | null {
+  const subscriptionPrices = new Set([
+    priceIds.starter_mensuel,
+    priceIds.starter_annuel_mensuel,
+    priceIds.pro_mensuel,
+    priceIds.pro_annuel_mensuel,
+  ].filter(Boolean));
+
+  const oneShotPrices = new Set([
+    priceIds.starter_annuel_once,
+    priceIds.pro_annuel_once,
+  ].filter(Boolean));
+
+  if (subscriptionPrices.has(priceId)) return 'subscription';
+  if (oneShotPrices.has(priceId)) return 'payment';
+  return null;
+}
+
+function resolveCommitmentLabel(priceId: string, priceIds: Record<string, string>) {
+  if (priceId === priceIds.starter_mensuel || priceId === priceIds.pro_mensuel) {
+    return 'monthly-flex';
+  }
+  if (priceId === priceIds.starter_annuel_mensuel || priceId === priceIds.pro_annuel_mensuel) {
+    return 'annual-12m-monthly';
+  }
+  if (priceId === priceIds.starter_annuel_once || priceId === priceIds.pro_annuel_once) {
+    return 'annual-12m-once';
+  }
+  return 'unknown';
+}
+
 /** POST /api/checkout/create-session */
 checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   const userId = c.get('userId') as string;
@@ -60,20 +91,25 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
 
   const isPlanCheckout = planPriceIds.has(priceId);
   const isAccompagnementOnly = priceId === priceIds.accompagnement;
+  const expectedMode = resolveExpectedMode(priceId, priceIds);
 
   if (isAccompagnementOnly) {
     return c.json({ error: "L'option Accompagnement Setup est disponible uniquement en complément d'un pack Starter ou Pro." }, 400);
   }
 
-  if (mode === 'subscription' && !isPlanCheckout) {
+  if (!isPlanCheckout || !expectedMode) {
     return c.json({ error: 'Ce plan abonnement est invalide.' }, 400);
   }
 
-  if (isPlanCheckout && mode !== 'subscription') {
-    return c.json({ error: 'Ce plan doit être payé en mode abonnement.' }, 400);
+  if (mode !== expectedMode) {
+    return c.json({
+      error: expectedMode === 'payment'
+        ? 'Ce plan annuel doit être payé en une fois.'
+        : 'Ce plan doit être payé en mode abonnement.',
+    }, 400);
   }
 
-  if (includeAccompagnement && (mode !== 'subscription' || !isPlanCheckout)) {
+  if (includeAccompagnement && !isPlanCheckout) {
     return c.json({ error: "L'option Accompagnement Setup ne peut être ajoutée qu'à un abonnement Starter ou Pro." }, 400);
   }
 
@@ -128,6 +164,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
       user_id: userId,
       base_price_id: priceId,
       onboarding_addon: includeAccompagnement ? 'true' : 'false',
+      billing_commitment: resolveCommitmentLabel(priceId, priceIds),
     },
     ...(email ? { customer_email: email } : {}),
     ...(commerce.stripe_customer_id ? { customer: commerce.stripe_customer_id } : {}),
@@ -141,6 +178,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
         user_id: userId,
         base_price_id: priceId,
         onboarding_addon: includeAccompagnement ? 'true' : 'false',
+        billing_commitment: resolveCommitmentLabel(priceId, priceIds),
       },
     };
   }

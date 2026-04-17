@@ -15,13 +15,13 @@ const links = [
 ---
 
 <nav class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/96 backdrop-blur-xl shadow-[0_10px_32px_rgba(15,23,42,0.05)]">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-0 sm:py-2.5 flex items-center justify-between gap-3">
     <!-- Logo -->
     <a href="/" class="inline-flex items-center shrink-0">
       <img
-        src="/logo-premium.png"
+        src="/logo-premium-cropped.png"
         alt="Fidelopass"
-        class="h-36 w-auto sm:h-[5.25rem] sm:w-[15.5rem] object-cover object-center drop-shadow-[0_18px_30px_rgba(59,130,246,0.16)]"
+        class="h-10 w-auto sm:h-[5.25rem] sm:w-[15.5rem] object-contain object-left drop-shadow-[0_18px_30px_rgba(59,130,246,0.16)]"
       />
     </a>
 
@@ -50,14 +50,14 @@ const links = [
     <button
       id="mobile-menu-btn"
       type="button"
-      class="md:hidden flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors shrink-0"
+      class="md:hidden flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors shrink-0"
       aria-label="Menu"
       aria-expanded="false"
     >
-      <svg id="hamburger-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+      <svg id="hamburger-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
         <path d="M4 6h16M4 12h16M4 18h16"></path>
       </svg>
-      <svg id="close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 hidden">
+      <svg id="close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 hidden">
         <path d="M18 6 6 18M6 6l12 12"></path>
       </svg>
     </button>

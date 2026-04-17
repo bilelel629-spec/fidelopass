@@ -7,93 +7,64 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <div class="pointer-events-none absolute -top-20 right-[-10rem] h-[28rem] w-[28rem] rounded-full bg-cyan-200/35 blur-3xl"></div>
     <div class="pointer-events-none absolute bottom-[-8rem] left-[-8rem] h-[24rem] w-[24rem] rounded-full bg-blue-100/80 blur-3xl"></div>
 
-    <div class="max-w-5xl mx-auto">
+    <div class="max-w-3xl mx-auto">
       <a href="/" class="inline-flex items-center mb-6">
         <img src="/logo-premium-cropped.png" alt="Fidelopass" class="h-14 w-auto object-contain" />
       </a>
 
-      <div class="grid lg:grid-cols-[1.05fr_0.95fr] gap-6 items-start">
-        <section class="rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] p-6 sm:p-8">
-          <div class="flex items-center justify-between gap-3 mb-5">
+      <section class="rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] p-6 sm:p-8">
+        <div class="flex items-center justify-between gap-3 mb-5">
+          <div>
+            <p class="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-sky-700/75">Étape 1 sur 2</p>
+            <h1 class="font-display text-3xl sm:text-4xl font-bold text-slate-900 mt-2">
+              Configurez votre commerce
+            </h1>
+          </div>
+          <div class="hidden sm:flex items-center gap-2">
+            <span class="w-9 h-9 rounded-full bg-indigo-600 text-white text-sm font-bold flex items-center justify-center">1</span>
+            <span class="w-7 h-px bg-slate-200"></span>
+            <span class="w-9 h-9 rounded-full border border-slate-200 text-slate-400 text-sm font-bold flex items-center justify-center">2</span>
+          </div>
+        </div>
+
+        <p class="text-slate-500 leading-relaxed mb-6">
+          Enregistrez les informations de base, puis passez directement à l’éditeur de carte complet.
+        </p>
+
+        <form id="commerce-form" class="flex flex-col gap-4">
+          <div>
+            <label class="label" for="nom">Nom du commerce *</label>
+            <input id="nom" type="text" class="input" placeholder="Ex: BLF Coffee, Maison Sara, Studio Nova..." required />
+          </div>
+
+          <div>
+            <label class="label" for="adresse">Adresse complète</label>
+            <input id="adresse" type="text" class="input" placeholder="Ex: 12 rue de la Paix, 75001 Paris" />
+            <p class="text-slate-500 text-xs mt-1">Utilisée pour la géolocalisation Wallet et les rappels à proximité.</p>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-4">
             <div>
-              <p class="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-sky-700/75">Étape 1 sur 2</p>
-              <h1 class="font-display text-3xl sm:text-4xl font-bold text-slate-900 mt-2">
-                Configurez votre commerce
-              </h1>
+              <label class="label" for="telephone">Téléphone</label>
+              <input id="telephone" type="tel" class="input" placeholder="06 12 34 56 78" />
             </div>
-            <div class="hidden sm:flex items-center gap-2">
-              <span class="w-9 h-9 rounded-full bg-indigo-600 text-white text-sm font-bold flex items-center justify-center">1</span>
-              <span class="w-7 h-px bg-slate-200"></span>
-              <span class="w-9 h-9 rounded-full border border-slate-200 text-slate-400 text-sm font-bold flex items-center justify-center">2</span>
+            <div>
+              <label class="label" for="email-commerce">Email de contact</label>
+              <input id="email-commerce" type="email" class="input" placeholder="contact@moncommerce.fr" />
             </div>
           </div>
 
-          <p class="text-slate-500 leading-relaxed mb-6">
-            Enregistrez les informations de base, puis passez directement à l’éditeur de carte complet.
-          </p>
-
-          <form id="commerce-form" class="flex flex-col gap-4">
-            <div>
-              <label class="label" for="nom">Nom du commerce *</label>
-              <input id="nom" type="text" class="input" placeholder="Ex: BLF Coffee, Maison Sara, Studio Nova..." required />
-            </div>
-
-            <div>
-              <label class="label" for="adresse">Adresse complète</label>
-              <input id="adresse" type="text" class="input" placeholder="Ex: 12 rue de la Paix, 75001 Paris" />
-              <p class="text-slate-500 text-xs mt-1">Utilisée pour la géolocalisation Wallet et les rappels à proximité.</p>
-            </div>
-
-            <div class="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label class="label" for="telephone">Téléphone</label>
-                <input id="telephone" type="tel" class="input" placeholder="06 12 34 56 78" />
-              </div>
-              <div>
-                <label class="label" for="email-commerce">Email de contact</label>
-                <input id="email-commerce" type="email" class="input" placeholder="contact@moncommerce.fr" />
-              </div>
-            </div>
-
-            <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              Après validation, vous pourrez personnaliser le logo, les couleurs, la bannière, le programme points/tampons et les messages client.
-            </div>
-
-            <div id="error-commerce" class="hidden text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3"></div>
-
-            <button type="submit" id="btn-commerce" class="btn-primary w-full py-3 mt-1">
-              Continuer
-            </button>
-          </form>
-        </section>
-
-        <aside class="rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] p-6 sm:p-8">
-          <p class="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-sky-700/75">Étape suivante</p>
-          <h2 class="font-display text-2xl font-bold text-slate-900 mt-2">
-            Création complète de la carte
-          </h2>
-
-          <div class="space-y-3 mt-6">
-            <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p class="text-sm font-semibold text-slate-900">Identité visuelle</p>
-              <p class="text-sm text-slate-500 mt-1">Logo, bannière, thèmes de couleurs, icônes tampons.</p>
-            </div>
-            <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p class="text-sm font-semibold text-slate-900">Programme fidélité</p>
-              <p class="text-sm text-slate-500 mt-1">Points, tampons, récompenses, VIP et paliers.</p>
-            </div>
-            <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p class="text-sm font-semibold text-slate-900">Diffusion</p>
-              <p class="text-sm text-slate-500 mt-1">QR code, partage client et configuration scanner boutique.</p>
-            </div>
+          <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+            Après validation, vous pourrez personnaliser le logo, les couleurs, la bannière, le programme points/tampons et les messages client.
           </div>
 
-          <div class="mt-6 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3">
-            <p class="text-sm font-semibold text-indigo-900">Temps estimé</p>
-            <p class="text-sm text-indigo-700 mt-1">3 à 5 minutes pour publier votre première carte.</p>
-          </div>
-        </aside>
-      </div>
+          <div id="error-commerce" class="hidden text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3"></div>
+
+          <button type="submit" id="btn-commerce" class="btn-primary w-full py-3 mt-1">
+            Continuer
+          </button>
+        </form>
+      </section>
     </div>
   </section>
 </BaseLayout>

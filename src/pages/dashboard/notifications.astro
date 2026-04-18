@@ -226,15 +226,19 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       : 'Automatisation inactive.';
   }
 
+  function setReviewPlanLabel(planRaw: unknown) {
+    const plan = String(planRaw ?? 'starter').toLowerCase();
+    reviewAutoPlanValue.textContent = plan === 'pro' ? 'Pro' : 'Starter';
+  }
+
   async function loadReviewAutoSettings() {
     try {
       const res = await authFetch('/api/notifications/review-reminder-settings');
-      const payload = await res.json();
-      if (!res.ok) throw new Error(payload.error ?? 'Impossible de charger le réglage.');
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage.');
 
       reviewAutoIsPro = Boolean(payload?.data?.is_pro);
-      const plan = String(payload?.data?.plan ?? 'starter');
-      reviewAutoPlanValue.textContent = plan === 'pro' ? 'Pro' : 'Starter';
+      setReviewPlanLabel(payload?.data?.plan);
       setReviewAutoToggle(Boolean(payload?.data?.enabled));
 
       if (!reviewAutoIsPro) {
@@ -247,8 +251,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           ? 'Plan Pro: automatisation active (envoi 1h apres installation).'
           : 'Plan Pro: vous pouvez activer cette automatisation.';
       }
-    } catch {
-      reviewAutoStatus.textContent = 'Impossible de charger le statut.';
+    } catch (error) {
+      console.error('[notifications review auto]', error);
+      setReviewPlanLabel('starter');
+      reviewAutoIsPro = false;
+      reviewAutoToggle.disabled = true;
+      reviewAutoToggle.classList.add('opacity-40', 'cursor-not-allowed');
+      reviewAutoLocked.classList.remove('hidden');
+      reviewAutoStatus.textContent = 'Impossible de charger le statut pour le moment.';
     }
   }
 

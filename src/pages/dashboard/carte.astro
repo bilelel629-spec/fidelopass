@@ -3,16 +3,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 ---
 
 <DashboardLayout title="Ma carte — Fidelopass" activeNav="carte">
-  <div class="mb-8 grid gap-4 xl:grid-cols-[1.15fr_0.85fr] xl:items-end">
-    <div>
-      <p class="text-xs font-semibold uppercase tracking-[0.28em] text-sky-600/70">Studio de création</p>
-      <h1 class="mt-2 font-display text-3xl font-bold text-slate-900">Créez une carte fidèle à votre commerce</h1>
-      <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">On avance étape par étape : identité, programme, messages, apparence, géolocalisation, puis publication. Vous pouvez revenir en arrière à tout moment sans perdre le fil.</p>
-    </div>
-    <div class="rounded-[1.75rem] border border-sky-100 bg-white/90 px-5 py-4 shadow-[0_24px_60px_-42px_rgba(59,130,246,0.45)]">
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-600/70">Objectif</p>
-      <p class="mt-2 text-sm font-semibold text-slate-900">Mettre en ligne une carte claire, belle et facile à utiliser en caisse.</p>
-      <p class="mt-1 text-sm text-slate-500">Quand tout est prêt, on vous guide automatiquement vers le scanner du personnel puis vers le partage client.</p>
+  <div class="mb-5 rounded-[1.6rem] border border-sky-100 bg-white/90 px-5 py-5 shadow-[0_24px_50px_-38px_rgba(59,130,246,0.35)]">
+    <p class="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-sky-600/70">Éditeur de carte</p>
+    <div class="mt-2 flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <h1 class="font-display text-2xl font-bold text-slate-900 sm:text-3xl">Créez votre carte en 7 étapes</h1>
+        <p class="mt-1 text-sm leading-6 text-slate-500">Choisissez un type de programme, personnalisez le design, puis publiez votre QR client et votre scanner équipe.</p>
+      </div>
+      <p class="text-xs text-slate-500">Objectif: une carte opérationnelle en caisse aujourd'hui.</p>
     </div>
   </div>
 
@@ -23,11 +21,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </p>
   </div>
 
-  <!-- Barre de progression compacte -->
-  <div class="mb-6 rounded-[1.6rem] border border-sky-100 bg-white/95 shadow-[0_18px_48px_-36px_rgba(59,130,246,0.4)]">
+  <div class="mb-6 rounded-[1.6rem] border border-sky-100 bg-white/95 shadow-[0_18px_48px_-36px_rgba(59,130,246,0.4)] lg:sticky lg:top-4 z-20">
     <div class="flex items-center justify-between px-4 py-3 border-b border-sky-50">
       <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-600/70">Parcours guidé</p>
-      <span id="wizard-current-label" class="rounded-xl bg-sky-50 border border-sky-100 px-3 py-1 text-xs font-semibold text-sky-800">Étape 1 · Type</span>
+      <div class="flex items-center gap-2">
+        <span id="draft-state" class="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-emerald-700">Brouillon enregistré</span>
+        <span id="wizard-current-label" class="rounded-xl bg-sky-50 border border-sky-100 px-3 py-1 text-xs font-semibold text-sky-800">Étape 1 · Type</span>
+      </div>
     </div>
     <div class="flex overflow-x-auto gap-1 p-2 scrollbar-none">
       {[
@@ -45,18 +45,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           data-step-target={String(index + 1)}
         >
           <span class="flex h-5 w-5 items-center justify-center rounded-full bg-sky-100 text-[0.62rem] font-bold text-sky-700">{index + 1}</span>
-          <span class="text-xs font-medium text-slate-700 whitespace-nowrap">{label}</span>
+          <div>
+            <span class="block text-xs font-medium text-slate-700 whitespace-nowrap">{label}</span>
+            <span id={`wizard-status-${index + 1}`} class="wizard-step-status text-[0.62rem] text-slate-400">À faire</span>
+          </div>
         </button>
       ))}
     </div>
-  </div>
-
-  <div id="public-link-banner" class="wizard-section step-7 hidden mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 shadow-[0_18px_40px_-34px_rgba(16,185,129,0.5)] flex items-center justify-between gap-4">
-    <div>
-      <p class="text-emerald-700 text-sm font-medium">Votre carte est publiée ✓</p>
-      <p id="public-link-url" class="text-slate-500 text-xs mt-0.5"></p>
-    </div>
-    <button id="copy-link-btn" class="shrink-0 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-emerald-700">Copier le lien</button>
   </div>
 
   <div class="grid lg:grid-cols-[1fr_370px] gap-6 items-start">
@@ -69,6 +64,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <h2 class="font-display font-bold text-slate-900">Type de programme</h2>
           <p class="mt-1 text-sm leading-6 text-slate-500">Choisissez d'abord la mécanique de fidélité — tampons ou points. Tout le reste s'adapte à ce choix.</p>
         </div>
+        <div id="step-error-1" class="step-error hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
         <div class="grid grid-cols-2 gap-3 mb-6">
           <label id="type-tampons-label" class="cursor-pointer rounded-2xl border-2 p-4 transition-all" style="border-color:#60a5fa;background:rgb(239 246 255)">
             <input type="radio" name="type" value="tampons" class="hidden" checked />
@@ -107,10 +103,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             {name:'Barber shop', badge:'BR', fond:'#0f172a', texte:'#f8fafc', accent:'#38bdf8', fond2:'#1e3a8a', pattern:'grid', layout:'top', stamp:'✂️', type:'tampons', total:'8', reward:'1 coupe offerte', label:'Client', desc:'Une coupe offerte après 8 passages', message:'Votre barber vous attend.'},
             {name:'Boutique premium', badge:'BT', fond:'#030712', texte:'#fefce8', accent:'#d4af37', fond2:'#422006', pattern:'dots', layout:'background', stamp:'🛍️', type:'points', total:'10', reward:'10€ de réduction', label:'Membre', desc:'Cumulez des points à chaque achat', message:'Votre avantage fidélité est disponible en boutique.'},
             {name:'Sport & coaching', badge:'SP', fond:'#022c22', texte:'#ecfdf5', accent:'#22c55e', fond2:'#064e3b', pattern:'diagonal', layout:'background', stamp:'🏆', type:'points', total:'10', reward:'1 séance offerte', label:'Athlète', desc:'Transformez vos visites en récompenses', message:'Votre coach vous attend.'},
-          ].map((preset) => (
+          ].map((preset, index) => (
             <button
               type="button"
-              class="business-template-btn text-left rounded-[1.4rem] border border-sky-100 bg-gradient-to-br from-white to-sky-50/60 p-4 transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_24px_55px_-36px_rgba(59,130,246,0.45)]"
+              class={`business-template-btn text-left rounded-[1.4rem] border border-sky-100 bg-gradient-to-br from-white to-sky-50/60 p-4 transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_24px_55px_-36px_rgba(59,130,246,0.45)] ${index >= 4 ? 'template-extra hidden' : ''}`}
               data-name={preset.name}
               data-icon={preset.badge}
               data-fond={preset.fond}
@@ -140,6 +136,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             </button>
           ))}
         </div>
+        <button id="toggle-more-templates-btn" type="button" class="mt-4 btn-secondary text-sm py-2.5 px-4">Voir plus de modèles</button>
       </div>
 
       <!-- Étape 2 : Identité -->
@@ -148,6 +145,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <h2 class="font-display font-bold text-slate-900">Identité visuelle</h2>
           <p class="mt-1 text-sm leading-6 text-slate-500">Ajoutez les éléments qui feront reconnaître votre commerce au premier coup d'œil : nom, logo et icône de tampon.</p>
         </div>
+        <div id="step-error-2" class="step-error hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
         <div class="grid sm:grid-cols-2 gap-4 mb-5">
           <div><label class="label" for="nom-carte">Nom de la carte *</label><input id="nom-carte" type="text" class="input" placeholder="Carte fidélité Ma Boutique" required /></div>
           <div><label class="label" for="label-client">Label membre</label><input id="label-client" type="text" class="input" placeholder="Client, Membre, VIP..." maxlength="30" /></div>
@@ -172,6 +170,19 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                 Recommandé : 512×512 px<br/>
                 Sujet centré, peu de texte, marges fines
               </p>
+              <div class="w-full rounded-xl border border-sky-100 bg-sky-50/60 px-3 py-3">
+                <div class="flex items-center justify-between text-xs text-slate-600 mb-1.5">
+                  <span>Taille du logo</span>
+                  <span id="logo-scale-val" class="font-semibold text-slate-800">100%</span>
+                </div>
+                <input id="logo-scale" type="range" min="80" max="220" step="5" value="100" class="w-full accent-indigo-500" />
+                <button type="button" id="logo-apply-resize" class="btn-secondary mt-2 w-full text-xs py-2">
+                  Appliquer au fichier logo (512×512)
+                </button>
+                <p class="text-[0.68rem] leading-tight text-slate-500 mt-2">
+                  Agrandissez si votre logo paraît trop petit dans Wallet.
+                </p>
+              </div>
             </div>
           </div>
 
@@ -217,9 +228,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <!-- Étape 3 : Programme -->
       <div class="card wizard-section step-3 p-6">
         <div class="mb-5">
-          <h2 class="font-display font-bold text-slate-900">Programme fidélité</h2>
-          <p class="mt-1 text-sm leading-6 text-slate-500">Définissez l'objectif de fidélité, la récompense principale et les paliers optionnels.</p>
+          <h2 class="font-display font-bold text-slate-900">Ce que gagne le client</h2>
+          <p class="mt-1 text-sm leading-6 text-slate-500">Définissez le rythme de fidélité et la promesse de récompense affichée dans Wallet.</p>
         </div>
+        <div id="step-error-3" class="step-error hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
         <div class="flex flex-col gap-4">
           <div id="config-tampons"><label class="label" for="tampons-total">Nombre de tampons pour la récompense</label><input id="tampons-total" type="number" class="input w-32" min="1" max="20" value="10" /></div>
           <div id="config-points" class="hidden flex flex-col gap-3">
@@ -240,7 +252,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               </div>
               <div id="reward-tiers" class="flex flex-col gap-2"></div>
             </div>
-            <div id="vip-tiers-card" class="rounded-2xl border border-sky-100 bg-white p-4">
+            <div id="vip-tiers-card" class="hidden rounded-2xl border border-sky-100 bg-white p-4">
               <p class="text-sm font-semibold text-slate-900">Paliers VIP points</p>
               <p class="text-slate-500 text-xs mt-0.5 mb-3">Visible surtout pour les programmes à points.</p>
               <div id="vip-tiers" class="flex flex-col gap-2"></div>
@@ -253,141 +265,178 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <div class="card wizard-section step-4 p-6">
         <div class="mb-5">
           <h2 class="font-display font-bold text-slate-900">Apparence</h2>
-          <p class="mt-1 text-sm leading-6 text-slate-500">Choisissez un thème, une palette, une bannière et un fond qui correspondent à votre univers. L'aperçu à droite se met à jour en direct.</p>
+          <p class="mt-1 text-sm leading-6 text-slate-500">Réglez le style visuel de la carte par blocs: thème, bannière et code-barres.</p>
         </div>
-        <label class="label mb-3 block">Thèmes prédéfinis</label>
-        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-5">
+        <div id="step-error-4" class="step-error hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+        <div class="mb-4 flex flex-wrap gap-2 rounded-2xl border border-sky-100 bg-sky-50/60 p-2">
           {[
-            {name:'Nuit',fond:'#0f172a',texte:'#ffffff',accent:'#6366f1',fond2:''},
-            {name:'Rose',fond:'#3d0d1e',texte:'#fce7f3',accent:'#ec4899',fond2:'#6d1439'},
-            {name:'Forêt',fond:'#064e3b',texte:'#ffffff',accent:'#34d399',fond2:'#065f46'},
-            {name:'Océan',fond:'#0c4a6e',texte:'#ffffff',accent:'#38bdf8',fond2:'#075985'},
-            {name:'Café',fond:'#1c0e04',texte:'#fef3c7',accent:'#d97706',fond2:'#292200'},
-            {name:'Noir',fond:'#000000',texte:'#ffffff',accent:'#8b5cf6',fond2:'#18003a'},
-          ].map(({name,fond,texte,accent,fond2})=>(
-            <button type="button" class="preset-btn flex flex-col items-center gap-1.5 rounded-xl border border-sky-100 bg-white p-2 transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_40px_-28px_rgba(59,130,246,0.35)]" data-fond={fond} data-texte={texte} data-accent={accent} data-fond2={fond2}>
-              <div class="w-full h-8 rounded-lg flex gap-1 p-1" style={fond2?`background:linear-gradient(135deg,${fond},${fond2})`:`background:${fond}`}>
-                <div class="w-3 h-full rounded-sm" style={`background:${accent}`}></div>
-                <div class="flex-1 h-full rounded-sm opacity-60" style={`background:${texte}`}></div>
-              </div>
-              <span class="text-slate-400 text-xs">{name}</span>
+            { key: 'theme', label: 'Thème' },
+            { key: 'banner', label: 'Bannière' },
+            { key: 'barcode', label: 'Code-barres' },
+          ].map(({ key, label }) => (
+            <button type="button" class="appearance-tab rounded-xl px-3 py-2 text-sm font-medium text-slate-600 transition" data-appearance-target={key}>
+              {label}
             </button>
           ))}
         </div>
 
-        <div class="mb-5">
-          <div class="flex items-center justify-between mb-3">
-            <label class="label">Couleur de fond</label>
-            <div class="flex items-center gap-2 text-xs text-slate-400">
-              <span>Uni</span>
-              <button id="gradient-toggle" type="button" class="w-10 h-5 rounded-full transition-all relative" style="background:#334155" aria-pressed="false">
-                <span id="gradient-knob" class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-all"></span>
-              </button>
-              <span>Dégradé</span>
-            </div>
-          </div>
-          <div class="grid grid-cols-4 gap-3">
-            <div><label class="text-slate-500 text-xs mb-1.5 block" id="fond-label">Fond</label><input id="couleur-fond" type="color" value="#0f172a" class="w-full h-10 rounded-xl border border-white/10 cursor-pointer bg-transparent" /></div>
-            <div id="fond2-wrap" class="hidden"><label class="text-slate-500 text-xs mb-1.5 block">Fond 2</label><input id="couleur-fond-2" type="color" value="#6366f1" class="w-full h-10 rounded-xl border border-white/10 cursor-pointer bg-transparent" /></div>
-            <div><label class="text-slate-500 text-xs mb-1.5 block">Texte</label><input id="couleur-texte" type="color" value="#ffffff" class="w-full h-10 rounded-xl border border-white/10 cursor-pointer bg-transparent" /></div>
-            <div><label class="text-slate-500 text-xs mb-1.5 block">Accent</label><input id="couleur-accent" type="color" value="#6366f1" class="w-full h-10 rounded-xl border border-white/10 cursor-pointer bg-transparent" /></div>
-          </div>
-          <div id="gradient-angle-wrap" class="hidden mt-3">
-            <div class="flex items-center justify-between mb-1"><label class="text-slate-500 text-xs">Angle du dégradé</label><span id="gradient-angle-val" class="text-indigo-400 text-xs font-mono">135°</span></div>
-            <input id="gradient-angle" type="range" min="0" max="360" value="135" class="w-full accent-indigo-500" />
-          </div>
-        </div>
-
-        <div>
-          <button type="button" id="pattern-toggle" class="flex w-full items-center justify-between rounded-xl border border-sky-100 bg-sky-50/60 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-sky-100">
-            <span>Pattern de la bannière</span>
-            <span id="pattern-arrow" class="text-slate-400 transition-transform">▼</span>
-          </button>
-          <div id="pattern-panel" class="hidden mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {[{value:'none',label:'Aucun'},{value:'dots',label:'Points'},{value:'grid',label:'Grille'},{value:'waves',label:'Vagues'},{value:'diagonal',label:'Diagonales'},{value:'confetti',label:'Confetti'}].map(({value,label})=>(
-              <label id={`pat-${value}-label`} class="cursor-pointer rounded-xl border-2 p-2.5 text-center transition-all" style={value==='none'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff'}>
-                <input type="radio" name="pattern_type" value={value} class="hidden" checked={value==='none'} />
-                <div class="w-full h-8 rounded-lg mb-1.5 overflow-hidden relative" style="background:#1e293b">
-                  {value==='dots'&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pd" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="4" cy="4" r="1.5" fill="rgba(99,102,241,0.5)"/></pattern></defs><rect width="100%" height="100%" fill="url(#pd)"/></svg>}
-                  {value==='grid'&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pg" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M 8 0 L 0 0 0 8" fill="none" stroke="rgba(99,102,241,0.4)" stroke-width="0.5"/></pattern></defs><rect width="100%" height="100%" fill="url(#pg)"/></svg>}
-                  {value==='waves'&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pw" width="16" height="8" patternUnits="userSpaceOnUse"><path d="M 0 4 Q 4 0 8 4 Q 12 8 16 4" fill="none" stroke="rgba(99,102,241,0.5)" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#pw)"/></svg>}
-                  {value==='diagonal'&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pdiag" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="2" height="8" fill="rgba(99,102,241,0.42)"/></pattern></defs><rect width="100%" height="100%" fill="url(#pdiag)"/></svg>}
-                  {value==='confetti'&&<svg class="absolute inset-0 w-full h-full"><circle cx="18%" cy="30%" r="3" fill="rgba(99,102,241,0.55)"/><rect x="58%" y="18%" width="14" height="4" rx="2" transform="rotate(20)" fill="rgba(99,102,241,0.45)"/><circle cx="72%" cy="72%" r="2.5" fill="rgba(99,102,241,0.6)"/><rect x="22%" y="70%" width="12" height="4" rx="2" transform="rotate(-25)" fill="rgba(99,102,241,0.4)"/></svg>}
+        <div data-appearance-panel="theme">
+          <label class="label mb-3 block">Thèmes prédéfinis</label>
+          <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-5">
+            {[
+              {name:'Nuit',fond:'#0f172a',texte:'#ffffff',accent:'#6366f1',fond2:''},
+              {name:'Rose',fond:'#3d0d1e',texte:'#fce7f3',accent:'#ec4899',fond2:'#6d1439'},
+              {name:'Forêt',fond:'#064e3b',texte:'#ffffff',accent:'#34d399',fond2:'#065f46'},
+              {name:'Océan',fond:'#0c4a6e',texte:'#ffffff',accent:'#38bdf8',fond2:'#075985'},
+              {name:'Café',fond:'#1c0e04',texte:'#fef3c7',accent:'#d97706',fond2:'#292200'},
+              {name:'Noir',fond:'#000000',texte:'#ffffff',accent:'#8b5cf6',fond2:'#18003a'},
+            ].map(({name,fond,texte,accent,fond2})=>(
+              <button type="button" class="preset-btn flex flex-col items-center gap-1.5 rounded-xl border border-sky-100 bg-white p-2 transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_40px_-28px_rgba(59,130,246,0.35)]" data-fond={fond} data-texte={texte} data-accent={accent} data-fond2={fond2}>
+                <div class="w-full h-8 rounded-lg flex gap-1 p-1" style={fond2?`background:linear-gradient(135deg,${fond},${fond2})`:`background:${fond}`}>
+                  <div class="w-3 h-full rounded-sm" style={`background:${accent}`}></div>
+                  <div class="flex-1 h-full rounded-sm opacity-60" style={`background:${texte}`}></div>
                 </div>
-                <div class="text-xs font-medium text-slate-900">{label}</div>
-              </label>
+                <span class="text-slate-400 text-xs">{name}</span>
+              </button>
             ))}
           </div>
-        </div>
 
-        <div class="mt-5 mb-5">
-          <h3 class="font-semibold text-slate-900 mb-3">Bannière</h3>
-          <div class="flex flex-col gap-2">
-            <div class="w-full h-16 rounded-xl border border-white/10 overflow-hidden flex items-center justify-center relative" style="background:#1e293b">
-              <img id="strip-preview-img" class="hidden w-full h-full object-cover" style="object-position:center" />
-              <span id="strip-preview-icon" class="text-slate-500 text-xs">Aucune image</span>
-            </div>
-            <div class="flex gap-1.5">
-              <input type="file" id="strip-file" accept="image/png,image/jpeg,image/webp" class="hidden" />
-              <button type="button" id="strip-btn" class="btn-secondary text-xs py-1.5 px-3 flex-1">Choisir</button>
-              <button type="button" id="strip-clear" class="hidden btn-secondary text-xs py-1.5 px-2 text-red-400">✕</button>
-            </div>
-            <input type="hidden" id="strip-url" />
-            <p id="strip-loading" class="hidden text-indigo-400 text-xs">Upload...</p>
-            <p class="text-slate-600 text-xs text-center">PNG/JPG — <strong class="text-slate-500">750×246 px</strong></p>
-            <a href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3NTAiIGhlaWdodD0iMjQ2Ij48cmVjdCB3aWR0aD0iNzUwIiBoZWlnaHQ9IjI0NiIgZmlsbD0iIzFlMjkzYiIvPjxyZWN0IHg9IjQwIiB5PSI0MCIgd2lkdGg9IjY3MCIgaGVpZ2h0PSIxNjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzYzNjZmMSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI4IDQiIHJ4PSI4Ii8+PHRleHQgeD0iMzc1IiB5PSIxMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2MzY2ZjEiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5ab25lIGJhbm5pZXJlIOKAlCA3NTAgw5cgMjQ2IHB4PC90ZXh0Pjx0ZXh0IHg9IjM3NSIgeT0iMTQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyI+TGVzIHRhbXBvbnMgc29udCBjZW50csOpcyBwYXItZGVzc3VzPC90ZXh0Pjwvc3ZnPg=="
-              download="template-banniere-fidelopass.svg" class="text-indigo-400 text-xs underline underline-offset-2 hover:text-indigo-300 text-center">⬇ Template SVG 750×246</a>
-            <div>
-              <label class="text-slate-500 text-xs mb-1.5 block">Style de la bannière</label>
-              <div class="grid grid-cols-2 gap-1.5">
-                <label id="strip-style-rounded-label" class="cursor-pointer rounded-lg border-2 py-1.5 text-center text-xs transition-all" style="border-color:#dbeafe;background:#ffffff;color:#64748b">
-                  <input type="radio" name="strip_style" value="rounded" class="hidden" />⬜ Arrondi</label>
-                <label id="strip-style-full-label" class="cursor-pointer rounded-lg border-2 py-1.5 text-center text-xs transition-all" style="border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a">
-                  <input type="radio" name="strip_style" value="full" class="hidden" checked />▬ Pleine largeur</label>
+          <div class="mb-5">
+            <div class="flex items-center justify-between mb-3">
+              <label class="label">Couleur de fond</label>
+              <div class="flex items-center gap-2 text-xs text-slate-400">
+                <span>Uni</span>
+                <button id="gradient-toggle" type="button" class="w-10 h-5 rounded-full transition-all relative" style="background:#334155" aria-pressed="false">
+                  <span id="gradient-knob" class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-all"></span>
+                </button>
+                <span>Dégradé</span>
               </div>
             </div>
-            <div>
-              <label class="text-slate-500 text-xs mb-1.5 block">Placement bannière / tampons</label>
-              <div class="grid grid-cols-3 gap-1.5">
-                {[
-                  { value: 'background', label: 'Fond' },
-                  { value: 'top', label: 'Haut' },
-                  { value: 'bottom', label: 'Bas' },
-                ].map(({ value, label }) => (
-                  <label id={`strip-layout-${value}-label`} class="cursor-pointer rounded-lg border-2 py-1.5 text-center transition-all text-xs"
-                    style={value==='background'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff;color:#64748b'}>
-                    <input type="radio" name="strip_layout" value={value} class="hidden" checked={value==='background'} />
-                    {label}
-                  </label>
-                ))}
-              </div>
-              <p class="text-slate-600 text-xs mt-1 leading-tight">"Bas" place la bannière sous les tampons dans l'image Wallet générée.</p>
+            <div class="grid grid-cols-4 gap-3">
+              <div><label class="text-slate-500 text-xs mb-1.5 block" id="fond-label">Fond</label><input id="couleur-fond" type="color" value="#0f172a" class="w-full h-10 rounded-xl border border-white/10 cursor-pointer bg-transparent" /></div>
+              <div id="fond2-wrap" class="hidden"><label class="text-slate-500 text-xs mb-1.5 block">Fond 2</label><input id="couleur-fond-2" type="color" value="#6366f1" class="w-full h-10 rounded-xl border border-white/10 cursor-pointer bg-transparent" /></div>
+              <div><label class="text-slate-500 text-xs mb-1.5 block">Texte</label><input id="couleur-texte" type="color" value="#ffffff" class="w-full h-10 rounded-xl border border-white/10 cursor-pointer bg-transparent" /></div>
+              <div><label class="text-slate-500 text-xs mb-1.5 block">Accent</label><input id="couleur-accent" type="color" value="#6366f1" class="w-full h-10 rounded-xl border border-white/10 cursor-pointer bg-transparent" /></div>
             </div>
-            <div id="strip-position-zone" class="hidden">
-              <label class="text-slate-500 text-xs mb-1.5 block">Position de l'image</label>
-              <div class="grid grid-cols-3 gap-1.5">
-                {['top','center','bottom'].map(pos => (
-                  <label id={`strip-pos-${pos}-label`} class="cursor-pointer rounded-lg border-2 py-1.5 text-center transition-all text-xs"
-                    style={pos==='center'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff;color:#64748b'}>
-                    <input type="radio" name="strip_position" value={pos} class="hidden" checked={pos==='center'} />
-                    {pos==='top'?'Haut':pos==='center'?'Centre':'Bas'}
-                  </label>
-                ))}
-              </div>
+            <div id="gradient-angle-wrap" class="hidden mt-3">
+              <div class="flex items-center justify-between mb-1"><label class="text-slate-500 text-xs">Angle du dégradé</label><span id="gradient-angle-val" class="text-indigo-400 text-xs font-mono">135°</span></div>
+              <input id="gradient-angle" type="range" min="0" max="360" value="135" class="w-full accent-indigo-500" />
+            </div>
+          </div>
+
+          <div>
+            <button type="button" id="pattern-toggle" class="flex w-full items-center justify-between rounded-xl border border-sky-100 bg-sky-50/60 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-sky-100">
+              <span>Options avancées: pattern</span>
+              <span id="pattern-arrow" class="text-slate-400 transition-transform">▼</span>
+            </button>
+            <div id="pattern-panel" class="hidden mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {[{value:'none',label:'Aucun'},{value:'dots',label:'Points'},{value:'grid',label:'Grille'},{value:'waves',label:'Vagues'},{value:'diagonal',label:'Diagonales'},{value:'confetti',label:'Confetti'}].map(({value,label})=>(
+                <label id={`pat-${value}-label`} class="cursor-pointer rounded-xl border-2 p-2.5 text-center transition-all" style={value==='none'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff'}>
+                  <input type="radio" name="pattern_type" value={value} class="hidden" checked={value==='none'} />
+                  <div class="w-full h-8 rounded-lg mb-1.5 overflow-hidden relative" style="background:#1e293b">
+                    {value==='dots'&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pd" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="4" cy="4" r="1.5" fill="rgba(99,102,241,0.5)"/></pattern></defs><rect width="100%" height="100%" fill="url(#pd)"/></svg>}
+                    {value==='grid'&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pg" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M 8 0 L 0 0 0 8" fill="none" stroke="rgba(99,102,241,0.4)" stroke-width="0.5"/></pattern></defs><rect width="100%" height="100%" fill="url(#pg)"/></svg>}
+                    {value==='waves'&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pw" width="16" height="8" patternUnits="userSpaceOnUse"><path d="M 0 4 Q 4 0 8 4 Q 12 8 16 4" fill="none" stroke="rgba(99,102,241,0.5)" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#pw)"/></svg>}
+                    {value==='diagonal'&&<svg class="absolute inset-0 w-full h-full"><defs><pattern id="pdiag" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="2" height="8" fill="rgba(99,102,241,0.42)"/></pattern></defs><rect width="100%" height="100%" fill="url(#pdiag)"/></svg>}
+                    {value==='confetti'&&<svg class="absolute inset-0 w-full h-full"><circle cx="18%" cy="30%" r="3" fill="rgba(99,102,241,0.55)"/><rect x="58%" y="18%" width="14" height="4" rx="2" transform="rotate(20)" fill="rgba(99,102,241,0.45)"/><circle cx="72%" cy="72%" r="2.5" fill="rgba(99,102,241,0.6)"/><rect x="22%" y="70%" width="12" height="4" rx="2" transform="rotate(-25)" fill="rgba(99,102,241,0.4)"/></svg>}
+                  </div>
+                  <div class="text-xs font-medium text-slate-900">{label}</div>
+                </label>
+              ))}
             </div>
           </div>
         </div>
+        <div data-appearance-panel="banner" class="hidden">
+          <div class="mt-1 mb-5">
+            <h3 class="font-semibold text-slate-900 mb-3">Bannière</h3>
+            <div class="flex flex-col gap-2">
+              <div class="w-full h-16 rounded-xl border border-white/10 overflow-hidden flex items-center justify-center relative" style="background:#1e293b">
+                <img id="strip-preview-img" class="hidden w-full h-full object-cover" style="object-position:center" />
+                <span id="strip-preview-icon" class="text-slate-500 text-xs">Aucune image</span>
+              </div>
+              <div class="flex gap-1.5">
+                <input type="file" id="strip-file" accept="image/png,image/jpeg,image/webp" class="hidden" />
+                <button type="button" id="strip-btn" class="btn-secondary text-xs py-1.5 px-3 flex-1">Choisir</button>
+                <button type="button" id="strip-clear" class="hidden btn-secondary text-xs py-1.5 px-2 text-red-400">✕</button>
+              </div>
+              <input type="hidden" id="strip-url" />
+              <p id="strip-loading" class="hidden text-indigo-400 text-xs">Upload...</p>
+              <p class="text-slate-600 text-xs text-center">PNG/JPG — <strong class="text-slate-500">750×246 px</strong></p>
+              <div class="w-full rounded-xl border border-sky-100 bg-sky-50/60 px-3 py-3">
+                <div class="flex items-center justify-between text-xs text-slate-600 mb-1.5">
+                  <span>Zoom de la bannière</span>
+                  <span id="strip-scale-val" class="font-semibold text-slate-800">100%</span>
+                </div>
+                <input id="strip-scale" type="range" min="100" max="220" step="5" value="100" class="w-full accent-indigo-500" />
+                <button type="button" id="strip-apply-resize" class="btn-secondary mt-2 w-full text-xs py-2">
+                  Appliquer au fichier bannière (750×246)
+                </button>
+                <p class="text-[0.68rem] leading-tight text-slate-500 mt-2">
+                  Ajustez le zoom puis appliquez. Utilisez ensuite Haut/Centre/Bas pour le cadrage vertical.
+                </p>
+              </div>
+              <a href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3NTAiIGhlaWdodD0iMjQ2Ij48cmVjdCB3aWR0aD0iNzUwIiBoZWlnaHQ9IjI0NiIgZmlsbD0iIzFlMjkzYiIvPjxyZWN0IHg9IjQwIiB5PSI0MCIgd2lkdGg9IjY3MCIgaGVpZ2h0PSIxNjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzYzNjZmMSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI4IDQiIHJ4PSI4Ii8+PHRleHQgeD0iMzc1IiB5PSIxMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2MzY2ZjEiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5ab25lIGJhbm5pZXJlIOKAlCA3NTAgw5cgMjQ2IHB4PC90ZXh0Pjx0ZXh0IHg9IjM3NSIgeT0iMTQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyI+TGVzIHRhbXBvbnMgc29udCBjZW50csOpcyBwYXItZGVzc3VzPC90ZXh0Pjwvc3ZnPg=="
+                download="template-banniere-fidelopass.svg" class="text-indigo-400 text-xs underline underline-offset-2 hover:text-indigo-300 text-center">⬇ Template SVG 750×246</a>
+              <button id="banner-advanced-toggle" type="button" class="flex w-full items-center justify-between rounded-xl border border-sky-100 bg-sky-50/60 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-sky-100">
+                <span>Options avancées: placement</span>
+                <span id="banner-advanced-arrow" class="text-slate-400 transition-transform">▼</span>
+              </button>
+              <div id="banner-advanced-panel" class="hidden space-y-3">
+                <div>
+                  <label class="text-slate-500 text-xs mb-1.5 block">Style de la bannière</label>
+                  <div class="grid grid-cols-2 gap-1.5">
+                    <label id="strip-style-rounded-label" class="cursor-pointer rounded-lg border-2 py-1.5 text-center text-xs transition-all" style="border-color:#dbeafe;background:#ffffff;color:#64748b">
+                      <input type="radio" name="strip_style" value="rounded" class="hidden" />⬜ Arrondi</label>
+                    <label id="strip-style-full-label" class="cursor-pointer rounded-lg border-2 py-1.5 text-center text-xs transition-all" style="border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a">
+                      <input type="radio" name="strip_style" value="full" class="hidden" checked />▬ Pleine largeur</label>
+                  </div>
+                </div>
+                <div>
+                  <label class="text-slate-500 text-xs mb-1.5 block">Placement bannière / tampons</label>
+                  <div class="grid grid-cols-3 gap-1.5">
+                    {[
+                      { value: 'background', label: 'Fond' },
+                      { value: 'top', label: 'Haut' },
+                      { value: 'bottom', label: 'Bas' },
+                    ].map(({ value, label }) => (
+                      <label id={`strip-layout-${value}-label`} class="cursor-pointer rounded-lg border-2 py-1.5 text-center transition-all text-xs"
+                        style={value==='background'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff;color:#64748b'}>
+                        <input type="radio" name="strip_layout" value={value} class="hidden" checked={value==='background'} />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                  <p class="text-slate-600 text-xs mt-1 leading-tight">"Bas" place la bannière sous les tampons dans l'image Wallet générée.</p>
+                </div>
+                <div id="strip-position-zone" class="hidden">
+                  <label class="text-slate-500 text-xs mb-1.5 block">Position de l'image</label>
+                  <div class="grid grid-cols-3 gap-1.5">
+                    {['top','center','bottom'].map(pos => (
+                      <label id={`strip-pos-${pos}-label`} class="cursor-pointer rounded-lg border-2 py-1.5 text-center transition-all text-xs"
+                        style={pos==='center'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff;color:#64748b'}>
+                        <input type="radio" name="strip_position" value={pos} class="hidden" checked={pos==='center'} />
+                        {pos==='top'?'Haut':pos==='center'?'Centre':'Bas'}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-        <div class="mt-5">
-          <h3 class="font-semibold text-slate-900 mb-3">Code-barres</h3>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[{value:'QR',label:'QR Code',tag:'QR',desc:'Recommandé'},{value:'PDF417',label:'Code-barres',tag:'B1',desc:'Linéaire'},{value:'AZTEC',label:'Aztec',tag:'AZ',desc:'Compact'},{value:'NONE',label:'Aucun',tag:'--',desc:'Sans code'}].map(({value,label,tag,desc})=>(
-              <label id={`barcode-${value.toLowerCase()}-label`} class="cursor-pointer rounded-2xl border-2 p-3 text-center transition-all" style={value==='QR'?'border-color:#60a5fa;background:rgb(239 246 255)':'border-color:#dbeafe;background:#ffffff'}>
-                <input type="radio" name="barcode_type" value={value} class="hidden" checked={value==='QR'} />
-                <div class="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-100 text-xs font-bold tracking-[0.18em] text-sky-700">{tag}</div>
-                <div class="font-medium text-slate-900 text-xs">{label}</div><div class="text-slate-500 text-xs">{desc}</div>
-              </label>
-            ))}
+        <div data-appearance-panel="barcode" class="hidden">
+          <div class="mt-1">
+            <h3 class="font-semibold text-slate-900 mb-3">Code-barres</h3>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[{value:'QR',label:'QR Code',tag:'QR',desc:'Recommandé'},{value:'PDF417',label:'Code-barres',tag:'B1',desc:'Linéaire'},{value:'AZTEC',label:'Aztec',tag:'AZ',desc:'Compact'},{value:'NONE',label:'Aucun',tag:'--',desc:'Sans code'}].map(({value,label,tag,desc})=>(
+                <label id={`barcode-${value.toLowerCase()}-label`} class="cursor-pointer rounded-2xl border-2 p-3 text-center transition-all" style={value==='QR'?'border-color:#60a5fa;background:rgb(239 246 255)':'border-color:#dbeafe;background:#ffffff'}>
+                  <input type="radio" name="barcode_type" value={value} class="hidden" checked={value==='QR'} />
+                  <div class="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-100 text-xs font-bold tracking-[0.18em] text-sky-700">{tag}</div>
+                  <div class="font-medium text-slate-900 text-xs">{label}</div><div class="text-slate-500 text-xs">{desc}</div>
+                </label>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -398,6 +447,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <h2 class="font-display font-bold text-slate-900">Messages client</h2>
           <p class="mt-1 text-sm leading-6 text-slate-500">Préparez les textes visibles par vos clients au moment de la création et après l'ajout dans Wallet.</p>
         </div>
+        <div id="step-error-5" class="step-error hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
         <div class="grid sm:grid-cols-2 gap-4">
           <div>
             <label class="label" for="welcome-message">Texte d'accueil public</label>
@@ -416,6 +466,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <h2 class="font-display font-bold text-slate-900">Options</h2>
           <p class="mt-1 text-sm leading-6 text-slate-500">Activez la géolocalisation pour faire remonter la carte en boutique.</p>
         </div>
+        <div id="step-error-6" class="step-error hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
 
         <!-- Toggle Géolocalisation -->
         <div class="rounded-2xl border border-sky-100 bg-sky-50/40 p-4 mb-4">
@@ -490,6 +541,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <h2 class="font-display font-bold text-slate-900">Scanner & Partage</h2>
           <p class="mt-1 text-sm leading-6 text-slate-500">Configurez le scanner du personnel et partagez le QR code client. Votre carte est opérationnelle.</p>
         </div>
+        <div id="step-error-7" class="step-error hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+        <div id="step7-lock-msg" class="hidden mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Enregistrez d'abord votre carte pour débloquer le scanner et le partage.
+        </div>
+        <div id="public-link-banner" class="hidden mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 shadow-[0_18px_40px_-34px_rgba(16,185,129,0.5)] flex items-center justify-between gap-4">
+          <div>
+            <p class="text-emerald-700 text-sm font-semibold">Carte publiée · opérationnelle en caisse ✓</p>
+            <p id="public-link-url" class="text-slate-500 text-xs mt-0.5"></p>
+          </div>
+          <button id="copy-link-btn" class="shrink-0 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-medium transition-colors hover:bg-emerald-700" style="color:#ffffff">Copier le lien</button>
+        </div>
         <!-- Scanner personnel -->
         <div class="mb-6">
           <h3 class="font-semibold text-slate-900 mb-3">Configurer le scanner du personnel</h3>
@@ -530,20 +592,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
       </div>
 
-      <div id="error-msg" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"></div>
-      <div id="success-msg" class="hidden text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3"></div>
+      <div id="error-msg" class="hidden text-red-700 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3"></div>
+      <div id="success-msg" class="hidden text-emerald-700 text-sm bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3"></div>
       <div class="rounded-[1.6rem] border border-sky-100 bg-white/90 px-4 py-4 shadow-[0_18px_48px_-36px_rgba(59,130,246,0.35)] flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <button type="button" id="prev-step-btn" class="btn-secondary py-3 px-5">Étape précédente</button>
-        <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
-          <button type="button" id="submit-btn" class="btn-primary py-3 px-5">Enregistrer la carte</button>
-          <button type="button" id="next-step-btn" class="btn-secondary py-3 px-5">Étape suivante</button>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <button type="button" id="save-draft-btn" class="btn-secondary py-3 px-5">Enregistrer le brouillon</button>
+          <button type="button" id="save-continue-btn" class="btn-primary py-3 px-5">Enregistrer et continuer</button>
         </div>
       </div>
     </div>
 
     <!-- Aperçu -->
-    <div class="sticky top-8 space-y-5">
-      <div class="card p-4">
+    <div class="lg:sticky lg:top-8 space-y-5">
+      <button id="preview-toggle-btn" type="button" class="btn-secondary w-full py-3 text-sm lg:hidden">Voir l’aperçu</button>
+      <div id="preview-panel" class="card p-4 hidden lg:block">
         <div class="flex items-start justify-between gap-3 mb-3">
           <div>
             <p class="label mb-1">Aperçu temps réel</p>
@@ -610,11 +673,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               <div class="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0" style="background:rgba(255,255,255,0.2)">
                 <img id="g-logo" src="" alt="" class="hidden w-full h-full object-cover" /><span id="g-logo-ph" class="text-sm">🏪</span>
               </div>
-              <p id="g-card-name" class="text-white font-bold text-sm drop-shadow">Ma carte</p>
+              <p id="g-card-name" class="font-bold text-sm drop-shadow" style="color:#ffffff">Ma carte</p>
             </div>
             <div class="absolute top-3 right-3 z-10 text-right">
-              <p id="g-type-lbl" class="text-white/60 text-xs uppercase">Tampons</p>
-              <p id="g-solde" class="text-white font-mono font-bold">0/10</p>
+              <p id="g-type-lbl" class="text-xs uppercase" style="color:rgba(255,255,255,0.72)">Tampons</p>
+              <p id="g-solde" class="font-mono font-bold" style="color:#ffffff">0/10</p>
             </div>
           </div>
           <div class="bg-white p-4">
@@ -628,10 +691,44 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           </div>
         </div>
       </div>
+      <div class="card p-4">
+        <p class="label mb-2">Résumé de la carte</p>
+        <div id="review-summary" class="grid gap-2"></div>
+      </div>
 
     </div>
   </div>
 </DashboardLayout>
+
+<style>
+  .wizard-tab[data-state='active'] {
+    border-color: #93c5fd;
+    background: #eff6ff;
+    box-shadow: 0 18px 30px -28px rgba(59, 130, 246, 0.8);
+  }
+
+  .wizard-tab[data-state='done'] {
+    border-color: #bbf7d0;
+    background: #f0fdf4;
+  }
+
+  .wizard-step-status[data-state='done'] {
+    color: #15803d;
+    font-weight: 700;
+  }
+
+  .wizard-step-status[data-state='active'] {
+    color: #1d4ed8;
+    font-weight: 700;
+  }
+
+  .appearance-tab[data-active='true'] {
+    background: #ffffff;
+    color: #0f172a;
+    border: 1px solid #93c5fd;
+    box-shadow: 0 12px 24px -20px rgba(59, 130, 246, 0.8);
+  }
+</style>
 
 <script>
   import { authFetch } from '../../lib/api';
@@ -642,13 +739,39 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const PUBLIC_SITE_URL = (import.meta.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
   const setupMode = new URLSearchParams(window.location.search).get('setup') === '1';
   const TOTAL_STEPS = 7;
+  const STEP_LABELS = ['Type', 'Identité', 'Programme', 'Apparence', 'Messages', 'Options', 'Partage'] as const;
 
   let carteId: string | null = null;
   let logoUrl = '', stripUrl = '', tamponIconUrl = '', tamponEmoji = '';
+  let logoScale = 1;
+  let stripScale = 1;
   let isGradient = false;
-  let currentStep = 1;
+  type WizardStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+  let currentStep: WizardStep = 1;
+  let isDirty = false;
+  let isSaving = false;
+  let suppressDirtyTracking = true;
   type RewardTier = { seuil: number; recompense: string };
   type VipTier = { nom: string; seuil: number; avantage?: string };
+
+  function setDraftState(dirty: boolean, force = false) {
+    if (!force && (suppressDirtyTracking || isSaving)) return;
+    isDirty = dirty;
+    const state = document.getElementById('draft-state');
+    if (!state) return;
+    if (dirty) {
+      state.textContent = 'Brouillon non enregistré';
+      state.className = 'rounded-xl border border-amber-200 bg-amber-50 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-amber-700';
+    } else {
+      state.textContent = 'Brouillon enregistré';
+      state.className = 'rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-emerald-700';
+    }
+  }
+
+  function markDirty() {
+    if (suppressDirtyTracking || isSaving) return;
+    if (!isDirty) setDraftState(true);
+  }
 
   function publicCardUrl(id: string) {
     return `${PUBLIC_SITE_URL}/carte/${id}`;
@@ -691,49 +814,84 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     ensureQr('scanner-qr-container', scannerInstallUrl());
   }
 
+  function clearStepError(step: WizardStep) {
+    const box = document.getElementById(`step-error-${step}`);
+    if (box) box.classList.add('hidden');
+  }
+
+  function showStepError(step: WizardStep, message: string) {
+    const box = document.getElementById(`step-error-${step}`) as HTMLDivElement | null;
+    if (!box) return;
+    box.textContent = message;
+    box.classList.remove('hidden');
+  }
+
+  const stepValidators: Record<WizardStep, () => string | null> = {
+    1: () => ((document.querySelector('input[name="type"]:checked') as HTMLInputElement | null)?.value ? null : 'Choisissez un type de programme.'),
+    2: () => ((document.getElementById('nom-carte') as HTMLInputElement).value.trim() ? null : 'Renseignez au minimum le nom de la carte.'),
+    3: () => {
+      const type = (document.querySelector('input[name="type"]:checked') as HTMLInputElement | null)?.value ?? 'tampons';
+      if (type === 'tampons') {
+        const total = parseInt((document.getElementById('tampons-total') as HTMLInputElement).value, 10);
+        if (!Number.isFinite(total) || total < 1) return 'Le nombre de tampons doit être supérieur à 0.';
+      } else {
+        const perEuro = parseFloat((document.getElementById('points-par-euro') as HTMLInputElement).value);
+        const target = parseInt((document.getElementById('points-recompense') as HTMLInputElement).value, 10);
+        if (!Number.isFinite(perEuro) || perEuro <= 0) return 'Le ratio points/euro doit être supérieur à 0.';
+        if (!Number.isFinite(target) || target < 1) return 'Le seuil de points doit être supérieur à 0.';
+      }
+      if (!(document.getElementById('recompense') as HTMLInputElement).value.trim()) return 'Décrivez la récompense offerte au client.';
+      return null;
+    },
+    4: () => null,
+    5: () => null,
+    6: () => {
+      if (!geoEnabled) return null;
+      if (!(document.getElementById('adresse-commerce') as HTMLInputElement).value.trim()) return 'Ajoutez l’adresse du commerce pour activer la géolocalisation.';
+      return null;
+    },
+    7: () => null,
+  };
+
   function updateWizardActions() {
     const prevBtn = document.getElementById('prev-step-btn') as HTMLButtonElement;
-    const nextBtn = document.getElementById('next-step-btn') as HTMLButtonElement;
-    const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+    const saveDraftBtn = document.getElementById('save-draft-btn') as HTMLButtonElement;
+    const saveContinueBtn = document.getElementById('save-continue-btn') as HTMLButtonElement;
     const currentLabel = document.getElementById('wizard-current-label');
-    const labels = ['Type', 'Identité', 'Programme', 'Apparence', 'Messages', 'Options', 'Partage'];
-
-    if (currentLabel) currentLabel.textContent = `Étape ${currentStep} · ${labels[currentStep - 1]}`;
+    if (currentLabel) currentLabel.textContent = `Étape ${currentStep} · ${STEP_LABELS[currentStep - 1]}`;
 
     prevBtn.classList.toggle('invisible', currentStep === 1);
-    nextBtn.classList.toggle('hidden', currentStep === TOTAL_STEPS);
-    submitBtn.classList.toggle('hidden', currentStep >= TOTAL_STEPS);
+    saveDraftBtn.disabled = isSaving;
+    saveContinueBtn.disabled = isSaving;
 
-    if (currentStep < 6) nextBtn.textContent = 'Étape suivante';
-    else if (currentStep === 6) nextBtn.textContent = 'Scanner & Partage';
-
-    if (currentStep < 6) submitBtn.textContent = carteId ? 'Enregistrer les modifications' : 'Enregistrer le brouillon';
-    else if (currentStep === 6) submitBtn.textContent = carteId ? 'Enregistrer et continuer' : 'Créer la carte';
+    document.querySelectorAll('.wizard-tab').forEach((tab) => {
+      const element = tab as HTMLElement;
+      const step = Number(element.dataset.stepTarget) as WizardStep;
+      const state = step < currentStep ? 'done' : step === currentStep ? 'active' : 'todo';
+      element.dataset.state = state;
+      const status = element.querySelector('.wizard-step-status') as HTMLElement | null;
+      if (status) {
+        status.dataset.state = state;
+        status.textContent = state === 'done' ? 'Validé' : state === 'active' ? 'En cours' : 'À faire';
+      }
+    });
   }
 
   function showStep(step: number) {
     const target = Math.max(1, Math.min(TOTAL_STEPS, step));
     if (target >= TOTAL_STEPS && !carteId) {
-      const err = document.getElementById('error-msg') as HTMLDivElement;
-      err.textContent = "Créez d'abord votre carte avant de configurer le scanner et le partage.";
-      err.classList.remove('hidden');
-      currentStep = TOTAL_STEPS - 1;
+      currentStep = (TOTAL_STEPS - 1) as WizardStep;
+      showStepError(6, "Créez d'abord votre carte avant d'accéder au scanner et au partage.");
     } else {
-      currentStep = target;
+      currentStep = target as WizardStep;
     }
 
     document.querySelectorAll('.wizard-section').forEach((section) => {
       const element = section as HTMLElement;
       element.classList.toggle('hidden', !element.classList.contains(`step-${currentStep}`));
     });
-
-    document.querySelectorAll('.wizard-tab').forEach((tab) => {
-      const element = tab as HTMLElement;
-      const isActive = Number(element.dataset.stepTarget) === currentStep;
-      element.classList.toggle('bg-sky-50', isActive);
-      element.classList.toggle('border-sky-300', isActive);
-      element.classList.toggle('shadow-[0_16px_40px_-32px_rgba(59,130,246,0.75)]', isActive);
-    });
+    const lockMsg = document.getElementById('step7-lock-msg');
+    if (lockMsg) lockMsg.classList.toggle('hidden', !!carteId);
 
     updateWizardActions();
     renderReviewSummary();
@@ -749,6 +907,75 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const fd = new FormData(); fd.append('file',file);
     const r = await fetch(`${API}/api/upload`,{method:'POST',headers:{Authorization:`Bearer ${session?.access_token??''}`},body:fd});
     const j = await r.json(); if(!r.ok) throw new Error(j.error??'Erreur upload'); return j.url as string;
+  }
+
+  function clamp(value: number, min: number, max: number): number {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function applyImageScaleToElements(ids: string[], scale: number) {
+    const clamped = clamp(scale, 0.7, 2.2);
+    ids.forEach((id) => {
+      const el = document.getElementById(id) as HTMLElement | null;
+      if (!el) return;
+      el.style.transformOrigin = 'center center';
+      el.style.transform = `scale(${clamped})`;
+    });
+  }
+
+  async function loadImageElement(url: string): Promise<HTMLImageElement> {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Impossible de charger l’image source.');
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    return await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(img);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Image source invalide.'));
+      };
+      img.src = objectUrl;
+    });
+  }
+
+  async function uploadScaledImageFromUrl(
+    sourceUrl: string,
+    targetWidth: number,
+    targetHeight: number,
+    zoomScale: number,
+    filePrefix: string,
+  ): Promise<string> {
+    const image = await loadImageElement(sourceUrl);
+    const canvas = document.createElement('canvas');
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas indisponible.');
+
+    const baseScale = Math.max(targetWidth / image.width, targetHeight / image.height);
+    const scale = baseScale * clamp(zoomScale, 0.7, 2.2);
+    const drawWidth = image.width * scale;
+    const drawHeight = image.height * scale;
+    const dx = (targetWidth - drawWidth) / 2;
+    const dy = (targetHeight - drawHeight) / 2;
+
+    ctx.clearRect(0, 0, targetWidth, targetHeight);
+    ctx.drawImage(image, dx, dy, drawWidth, drawHeight);
+
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (result) => (result ? resolve(result) : reject(new Error('Impossible de générer le fichier redimensionné.'))),
+        'image/png',
+        0.92,
+      );
+    });
+
+    const file = new File([blob], `${filePrefix}-${Date.now()}.png`, { type: 'image/png' });
+    return uploadFile(file);
   }
 
   function stampCols(total: number): number {
@@ -779,6 +1006,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     document.getElementById('fond2-wrap')!.classList.toggle('hidden',!isGradient);
     document.getElementById('gradient-angle-wrap')!.classList.toggle('hidden',!isGradient);
     document.getElementById('fond-label')!.textContent=isGradient?'Fond 1':'Fond';
+    markDirty();
     updatePreview();
   });
   (document.getElementById('gradient-angle') as HTMLInputElement).addEventListener('input',(e)=>{
@@ -795,18 +1023,59 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
   });
 
+  // Options avancées bannière
+  document.getElementById('banner-advanced-toggle')!.addEventListener('click', () => {
+    const panel = document.getElementById('banner-advanced-panel')!;
+    const arrow = document.getElementById('banner-advanced-arrow')!;
+    const isOpen = !panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', isOpen);
+    arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+  });
+
+  // Tabs Apparence
+  function setAppearancePanel(target: string) {
+    document.querySelectorAll('.appearance-tab').forEach((tab) => {
+      (tab as HTMLElement).dataset.active = ((tab as HTMLElement).dataset.appearanceTarget === target).toString();
+    });
+    document.querySelectorAll('[data-appearance-panel]').forEach((panel) => {
+      (panel as HTMLElement).classList.toggle('hidden', (panel as HTMLElement).dataset.appearancePanel !== target);
+    });
+  }
+  document.querySelectorAll('.appearance-tab').forEach((tab) => {
+    tab.addEventListener('click', () => setAppearancePanel((tab as HTMLElement).dataset.appearanceTarget ?? 'theme'));
+  });
+
+  // Voir plus de templates
+  document.getElementById('toggle-more-templates-btn')!.addEventListener('click', () => {
+    const extra = document.querySelectorAll('.template-extra');
+    const btn = document.getElementById('toggle-more-templates-btn') as HTMLButtonElement;
+    const shouldOpen = Array.from(extra).some((item) => item.classList.contains('hidden'));
+    extra.forEach((item) => item.classList.toggle('hidden', !shouldOpen));
+    btn.textContent = shouldOpen ? 'Masquer les modèles supplémentaires' : 'Voir plus de modèles';
+  });
+
+  // Preview mobile
+  document.getElementById('preview-toggle-btn')!.addEventListener('click', () => {
+    const panel = document.getElementById('preview-panel') as HTMLDivElement;
+    const btn = document.getElementById('preview-toggle-btn') as HTMLButtonElement;
+    const isHidden = panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', !isHidden);
+    btn.textContent = isHidden ? 'Masquer l’aperçu' : 'Voir l’aperçu';
+  });
+
   // Géolocalisation toggle
   let geoEnabled = false;
   const geoToggle = document.getElementById('geo-toggle') as HTMLButtonElement;
   const geoKnob = document.getElementById('geo-knob') as HTMLSpanElement;
   const geoSettings = document.getElementById('geo-settings') as HTMLDivElement;
 
-  function setGeoToggle(enabled: boolean) {
+  function setGeoToggle(enabled: boolean, silent = false) {
     geoEnabled = enabled;
     geoToggle.style.background = enabled ? '#4f46e5' : '#334155';
     geoKnob.style.left = enabled ? '26px' : '2px';
     geoToggle.setAttribute('aria-pressed', String(enabled));
     geoSettings.classList.toggle('hidden', !enabled);
+    if (!silent) markDirty();
   }
 
   geoToggle.addEventListener('click', () => setGeoToggle(!geoEnabled));
@@ -814,8 +1083,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   // Strip style
   function applyStripStyle(isFull: boolean) {
     const sz=document.getElementById('a-strip-zone')!;
-    document.getElementById('strip-style-rounded-label')!.style.cssText=!isFull?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a;color:white':'border-color:#dbeafe;background:#ffffff;color:#64748b';
-    document.getElementById('strip-style-full-label')!.style.cssText=isFull?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a;color:white':'border-color:#dbeafe;background:#ffffff;color:#64748b';
+    document.getElementById('strip-style-rounded-label')!.style.cssText=!isFull?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff;color:#64748b';
+    document.getElementById('strip-style-full-label')!.style.cssText=isFull?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff;color:#64748b';
     if(isFull){sz.classList.remove('mx-3','mb-3','rounded-xl');sz.style.cssText='position:relative;overflow:hidden;min-height:120px;z-index:10;';}
     else{sz.style.cssText='';sz.classList.add('mx-3','mb-3','rounded-xl');sz.style.minHeight='120px';}
   }
@@ -824,12 +1093,29 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const layout=(document.querySelector('input[name="strip_layout"]:checked') as HTMLInputElement).value;
     ['background','top','bottom'].forEach(v=>{
       const label=document.getElementById(`strip-layout-${v}-label`);
-      if(label) label.style.cssText=v===layout?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a;color:white':'border-color:#dbeafe;background:#ffffff;color:#64748b';
+      if(label) label.style.cssText=v===layout?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff;color:#64748b';
     });
     updatePreview();
   }));
 
   // Logo
+  const logoScaleInput = document.getElementById('logo-scale') as HTMLInputElement;
+  const logoScaleVal = document.getElementById('logo-scale-val') as HTMLSpanElement;
+  const logoApplyResizeBtn = document.getElementById('logo-apply-resize') as HTMLButtonElement;
+
+  function setLogoScale(nextScale: number, syncInput = true) {
+    logoScale = clamp(nextScale, 0.8, 2.2);
+    if (syncInput) logoScaleInput.value = String(Math.round(logoScale * 100));
+    logoScaleVal.textContent = `${Math.round(logoScale * 100)}%`;
+    applyImageScaleToElements(['logo-preview-img', 'preview-logo', 'g-logo'], logoScale);
+  }
+
+  logoScaleInput.addEventListener('input', (event) => {
+    const value = parseInt((event.target as HTMLInputElement).value, 10);
+    setLogoScale(value / 100, false);
+    markDirty();
+  });
+
   document.getElementById('logo-btn')!.addEventListener('click',()=>(document.getElementById('logo-file') as HTMLInputElement).click());
   (document.getElementById('logo-file') as HTMLInputElement).addEventListener('change',async(e)=>{
     const f=(e.target as HTMLInputElement).files?.[0]; if(!f)return;
@@ -840,7 +1126,37 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     ['logo-preview-img','preview-logo','g-logo'].forEach(id=>{const el=document.getElementById(id) as HTMLImageElement;if(url){el.src=url;el.classList.remove('hidden');}else el.classList.add('hidden');});
     ['logo-preview-icon','preview-logo-ph','g-logo-ph'].forEach(id=>document.getElementById(id)!.classList.toggle('hidden',!!url));
     (document.getElementById('logo-url') as HTMLInputElement).value=url;
+    applyImageScaleToElements(['logo-preview-img', 'preview-logo', 'g-logo'], logoScale);
   }
+
+  logoApplyResizeBtn.addEventListener('click', async () => {
+    if (!logoUrl) {
+      const err = document.getElementById('error-msg') as HTMLDivElement;
+      err.textContent = 'Ajoutez d’abord un logo avant de le redimensionner.';
+      err.classList.remove('hidden');
+      return;
+    }
+    const previousText = logoApplyResizeBtn.textContent;
+    logoApplyResizeBtn.disabled = true;
+    logoApplyResizeBtn.textContent = 'Application...';
+    try {
+      const scaledUrl = await uploadScaledImageFromUrl(logoUrl, 512, 512, logoScale, 'logo');
+      logoUrl = scaledUrl;
+      setLogoPreview(logoUrl);
+      setLogoScale(1);
+      const success = document.getElementById('success-msg') as HTMLDivElement;
+      success.textContent = 'Logo redimensionné et enregistré au bon format (512×512).';
+      success.classList.remove('hidden');
+      markDirty();
+    } catch (error: unknown) {
+      const err = document.getElementById('error-msg') as HTMLDivElement;
+      err.textContent = error instanceof Error ? error.message : 'Impossible de redimensionner le logo.';
+      err.classList.remove('hidden');
+    } finally {
+      logoApplyResizeBtn.disabled = false;
+      logoApplyResizeBtn.textContent = previousText ?? 'Appliquer au fichier logo (512×512)';
+    }
+  });
 
   document.getElementById('logo-palette-btn')!.addEventListener('click',async()=>{
     const err=document.getElementById('error-msg') as HTMLDivElement;
@@ -955,7 +1271,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const pos=(document.querySelector('input[name="strip_position"]:checked') as HTMLInputElement).value;
     const obj=pos==='top'?'top':pos==='bottom'?'bottom':'center';
     ['preview-strip','strip-preview-img','g-strip-img'].forEach(id=>(document.getElementById(id) as HTMLImageElement).style.objectPosition=obj);
-    ['top','center','bottom'].forEach(v=>document.getElementById(`strip-pos-${v}-label`)!.style.cssText=v===pos?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a;color:white':'border-color:#dbeafe;background:#ffffff;color:#64748b');
+    ['top','center','bottom'].forEach(v=>document.getElementById(`strip-pos-${v}-label`)!.style.cssText=v===pos?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff;color:#64748b');
   }));
 
   function parseJsonArray<T>(value: unknown): T[] {
@@ -1045,6 +1361,23 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   });
 
   // Strip
+  const stripScaleInput = document.getElementById('strip-scale') as HTMLInputElement;
+  const stripScaleVal = document.getElementById('strip-scale-val') as HTMLSpanElement;
+  const stripApplyResizeBtn = document.getElementById('strip-apply-resize') as HTMLButtonElement;
+
+  function setStripScale(nextScale: number, syncInput = true) {
+    stripScale = clamp(nextScale, 1, 2.2);
+    if (syncInput) stripScaleInput.value = String(Math.round(stripScale * 100));
+    stripScaleVal.textContent = `${Math.round(stripScale * 100)}%`;
+    applyImageScaleToElements(['strip-preview-img', 'preview-strip', 'g-strip-img'], stripScale);
+  }
+
+  stripScaleInput.addEventListener('input', (event) => {
+    const value = parseInt((event.target as HTMLInputElement).value, 10);
+    setStripScale(value / 100, false);
+    markDirty();
+  });
+
   document.getElementById('strip-btn')!.addEventListener('click',()=>(document.getElementById('strip-file') as HTMLInputElement).click());
   (document.getElementById('strip-file') as HTMLInputElement).addEventListener('change',async(e)=>{
     const f=(e.target as HTMLInputElement).files?.[0]; if(!f)return;
@@ -1064,7 +1397,37 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const gi=document.getElementById('g-strip-img') as HTMLImageElement;
     if(url){gi.src=url;gi.style.objectPosition=pos;gi.classList.remove('hidden');}else gi.classList.add('hidden');
     (document.getElementById('strip-url') as HTMLInputElement).value=url;
+    applyImageScaleToElements(['strip-preview-img', 'preview-strip', 'g-strip-img'], stripScale);
   }
+
+  stripApplyResizeBtn.addEventListener('click', async () => {
+    if (!stripUrl) {
+      const err = document.getElementById('error-msg') as HTMLDivElement;
+      err.textContent = 'Ajoutez d’abord une bannière avant de la redimensionner.';
+      err.classList.remove('hidden');
+      return;
+    }
+    const previousText = stripApplyResizeBtn.textContent;
+    stripApplyResizeBtn.disabled = true;
+    stripApplyResizeBtn.textContent = 'Application...';
+    try {
+      const scaledUrl = await uploadScaledImageFromUrl(stripUrl, 750, 246, stripScale, 'banniere');
+      stripUrl = scaledUrl;
+      setStripPreview(stripUrl);
+      setStripScale(1);
+      const success = document.getElementById('success-msg') as HTMLDivElement;
+      success.textContent = 'Bannière redimensionnée et enregistrée au bon format (750×246).';
+      success.classList.remove('hidden');
+      markDirty();
+    } catch (error: unknown) {
+      const err = document.getElementById('error-msg') as HTMLDivElement;
+      err.textContent = error instanceof Error ? error.message : 'Impossible de redimensionner la bannière.';
+      err.classList.remove('hidden');
+    } finally {
+      stripApplyResizeBtn.disabled = false;
+      stripApplyResizeBtn.textContent = previousText ?? 'Appliquer au fichier bannière (750×246)';
+    }
+  });
 
   // Presets
   function setInput(id: string, value: string) {
@@ -1155,7 +1518,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   function applyTypeUI(type: string){
     document.getElementById('config-tampons')!.classList.toggle('hidden',type!=='tampons');
     document.getElementById('config-points')!.classList.toggle('hidden',type!=='points');
-    document.getElementById('vip-tiers-card')!.classList.toggle('opacity-60',type!=='points');
+    document.getElementById('vip-tiers-card')!.classList.toggle('hidden',type!=='points');
     document.getElementById('tampon-icon-section')!.classList.toggle('hidden',type!=='tampons');
   }
 
@@ -1342,6 +1705,20 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     `).join('');
   }
 
+  function registerDirtyTracking() {
+    document.querySelectorAll('input, textarea, select').forEach((element) => {
+      element.addEventListener('input', markDirty);
+      element.addEventListener('change', markDirty);
+      element.addEventListener('input', () => clearStepError(currentStep));
+    });
+  }
+
+  window.addEventListener('beforeunload', (event) => {
+    if (!isDirty) return;
+    event.preventDefault();
+    event.returnValue = '';
+  });
+
   document.querySelectorAll('#nom-carte,#recompense,#label-client,#tampons-total,#points-recompense,#couleur-fond,#couleur-texte,#couleur-accent,#couleur-fond-2').forEach(el=>el.addEventListener('input',updatePreview));
   window.addEventListener('resize',()=>requestAnimationFrame(updatePreview));
 
@@ -1365,7 +1742,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const pt=data.pattern_type??'none'; sr('pattern_type',pt); sl('pat-',['none','dots','grid','waves','diagonal','confetti'],pt);
       const isFull=data.strip_plein_largeur !== false; applyStripStyle(isFull); sr('strip_style',isFull?'full':'rounded');
       const layout=data.strip_layout??'background'; sr('strip_layout',layout);
-      ['background','top','bottom'].forEach(v=>document.getElementById(`strip-layout-${v}-label`)!.style.cssText=v===layout?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a;color:white':'border-color:#dbeafe;background:#ffffff;color:#64748b');
+      ['background','top','bottom'].forEach(v=>document.getElementById(`strip-layout-${v}-label`)!.style.cssText=v===layout?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff;color:#64748b');
       const tp=data.type??'tampons'; sr('type',tp); applyTypeUI(tp);
       document.getElementById('type-tampons-label')!.style.cssText=tp==='tampons'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff';
       document.getElementById('type-points-label')!.style.cssText=tp==='points'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff';
@@ -1378,7 +1755,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       renderVipTiers(parseJsonArray<VipTier>(data.vip_tiers));
       if(data.strip_url){
         stripUrl=data.strip_url; const sp=data.strip_position??'center'; sr('strip_position',sp);
-        ['top','center','bottom'].forEach(v=>document.getElementById(`strip-pos-${v}-label`)!.style.cssText=v===sp?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a;color:white':'border-color:#dbeafe;background:#ffffff;color:#64748b');
+        ['top','center','bottom'].forEach(v=>document.getElementById(`strip-pos-${v}-label`)!.style.cssText=v===sp?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff;color:#64748b');
         setStripPreview(stripUrl);
       }
       if(data.tampon_emoji){
@@ -1412,12 +1789,162 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   document.querySelectorAll('.wizard-tab').forEach((tab) => {
     tab.addEventListener('click', () => {
-      showStep(Number((tab as HTMLElement).dataset.stepTarget ?? '1'));
+      const target = Number((tab as HTMLElement).dataset.stepTarget ?? '1');
+      if (target > currentStep + 1) {
+        showStepError(currentStep, 'Avancez étape par étape pour garder une configuration cohérente.');
+        return;
+      }
+      if (target > currentStep) {
+        const validation = stepValidators[currentStep]();
+        if (validation) {
+          showStepError(currentStep, validation);
+          return;
+        }
+        clearStepError(currentStep);
+      }
+      showStep(target);
     });
   });
 
-  document.getElementById('prev-step-btn')!.addEventListener('click', () => showStep(currentStep - 1));
-  document.getElementById('next-step-btn')!.addEventListener('click', () => showStep(currentStep + 1));
+  document.getElementById('prev-step-btn')!.addEventListener('click', () => {
+    clearStepError(currentStep);
+    showStep(currentStep - 1);
+  });
+
+  function buildPayload() {
+    const getChecked = (name: string) => (document.querySelector(`input[name="${name}"]:checked`) as HTMLInputElement)?.value ?? '';
+    const getInput = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
+    return {
+      nom:getInput('nom-carte'),
+      description:getInput('description')||null,
+      type:getChecked('type')||'tampons',
+      tampons_total:parseInt(getInput('tampons-total')),
+      points_par_euro:parseFloat(getInput('points-par-euro')),
+      points_recompense:parseInt(getInput('points-recompense')),
+      recompense_description:getInput('recompense')||null,
+      message_geo:getInput('message-geo')||undefined,
+      couleur_fond:getInput('couleur-fond'),
+      couleur_texte:getInput('couleur-texte'),
+      couleur_accent:getInput('couleur-accent'),
+      logo_url:logoUrl||null,
+      strip_url:stripUrl||null,
+      strip_position:getChecked('strip_position')||'center',
+      tampon_icon_url:tamponIconUrl||null,
+      barcode_type:getChecked('barcode_type')||'QR',
+      label_client:getInput('label-client')||'Client',
+      couleur_fond_2:isGradient?getInput('couleur-fond-2'):null,
+      gradient_angle:isGradient?parseInt(getInput('gradient-angle')):135,
+      pattern_type:getChecked('pattern_type')||'none',
+      tampon_emoji:tamponEmoji||null,
+      police:'system',
+      police_taille:100,
+      police_gras:false,
+      texte_alignement:'left',
+      strip_plein_largeur:getChecked('strip_style')==='full',
+      strip_layout:getChecked('strip_layout')||'background',
+      welcome_message:getInput('welcome-message')||null,
+      success_message:getInput('success-message')||null,
+      rewards_config:collectRewardTiers(),
+      vip_tiers:collectVipTiers(),
+    };
+  }
+
+  async function applyPendingMediaResizes() {
+    if (logoUrl && Math.abs(logoScale - 1) > 0.001) {
+      logoUrl = await uploadScaledImageFromUrl(logoUrl, 512, 512, logoScale, 'logo');
+      setLogoPreview(logoUrl);
+      setLogoScale(1);
+    }
+    if (stripUrl && Math.abs(stripScale - 1) > 0.001) {
+      stripUrl = await uploadScaledImageFromUrl(stripUrl, 750, 246, stripScale, 'banniere');
+      setStripPreview(stripUrl);
+      setStripScale(1);
+    }
+  }
+
+  async function persistCard(advance: boolean) {
+    const err=document.getElementById('error-msg') as HTMLDivElement;
+    const suc=document.getElementById('success-msg') as HTMLDivElement;
+    err.classList.add('hidden');
+    suc.classList.add('hidden');
+    isSaving = true;
+    updateWizardActions();
+    const saveDraftBtn = document.getElementById('save-draft-btn') as HTMLButtonElement;
+    const saveContinueBtn = document.getElementById('save-continue-btn') as HTMLButtonElement;
+    const originalDraft = saveDraftBtn.textContent;
+    const originalContinue = saveContinueBtn.textContent;
+    saveDraftBtn.textContent = 'Enregistrement...';
+    saveContinueBtn.textContent = 'Enregistrement...';
+
+    const hadExistingCard = !!carteId;
+    try{
+      await applyPendingMediaResizes();
+      const payload = buildPayload();
+      const res=carteId
+        ? await authFetch(`/api/cartes/${carteId}`,{method:'PATCH',body:JSON.stringify(payload)})
+        : await authFetch('/api/cartes',{method:'POST',body:JSON.stringify(payload)});
+      if(!res.ok) throw new Error((await res.json()).error??'Erreur');
+
+      await authFetch('/api/commerces/me', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          rayon_geo: parseInt((document.getElementById('rayon-geo') as HTMLInputElement).value, 10),
+          adresse: (document.getElementById('adresse-commerce') as HTMLInputElement).value || null,
+        }),
+      });
+
+      const { data } = await res.json();
+      if(!carteId){
+        carteId=data.id;
+        const pu=publicCardUrl(data.id);
+        document.getElementById('public-link-banner')!.classList.remove('hidden');
+        document.getElementById('public-link-url')!.textContent=pu;
+      }
+      if (carteId) {
+        updateQrTools(carteId);
+        updateScannerTools();
+      }
+
+      if (setupMode && !hadExistingCard) {
+        document.getElementById('setup-banner')!.classList.add('hidden');
+        window.history.replaceState({}, '', '/dashboard/carte');
+      }
+
+      setDraftState(false, true);
+      suc.textContent = !hadExistingCard && setupMode
+        ? 'Carte créée avec succès. Votre carte est opérationnelle en caisse.'
+        : 'Carte enregistrée avec succès.';
+      suc.classList.remove('hidden');
+
+      if (advance) {
+        clearStepError(currentStep);
+        const nextStep = currentStep < TOTAL_STEPS ? (currentStep + 1) : TOTAL_STEPS;
+        showStep(nextStep);
+      }
+    }catch(e:unknown){
+      err.textContent=e instanceof Error?e.message:'Erreur inattendue.';
+      err.classList.remove('hidden');
+    } finally {
+      isSaving = false;
+      saveDraftBtn.textContent = originalDraft;
+      saveContinueBtn.textContent = originalContinue;
+      updateWizardActions();
+    }
+  }
+
+  document.getElementById('save-draft-btn')!.addEventListener('click', async () => {
+    await persistCard(false);
+  });
+
+  document.getElementById('save-continue-btn')!.addEventListener('click', async () => {
+    const validation = stepValidators[currentStep]();
+    if (validation) {
+      showStepError(currentStep, validation);
+      return;
+    }
+    clearStepError(currentStep);
+    await persistCard(true);
+  });
 
   document.getElementById('download-qr-btn')!.addEventListener('click', async () => {
     if (!carteId) return;
@@ -1462,66 +1989,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       (document.getElementById('adresse-commerce') as HTMLInputElement).value = data?.adresse ?? '';
       rayonSlider.value = String(rayon);
       rayonLabel.textContent = `${rayon.toLocaleString('fr-FR')} m`;
-      if (data?.adresse) setGeoToggle(true);
+      if (data?.adresse) setGeoToggle(true, true);
     } catch {}
   }
-
-  document.getElementById('submit-btn')!.addEventListener('click',async()=>{
-    const err=document.getElementById('error-msg') as HTMLDivElement;
-    const suc=document.getElementById('success-msg') as HTMLDivElement;
-    err.classList.add('hidden');suc.classList.add('hidden');
-    const btn=document.getElementById('submit-btn') as HTMLButtonElement;
-    btn.disabled=true;btn.textContent='Enregistrement...';
-    const hadExistingCard = !!carteId;
-    const v=(name:string)=>(document.querySelector(`input[name="${name}"]:checked`) as HTMLInputElement)?.value??'';
-    const gi=(id:string)=>(document.getElementById(id) as HTMLInputElement).value;
-    const payload={
-      nom:gi('nom-carte'),description:gi('description')||null,type:v('type')||'tampons',
-      tampons_total:parseInt(gi('tampons-total')),points_par_euro:parseFloat(gi('points-par-euro')),
-      points_recompense:parseInt(gi('points-recompense')),recompense_description:gi('recompense')||null,
-      message_geo:gi('message-geo')||undefined,
-      couleur_fond:gi('couleur-fond'),couleur_texte:gi('couleur-texte'),couleur_accent:gi('couleur-accent'),
-      logo_url:logoUrl||null,strip_url:stripUrl||null,strip_position:v('strip_position')||'center',
-      tampon_icon_url:tamponIconUrl||null,barcode_type:v('barcode_type')||'QR',
-      label_client:gi('label-client')||'Client',
-      couleur_fond_2:isGradient?gi('couleur-fond-2'):null,
-      gradient_angle:isGradient?parseInt(gi('gradient-angle')):135,
-      pattern_type:v('pattern_type')||'none',tampon_emoji:tamponEmoji||null,
-      police:'system',police_taille:100,
-      police_gras:false,texte_alignement:'left',
-      strip_plein_largeur:v('strip_style')==='full',
-      strip_layout:v('strip_layout')||'background',
-      welcome_message:gi('welcome-message')||null,
-      success_message:gi('success-message')||null,
-      rewards_config:collectRewardTiers(),
-      vip_tiers:collectVipTiers(),
-    };
-    try{
-      const res=carteId?await authFetch(`/api/cartes/${carteId}`,{method:'PATCH',body:JSON.stringify(payload)}):await authFetch('/api/cartes',{method:'POST',body:JSON.stringify(payload)});
-      if(!res.ok)throw new Error((await res.json()).error??'Erreur');
-      await authFetch('/api/commerces/me', {
-        method: 'PATCH',
-        body: JSON.stringify({
-          rayon_geo: parseInt(gi('rayon-geo')),
-          adresse: gi('adresse-commerce') || null,
-        }),
-      });
-      const{data}=await res.json();
-      if(!carteId){carteId=data.id;const pu=publicCardUrl(data.id);document.getElementById('public-link-banner')!.classList.remove('hidden');document.getElementById('public-link-url')!.textContent=pu;}
-      if (carteId) {
-        updateQrTools(carteId);
-        updateScannerTools();
-      }
-      suc.textContent=!hadExistingCard&&setupMode?'Carte créée avec succès. Votre programme est opérationnel : vous pouvez maintenant scanner les cartes depuis votre espace Scan.':'Carte enregistrée avec succès !';suc.classList.remove('hidden');
-      if (setupMode && !hadExistingCard) {
-        document.getElementById('setup-banner')!.classList.add('hidden');
-        window.history.replaceState({}, '', '/dashboard/carte');
-      }
-      if (!hadExistingCard || currentStep === 6) showStep(7);
-    }catch(e:unknown){
-      err.textContent=e instanceof Error?e.message:'Erreur inattendue.';err.classList.remove('hidden');
-    }finally{btn.disabled=false;}
-  });
 
   // ── Restrictions par plan ──────────────────────────────────────────
   async function loadPlanRestrictions() {
@@ -1554,6 +2024,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     } catch { /* silencieux */ }
   }
 
+  registerDirtyTracking();
+  setAppearancePanel('theme');
+  setLogoScale(1);
+  setStripScale(1);
   updatePreview();
   applyTypeUI('tampons');
   applyStripStyle(true);
@@ -1561,7 +2035,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   renderVipTiers();
   updateScannerTools();
   showStep(1);
-  loadCommerceGeo();
-  loadExistingCarte();
-  loadPlanRestrictions();
+
+  (async () => {
+    await Promise.all([
+      loadCommerceGeo(),
+      loadExistingCarte(),
+      loadPlanRestrictions(),
+    ]);
+    suppressDirtyTracking = false;
+    setDraftState(false);
+    updateWizardActions();
+  })();
 </script>

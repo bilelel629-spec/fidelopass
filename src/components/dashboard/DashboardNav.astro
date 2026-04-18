@@ -21,6 +21,15 @@ const navItems = [
       <img src="/logo-premium.png" alt="Fidelopass" class="h-14 w-48 object-cover object-center" />
       <span class="text-xs font-medium tracking-[0.24em] uppercase text-sky-700/70">Espace commerçant</span>
     </a>
+    <div class="mt-4 rounded-2xl border border-sky-100/90 bg-sky-50/50 px-3 py-2">
+      <p class="text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-slate-500">Plan actif</p>
+      <span
+        id="dashboard-plan-badge"
+        class="mt-1 inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[0.67rem] font-semibold tracking-wide text-slate-500"
+      >
+        Chargement...
+      </span>
+    </div>
   </div>
 
   <nav class="flex-1 px-4 py-5 flex flex-col gap-1.5">
@@ -69,9 +78,17 @@ const navItems = [
   <a href="/dashboard" class="flex items-center gap-3 min-w-0">
     <img src="/logo-premium.png" alt="Fidelopass" class="h-10 w-36 object-cover object-center" />
   </a>
-  <a href="/app" class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700">
-    Scanner
-  </a>
+  <div class="flex items-center gap-2">
+    <span
+      id="dashboard-plan-badge-mobile"
+      class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[0.65rem] font-semibold tracking-wide text-slate-500"
+    >
+      ...
+    </span>
+    <a href="/app" class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700">
+      Scanner
+    </a>
+  </div>
 </header>
 
 <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-sky-100/90 bg-white/92 backdrop-blur-2xl px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.55rem)]">
@@ -95,11 +112,46 @@ const navItems = [
 </nav>
 
 <script>
+  import { authFetch } from '../../lib/api';
   import { createClient } from '@supabase/supabase-js';
+
   const supabase = createClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
   );
+
+  const desktopPlanBadge = document.getElementById('dashboard-plan-badge');
+  const mobilePlanBadge = document.getElementById('dashboard-plan-badge-mobile');
+
+  function setPlanBadge(planRaw: unknown) {
+    const normalized = String(planRaw ?? 'starter').toLowerCase();
+    const isPro = normalized === 'pro';
+    const label = isPro ? 'PRO' : 'STARTER';
+    const classes = isPro
+      ? 'inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[0.67rem] font-semibold tracking-wide text-violet-700'
+      : 'inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[0.67rem] font-semibold tracking-wide text-emerald-700';
+
+    for (const element of [desktopPlanBadge, mobilePlanBadge]) {
+      if (!element) continue;
+      element.textContent = label;
+      element.className = classes;
+    }
+  }
+
+  async function loadPlanBadge() {
+    try {
+      const res = await authFetch('/api/dashboard/plan');
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error ?? 'Plan indisponible');
+      setPlanBadge(payload?.data?.plan);
+    } catch (error) {
+      console.error('[dashboard plan badge]', error);
+      setPlanBadge('starter');
+    }
+  }
+
+  loadPlanBadge();
+
   document.getElementById('logout-btn')?.addEventListener('click', async () => {
     await supabase.auth.signOut();
     window.location.href = '/login';

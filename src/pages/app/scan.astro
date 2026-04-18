@@ -168,6 +168,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
   const scanner = new Html5Qrcode('reader', false);
   let scannerStarting = false;
   const CAMERA_CACHE_KEY = 'fidelopass_scanner_camera_id';
+  const SCANNER_TOKEN_KEY = 'fidelopass_scanner_token';
   const scanConfig = {
     fps: 30,
     aspectRatio: 4 / 5,
@@ -236,6 +237,47 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
   function stopTracks(stream: MediaStream | null) {
     stream?.getTracks().forEach((track) => track.stop());
+  }
+
+  function getScannerToken() {
+    let token = localStorage.getItem(SCANNER_TOKEN_KEY);
+    if (!token) {
+      token = `${crypto.randomUUID()}-${Date.now()}`;
+      localStorage.setItem(SCANNER_TOKEN_KEY, token);
+    }
+    return token;
+  }
+
+  async function ensureScannerAccess() {
+    const token = getScannerToken();
+    const statusRes = await authFetch(`/api/scanners/status?scanner_token=${encodeURIComponent(token)}`);
+    const statusPayload = await statusRes.json().catch(() => null);
+    if (!statusRes.ok) {
+      throw new Error(statusPayload?.error ?? 'Impossible de vérifier le quota scanner.');
+    }
+
+    const statusData = statusPayload?.data;
+    if (!statusData) throw new Error('Réponse scanner invalide.');
+
+    if (statusData.registered_for_token) {
+      return;
+    }
+
+    if (statusData.remaining_scanners <= 0) {
+      throw new Error(`Limite de scanners atteinte (${statusData.max_scanners}). Passez au plan supérieur pour ajouter un nouvel appareil.`);
+    }
+
+    const registerRes = await authFetch('/api/scanners/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        scanner_token: token,
+        device_name: navigator.platform || 'Téléphone',
+      }),
+    });
+    const registerPayload = await registerRes.json().catch(() => null);
+    if (!registerRes.ok) {
+      throw new Error(registerPayload?.error ?? 'Impossible d’enregistrer ce scanner.');
+    }
   }
 
   async function requestCameraPermission() {
@@ -505,6 +547,25 @@ import AppLayout from '../../layouts/AppLayout.astro';
   document.getElementById('btn-close')!.addEventListener('click', closeResult);
   document.addEventListener('pointerdown', unlockAudio, { once: true });
   document.addEventListener('touchstart', unlockAudio, { once: true });
-  cameraPermissionBtn.addEventListener('click', () => startScanner({ fromUserAction: true }));
-  startScanner();
+  cameraPermissionBtn.addEventListener('click', async () => {
+    try {
+      await ensureScannerAccess();
+      startScanner({ fromUserAction: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Impossible d’activer le scanner.';
+      setScannerStatus('Scanner indisponible pour ce téléphone.');
+      showCameraHelp(message);
+    }
+  });
+
+  (async () => {
+    try {
+      await ensureScannerAccess();
+      startScanner();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Impossible d’activer le scanner.';
+      setScannerStatus('Scanner indisponible pour ce téléphone.');
+      showCameraHelp(message);
+    }
+  })();
 </script>

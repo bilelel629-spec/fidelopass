@@ -30,6 +30,24 @@ import AppLayout from '../../layouts/AppLayout.astro';
         </p>
       </div>
 
+      <div id="scanner-quota-card" class="rounded-2xl border border-sky-100 bg-white p-5 mt-6">
+        <div class="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-sm font-semibold text-slate-900">Quota scanners</p>
+          <span id="scanner-plan-badge" class="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-sky-700">Chargement…</span>
+        </div>
+        <p id="scanner-usage" class="mt-3 text-sm text-slate-700">Chargement du quota…</p>
+        <p id="scanner-remaining" class="mt-1 text-xs text-slate-500"></p>
+        <p id="scanner-limit-msg" class="hidden mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"></p>
+        <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+          <button id="scanner-register-btn" type="button" class="btn-primary px-4 py-2.5 text-sm">
+            Enregistrer ce téléphone comme scanner
+          </button>
+          <a href="/dashboard/parametres" class="btn-secondary px-4 py-2.5 text-sm text-center">
+            Voir / upgrader mon plan
+          </a>
+        </div>
+      </div>
+
       <div class="grid md:grid-cols-2 gap-5 mt-8">
         <div class="rounded-2xl border border-sky-100 bg-sky-50 p-5">
           <p class="text-slate-900 font-semibold">Sur iPhone</p>
@@ -62,9 +80,108 @@ import AppLayout from '../../layouts/AppLayout.astro';
       </div>
 
       <div class="flex flex-col sm:flex-row gap-3 mt-6">
-        <a href="/app/scan" class="btn-primary px-6 py-3 text-center">Ouvrir le scanner</a>
+        <a id="open-scanner-link" href="/app/scan" class="btn-primary px-6 py-3 text-center">Ouvrir le scanner</a>
         <a href="/app" class="btn-secondary px-6 py-3 text-center">Retour à l’espace commerçant</a>
       </div>
     </div>
   </div>
 </AppLayout>
+
+<script>
+  import { authFetch } from '../../lib/api';
+
+  const SCANNER_TOKEN_KEY = 'fidelopass_scanner_token';
+  const registerBtn = document.getElementById('scanner-register-btn') as HTMLButtonElement;
+  const planBadge = document.getElementById('scanner-plan-badge') as HTMLSpanElement;
+  const usageText = document.getElementById('scanner-usage') as HTMLParagraphElement;
+  const remainingText = document.getElementById('scanner-remaining') as HTMLParagraphElement;
+  const limitMsg = document.getElementById('scanner-limit-msg') as HTMLParagraphElement;
+  const openScannerLink = document.getElementById('open-scanner-link') as HTMLAnchorElement;
+
+  function getScannerToken() {
+    let token = localStorage.getItem(SCANNER_TOKEN_KEY);
+    if (!token) {
+      token = `${crypto.randomUUID()}-${Date.now()}`;
+      localStorage.setItem(SCANNER_TOKEN_KEY, token);
+    }
+    return token;
+  }
+
+  function setScannerBlocked(blocked: boolean, message = '') {
+    openScannerLink.classList.toggle('pointer-events-none', blocked);
+    openScannerLink.classList.toggle('opacity-50', blocked);
+    registerBtn.disabled = blocked;
+    if (message) {
+      limitMsg.textContent = message;
+      limitMsg.classList.remove('hidden');
+    } else {
+      limitMsg.classList.add('hidden');
+    }
+  }
+
+  async function loadScannerStatus() {
+    const token = getScannerToken();
+    const res = await authFetch(`/api/scanners/status?scanner_token=${encodeURIComponent(token)}`);
+    if (!res.ok) throw new Error('Impossible de charger le quota scanner.');
+    const payload = await res.json();
+    const data = payload?.data;
+    if (!data) throw new Error('Réponse scanner invalide.');
+
+    const plan = String(data.plan ?? 'starter').toLowerCase();
+    planBadge.textContent = plan === 'pro' ? 'Pro' : 'Starter';
+    planBadge.className = plan === 'pro'
+      ? 'rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-violet-700'
+      : 'rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-sky-700';
+
+    usageText.textContent = `${data.current_scanners} scanner(s) actif(s) sur ${data.max_scanners} disponibles.`;
+    remainingText.textContent = data.registered_for_token
+      ? 'Ce téléphone est déjà enregistré comme scanner.'
+      : `${data.remaining_scanners} emplacement(s) scanner restant(s).`;
+
+    if (data.registered_for_token) {
+      registerBtn.textContent = 'Téléphone déjà enregistré';
+      registerBtn.disabled = true;
+      setScannerBlocked(false);
+      return;
+    }
+
+    if (data.remaining_scanners <= 0) {
+      registerBtn.textContent = 'Limite atteinte';
+      setScannerBlocked(true, `Vous avez atteint la limite de ${data.max_scanners} scanners sur ce plan.`);
+      return;
+    }
+
+    registerBtn.textContent = 'Enregistrer ce téléphone comme scanner';
+    registerBtn.disabled = false;
+    setScannerBlocked(false);
+  }
+
+  registerBtn.addEventListener('click', async () => {
+    const token = getScannerToken();
+    registerBtn.disabled = true;
+    const previous = registerBtn.textContent;
+    registerBtn.textContent = 'Enregistrement...';
+    try {
+      const res = await authFetch('/api/scanners/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          scanner_token: token,
+          device_name: navigator.platform || 'Téléphone',
+        }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error ?? 'Impossible d’enregistrer ce scanner.');
+      await loadScannerStatus();
+    } catch (error) {
+      registerBtn.disabled = false;
+      registerBtn.textContent = previous ?? 'Enregistrer ce téléphone comme scanner';
+      setScannerBlocked(false, error instanceof Error ? error.message : 'Impossible d’enregistrer ce scanner.');
+    }
+  });
+
+  loadScannerStatus().catch((error) => {
+    usageText.textContent = 'Impossible de charger le quota scanner.';
+    remainingText.textContent = '';
+    setScannerBlocked(true, error instanceof Error ? error.message : 'Vérifiez votre connexion et réessayez.');
+  });
+</script>

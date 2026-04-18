@@ -192,3 +192,57 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
     return c.json({ error: message }, 400);
   }
 });
+
+/** POST /api/checkout/create-portal-session */
+checkoutRoutes.post('/create-portal-session', authMiddleware, async (c) => {
+  const userId = c.get('userId') as string;
+  const db = createServiceClient();
+
+  const { data: commerce } = await db
+    .from('commerces')
+    .select('id, stripe_customer_id')
+    .eq('user_id', userId)
+    .single();
+
+  if (!commerce) {
+    return c.json({ error: 'Commerce introuvable.' }, 404);
+  }
+
+  const stripe = getStripe();
+  let customerId = commerce.stripe_customer_id;
+
+  if (!customerId) {
+    const { data: { user } } = await db.auth.admin.getUserById(userId);
+    const email = user?.email;
+    if (!email) {
+      return c.json({ error: "Aucun email de facturation disponible pour ouvrir l'espace Stripe." }, 400);
+    }
+
+    const customer = await stripe.customers.create({
+      email,
+      metadata: {
+        user_id: userId,
+        commerce_id: commerce.id,
+      },
+    });
+    customerId = customer.id;
+
+    await db
+      .from('commerces')
+      .update({ stripe_customer_id: customerId })
+      .eq('id', commerce.id);
+  }
+
+  const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${PUBLIC_SITE_URL}/dashboard/parametres?tab=plans`,
+    });
+    return c.json({ url: session.url });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Impossible d’ouvrir l’espace de gestion Stripe.';
+    console.error('[checkout] create-portal-session error:', message);
+    return c.json({ error: message }, 400);
+  }
+});

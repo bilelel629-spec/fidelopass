@@ -19,8 +19,9 @@ const updateSchema = z.object({
 });
 
 export const PLAN_LIMITS = {
-  starter: { maxClients: 500, maxPointsDeVente: 1, anniversaire: false, avisGoogle: false },
-  pro:     { maxClients: 2000, maxPointsDeVente: 3, anniversaire: true,  avisGoogle: true  },
+  starter: { maxClients: 500, maxPointsDeVente: 1, anniversaire: false, avisGoogle: false, maxScanners: 3 },
+  pro:     { maxClients: 2000, maxPointsDeVente: 3, anniversaire: true,  avisGoogle: true,  maxScanners: 6 },
+  'sur-mesure': { maxClients: 20000, maxPointsDeVente: 10, anniversaire: true, avisGoogle: true, maxScanners: 20 },
 } as const;
 
 export function getPlanLimits(plan: string | null | undefined) {

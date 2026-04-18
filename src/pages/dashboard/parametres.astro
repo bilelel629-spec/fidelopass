@@ -84,6 +84,25 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <section id="tab-plans" class="account-panel hidden card p-6">
         <h2 class="font-display font-bold text-slate-900 text-xl mb-2">Plans</h2>
         <p class="text-slate-600 text-sm mb-5">Comparez les offres Fidelopass et préparez vos évolutions de capacité sans sortir de l’espace commerçant.</p>
+        <div class="mb-5 rounded-2xl border border-sky-100 bg-sky-50/80 p-4">
+          <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700/75">Gestion abonnement</p>
+          <p class="mt-2 text-sm text-slate-700">
+            Plan actuel :
+            <span id="plans-current-plan" class="font-semibold text-slate-900">Chargement…</span>
+            ·
+            Statut :
+            <span id="plans-current-status" class="font-semibold text-slate-900">Chargement…</span>
+          </p>
+          <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+            <a id="plans-upgrade-btn" href="/abonnement/choix" class="btn-primary px-4 py-2.5 text-sm text-center">
+              Passer au plan supérieur
+            </a>
+            <button id="plans-cancel-btn" type="button" class="btn-secondary px-4 py-2.5 text-sm">
+              Annuler / gérer mon abonnement
+            </button>
+          </div>
+          <p id="plans-action-feedback" class="hidden mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"></p>
+        </div>
         <div class="grid gap-4 xl:grid-cols-3">
           <div class="rounded-2xl border border-slate-200 bg-white p-5">
             <p class="text-sm font-semibold text-slate-900">Lancement</p>
@@ -153,17 +172,24 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   import { authFetch } from '../../lib/api';
   import { signOut } from '../../lib/auth';
 
-  document.querySelectorAll('.account-tab').forEach((button) => {
-    button.addEventListener('click', () => {
-      const tab = (button as HTMLButtonElement).dataset.tab;
-      document.querySelectorAll('.account-tab').forEach((el) => {
-        el.className = 'account-tab rounded-2xl px-4 py-3 text-left text-sm font-medium transition-all text-slate-600 hover:bg-slate-50 hover:text-slate-900';
-      });
-      button.className = 'account-tab rounded-2xl px-4 py-3 text-left text-sm font-medium transition-all bg-sky-100 text-sky-800';
-      document.querySelectorAll('.account-panel').forEach((panel) => panel.classList.add('hidden'));
-      document.getElementById(`tab-${tab}`)?.classList.remove('hidden');
+  function setAccountTab(tab: string) {
+    document.querySelectorAll('.account-tab').forEach((el) => {
+      const button = el as HTMLButtonElement;
+      const isActive = button.dataset.tab === tab;
+      button.className = isActive
+        ? 'account-tab rounded-2xl px-4 py-3 text-left text-sm font-medium transition-all bg-sky-100 text-sky-800'
+        : 'account-tab rounded-2xl px-4 py-3 text-left text-sm font-medium transition-all text-slate-600 hover:bg-slate-50 hover:text-slate-900';
     });
+    document.querySelectorAll('.account-panel').forEach((panel) => panel.classList.add('hidden'));
+    document.getElementById(`tab-${tab}`)?.classList.remove('hidden');
+  }
+
+  document.querySelectorAll('.account-tab').forEach((button) => {
+    button.addEventListener('click', () => setAccountTab((button as HTMLButtonElement).dataset.tab ?? 'profil'));
   });
+
+  const requestedTab = new URLSearchParams(window.location.search).get('tab');
+  if (requestedTab) setAccountTab(requestedTab);
 
   async function loadSettings() {
     try {
@@ -179,6 +205,64 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       document.getElementById('organisation-adresse')!.textContent = data.adresse ?? 'Adresse non renseignée';
       document.getElementById('organisation-rayon')!.textContent = `Rayon de géolocalisation : ${(data.rayon_geo ?? 1000).toLocaleString('fr-FR')} m`;
     } catch { /* silencieux */ }
+  }
+
+  const plansCurrentPlan = document.getElementById('plans-current-plan') as HTMLSpanElement;
+  const plansCurrentStatus = document.getElementById('plans-current-status') as HTMLSpanElement;
+  const plansUpgradeBtn = document.getElementById('plans-upgrade-btn') as HTMLAnchorElement;
+  const plansCancelBtn = document.getElementById('plans-cancel-btn') as HTMLButtonElement;
+  const plansActionFeedback = document.getElementById('plans-action-feedback') as HTMLParagraphElement;
+
+  function setPlansFeedback(message = '') {
+    if (!message) {
+      plansActionFeedback.classList.add('hidden');
+      plansActionFeedback.textContent = '';
+      return;
+    }
+    plansActionFeedback.textContent = message;
+    plansActionFeedback.classList.remove('hidden');
+  }
+
+  async function loadPlansControls() {
+    try {
+      const res = await authFetch('/api/billing/status');
+      if (!res.ok) throw new Error();
+      const payload = await res.json();
+      const data = payload?.data;
+      if (!data) throw new Error();
+
+      const plan = String(data.plan ?? 'starter').toLowerCase();
+      const status = String(data.billing_status ?? 'unpaid');
+      const hasSubscription = Boolean(data.stripe_subscription_id);
+      const readablePlan = plan === 'pro' ? 'Pro' : plan === 'sur-mesure' ? 'Sur mesure' : 'Starter';
+
+      plansCurrentPlan.textContent = readablePlan;
+      plansCurrentStatus.textContent = status;
+
+      if (plan === 'starter') {
+        plansUpgradeBtn.textContent = 'Passer au plan Pro';
+        plansUpgradeBtn.href = '/abonnement/choix';
+      } else if (plan === 'pro') {
+        plansUpgradeBtn.textContent = 'Passer en Sur mesure';
+        plansUpgradeBtn.href = '/contact';
+      } else {
+        plansUpgradeBtn.textContent = 'Plan déjà sur mesure';
+        plansUpgradeBtn.href = '/contact';
+      }
+
+      plansCancelBtn.disabled = !hasSubscription;
+      if (!hasSubscription) {
+        plansCancelBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        setPlansFeedback("Aucun abonnement Stripe actif détecté pour l'instant.");
+      } else {
+        plansCancelBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        setPlansFeedback('');
+      }
+    } catch {
+      plansCurrentPlan.textContent = 'Indisponible';
+      plansCurrentStatus.textContent = 'Indisponible';
+      setPlansFeedback("Impossible de charger le statut d'abonnement.");
+    }
   }
 
   const form = document.getElementById('settings-form') as HTMLFormElement;
@@ -226,5 +310,25 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     window.location.href = '/login';
   });
 
+  plansCancelBtn.addEventListener('click', async () => {
+    setPlansFeedback('');
+    plansCancelBtn.disabled = true;
+    const previousLabel = plansCancelBtn.textContent;
+    plansCancelBtn.textContent = 'Ouverture...';
+    try {
+      const res = await authFetch('/api/checkout/create-portal-session', { method: 'POST' });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok || !payload?.url) {
+        throw new Error(payload?.error ?? 'Impossible d’ouvrir la gestion de l’abonnement.');
+      }
+      window.location.href = payload.url;
+    } catch (error) {
+      setPlansFeedback(error instanceof Error ? error.message : 'Impossible d’ouvrir la gestion de l’abonnement.');
+      plansCancelBtn.disabled = false;
+      plansCancelBtn.textContent = previousLabel ?? 'Annuler / gérer mon abonnement';
+    }
+  });
+
   loadSettings();
+  loadPlansControls();
 </script>

@@ -91,7 +91,7 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       const payload = await res.json().catch(() => null);
       const cardId = payload?.data?.id;
       if (!cardId) return;
-      qrBtn.href = `/api/qr/${cardId}?size=1200`;
+      qrBtn.href = `/poster/${cardId}?template=premium`;
       container.classList.remove('hidden');
     } catch {
       // Affichage best-effort.

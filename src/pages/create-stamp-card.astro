@@ -3,88 +3,162 @@ import PublicFooter from '../components/marketing/PublicFooter.astro';
 import PublicNav from '../components/marketing/PublicNav.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
-const useCases = [
-  'Coffee shop, salon, barber, boulangerie, snack, boutique de passage',
-  'Récompense simple du type 8 ou 10 passages = 1 offert',
-  'Passage rapide au comptoir avec un scan immédiat',
+const sectors = [
+  'Cafés et coffee shops',
+  'Boulangeries et snacks',
+  'Salons de coiffure / barber',
+  'Esthétique et bien-être',
+  'Petits commerces de quartier',
+  'Restauration rapide',
 ];
 
-const strengths = [
-  'Le client comprend instantanément sa progression',
-  'Le commerçant n’a pas besoin d’expliquer une mécanique complexe',
-  'Le scan et l’ajout de tampon restent ultra fluides en boutique',
+const reasons = [
+  {
+    title: 'Compréhension immédiate',
+    text: 'Le client voit son avancement en un coup d’œil. Aucun calcul mental, aucune friction.',
+  },
+  {
+    title: 'Rapide à opérer en caisse',
+    text: 'Le staff scanne, ajoute un tampon, et passe au client suivant en quelques secondes.',
+  },
+  {
+    title: 'Parfait pour les passages fréquents',
+    text: 'Le format est idéal quand la récompense dépend du nombre de visites.',
+  },
+];
+
+const workflow = [
+  {
+    step: '1',
+    title: 'Le client ajoute sa carte Wallet',
+    text: 'Via QR code en magasin, sans application à installer.',
+  },
+  {
+    step: '2',
+    title: 'Le commerçant scanne la carte',
+    text: 'Depuis l’onglet scanner, en un geste simple.',
+  },
+  {
+    step: '3',
+    title: 'Un tampon est ajouté',
+    text: 'La progression est mise à jour dans Apple Wallet / Google Wallet.',
+  },
+  {
+    step: '4',
+    title: 'Récompense débloquée',
+    text: 'Le client revient plus souvent pour atteindre le prochain palier.',
+  },
 ];
 ---
 
 <BaseLayout title="Carte à tampons Fidelopass" description="Créez une carte à tampons Apple Wallet et Google Wallet simple à scanner et facile à comprendre pour vos clients.">
-  <div class="relative overflow-hidden min-h-screen">
-    <div class="absolute inset-0 pointer-events-none">
-      <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[60rem] h-[60rem] rounded-full blur-3xl opacity-20" style="background:radial-gradient(circle,#6366f1 0%,rgba(10,15,30,0) 62%)"></div>
-      <div class="absolute bottom-0 left-0 w-[24rem] h-[24rem] rounded-full blur-3xl opacity-15" style="background:radial-gradient(circle,#f59e0b 0%,rgba(10,15,30,0) 68%)"></div>
-    </div>
+  <div class="min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_62%,#ffffff_100%)] relative overflow-hidden">
+    <div class="pointer-events-none absolute -top-24 right-[-10rem] h-[30rem] w-[30rem] rounded-full bg-cyan-200/35 blur-3xl"></div>
+    <div class="pointer-events-none absolute bottom-[-9rem] left-[-8rem] h-[24rem] w-[24rem] rounded-full bg-indigo-200/25 blur-3xl"></div>
 
     <PublicNav currentPath="/create-stamp-card" />
 
-    <section class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-16">
-      <div class="grid lg:grid-cols-[1fr_0.95fr] gap-10 items-center">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 pt-12 pb-20">
+      <section class="grid lg:grid-cols-[1.05fr_0.95fr] gap-8 items-center">
         <div>
-          <div class="badge badge-info mb-5">Produit Fidelopass</div>
-          <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[0.96]">
-            La carte à tampons Wallet,
-            <span class="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-sky-300 to-amber-200">
-              la plus naturelle pour les commerces de passage
+          <span class="inline-flex items-center rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-sky-700 shadow-sm">
+            Carte à tampons
+          </span>
+          <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 leading-[0.96] mt-5">
+            Le format le plus simple
+            <span class="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-sky-500">
+              pour faire revenir les clients.
             </span>
           </h1>
-          <p class="text-slate-300 text-lg leading-relaxed mt-6 max-w-2xl">
-            Si le commerçant veut remplacer une carte papier sans changer ses habitudes, la carte à tampons est le meilleur point d’entrée. Elle est simple à comprendre, rapide à scanner et rassurante à vendre.
+          <p class="text-slate-500 text-lg leading-relaxed mt-6 max-w-2xl">
+            Remplacez la carte papier par une carte Wallet claire, rapide à scanner et facile à expliquer à votre équipe comme à vos clients.
           </p>
-          <div class="space-y-3 mt-8">
-            {useCases.map((item) => (
-              <div class="flex items-start gap-3 text-sm text-slate-300">
-                <span class="mt-1 w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
-                <span>{item}</span>
-              </div>
-            ))}
+
+          <div class="grid sm:grid-cols-2 gap-3 mt-8">
+            <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+              <p class="text-sm font-semibold text-slate-900">+27% de rétention moyenne</p>
+              <p class="text-sm text-slate-500 mt-1">Sur les commerces qui activent un programme fidélité digital.</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+              <p class="text-sm font-semibold text-slate-900">Aucune app client</p>
+              <p class="text-sm text-slate-500 mt-1">Ajout direct dans Apple Wallet et Google Wallet.</p>
+            </div>
           </div>
+
           <div class="flex flex-col sm:flex-row gap-3 mt-8">
             <a href="/register" class="btn-primary px-8 py-3.5 text-base">Créer une carte à tampons</a>
             <a href="/pricing" class="btn-secondary px-8 py-3.5 text-base">Voir les tarifs</a>
           </div>
         </div>
 
-        <div class="card p-6 sm:p-7">
-          <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">Pourquoi ce format convertit bien</p>
-          <div class="space-y-4 mt-6">
-            {strengths.map((item, index) => (
-              <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p class="text-indigo-300 font-mono text-xs tracking-[0.3em]">0{index + 1}</p>
-                <p class="text-white font-semibold mt-2">{item}</p>
+        <aside class="rounded-[2rem] border border-slate-200 bg-white shadow-[0_22px_50px_rgba(15,23,42,0.08)] p-6 sm:p-7">
+          <p class="text-xs uppercase tracking-[0.22em] text-slate-400 font-semibold">Commerces concernés</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
+            {sectors.map((sector) => (
+              <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                {sector}
               </div>
             ))}
           </div>
-        </div>
-      </div>
-    </section>
+          <div class="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 mt-5">
+            <p class="text-sm font-semibold text-amber-900">Exemple vendeur</p>
+            <p class="text-sm text-amber-800 mt-1">“8 passages validés = 1 récompense offerte.”</p>
+          </div>
+        </aside>
+      </section>
 
-    <section class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pb-20">
-      <div class="grid lg:grid-cols-3 gap-5">
-        <article class="card p-6">
-          <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">Récompense</p>
-          <h2 class="font-display text-2xl font-bold text-white mt-4">8 cafés = 1 offert</h2>
-          <p class="text-slate-400 text-sm leading-relaxed mt-3">Le programme reste lisible sur l’affiche A4, sur la page client et dans le Wallet.</p>
-        </article>
-        <article class="card p-6">
-          <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">Opérations</p>
-          <h2 class="font-display text-2xl font-bold text-white mt-4">Un scan, un tampon</h2>
-          <p class="text-slate-400 text-sm leading-relaxed mt-3">Le commerçant garde un geste simple, sans devoir éditer manuellement le compte client.</p>
-        </article>
-        <article class="card p-6">
-          <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">Visuel</p>
-          <h2 class="font-display text-2xl font-bold text-white mt-4">Plus premium qu’une carte papier</h2>
-          <p class="text-slate-400 text-sm leading-relaxed mt-3">Logo, bannière, palette, icône de tampon et messages Wallet structurent un rendu plus vendeur.</p>
-        </article>
-      </div>
-    </section>
+      <section class="mt-16">
+        <h2 class="font-display text-3xl sm:text-4xl font-bold text-slate-900">
+          Pourquoi la carte à tampons fonctionne si bien
+        </h2>
+        <div class="grid md:grid-cols-3 gap-4 mt-6">
+          {reasons.map((reason) => (
+            <article class="rounded-[1.25rem] border border-slate-200 bg-white shadow-sm px-5 py-5">
+              <p class="text-base font-semibold text-slate-900">{reason.title}</p>
+              <p class="text-sm text-slate-500 mt-2 leading-relaxed">{reason.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section class="mt-16 rounded-[2rem] border border-slate-200 bg-white shadow-[0_22px_50px_rgba(15,23,42,0.08)] p-6 sm:p-8">
+        <p class="text-xs uppercase tracking-[0.22em] text-slate-400 font-semibold">Mise en place en magasin</p>
+        <h2 class="font-display text-3xl font-bold text-slate-900 mt-3">
+          Un flux opérationnel en 4 étapes
+        </h2>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+          {workflow.map((item) => (
+            <article class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <p class="w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">
+                {item.step}
+              </p>
+              <p class="text-sm font-semibold text-slate-900 mt-3">{item.title}</p>
+              <p class="text-sm text-slate-500 mt-2 leading-relaxed">{item.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section class="mt-16 rounded-[2rem] bg-[linear-gradient(135deg,#0f172a_0%,#312e81_62%,#0284c7_100%)] px-6 py-8 sm:px-8 sm:py-10">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+          <div>
+            <p class="text-xs uppercase tracking-[0.22em] text-indigo-200 font-semibold">Prêt à lancer votre carte ?</p>
+            <h2 class="font-display text-3xl sm:text-4xl font-bold text-white mt-3">
+              Activez votre programme en moins de 5 minutes.
+            </h2>
+            <p class="text-indigo-100 mt-3 text-base">Essai gratuit 14 jours, sans carte bancaire.</p>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <a href="/register" class="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 transition-colors">
+              Démarrer l’essai gratuit
+            </a>
+            <a href="/contact" class="inline-flex items-center justify-center rounded-xl border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white hover:bg-white/20 transition-colors">
+              Parler à l’équipe
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
 
     <PublicFooter />
   </div>

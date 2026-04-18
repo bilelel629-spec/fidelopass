@@ -3,76 +3,140 @@ import PublicFooter from '../components/marketing/PublicFooter.astro';
 import PublicNav from '../components/marketing/PublicNav.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
-const examples = [
+const scenarios = [
   '1€ dépensé = 1 point',
-  '100 points = 5€ de réduction',
-  'Seuils VIP et récompenses progressives',
+  '100 points = -5€ immédiat',
+  'Paliers VIP Bronze / Silver / Gold',
+  'Bonus anniversaire',
+  'Boost points sur créneaux calmes',
+  'Offres ciblées selon fréquence client',
+];
+
+const advantages = [
+  {
+    title: 'Plus flexible que le tampon',
+    text: 'Vous adaptez la récompense à la valeur du panier, pas seulement au nombre de passages.',
+  },
+  {
+    title: 'Idéal pour plusieurs récompenses',
+    text: 'Proposez des paliers différents (petite récompense, offre moyenne, avantage premium).',
+  },
+  {
+    title: 'Pilotage plus fin',
+    text: 'Le commerce peut ajuster la mécanique et tester ce qui performe le mieux.',
+  },
+];
+
+const profiles = [
+  {
+    title: 'Restaurants et food premium',
+    text: 'Récompenser proportionnellement au ticket moyen.',
+  },
+  {
+    title: 'Beauté / bien-être',
+    text: 'Valoriser la fidélité long terme et les soins récurrents.',
+  },
+  {
+    title: 'Retail spécialisé',
+    text: 'Encourager les achats réguliers avec des niveaux VIP.',
+  },
 ];
 ---
 
 <BaseLayout title="Carte à points Fidelopass" description="Lancez une carte à points Wallet pour suivre les achats, débloquer des paliers et fidéliser les clients réguliers.">
-  <div class="relative overflow-hidden min-h-screen">
-    <div class="absolute inset-0 pointer-events-none">
-      <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[62rem] h-[62rem] rounded-full blur-3xl opacity-20" style="background:radial-gradient(circle,#0ea5e9 0%,rgba(10,15,30,0) 62%)"></div>
-    </div>
+  <div class="min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_62%,#ffffff_100%)] relative overflow-hidden">
+    <div class="pointer-events-none absolute -top-24 right-[-10rem] h-[30rem] w-[30rem] rounded-full bg-sky-200/35 blur-3xl"></div>
+    <div class="pointer-events-none absolute bottom-[-9rem] left-[-8rem] h-[24rem] w-[24rem] rounded-full bg-indigo-200/20 blur-3xl"></div>
 
     <PublicNav currentPath="/create-points-card" />
 
-    <section class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-16">
-      <div class="grid lg:grid-cols-[1fr_0.95fr] gap-10 items-center">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 pt-12 pb-20">
+      <section class="grid lg:grid-cols-[1.05fr_0.95fr] gap-8 items-center">
         <div>
-          <div class="badge badge-info mb-5">Produit Fidelopass</div>
-          <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[0.96]">
-            La carte à points Wallet
-            <span class="block text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-indigo-300 to-emerald-200">
-              pour les commerces qui veulent piloter plus finement
+          <span class="inline-flex items-center rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-sky-700 shadow-sm">
+            Carte à points
+          </span>
+          <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 leading-[0.96] mt-5">
+            La fidélité évolutive
+            <span class="block text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-indigo-600">
+              pour piloter plus finement votre croissance.
             </span>
           </h1>
-          <p class="text-slate-300 text-lg leading-relaxed mt-6 max-w-2xl">
-            La carte à points est idéale quand la valeur d’achat varie, quand plusieurs récompenses coexistent ou quand on veut introduire une logique de progression plus riche qu’un simple tampon.
+          <p class="text-slate-500 text-lg leading-relaxed mt-6 max-w-2xl">
+            Utilisez les points quand vous voulez récompenser selon le montant d’achat, gérer plusieurs paliers et faire évoluer votre stratégie fidélité dans le temps.
           </p>
-          <div class="space-y-3 mt-8">
-            {examples.map((item) => (
-              <div class="flex items-start gap-3 text-sm text-slate-300">
-                <span class="mt-1 w-2.5 h-2.5 rounded-full bg-sky-400"></span>
-                <span>{item}</span>
+
+          <div class="flex flex-col sm:flex-row gap-3 mt-8">
+            <a href="/register" class="btn-primary px-8 py-3.5 text-base">Créer une carte à points</a>
+            <a href="/pricing" class="btn-secondary px-8 py-3.5 text-base">Voir les tarifs</a>
+          </div>
+        </div>
+
+        <aside class="rounded-[2rem] border border-slate-200 bg-white shadow-[0_22px_50px_rgba(15,23,42,0.08)] p-6 sm:p-7">
+          <p class="text-xs uppercase tracking-[0.22em] text-slate-400 font-semibold">Exemples de mécanique</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
+            {scenarios.map((scenario) => (
+              <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                {scenario}
               </div>
             ))}
           </div>
-        </div>
+          <div class="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 mt-5">
+            <p class="text-sm font-semibold text-sky-900">Cas typique</p>
+            <p class="text-sm text-sky-800 mt-1">“200 points = offre premium” + “bonus fidélité mensuel”.</p>
+          </div>
+        </aside>
+      </section>
 
-        <div class="grid gap-5">
-          <article class="card p-6">
-            <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">Pourquoi choisir les points</p>
-            <p class="text-white font-semibold mt-4">Le programme devient plus flexible sans perdre en lisibilité.</p>
-            <p class="text-slate-400 text-sm leading-relaxed mt-3">Tu peux récompenser le panier, la récurrence et même l’ancienneté client, tout en affichant une progression simple dans le Wallet.</p>
-          </article>
-          <article class="card p-6">
-            <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">Ce que le commerce y gagne</p>
-            <p class="text-white font-semibold mt-4">Plus de paliers, plus de scénarios, plus de valeur perçue.</p>
-            <p class="text-slate-400 text-sm leading-relaxed mt-3">Ce format est parfait pour pousser les récompenses multiples, les niveaux VIP et les messages ciblés aux meilleurs clients.</p>
-          </article>
+      <section class="mt-16">
+        <h2 class="font-display text-3xl sm:text-4xl font-bold text-slate-900">
+          Pourquoi choisir une carte à points
+        </h2>
+        <div class="grid md:grid-cols-3 gap-4 mt-6">
+          {advantages.map((advantage) => (
+            <article class="rounded-[1.25rem] border border-slate-200 bg-white shadow-sm px-5 py-5">
+              <p class="text-base font-semibold text-slate-900">{advantage.title}</p>
+              <p class="text-sm text-slate-500 mt-2 leading-relaxed">{advantage.text}</p>
+            </article>
+          ))}
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pb-20">
-      <div class="rounded-[2rem] border border-white/10 p-8 sm:p-10" style="background:linear-gradient(135deg,rgba(15,23,42,0.92),rgba(14,165,233,0.14),rgba(99,102,241,0.18))">
-        <div class="grid lg:grid-cols-[1fr_auto] gap-8 items-center">
+      <section class="mt-16 rounded-[2rem] border border-slate-200 bg-white shadow-[0_22px_50px_rgba(15,23,42,0.08)] p-6 sm:p-8">
+        <p class="text-xs uppercase tracking-[0.22em] text-slate-400 font-semibold">Pour quels commerces ?</p>
+        <h2 class="font-display text-3xl font-bold text-slate-900 mt-3">
+          Idéal quand la valeur d’achat varie
+        </h2>
+        <div class="grid md:grid-cols-3 gap-4 mt-6">
+          {profiles.map((profile) => (
+            <article class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <p class="text-sm font-semibold text-slate-900">{profile.title}</p>
+              <p class="text-sm text-slate-500 mt-2 leading-relaxed">{profile.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section class="mt-16 rounded-[2rem] bg-[linear-gradient(135deg,#0f172a_0%,#1e3a8a_62%,#0284c7_100%)] px-6 py-8 sm:px-8 sm:py-10">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
           <div>
-            <p class="text-slate-300 text-xs uppercase tracking-[0.3em]">Structure conseillée</p>
-            <h2 class="font-display text-3xl sm:text-4xl font-bold text-white mt-4">Un bon format pour passer d’une simple fidélité à un vrai programme relationnel.</h2>
-            <p class="text-slate-200/85 text-base sm:text-lg leading-relaxed mt-4 max-w-2xl">
-              Si ton angle commercial repose sur la personnalisation, les seuils et les avantages progressifs, la carte à points est la plus persuasive à vendre.
-            </p>
+            <p class="text-xs uppercase tracking-[0.22em] text-sky-200 font-semibold">Prêt à lancer votre programme ?</p>
+            <h2 class="font-display text-3xl sm:text-4xl font-bold text-white mt-3">
+              Passez d’une fidélité basique à une fidélité pilotable.
+            </h2>
+            <p class="text-sky-100 mt-3 text-base">Essai gratuit 14 jours, sans carte bancaire.</p>
           </div>
-          <div class="flex flex-col sm:flex-row lg:flex-col gap-3">
-            <a href="/register" class="btn-primary px-8 py-3.5 text-base">Créer une carte à points</a>
-            <a href="/help" class="btn-secondary px-8 py-3.5 text-base">Lire les guides</a>
+          <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <a href="/register" class="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 text-sm font-semibold text-sky-700 hover:bg-sky-50 transition-colors">
+              Démarrer l’essai gratuit
+            </a>
+            <a href="/contact" class="inline-flex items-center justify-center rounded-xl border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white hover:bg-white/20 transition-colors">
+              Parler à l’équipe
+            </a>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </main>
 
     <PublicFooter />
   </div>

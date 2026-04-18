@@ -31,6 +31,34 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       <DashboardNav activeNav={activeNav} />
       <main class="relative z-10 flex-1 min-w-0 overflow-y-auto pb-24 lg:pb-0">
         <div class="p-4 sm:p-6 md:p-8 pt-24 lg:pt-8 max-w-7xl mx-auto">
+          <div
+            id="dashboard-global-card-actions"
+            class="hidden mb-6 rounded-[1.2rem] border border-sky-100 bg-white/95 p-4 shadow-[0_18px_48px_-36px_rgba(59,130,246,0.35)]"
+          >
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p class="text-[0.64rem] font-semibold uppercase tracking-[0.24em] text-sky-700/70">Actions rapides</p>
+                <p class="mt-1 text-sm text-slate-600">Votre carte est active. Accédez instantanément au QR client et à l’installation scanner.</p>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <a
+                  id="global-client-qr-btn"
+                  href="#"
+                  target="_blank"
+                  rel="noreferrer"
+                  class="rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-50"
+                >
+                  Afficher le QR client
+                </a>
+                <a
+                  href="/app/install"
+                  class="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-sky-700"
+                >
+                  Ajouter un scanner
+                </a>
+              </div>
+            </div>
+          </div>
           <slot />
         </div>
       </main>
@@ -45,6 +73,30 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
   );
   const API = (import.meta.env.PUBLIC_API_URL ?? '').trim();
+
+  async function loadGlobalCardActions(accessToken) {
+    if (window.location.pathname === '/dashboard') return;
+    const container = document.getElementById('dashboard-global-card-actions');
+    const qrBtn = document.getElementById('global-client-qr-btn');
+    if (!container || !qrBtn || !API) return;
+
+    try {
+      const res = await fetch(`${API}/api/cartes`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!res.ok) return;
+      const payload = await res.json().catch(() => null);
+      const cardId = payload?.data?.id;
+      if (!cardId) return;
+      qrBtn.href = `/api/qr/${cardId}?size=1200`;
+      container.classList.remove('hidden');
+    } catch {
+      // Affichage best-effort.
+    }
+  }
 
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
@@ -61,6 +113,8 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       window.location.replace('/abonnement/choix');
     } else if (!billing?.data?.onboarding_completed) {
       window.location.replace('/onboarding');
+    } else {
+      await loadGlobalCardActions(session.access_token);
     }
   }
 </script>

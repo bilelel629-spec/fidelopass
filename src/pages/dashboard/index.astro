@@ -24,6 +24,19 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </div>
   </div>
 
+  <div id="card-shortcuts" class="hidden mb-8 rounded-[1.4rem] border border-sky-100 bg-white/95 p-4 shadow-[0_18px_48px_-36px_rgba(59,130,246,0.35)]">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p class="text-[0.64rem] font-semibold uppercase tracking-[0.24em] text-sky-700/70">Accès rapide</p>
+        <p class="mt-1 text-sm text-slate-600">Votre carte est active. Accédez directement au QR client et à l’installation scanner.</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <a id="dashboard-client-qr-btn" href="#" target="_blank" rel="noreferrer" class="rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-50">Afficher le QR client</a>
+        <a id="dashboard-add-scanner-btn" href="/app/install" class="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-sky-700">Ajouter un scanner</a>
+      </div>
+    </div>
+  </div>
+
   <!-- Stats (en premier sur mobile) -->
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 order-first">
     <div class="stat-card">
@@ -235,6 +248,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   }
 
+  async function loadCardShortcuts() {
+    try {
+      const res = await authFetch('/api/cartes');
+      if (!res.ok) return;
+      const { data } = await res.json();
+      if (!data?.id) return;
+      const container = document.getElementById('card-shortcuts') as HTMLDivElement;
+      const qrBtn = document.getElementById('dashboard-client-qr-btn') as HTMLAnchorElement;
+      qrBtn.href = `/api/qr/${data.id}?size=1200`;
+      container.classList.remove('hidden');
+    } catch {
+      // silencieux
+    }
+  }
+
   async function loadAdminShortcut() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -249,7 +277,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const btn = document.getElementById('refresh-btn') as HTMLButtonElement;
     btn.disabled = true;
     icon.style.animation = 'spin 0.8s linear infinite';
-    await Promise.all([loadStats(), loadChart(), loadRecentTransactions()]);
+    await Promise.all([loadStats(), loadChart(), loadRecentTransactions(), loadCardShortcuts()]);
     icon.style.animation = '';
     btn.disabled = false;
   }
@@ -264,5 +292,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   loadStats();
   loadChart();
   loadRecentTransactions();
+  loadCardShortcuts();
   loadAdminShortcut();
 </script>

@@ -17,6 +17,7 @@ interface CarteData {
   couleur_fond: string;
   couleur_texte: string;
   couleur_accent: string;
+  push_icon_bg_color?: string | null;
   message_geo: string;
   logo_url?: string | null;
   strip_url?: string | null;
@@ -29,6 +30,7 @@ interface CarteData {
   pattern_type?: string | null;
   tampon_emoji?: string | null;
   strip_layout?: string | null;
+  branding_powered_by_enabled?: boolean | null;
   google_maps_url?: string | null;
   rewards_config?: Array<{ seuil: number; recompense: string }> | null;
   vip_tiers?: Array<{ nom: string; seuil: number; avantage?: string }> | null;
@@ -38,6 +40,7 @@ interface CarteData {
     latitude: number | null;
     longitude: number | null;
     rayon_geo: number;
+    plan?: string | null;
   };
 }
 
@@ -46,6 +49,7 @@ interface ClientData {
   nom: string | null;
   points_actuels: number;
   tampons_actuels: number;
+  recompenses_obtenues?: number;
 }
 
 interface WalletMessage {
@@ -208,6 +212,12 @@ export async function generateApplePass(
           value: carte.recompense_description ?? '—',
           changeMessage: 'Votre récompense Fidelopass a été mise à jour.',
         },
+        {
+          key: 'recompenses_disponibles',
+          label: 'Récompenses dispo',
+          value: String(client.recompenses_obtenues ?? 0),
+          changeMessage: 'Récompenses disponibles : %@.',
+        },
         ...(carte.google_maps_url ? [{
           key: 'avis_google',
           label: 'Laisser un avis Google ⭐',
@@ -274,6 +284,11 @@ export async function generateApplePass(
     }];
   }
 
+  const commercePlan = String(carte.commerces.plan ?? 'starter').toLowerCase();
+  const showBranding = commercePlan === 'pro'
+    ? carte.branding_powered_by_enabled !== false
+    : true;
+
   // ── Génération de la strip (image bannière avec tampons) ──────────
   const stripBuffer = await generateStripImage({
     type: carte.type,
@@ -289,6 +304,7 @@ export async function generateApplePass(
     patternType: carte.pattern_type,
     tamponEmoji: carte.tampon_emoji,
     stripLayout: carte.strip_layout,
+    showBranding,
   });
 
   // ── Logo ──────────────────────────────────────────────────────────
@@ -298,9 +314,10 @@ export async function generateApplePass(
   const logo2x = logoRaw ? await resizeTo(logoRaw, 240, 240) : readAsset('logo@2x.png');
   // iOS 15+ affiche une icône de notification Wallet plus grande.
   // Apple recommande maintenant 38x38 minimum à l'échelle 1x.
-  const icon1x = logoRaw ? await createPassIcon(logoRaw, 38, carte.couleur_accent) : await resizeTo(readAsset('icon@3x.png'), 38, 38);
-  const icon2x = logoRaw ? await createPassIcon(logoRaw, 76, carte.couleur_accent) : await resizeTo(readAsset('icon@3x.png'), 76, 76);
-  const icon3x = logoRaw ? await createPassIcon(logoRaw, 114, carte.couleur_accent) : await resizeTo(readAsset('icon@3x.png'), 114, 114);
+  const iconBgColor = carte.push_icon_bg_color ?? carte.couleur_accent;
+  const icon1x = logoRaw ? await createPassIcon(logoRaw, 38, iconBgColor) : await resizeTo(readAsset('icon@3x.png'), 38, 38);
+  const icon2x = logoRaw ? await createPassIcon(logoRaw, 76, iconBgColor) : await resizeTo(readAsset('icon@3x.png'), 76, 76);
+  const icon3x = logoRaw ? await createPassIcon(logoRaw, 114, iconBgColor) : await resizeTo(readAsset('icon@3x.png'), 114, 114);
 
   // ── Dossier temporaire .pass ──────────────────────────────────────
   const tmpPassDir = resolve(tmpdir(), `fidelopass-${randomUUID()}.pass`);

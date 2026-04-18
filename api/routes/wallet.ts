@@ -72,7 +72,7 @@ async function loadApplePassByClient(serialNumber: string) {
   const db = createServiceClient();
   const { data: client } = await db
     .from('clients')
-    .select('*, cartes(*, commerces(id, nom, logo_url, latitude, longitude, rayon_geo))')
+    .select('*, cartes(*, commerces(id, nom, logo_url, latitude, longitude, rayon_geo, plan))')
     .eq('id', serialNumber)
     .single();
 
@@ -194,7 +194,7 @@ const appleWalletHandler = async (c: Context) => {
   const { db, carte, client, latestNotification } = await loadWalletContext(
     carteId,
     parsed.data.client_id,
-    'id, nom, logo_url, latitude, longitude, rayon_geo',
+    'id, nom, logo_url, latitude, longitude, rayon_geo, plan',
   );
 
   if (!carte) return c.json({ error: 'Carte introuvable' }, 404);
@@ -238,7 +238,7 @@ walletRoutes.post('/google/:carteId', async (c) => {
   const { db, carte, client, latestNotification } = await loadWalletContext(
     carteId,
     parsed.data.client_id,
-    'id, nom, logo_url, latitude, longitude, rayon_geo',
+    'id, nom, logo_url, latitude, longitude, rayon_geo, plan',
   );
 
   if (!carte) return c.json({ error: 'Carte introuvable' }, 404);

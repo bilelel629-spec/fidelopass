@@ -19,6 +19,7 @@ interface StripOptions {
   patternType?: string | null;
   tamponEmoji?: string | null;
   stripLayout?: string | null;
+  showBranding?: boolean;
 }
 
 // Hex → { r, g, b }
@@ -37,6 +38,66 @@ async function fetchBuffer(url: string): Promise<Buffer | null> {
     if (!res.ok) return null;
     return Buffer.from(await res.arrayBuffer());
   } catch { return null; }
+}
+
+function parseStripFocus(raw: string | null | undefined): { x: number; y: number; legacy: 'top' | 'center' | 'bottom' } {
+  const value = String(raw ?? '').trim().toLowerCase();
+  if (!value) return { x: 50, y: 50, legacy: 'center' };
+  if (value === 'top') return { x: 50, y: 0, legacy: 'top' };
+  if (value === 'bottom') return { x: 50, y: 100, legacy: 'bottom' };
+  if (value === 'center') return { x: 50, y: 50, legacy: 'center' };
+  const match = value.match(/^(\d{1,3}(?:\.\d+)?):(\d{1,3}(?:\.\d+)?)$/);
+  if (!match) return { x: 50, y: 50, legacy: 'center' };
+  const x = Math.max(0, Math.min(100, Number(match[1])));
+  const y = Math.max(0, Math.min(100, Number(match[2])));
+  return { x, y, legacy: 'center' };
+}
+
+async function cropImageToFocus(
+  buffer: Buffer,
+  targetWidth: number,
+  targetHeight: number,
+  focus: { x: number; y: number; legacy: 'top' | 'center' | 'bottom' },
+): Promise<Buffer> {
+  const metadata = await sharp(buffer).metadata();
+  if (!metadata.width || !metadata.height) {
+    const legacyPos = focus.legacy === 'top' ? 'top' : focus.legacy === 'bottom' ? 'bottom' : 'centre';
+    return sharp(buffer).resize(targetWidth, targetHeight, { fit: 'cover', position: legacyPos }).png().toBuffer();
+  }
+
+  const scaleByWidth = (targetWidth / metadata.width) >= (targetHeight / metadata.height);
+  const resized = scaleByWidth
+    ? await sharp(buffer).resize({ width: targetWidth }).png().toBuffer({ resolveWithObject: true })
+    : await sharp(buffer).resize({ height: targetHeight }).png().toBuffer({ resolveWithObject: true });
+
+  const sourceWidth = resized.info.width ?? targetWidth;
+  const sourceHeight = resized.info.height ?? targetHeight;
+  const maxLeft = Math.max(0, sourceWidth - targetWidth);
+  const maxTop = Math.max(0, sourceHeight - targetHeight);
+  const left = Math.max(0, Math.min(maxLeft, Math.round((focus.x / 100) * maxLeft)));
+  const top = Math.max(0, Math.min(maxTop, Math.round((focus.y / 100) * maxTop)));
+
+  return sharp(resized.data)
+    .extract({ left, top, width: targetWidth, height: targetHeight })
+    .png()
+    .toBuffer();
+}
+
+async function applyBrandingWatermark(buffer: Buffer, width: number, height: number): Promise<Buffer> {
+  const fontSize = Math.max(11, Math.round(height * 0.07));
+  const overlay = Buffer.from(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+      <text x="${width - 14}" y="${height - 10}" text-anchor="end"
+        font-family="Arial, Helvetica, sans-serif"
+        font-size="${fontSize}" letter-spacing="1.2"
+        fill="rgba(255,255,255,0.5)">Propulsé par Fidelopass</text>
+    </svg>
+  `);
+
+  return sharp(buffer)
+    .composite([{ input: overlay, blend: 'over' }])
+    .png()
+    .toBuffer();
 }
 
 /** Colonnes optimales pour une grille équilibrée */
@@ -178,14 +239,15 @@ function buildStampSvg(opts: {
 export async function generateStripImage(opts: StripOptions): Promise<Buffer> {
   const W = 750;
   const H = 246;
-  const sharpPos = opts.stripPosition === 'top' ? 'top'
-    : opts.stripPosition === 'bottom' ? 'bottom' : 'centre';
+  const focus = parseStripFocus(opts.stripPosition);
+  const withBranding = opts.showBranding !== false;
 
   if (opts.type === 'points') {
     if (opts.stripImageUrl) {
       const buf = await fetchBuffer(opts.stripImageUrl);
       if (buf) {
-        return sharp(buf).resize(W, H, { fit: 'cover', position: sharpPos }).png().toBuffer();
+        const cropped = await cropImageToFocus(buf, W, H, focus);
+        return withBranding ? applyBrandingWatermark(cropped, W, H) : cropped;
       }
     }
     const fnd = hexToRgb(opts.couleurFond);
@@ -201,7 +263,8 @@ export async function generateStripImage(opts: StripOptions): Promise<Buffer> {
       <rect x="${W*0.1}" y="${H*0.55}" width="${W*0.8}" height="8" rx="4" fill="rgba(255,255,255,0.2)"/>
       <rect x="${W*0.1}" y="${H*0.55}" width="0" height="8" rx="4" fill="rgb(${acc.r},${acc.g},${acc.b})"/>
     </svg>`;
-    return sharp(Buffer.from(svg)).png().toBuffer();
+    const generated = await sharp(Buffer.from(svg)).png().toBuffer();
+    return withBranding ? applyBrandingWatermark(generated, W, H) : generated;
   }
 
   // Type tampons
@@ -213,10 +276,7 @@ export async function generateStripImage(opts: StripOptions): Promise<Buffer> {
         const layout = opts.stripLayout ?? 'background';
         if (layout === 'top' || layout === 'bottom') {
           const bannerH = Math.round(H * 0.42);
-          const banner = await sharp(bgBuf)
-            .resize(W, bannerH, { fit: 'cover', position: sharpPos })
-            .png()
-            .toBuffer();
+          const banner = await cropImageToFocus(bgBuf, W, bannerH, focus);
           const baseSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
             <rect width="${W}" height="${H}" fill="${opts.couleurFond}"/>
             ${patternOverlay(opts.patternType ?? 'none', W, H, opts.couleurAccent)}
@@ -226,7 +286,7 @@ export async function generateStripImage(opts: StripOptions): Promise<Buffer> {
             .png()
             .toBuffer();
         } else {
-          bg = await sharp(bgBuf).resize(W, H, { fit: 'cover', position: sharpPos }).png().toBuffer();
+          bg = await cropImageToFocus(bgBuf, W, H, focus);
         }
         const acc = hexToRgb(opts.couleurAccent);
         const cols = stampCols(opts.tamponsTotal);
@@ -261,7 +321,8 @@ export async function generateStripImage(opts: StripOptions): Promise<Buffer> {
 
         const overlaySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${circles}</svg>`;
         const overlayBuf = await sharp(Buffer.from(overlaySvg)).png().toBuffer();
-        return sharp(bg).composite([{ input: overlayBuf, blend: 'over' }]).png().toBuffer();
+        const composed = await sharp(bg).composite([{ input: overlayBuf, blend: 'over' }]).png().toBuffer();
+        return withBranding ? applyBrandingWatermark(composed, W, H) : composed;
       } catch { /* fallback ci-dessous */ }
     }
   }
@@ -278,5 +339,6 @@ export async function generateStripImage(opts: StripOptions): Promise<Buffer> {
     patternType: opts.patternType,
     emoji: opts.tamponEmoji,
   });
-  return sharp(Buffer.from(svg)).png().toBuffer();
+  const fallback = await sharp(Buffer.from(svg)).png().toBuffer();
+  return withBranding ? applyBrandingWatermark(fallback, W, H) : fallback;
 }

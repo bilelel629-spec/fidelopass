@@ -17,12 +17,14 @@ interface CarteData {
   label_client?: string | null;
   rewards_config?: Array<{ seuil: number; recompense: string }> | null;
   vip_tiers?: Array<{ nom: string; seuil: number; avantage?: string }> | null;
+  branding_powered_by_enabled?: boolean | null;
   commerces: {
     nom: string;
     logo_url: string | null;
     latitude?: number | null;
     longitude?: number | null;
     rayon_geo?: number | null;
+    plan?: string | null;
   };
 }
 
@@ -198,6 +200,18 @@ export async function generateGooglePass(
         body: getVipText(carte),
         id: 'paliers_vip',
       }] : []),
+      {
+        header: 'Récompenses dispo',
+        body: String(client.recompenses_obtenues ?? 0),
+        id: 'recompenses_disponibles',
+      },
+      ...((String(carte.commerces.plan ?? 'starter').toLowerCase() === 'pro' && carte.branding_powered_by_enabled === false)
+        ? []
+        : [{
+          header: 'Signature',
+          body: 'Propulsé par Fidelopass',
+          id: 'branding_fidelopass',
+        }]),
       ...(walletMessage?.message ? [{
         header: walletMessage.titre || 'Message',
         body: walletMessage.message,
@@ -274,8 +288,15 @@ export async function updateGooglePassObject(
         {
           header: 'Récompenses obtenues',
           body: String(client.recompenses_obtenues ?? 0),
-          id: 'solde_actuel',
+          id: 'recompenses_disponibles',
         },
+        ...((String(carte.commerces.plan ?? 'starter').toLowerCase() === 'pro' && carte.branding_powered_by_enabled === false)
+          ? []
+          : [{
+            header: 'Signature',
+            body: 'Propulsé par Fidelopass',
+            id: 'branding_fidelopass',
+          }]),
       ],
       ...(getMerchantLocations(carte) ? { merchantLocations: getMerchantLocations(carte) } : {}),
     },

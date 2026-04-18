@@ -5,9 +5,9 @@ import AppLayout from '../../layouts/AppLayout.astro';
 <AppLayout title="Scanner — Fidelopass">
   <div class="min-h-[100dvh] flex flex-col">
     <!-- Header -->
-    <div class="flex items-center gap-3 px-4 pt-6 pb-4 border-b border-sky-100">
-      <a href="/app" class="text-slate-500 hover:text-slate-900 transition-colors">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="scanner-header flex items-center gap-3 px-4 pb-4 border-b border-sky-100">
+      <a href="/app" class="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-sky-100 bg-white text-slate-500 shadow-sm hover:text-slate-900 transition-colors">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
       </a>
@@ -51,6 +51,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
         </div>
         <h2 id="result-nom" class="font-display font-bold text-xl text-white mb-1">—</h2>
         <p id="result-solde" class="text-slate-400 text-sm mb-6">—</p>
+        <p id="result-rewards" class="text-emerald-300 text-xs font-medium mb-4">Récompenses disponibles: 0</p>
 
         <div class="flex gap-3 mb-4">
           <button id="btn-tampon" class="btn-primary flex-1 py-4 flex flex-col items-center">
@@ -88,6 +89,10 @@ import AppLayout from '../../layouts/AppLayout.astro';
 </AppLayout>
 
 <style is:global>
+  .scanner-header {
+    padding-top: max(1rem, calc(env(safe-area-inset-top) + 0.6rem));
+  }
+
   .scanner-reader-shell {
     position: relative;
   }
@@ -146,13 +151,13 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
 <script>
   import { Html5Qrcode } from 'html5-qrcode';
-  import confetti from 'canvas-confetti';
   import { authFetch } from '../../lib/api';
 
   let currentClientId: string | null = null;
   let currentClientRecompenses = 0;
   let scannerPaused = false;
   let audioContext: AudioContext | null = null;
+  let confettiPromise: Promise<typeof import('canvas-confetti')> | null = null;
   let toastTimeout: ReturnType<typeof setTimeout> | null = null;
 
   const scannerStatus = document.getElementById('scanner-status')!;
@@ -162,6 +167,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
   const scanToast = document.getElementById('scan-toast')!;
   const scanner = new Html5Qrcode('reader', false);
   let scannerStarting = false;
+  const CAMERA_CACHE_KEY = 'fidelopass_scanner_camera_id';
   const scanConfig = {
     fps: 30,
     aspectRatio: 4 / 5,
@@ -253,6 +259,23 @@ import AppLayout from '../../layouts/AppLayout.astro';
     }
   }
 
+  function rememberCameraId(deviceId: string | null) {
+    if (!deviceId) return;
+    try {
+      localStorage.setItem(CAMERA_CACHE_KEY, deviceId);
+    } catch {
+      // Stockage best-effort.
+    }
+  }
+
+  function readRememberedCameraId(): string | null {
+    try {
+      return localStorage.getItem(CAMERA_CACHE_KEY);
+    } catch {
+      return null;
+    }
+  }
+
   async function getRearCameraId() {
     if (!navigator.mediaDevices?.enumerateDevices) return null;
     const devices = await navigator.mediaDevices.enumerateDevices();
@@ -279,12 +302,11 @@ import AppLayout from '../../layouts/AppLayout.astro';
     setScannerStatus('Ouverture de la caméra...');
 
     try {
-      await requestCameraPermission();
-      const rearCameraId = await getRearCameraId();
       try {
+        const rememberedCameraId = readRememberedCameraId();
         await scanner.start(
-          rearCameraId
-            ? { deviceId: { exact: rearCameraId } }
+          rememberedCameraId
+            ? { deviceId: { exact: rememberedCameraId } }
             : {
                 facingMode: { ideal: 'environment' },
                 width: { ideal: 1920 },
@@ -295,18 +317,25 @@ import AppLayout from '../../layouts/AppLayout.astro';
           handleScan,
           () => {},
         );
+        if (!rememberedCameraId) {
+          getRearCameraId().then((rearCameraId) => rememberCameraId(rearCameraId)).catch(() => {});
+        }
         setScannerStatus('Placez le QR code dans l’image, même s’il n’est pas parfaitement centré.');
       } catch {
+        await requestCameraPermission();
+        const rearCameraId = await getRearCameraId();
+        rememberCameraId(rearCameraId);
         await scanner.start(
-          {
-            facingMode: 'environment',
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
+          rearCameraId
+            ? { deviceId: { exact: rearCameraId } }
+            : { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
           scanConfig,
           handleScan,
           () => {},
         );
+        if (!rearCameraId) {
+          getRearCameraId().then((nextCameraId) => rememberCameraId(nextCameraId)).catch(() => {});
+        }
         setScannerStatus('Placez le QR code dans l’image, même s’il n’est pas parfaitement centré.');
       }
     } catch (error) {
@@ -338,7 +367,9 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
     try {
       // Le QR contient l'ID client
-      const clientId = decodedText.trim();
+      const normalized = decodedText.trim();
+      const fromUrl = normalized.match(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i);
+      const clientId = fromUrl?.[0] ?? normalized;
       const res = await authFetch(`/api/clients/${clientId}`);
       if (!res.ok) throw new Error('Client introuvable');
 
@@ -351,6 +382,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
         data.tampons_actuels !== undefined
           ? `${data.tampons_actuels} tampons — ${data.recompenses_obtenues} récompense(s)`
           : `${data.points_actuels} points`;
+      document.getElementById('result-rewards')!.textContent = `Récompenses disponibles: ${data.recompenses_obtenues ?? 0}`;
       const rewardBtn = document.getElementById('btn-reward')!;
       rewardBtn.classList.toggle('hidden', currentClientRecompenses <= 0);
 
@@ -434,26 +466,30 @@ import AppLayout from '../../layouts/AppLayout.astro';
   }
 
   function fireRewardConfetti() {
+    if (!confettiPromise) confettiPromise = import('canvas-confetti');
     const duration = 2500;
     const end = Date.now() + duration;
 
     const frame = () => {
-      confetti({
-        particleCount: 4,
-        angle: 60,
-        spread: 55,
-        origin: { x: 0, y: 0.7 },
-        colors: ['#6366f1', '#a78bfa', '#f59e0b', '#10b981', '#ef4444'],
-        zIndex: 9999,
-      });
-      confetti({
-        particleCount: 4,
-        angle: 120,
-        spread: 55,
-        origin: { x: 1, y: 0.7 },
-        colors: ['#6366f1', '#a78bfa', '#f59e0b', '#10b981', '#ef4444'],
-        zIndex: 9999,
-      });
+      confettiPromise?.then((module) => {
+        const confetti = module.default;
+        confetti({
+          particleCount: 4,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0, y: 0.7 },
+          colors: ['#6366f1', '#a78bfa', '#f59e0b', '#10b981', '#ef4444'],
+          zIndex: 9999,
+        });
+        confetti({
+          particleCount: 4,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1, y: 0.7 },
+          colors: ['#6366f1', '#a78bfa', '#f59e0b', '#10b981', '#ef4444'],
+          zIndex: 9999,
+        });
+      }).catch(() => {});
       if (Date.now() < end) requestAnimationFrame(frame);
     };
     frame();

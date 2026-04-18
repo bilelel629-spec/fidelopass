@@ -67,6 +67,10 @@ const firebasePushConfig = {
             <p class="text-xs opacity-60 mb-0.5">Récompense</p>
             <p id="recompense-desc" class="text-sm font-medium"></p>
           </div>
+          <div class="mt-3">
+            <p class="text-xs opacity-60 mb-0.5">Récompenses disponibles</p>
+            <p id="recompenses-dispo" class="text-sm font-semibold">0</p>
+          </div>
         </div>
       </div>
 
@@ -478,6 +482,7 @@ const firebasePushConfig = {
       document.getElementById('recompense-desc').textContent = rewards.length
         ? rewards.map((item) => `${item.seuil} ${data.carte.type === 'points' ? 'pts' : 'tampon(s)'} : ${item.recompense}`).join(' • ')
         : data.carte.recompense_description ?? '—';
+      document.getElementById('recompenses-dispo').textContent = '0';
       document.getElementById('client-welcome-message').textContent =
         data.carte.welcome_message || `Bienvenue chez ${data.commerce.nom}, créez votre carte fidélité en 10 secondes.`;
 
@@ -534,6 +539,7 @@ const firebasePushConfig = {
     const type = carteData.carte.type ?? 'tampons';
     const accent = carteData.carte.couleur_accent ?? '#6366f1';
     const texte = carteData.carte.couleur_texte ?? '#ffffff';
+    document.getElementById('recompenses-dispo').textContent = String(client.recompenses_obtenues ?? 0);
 
     if (type === 'tampons') {
       const total = carteData.carte.tampons_total ?? 10;

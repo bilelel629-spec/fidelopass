@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
+import { getPlanLimits } from './commerces';
 
 export const cartesRoutes = new Hono();
 
@@ -24,6 +25,16 @@ const vipTierSchema = z.object({
   avantage: z.string().max(120).optional().default(''),
 });
 
+const stripPositionSchema = z.string().default('50:50').refine((value) => {
+  const normalized = value.trim().toLowerCase();
+  if (['top', 'center', 'bottom'].includes(normalized)) return true;
+  const match = normalized.match(/^(\d{1,3}(?:\.\d+)?):(\d{1,3}(?:\.\d+)?)$/);
+  if (!match) return false;
+  const x = Number(match[1]);
+  const y = Number(match[2]);
+  return Number.isFinite(x) && Number.isFinite(y) && x >= 0 && x <= 100 && y >= 0 && y <= 100;
+}, { message: 'Position de bannière invalide' });
+
 const carteSchema = z.object({
   nom: z.string().min(2).max(255),
   description: z.string().max(500).nullable().optional(),
@@ -39,10 +50,11 @@ const carteSchema = z.object({
   // Champs étendus (migration 002)
   logo_url: z.string().url().nullable().optional(),
   strip_url: z.string().url().nullable().optional(),
-  strip_position: z.enum(['top', 'center', 'bottom']).default('center'),
+  strip_position: stripPositionSchema,
   tampon_icon_url: z.string().url().nullable().optional(),
   barcode_type: z.enum(['QR', 'PDF417', 'AZTEC', 'CODE128', 'NONE']).default('QR'),
   label_client: z.string().max(50).default('Client'),
+  push_icon_bg_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default('#6366f1'),
   // Champs avancés (migration 003)
   couleur_fond_2: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable().optional(),
   gradient_angle: z.number().int().min(0).max(360).default(135),
@@ -58,8 +70,10 @@ const carteSchema = z.object({
   welcome_message: z.string().max(180).nullable().optional(),
   success_message: z.string().max(180).nullable().optional(),
   rewards_config: z.array(rewardSchema).max(6).default([]),
+  rewards_multi_enabled: z.boolean().default(false),
   vip_tiers: z.array(vipTierSchema).max(3).default([]),
   strip_layout: z.enum(['background', 'top', 'bottom']).default('background'),
+  branding_powered_by_enabled: z.boolean().default(true),
   // Récompense avis Google (migration 007)
   review_reward_enabled: z.boolean().default(false),
   review_reward_value: z.number().int().min(1).max(50).default(1),
@@ -73,7 +87,7 @@ cartesRoutes.get('/', authMiddleware, paidMiddleware, async (c) => {
 
   const { data: commerce } = await db
     .from('commerces')
-    .select('id')
+    .select('id, plan')
     .eq('user_id', userId)
     .single();
 
@@ -127,7 +141,7 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   const db = createServiceClient();
   const { data: commerce } = await db
     .from('commerces')
-    .select('id')
+    .select('id, plan')
     .eq('user_id', userId)
     .single();
 
@@ -159,6 +173,7 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   if (parsed.data.tampon_icon_url !== undefined) extFields.tampon_icon_url = parsed.data.tampon_icon_url;
   if (parsed.data.barcode_type !== undefined) extFields.barcode_type = parsed.data.barcode_type;
   if (parsed.data.label_client !== undefined) extFields.label_client = parsed.data.label_client;
+  if (parsed.data.push_icon_bg_color !== undefined) extFields.push_icon_bg_color = parsed.data.push_icon_bg_color;
 
   const advFields: Record<string, unknown> = {};
   if (parsed.data.couleur_fond_2 !== undefined) advFields.couleur_fond_2 = parsed.data.couleur_fond_2;
@@ -176,9 +191,18 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   const programFields: Record<string, unknown> = {};
   if (parsed.data.welcome_message !== undefined) programFields.welcome_message = parsed.data.welcome_message;
   if (parsed.data.success_message !== undefined) programFields.success_message = parsed.data.success_message;
-  if (parsed.data.rewards_config !== undefined) programFields.rewards_config = parsed.data.rewards_config;
+  if (parsed.data.rewards_multi_enabled !== undefined) programFields.rewards_multi_enabled = parsed.data.rewards_multi_enabled;
+  if (parsed.data.rewards_config !== undefined) {
+    programFields.rewards_config = parsed.data.rewards_multi_enabled ? parsed.data.rewards_config : [];
+  }
   if (parsed.data.vip_tiers !== undefined) programFields.vip_tiers = parsed.data.vip_tiers;
   if (parsed.data.strip_layout !== undefined) programFields.strip_layout = parsed.data.strip_layout;
+  if (parsed.data.branding_powered_by_enabled !== undefined) {
+    const planLimits = getPlanLimits(commerce.plan);
+    programFields.branding_powered_by_enabled = planLimits.avisGoogle
+      ? parsed.data.branding_powered_by_enabled
+      : true;
+  }
   if (parsed.data.review_reward_enabled !== undefined) programFields.review_reward_enabled = parsed.data.review_reward_enabled;
   if (parsed.data.review_reward_value !== undefined) programFields.review_reward_value = parsed.data.review_reward_value;
   if (parsed.data.google_maps_url !== undefined) programFields.google_maps_url = parsed.data.google_maps_url;
@@ -248,17 +272,17 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   const db = createServiceClient();
   const { data: commerce } = await db
     .from('commerces')
-    .select('id')
+    .select('id, plan')
     .eq('user_id', userId)
     .single();
 
   if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
 
   const {
-    logo_url, strip_url, strip_position, tampon_icon_url, barcode_type, label_client,
+    logo_url, strip_url, strip_position, tampon_icon_url, barcode_type, label_client, push_icon_bg_color,
     couleur_fond_2, gradient_angle, pattern_type, tampon_emoji,
     police, police_taille, police_gras, texte_alignement, strip_plein_largeur,
-    welcome_message, success_message, rewards_config, vip_tiers, strip_layout,
+    welcome_message, success_message, rewards_config, rewards_multi_enabled, vip_tiers, strip_layout, branding_powered_by_enabled,
     ...baseData
   } = parsed.data;
 
@@ -269,6 +293,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   if (tampon_icon_url !== undefined) extFields.tampon_icon_url = tampon_icon_url;
   if (barcode_type !== undefined) extFields.barcode_type = barcode_type;
   if (label_client !== undefined) extFields.label_client = label_client;
+  if (push_icon_bg_color !== undefined) extFields.push_icon_bg_color = push_icon_bg_color;
 
   const advFields: Record<string, unknown> = {};
   if (couleur_fond_2 !== undefined) advFields.couleur_fond_2 = couleur_fond_2;
@@ -286,9 +311,16 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   const programFields: Record<string, unknown> = {};
   if (welcome_message !== undefined) programFields.welcome_message = welcome_message;
   if (success_message !== undefined) programFields.success_message = success_message;
-  if (rewards_config !== undefined) programFields.rewards_config = rewards_config;
+  if (rewards_multi_enabled !== undefined) programFields.rewards_multi_enabled = rewards_multi_enabled;
+  if (rewards_config !== undefined || rewards_multi_enabled === false) {
+    programFields.rewards_config = rewards_multi_enabled === false ? [] : rewards_config;
+  }
   if (vip_tiers !== undefined) programFields.vip_tiers = vip_tiers;
   if (strip_layout !== undefined) programFields.strip_layout = strip_layout;
+  if (branding_powered_by_enabled !== undefined) {
+    const planLimits = getPlanLimits(commerce.plan);
+    programFields.branding_powered_by_enabled = planLimits.avisGoogle ? branding_powered_by_enabled : true;
+  }
   if (parsed.data.review_reward_enabled !== undefined) programFields.review_reward_enabled = parsed.data.review_reward_enabled;
   if (parsed.data.review_reward_value !== undefined) programFields.review_reward_value = parsed.data.review_reward_value;
   if (parsed.data.google_maps_url !== undefined) programFields.google_maps_url = parsed.data.google_maps_url;

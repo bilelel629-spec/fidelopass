@@ -246,11 +246,25 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               <div class="flex items-center justify-between gap-3 mb-3">
                 <div>
                   <p class="text-sm font-semibold text-slate-900">Récompenses multiples</p>
-                  <p class="text-slate-500 text-xs mt-0.5">Ex : café offert au 5e tampon, -10% au 10e.</p>
+                  <p class="text-slate-500 text-xs mt-0.5">Désactivé par défaut. Activez pour proposer plusieurs paliers.</p>
                 </div>
-                <button id="add-reward-tier" type="button" class="btn-secondary text-xs py-1.5 px-3">Ajouter</button>
+                <button
+                  id="multi-rewards-toggle"
+                  type="button"
+                  class="relative w-12 h-6 rounded-full transition-colors flex-shrink-0"
+                  style="background:#334155"
+                  aria-pressed="false"
+                >
+                  <span id="multi-rewards-knob" class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" style="left:2px"></span>
+                </button>
               </div>
-              <div id="reward-tiers" class="flex flex-col gap-2"></div>
+              <div id="multi-rewards-content" class="hidden">
+                <div class="flex items-center justify-end mb-3">
+                  <button id="add-reward-tier" type="button" class="btn-secondary text-xs py-1.5 px-3">Ajouter</button>
+                </div>
+                <div id="reward-tiers" class="flex flex-col gap-2"></div>
+              </div>
+              <p id="multi-rewards-disabled-msg" class="text-xs text-slate-500">Une seule récompense sera affichée sur la carte.</p>
             </div>
             <div id="vip-tiers-card" class="hidden rounded-2xl border border-sky-100 bg-white p-4">
               <p class="text-sm font-semibold text-slate-900">Paliers VIP points</p>
@@ -350,7 +364,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <div class="mt-1 mb-5">
             <h3 class="font-semibold text-slate-900 mb-3">Bannière</h3>
             <div class="flex flex-col gap-2">
-              <div class="w-full h-16 rounded-xl border border-white/10 overflow-hidden flex items-center justify-center relative" style="background:#1e293b">
+              <div id="strip-drag-area" class="w-full h-16 rounded-xl border border-white/10 overflow-hidden flex items-center justify-center relative select-none touch-none" style="background:#1e293b">
                 <img id="strip-preview-img" class="hidden w-full h-full object-cover" style="object-position:center" />
                 <span id="strip-preview-icon" class="text-slate-500 text-xs">Aucune image</span>
               </div>
@@ -362,6 +376,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               <input type="hidden" id="strip-url" />
               <p id="strip-loading" class="hidden text-indigo-400 text-xs">Upload...</p>
               <p class="text-slate-600 text-xs text-center">PNG/JPG — <strong class="text-slate-500">750×246 px</strong></p>
+              <input type="hidden" id="strip-position" value="50:50" />
+              <div class="rounded-xl border border-sky-100 bg-white/80 px-3 py-2">
+                <div class="flex items-center justify-between gap-3 text-xs">
+                  <span class="text-slate-600">Déplacez la bannière pour centrer le visuel</span>
+                  <button id="strip-position-reset" type="button" class="btn-secondary px-2.5 py-1 text-[0.68rem]">Recentrer</button>
+                </div>
+                <p id="strip-position-label" class="mt-1 text-[0.68rem] text-slate-500">Position: 50% / 50%</p>
+              </div>
               <div class="w-full rounded-xl border border-sky-100 bg-sky-50/60 px-3 py-3">
                 <div class="flex items-center justify-between text-xs text-slate-600 mb-1.5">
                   <span>Zoom de la bannière</span>
@@ -372,7 +394,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                   Appliquer au fichier bannière (750×246)
                 </button>
                 <p class="text-[0.68rem] leading-tight text-slate-500 mt-2">
-                  Ajustez le zoom puis appliquez. Utilisez ensuite Haut/Centre/Bas pour le cadrage vertical.
+                  Ajustez le zoom puis déplacez directement l'image dans l'encadré pour le cadrage précis.
                 </p>
               </div>
               <a href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3NTAiIGhlaWdodD0iMjQ2Ij48cmVjdCB3aWR0aD0iNzUwIiBoZWlnaHQ9IjI0NiIgZmlsbD0iIzFlMjkzYiIvPjxyZWN0IHg9IjQwIiB5PSI0MCIgd2lkdGg9IjY3MCIgaGVpZ2h0PSIxNjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzYzNjZmMSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI4IDQiIHJ4PSI4Ii8+PHRleHQgeD0iMzc1IiB5PSIxMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2MzY2ZjEiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5ab25lIGJhbm5pZXJlIOKAlCA3NTAgw5cgMjQ2IHB4PC90ZXh0Pjx0ZXh0IHg9IjM3NSIgeT0iMTQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyI+TGVzIHRhbXBvbnMgc29udCBjZW50csOpcyBwYXItZGVzc3VzPC90ZXh0Pjwvc3ZnPg=="
@@ -410,15 +432,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                 </div>
                 <div id="strip-position-zone" class="hidden">
                   <label class="text-slate-500 text-xs mb-1.5 block">Position de l'image</label>
-                  <div class="grid grid-cols-3 gap-1.5">
-                    {['top','center','bottom'].map(pos => (
-                      <label id={`strip-pos-${pos}-label`} class="cursor-pointer rounded-lg border-2 py-1.5 text-center transition-all text-xs"
-                        style={pos==='center'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff;color:#64748b'}>
-                        <input type="radio" name="strip_position" value={pos} class="hidden" checked={pos==='center'} />
-                        {pos==='top'?'Haut':pos==='center'?'Centre':'Bas'}
-                      </label>
-                    ))}
-                  </div>
+                  <p class="text-xs text-slate-500">Glissez l’image dans l’encadré ci-dessus pour définir le centrage exact.</p>
                 </div>
               </div>
             </div>
@@ -531,6 +545,41 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <p id="anniv-upgrade-msg" class="mt-3 text-xs text-amber-700 hidden">
             Disponible à partir du plan Pro. <a href="/dashboard/parametres" class="font-semibold underline">Voir les plans →</a>
           </p>
+        </div>
+
+        <div id="branding-section" class="rounded-2xl border border-sky-100 bg-white p-4 mb-4">
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <p class="text-sm font-semibold text-slate-900">Signature “Propulsé par Fidelopass”</p>
+                <span id="branding-pro-badge" class="rounded-full bg-amber-100 border border-amber-200 px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-700">Pro</span>
+              </div>
+              <p class="mt-0.5 text-xs text-slate-500">Affichée en transparence en bas de la carte Wallet.</p>
+            </div>
+            <button
+              id="branding-toggle"
+              type="button"
+              class="relative w-12 h-6 rounded-full transition-colors flex-shrink-0"
+              style="background:#4f46e5"
+              aria-pressed="true"
+            >
+              <span id="branding-knob" class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" style="left:26px"></span>
+            </button>
+          </div>
+          <p id="branding-upgrade-msg" class="mt-3 text-xs text-amber-700 hidden">
+            Le retrait de la signature est disponible uniquement en plan Pro.
+          </p>
+        </div>
+
+        <div class="rounded-2xl border border-sky-100 bg-sky-50/40 p-4">
+          <div class="flex items-center justify-between gap-4 mb-2">
+            <div>
+              <p class="text-sm font-semibold text-slate-900">Fond du logo de notification push</p>
+              <p class="text-slate-500 text-xs mt-0.5">Couleur affichée derrière le logo commerçant dans les notifications Wallet.</p>
+            </div>
+            <div id="push-icon-preview" class="h-10 w-10 rounded-xl border border-slate-200 shadow-inner"></div>
+          </div>
+          <input id="push-icon-bg-color" type="color" value="#6366f1" class="w-full h-10 rounded-xl border border-sky-100 cursor-pointer bg-white" />
         </div>
 
       </div>
@@ -660,7 +709,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             <div id="prev-barcode" class="hidden w-full h-8 flex gap-px">{Array.from({length:30}).map((_,i)=>(<div class="flex-1 h-full" style={`background:#111;opacity:${Math.random()>0.4?1:0.15}`}></div>))}</div>
             <p class="text-gray-400 text-xs">identifiant client</p>
           </div>
-          <div class="relative z-10 px-5 pb-5"><p class="text-xs opacity-50">Récompense</p><p id="preview-recompense" class="text-sm font-medium">—</p></div>
+          <div class="relative z-10 px-5 pb-3"><p class="text-xs opacity-50">Récompense</p><p id="preview-recompense" class="text-sm font-medium">—</p></div>
+          <p id="preview-branding" class="relative z-10 px-5 pb-4 text-right text-[0.62rem] tracking-[0.14em] uppercase opacity-45">Propulsé par Fidelopass</p>
         </div>
 
         <!-- Google preview -->
@@ -688,6 +738,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             <div id="g-stamps-wrap"><div id="g-stamps" class="flex flex-wrap justify-center gap-1.5 mb-2"></div></div>
             <div id="g-points-wrap" class="hidden mb-2"><div class="h-2 bg-gray-100 rounded-full"><div id="g-points-bar" class="h-full rounded-full w-0" style="background:#6366f1"></div></div><p id="g-points-text" class="text-gray-400 text-xs mt-1">0/100 pts</p></div>
             <div class="border-t border-gray-100 pt-2 mt-1"><p class="text-gray-400 text-xs">Récompense</p><p id="g-recompense" class="text-gray-800 text-sm font-medium">—</p></div>
+            <p id="g-branding" class="mt-3 text-right text-[0.62rem] tracking-[0.14em] uppercase text-slate-400/80">Propulsé par Fidelopass</p>
           </div>
         </div>
       </div>
@@ -722,6 +773,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     font-weight: 700;
   }
 
+  .wizard-tab:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
   .appearance-tab[data-active='true'] {
     background: #ffffff;
     color: #0f172a;
@@ -745,12 +801,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   let logoUrl = '', stripUrl = '', tamponIconUrl = '', tamponEmoji = '';
   let logoScale = 1;
   let stripScale = 1;
+  let stripFocusX = 50;
+  let stripFocusY = 50;
   let isGradient = false;
   type WizardStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
   let currentStep: WizardStep = 1;
+  let maxUnlockedStep: WizardStep = 1;
+  let savedProgramType: 'tampons' | 'points' | null = null;
+  let typeChangePendingRevalidation = false;
   let isDirty = false;
   let isSaving = false;
   let suppressDirtyTracking = true;
+  let multiRewardsEnabled = false;
+  let brandingEnabled = true;
+  let isProPlan = false;
+  const completedSteps = new Set<WizardStep>();
   type RewardTier = { seuil: number; recompense: string };
   type VipTier = { nom: string; seuil: number; avantage?: string };
 
@@ -853,6 +918,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     7: () => null,
   };
 
+  function setMaxUnlockedStep(nextStep: number) {
+    maxUnlockedStep = Math.max(1, Math.min(TOTAL_STEPS, nextStep)) as WizardStep;
+  }
+
+  function markStepCompleted(step: WizardStep) {
+    completedSteps.add(step);
+  }
+
   function updateWizardActions() {
     const prevBtn = document.getElementById('prev-step-btn') as HTMLButtonElement;
     const saveDraftBtn = document.getElementById('save-draft-btn') as HTMLButtonElement;
@@ -867,8 +940,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     document.querySelectorAll('.wizard-tab').forEach((tab) => {
       const element = tab as HTMLElement;
       const step = Number(element.dataset.stepTarget) as WizardStep;
-      const state = step < currentStep ? 'done' : step === currentStep ? 'active' : 'todo';
+      const state = step === currentStep
+        ? 'active'
+        : completedSteps.has(step)
+          ? 'done'
+          : 'todo';
       element.dataset.state = state;
+      element.toggleAttribute('disabled', step > maxUnlockedStep && step !== currentStep);
       const status = element.querySelector('.wizard-step-status') as HTMLElement | null;
       if (status) {
         status.dataset.state = state;
@@ -879,11 +957,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   function showStep(step: number) {
     const target = Math.max(1, Math.min(TOTAL_STEPS, step));
+    const accessibleStep = Math.min(target, maxUnlockedStep);
     if (target >= TOTAL_STEPS && !carteId) {
       currentStep = (TOTAL_STEPS - 1) as WizardStep;
       showStepError(6, "Créez d'abord votre carte avant d'accéder au scanner et au partage.");
     } else {
-      currentStep = target as WizardStep;
+      currentStep = accessibleStep as WizardStep;
     }
 
     document.querySelectorAll('.wizard-section').forEach((section) => {
@@ -948,6 +1027,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     targetHeight: number,
     zoomScale: number,
     filePrefix: string,
+    focusX = 50,
+    focusY = 50,
   ): Promise<string> {
     const image = await loadImageElement(sourceUrl);
     const canvas = document.createElement('canvas');
@@ -960,8 +1041,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const scale = baseScale * clamp(zoomScale, 0.7, 2.2);
     const drawWidth = image.width * scale;
     const drawHeight = image.height * scale;
-    const dx = (targetWidth - drawWidth) / 2;
-    const dy = (targetHeight - drawHeight) / 2;
+    const safeFocusX = clamp(focusX, 0, 100) / 100;
+    const safeFocusY = clamp(focusY, 0, 100) / 100;
+    const targetDx = (targetWidth * 0.5) - (drawWidth * safeFocusX);
+    const targetDy = (targetHeight * 0.5) - (drawHeight * safeFocusY);
+    const minDx = targetWidth - drawWidth;
+    const minDy = targetHeight - drawHeight;
+    const dx = clamp(targetDx, minDx, 0);
+    const dy = clamp(targetDy, minDy, 0);
 
     ctx.clearRect(0, 0, targetWidth, targetHeight);
     ctx.drawImage(image, dx, dy, drawWidth, drawHeight);
@@ -1079,6 +1166,38 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   geoToggle.addEventListener('click', () => setGeoToggle(!geoEnabled));
+
+  // Branding signature
+  const brandingToggle = document.getElementById('branding-toggle') as HTMLButtonElement;
+  const brandingKnob = document.getElementById('branding-knob') as HTMLSpanElement;
+  const brandingUpgradeMsg = document.getElementById('branding-upgrade-msg') as HTMLParagraphElement;
+  const brandingProBadge = document.getElementById('branding-pro-badge') as HTMLSpanElement;
+
+  function setBrandingEnabled(enabled: boolean, options: { silent?: boolean } = {}) {
+    brandingEnabled = enabled;
+    brandingToggle.style.background = enabled ? '#4f46e5' : '#334155';
+    brandingKnob.style.left = enabled ? '26px' : '2px';
+    brandingToggle.setAttribute('aria-pressed', String(enabled));
+    document.getElementById('preview-branding')!.classList.toggle('hidden', !enabled);
+    document.getElementById('g-branding')!.classList.toggle('hidden', !enabled);
+    if (!options.silent) markDirty();
+  }
+
+  brandingToggle.addEventListener('click', () => {
+    if (!isProPlan) return;
+    setBrandingEnabled(!brandingEnabled);
+  });
+
+  // Couleur fond icône push
+  const pushIconBgColorInput = document.getElementById('push-icon-bg-color') as HTMLInputElement;
+  const pushIconPreview = document.getElementById('push-icon-preview') as HTMLDivElement;
+  function updatePushIconPreview() {
+    pushIconPreview.style.background = pushIconBgColorInput.value;
+  }
+  pushIconBgColorInput.addEventListener('input', () => {
+    updatePushIconPreview();
+    markDirty();
+  });
 
   // Strip style
   function applyStripStyle(isFull: boolean) {
@@ -1266,14 +1385,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     (document.getElementById('tampon-icon-url') as HTMLInputElement).value=url;
   }
 
-  // Position bannière
-  document.querySelectorAll('input[name="strip_position"]').forEach(r=>r.addEventListener('change',()=>{
-    const pos=(document.querySelector('input[name="strip_position"]:checked') as HTMLInputElement).value;
-    const obj=pos==='top'?'top':pos==='bottom'?'bottom':'center';
-    ['preview-strip','strip-preview-img','g-strip-img'].forEach(id=>(document.getElementById(id) as HTMLImageElement).style.objectPosition=obj);
-    ['top','center','bottom'].forEach(v=>document.getElementById(`strip-pos-${v}-label`)!.style.cssText=v===pos?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff;color:#64748b');
-  }));
-
   function parseJsonArray<T>(value: unknown): T[] {
     if(Array.isArray(value)) return value as T[];
     if(typeof value==='string'){
@@ -1299,6 +1410,30 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     ];
   }
 
+  function setMultiRewardsEnabled(enabled: boolean, options: { silent?: boolean } = {}) {
+    multiRewardsEnabled = enabled;
+    const toggle = document.getElementById('multi-rewards-toggle') as HTMLButtonElement;
+    const knob = document.getElementById('multi-rewards-knob') as HTMLSpanElement;
+    const content = document.getElementById('multi-rewards-content') as HTMLDivElement;
+    const disabledMsg = document.getElementById('multi-rewards-disabled-msg') as HTMLParagraphElement;
+    toggle.style.background = enabled ? '#4f46e5' : '#334155';
+    knob.style.left = enabled ? '26px' : '2px';
+    toggle.setAttribute('aria-pressed', String(enabled));
+    content.classList.toggle('hidden', !enabled);
+    disabledMsg.classList.toggle('hidden', enabled);
+    if (enabled && !document.querySelector('.reward-tier-row')) {
+      renderRewardTiers(defaultRewardTiers());
+    }
+    if (!options.silent) {
+      markDirty();
+      updatePreview();
+    }
+  }
+
+  document.getElementById('multi-rewards-toggle')!.addEventListener('click', () => {
+    setMultiRewardsEnabled(!multiRewardsEnabled);
+  });
+
   function escapeAttr(value: string) {
     return value.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;');
   }
@@ -1323,6 +1458,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   function collectRewardTiers(): RewardTier[] {
+    if (!multiRewardsEnabled) return [];
     return Array.from(document.querySelectorAll('.reward-tier-row')).map((row)=>({
       seuil:parseInt((row.querySelector('.reward-tier-seuil') as HTMLInputElement).value)||0,
       recompense:(row.querySelector('.reward-tier-label') as HTMLInputElement).value.trim(),
@@ -1364,6 +1500,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const stripScaleInput = document.getElementById('strip-scale') as HTMLInputElement;
   const stripScaleVal = document.getElementById('strip-scale-val') as HTMLSpanElement;
   const stripApplyResizeBtn = document.getElementById('strip-apply-resize') as HTMLButtonElement;
+  const stripPositionInput = document.getElementById('strip-position') as HTMLInputElement;
+  const stripPositionLabel = document.getElementById('strip-position-label') as HTMLParagraphElement;
+  const stripDragArea = document.getElementById('strip-drag-area') as HTMLDivElement;
 
   function setStripScale(nextScale: number, syncInput = true) {
     stripScale = clamp(nextScale, 1, 2.2);
@@ -1372,11 +1511,76 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     applyImageScaleToElements(['strip-preview-img', 'preview-strip', 'g-strip-img'], stripScale);
   }
 
+  function parseStripPosition(raw: string | null | undefined): { x: number; y: number } {
+    const value = String(raw ?? '').trim().toLowerCase();
+    if (!value) return { x: 50, y: 50 };
+    if (value === 'top') return { x: 50, y: 0 };
+    if (value === 'bottom') return { x: 50, y: 100 };
+    if (value === 'center') return { x: 50, y: 50 };
+    const [xRaw, yRaw] = value.split(':');
+    const x = Number(xRaw);
+    const y = Number(yRaw);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return { x: 50, y: 50 };
+    return { x: clamp(x, 0, 100), y: clamp(y, 0, 100) };
+  }
+
+  function getSerializedStripPosition(): string {
+    return `${Math.round(stripFocusX)}:${Math.round(stripFocusY)}`;
+  }
+
+  function setStripFocus(nextX: number, nextY: number, options: { silent?: boolean } = {}) {
+    stripFocusX = clamp(nextX, 0, 100);
+    stripFocusY = clamp(nextY, 0, 100);
+    const position = `${stripFocusX}% ${stripFocusY}%`;
+    ['preview-strip', 'strip-preview-img', 'g-strip-img'].forEach((id) => {
+      const el = document.getElementById(id) as HTMLImageElement | null;
+      if (el) el.style.objectPosition = position;
+    });
+    stripPositionInput.value = getSerializedStripPosition();
+    stripPositionLabel.textContent = `Position: ${Math.round(stripFocusX)}% / ${Math.round(stripFocusY)}%`;
+    if (!options.silent) markDirty();
+  }
+
+  function resetStripFocus() {
+    setStripFocus(50, 50);
+  }
+
   stripScaleInput.addEventListener('input', (event) => {
     const value = parseInt((event.target as HTMLInputElement).value, 10);
     setStripScale(value / 100, false);
     markDirty();
   });
+  document.getElementById('strip-position-reset')!.addEventListener('click', resetStripFocus);
+
+  let stripDragging = false;
+  function updateStripFocusFromPointer(clientX: number, clientY: number, silent = false) {
+    const rect = stripDragArea.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const x = ((clientX - rect.left) / rect.width) * 100;
+    const y = ((clientY - rect.top) / rect.height) * 100;
+    setStripFocus(x, y, { silent });
+  }
+
+  stripDragArea.addEventListener('pointerdown', (event) => {
+    if (!stripUrl) return;
+    stripDragging = true;
+    stripDragArea.setPointerCapture(event.pointerId);
+    stripDragArea.style.cursor = 'grabbing';
+    updateStripFocusFromPointer(event.clientX, event.clientY, true);
+    event.preventDefault();
+  });
+  stripDragArea.addEventListener('pointermove', (event) => {
+    if (!stripDragging) return;
+    updateStripFocusFromPointer(event.clientX, event.clientY, true);
+  });
+  const stopStripDrag = () => {
+    if (!stripDragging) return;
+    stripDragging = false;
+    stripDragArea.style.cursor = stripUrl ? 'grab' : 'default';
+    markDirty();
+  };
+  stripDragArea.addEventListener('pointerup', stopStripDrag);
+  stripDragArea.addEventListener('pointercancel', stopStripDrag);
 
   document.getElementById('strip-btn')!.addEventListener('click',()=>(document.getElementById('strip-file') as HTMLInputElement).click());
   (document.getElementById('strip-file') as HTMLInputElement).addEventListener('change',async(e)=>{
@@ -1387,16 +1591,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   document.getElementById('strip-clear')!.addEventListener('click',()=>{stripUrl='';setStripPreview('');(document.getElementById('strip-file') as HTMLInputElement).value='';});
   function setStripPreview(url: string){
     const img=document.getElementById('strip-preview-img') as HTMLImageElement;
-    const pos=(document.querySelector('input[name="strip_position"]:checked') as HTMLInputElement)?.value??'center';
     document.getElementById('strip-clear')!.classList.toggle('hidden',!url);
     document.getElementById('strip-position-zone')!.classList.toggle('hidden',!url);
     document.getElementById('strip-preview-icon')!.classList.toggle('hidden',!!url);
-    if(url){img.src=url;img.style.objectPosition=pos;img.classList.remove('hidden');}else img.classList.add('hidden');
+    stripDragArea.style.cursor = url ? 'grab' : 'default';
+    if(url){img.src=url;img.classList.remove('hidden');}else img.classList.add('hidden');
     const pw=document.getElementById('preview-strip-wrap')!,pi=document.getElementById('preview-strip') as HTMLImageElement,cb=document.getElementById('preview-strip-color')!;
-    if(url){pi.src=url;pi.style.objectPosition=pos;pw.style.display='block';cb.style.display='none';}else{pw.style.display='none';cb.style.display='block';}
+    if(url){pi.src=url;pw.style.display='block';cb.style.display='none';}else{pw.style.display='none';cb.style.display='block';}
     const gi=document.getElementById('g-strip-img') as HTMLImageElement;
-    if(url){gi.src=url;gi.style.objectPosition=pos;gi.classList.remove('hidden');}else gi.classList.add('hidden');
+    if(url){gi.src=url;gi.classList.remove('hidden');}else gi.classList.add('hidden');
     (document.getElementById('strip-url') as HTMLInputElement).value=url;
+    setStripFocus(stripFocusX, stripFocusY, { silent: true });
     applyImageScaleToElements(['strip-preview-img', 'preview-strip', 'g-strip-img'], stripScale);
   }
 
@@ -1411,7 +1616,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     stripApplyResizeBtn.disabled = true;
     stripApplyResizeBtn.textContent = 'Application...';
     try {
-      const scaledUrl = await uploadScaledImageFromUrl(stripUrl, 750, 246, stripScale, 'banniere');
+      const scaledUrl = await uploadScaledImageFromUrl(stripUrl, 750, 246, stripScale, 'banniere', stripFocusX, stripFocusY);
       stripUrl = scaledUrl;
       setStripPreview(stripUrl);
       setStripScale(1);
@@ -1513,6 +1718,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     applyTypeUI(t);
     document.getElementById('type-tampons-label')!.style.cssText=t==='tampons'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff';
     document.getElementById('type-points-label')!.style.cssText=t==='points'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff';
+    if (savedProgramType && t !== savedProgramType) {
+      typeChangePendingRevalidation = true;
+      completedSteps.forEach((step) => {
+        if (step >= 3) completedSteps.delete(step);
+      });
+      setMaxUnlockedStep(3);
+      if (currentStep > 3) {
+        showStep(3);
+      } else {
+        updateWizardActions();
+      }
+      const info = document.getElementById('success-msg') as HTMLDivElement;
+      info.textContent = 'Type de programme modifié. Vérifiez à nouveau les étapes Programme et suivantes.';
+      info.classList.remove('hidden');
+    }
     updatePreview();
   }));
   function applyTypeUI(type: string){
@@ -1607,7 +1827,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const total=parseInt((document.getElementById('tampons-total') as HTMLInputElement).value)||10;
     const ptsCible=parseInt((document.getElementById('points-recompense') as HTMLInputElement).value)||100;
     const pt=(document.querySelector('input[name="pattern_type"]:checked') as HTMLInputElement)?.value??'none';
-    const rewardTiers=collectRewardTiers();
+    const rewardTiers = multiRewardsEnabled ? collectRewardTiers() : [];
     const rewardSummary=rewardTiers.length?rewardTiers.map(t=>`${t.seuil} ${getProgramUnit()} : ${t.recompense}`).join(' • '):recompense;
 
     const bg=getBgStyle();
@@ -1626,6 +1846,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     document.getElementById('preview-recompense')!.textContent=rewardSummary;
     document.getElementById('preview-label-client')!.textContent=labelClient.toUpperCase();
     document.getElementById('preview-type-label')!.textContent=type==='tampons'?'Tampons':'Points';
+    document.getElementById('preview-branding')!.classList.toggle('hidden', !brandingEnabled);
 
     if(type==='tampons'){
       document.getElementById('preview-solde')!.textContent=`1/${total}`;
@@ -1649,6 +1870,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     document.getElementById('g-recompense')!.textContent=rewardSummary;
     document.getElementById('g-label-client')!.textContent=labelClient.toUpperCase();
     document.getElementById('g-type-lbl')!.textContent=type==='tampons'?'Tampons':'Points';
+    document.getElementById('g-branding')!.classList.toggle('hidden', !brandingEnabled);
 
     if(type==='tampons'){
       document.getElementById('g-solde')!.textContent=`1/${total}`;
@@ -1727,11 +1949,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const res=await authFetch('/api/cartes'); if(!res.ok)return;
       const {data}=await res.json(); if(!data)return;
       carteId=data.id;
+      setMaxUnlockedStep(TOTAL_STEPS);
+      (Array.from({ length: TOTAL_STEPS }, (_, index) => index + 1) as WizardStep[]).forEach((step) => completedSteps.add(step));
       const set=(id:string,val:string)=>{const el=document.getElementById(id) as HTMLInputElement;if(el)el.value=val;};
       set('nom-carte',data.nom??''); set('description',data.description??''); set('tampons-total',String(data.tampons_total??10));
       set('points-par-euro',String(data.points_par_euro??1)); set('points-recompense',String(data.points_recompense??100));
       set('recompense',data.recompense_description??''); set('message-geo',data.message_geo??'');
       set('couleur-fond',data.couleur_fond??'#0f172a'); set('couleur-texte',data.couleur_texte??'#ffffff'); set('couleur-accent',data.couleur_accent??'#6366f1');
+      set('push-icon-bg-color', data.push_icon_bg_color ?? data.couleur_accent ?? '#6366f1');
+      updatePushIconPreview();
       set('label-client',data.label_client??'Client');
       if(data.couleur_fond_2){set('couleur-fond-2',data.couleur_fond_2);if(!isGradient)gradientToggle.click();}
       if(data.gradient_angle!=null){set('gradient-angle',String(data.gradient_angle));document.getElementById('gradient-angle-val')!.textContent=`${data.gradient_angle}°`;}
@@ -1744,6 +1970,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const layout=data.strip_layout??'background'; sr('strip_layout',layout);
       ['background','top','bottom'].forEach(v=>document.getElementById(`strip-layout-${v}-label`)!.style.cssText=v===layout?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff;color:#64748b');
       const tp=data.type??'tampons'; sr('type',tp); applyTypeUI(tp);
+      savedProgramType = tp === 'points' ? 'points' : 'tampons';
+      typeChangePendingRevalidation = false;
       document.getElementById('type-tampons-label')!.style.cssText=tp==='tampons'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff';
       document.getElementById('type-points-label')!.style.cssText=tp==='points'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff';
       const bt=data.barcode_type??'QR'; sr('barcode_type',bt);
@@ -1751,11 +1979,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if(data.logo_url){logoUrl=data.logo_url;setLogoPreview(logoUrl);}
       set('welcome-message', data.welcome_message ?? `Bienvenue chez ${data.nom ?? 'nous'}, créez votre carte fidélité en 10 secondes.`);
       set('success-message', data.success_message ?? 'Votre carte est prête, montrez-la à chaque passage.');
-      renderRewardTiers(parseJsonArray<RewardTier>(data.rewards_config));
+      const existingRewards = parseJsonArray<RewardTier>(data.rewards_config);
+      renderRewardTiers(existingRewards);
+      const multiRewardsFlag = Boolean(data.rewards_multi_enabled) || existingRewards.length > 0;
+      setMultiRewardsEnabled(multiRewardsFlag, { silent: true });
       renderVipTiers(parseJsonArray<VipTier>(data.vip_tiers));
+      setBrandingEnabled(data.branding_powered_by_enabled !== false, { silent: true });
       if(data.strip_url){
-        stripUrl=data.strip_url; const sp=data.strip_position??'center'; sr('strip_position',sp);
-        ['top','center','bottom'].forEach(v=>document.getElementById(`strip-pos-${v}-label`)!.style.cssText=v===sp?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff;color:#64748b');
+        stripUrl=data.strip_url;
+        const focus = parseStripPosition(data.strip_position ?? '50:50');
+        setStripFocus(focus.x, focus.y, { silent: true });
         setStripPreview(stripUrl);
       }
       if(data.tampon_emoji){
@@ -1790,18 +2023,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   document.querySelectorAll('.wizard-tab').forEach((tab) => {
     tab.addEventListener('click', () => {
       const target = Number((tab as HTMLElement).dataset.stepTarget ?? '1');
-      if (target > currentStep + 1) {
-        showStepError(currentStep, 'Avancez étape par étape pour garder une configuration cohérente.');
+      if (target > maxUnlockedStep) {
+        showStepError(currentStep, 'Enregistrez cette étape pour débloquer la suivante.');
         return;
       }
-      if (target > currentStep) {
-        const validation = stepValidators[currentStep]();
-        if (validation) {
-          showStepError(currentStep, validation);
-          return;
-        }
-        clearStepError(currentStep);
-      }
+      clearStepError(currentStep);
       showStep(target);
     });
   });
@@ -1826,9 +2052,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       couleur_fond:getInput('couleur-fond'),
       couleur_texte:getInput('couleur-texte'),
       couleur_accent:getInput('couleur-accent'),
+      push_icon_bg_color:getInput('push-icon-bg-color'),
       logo_url:logoUrl||null,
       strip_url:stripUrl||null,
-      strip_position:getChecked('strip_position')||'center',
+      strip_position:stripPositionInput.value || getSerializedStripPosition(),
       tampon_icon_url:tamponIconUrl||null,
       barcode_type:getChecked('barcode_type')||'QR',
       label_client:getInput('label-client')||'Client',
@@ -1842,9 +2069,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       texte_alignement:'left',
       strip_plein_largeur:getChecked('strip_style')==='full',
       strip_layout:getChecked('strip_layout')||'background',
+      branding_powered_by_enabled:brandingEnabled,
+      rewards_multi_enabled:multiRewardsEnabled,
       welcome_message:getInput('welcome-message')||null,
       success_message:getInput('success-message')||null,
-      rewards_config:collectRewardTiers(),
+      rewards_config:multiRewardsEnabled ? collectRewardTiers() : [],
       vip_tiers:collectVipTiers(),
     };
   }
@@ -1856,7 +2085,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       setLogoScale(1);
     }
     if (stripUrl && Math.abs(stripScale - 1) > 0.001) {
-      stripUrl = await uploadScaledImageFromUrl(stripUrl, 750, 246, stripScale, 'banniere');
+      stripUrl = await uploadScaledImageFromUrl(stripUrl, 750, 246, stripScale, 'banniere', stripFocusX, stripFocusY);
       setStripPreview(stripUrl);
       setStripScale(1);
     }
@@ -1910,6 +2139,20 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         window.history.replaceState({}, '', '/dashboard/carte');
       }
 
+      savedProgramType = payload.type === 'points' ? 'points' : 'tampons';
+      if (typeChangePendingRevalidation && currentStep >= 3) {
+        typeChangePendingRevalidation = false;
+      }
+      markStepCompleted(currentStep);
+      setMaxUnlockedStep(Math.max(maxUnlockedStep, currentStep + 1));
+      if (carteId) {
+        if (typeChangePendingRevalidation) {
+          setMaxUnlockedStep(3);
+        } else {
+          setMaxUnlockedStep(TOTAL_STEPS);
+        }
+      }
+
       setDraftState(false, true);
       suc.textContent = !hadExistingCard && setupMode
         ? 'Carte créée avec succès. Votre carte est opérationnelle en caisse.'
@@ -1919,6 +2162,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (advance) {
         clearStepError(currentStep);
         const nextStep = currentStep < TOTAL_STEPS ? (currentStep + 1) : TOTAL_STEPS;
+        setMaxUnlockedStep(Math.max(maxUnlockedStep, nextStep));
         showStep(nextStep);
       }
     }catch(e:unknown){
@@ -2001,6 +2245,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const { data } = await res.json();
       const plan: string = data?.plan ?? 'starter';
       const isStarter = plan === 'starter';
+      isProPlan = plan === 'pro';
 
       // Anniversaire : toujours verrouillé sur starter
       if (isStarter) {
@@ -2010,6 +2255,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         annivBtn.disabled = false;
         annivBtn.classList.remove('opacity-40', 'cursor-not-allowed');
         document.getElementById('anniv-pro-badge')!.classList.add('hidden');
+      }
+
+      if (isStarter) {
+        brandingToggle.disabled = true;
+        brandingToggle.classList.add('opacity-40', 'cursor-not-allowed');
+        brandingUpgradeMsg.classList.remove('hidden');
+        setBrandingEnabled(true, { silent: true });
+      } else {
+        brandingToggle.disabled = false;
+        brandingToggle.classList.remove('opacity-40', 'cursor-not-allowed');
+        brandingUpgradeMsg.classList.add('hidden');
+        brandingProBadge.classList.add('hidden');
       }
 
       // Afficher compteur de cartes si proche de la limite
@@ -2028,6 +2285,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   setAppearancePanel('theme');
   setLogoScale(1);
   setStripScale(1);
+  setStripFocus(50, 50, { silent: true });
+  setMultiRewardsEnabled(false, { silent: true });
+  setBrandingEnabled(true, { silent: true });
+  updatePushIconPreview();
   updatePreview();
   applyTypeUI('tampons');
   applyStripStyle(true);

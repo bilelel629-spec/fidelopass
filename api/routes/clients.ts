@@ -323,7 +323,7 @@ clientsRoutes.patch('/:id/adjust', authMiddleware, paidMiddleware, async (c) => 
     if (clientFull.google_pass_id && carte) {
       const { data: commerceData } = await db
         .from('commerces')
-        .select('nom, logo_url, latitude, longitude, rayon_geo')
+        .select('nom, logo_url, latitude, longitude, rayon_geo, plan')
         .eq('id', commerce.id)
         .single();
 
@@ -337,6 +337,7 @@ clientsRoutes.patch('/:id/adjust', authMiddleware, paidMiddleware, async (c) => 
           latitude: commerceData?.latitude ?? null,
           longitude: commerceData?.longitude ?? null,
           rayon_geo: commerceData?.rayon_geo ?? null,
+          plan: commerceData?.plan ?? 'starter',
         },
       } as Parameters<typeof updateGooglePassObject>[1];
 

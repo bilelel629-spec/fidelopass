@@ -14,6 +14,20 @@ function getStripe() {
 
 type PlanName = 'starter' | 'pro' | null;
 
+const LEGACY_PRICE_IDS = {
+  starter_mensuel: ['price_1TLWbz7qMJeoJ4KrW4C8UFLr', 'price_1TMlVz60FYcAjVxl8VNyc7o6'],
+  starter_annuel_mensuel: ['price_1TLWbz7qMJeoJ4KrUuITfZUO', 'price_1TMlVy60FYcAjVxlsTpI09J1'],
+  starter_annuel_once: ['price_1TLWbz7qMJeoJ4KrpUsFIFPs', 'price_1TMlVz60FYcAjVxlSG7wb8dA'],
+  pro_mensuel: ['price_1TLWc07qMJeoJ4KrbyyfYOlH', 'price_1TMlVx60FYcAjVxlm2p12mJm'],
+  pro_annuel_mensuel: ['price_1TLWc07qMJeoJ4KrvqLZfE0u', 'price_1TMlVw60FYcAjVxlVWNs7aJd'],
+  pro_annuel_once: ['price_1TLWc07qMJeoJ4KrP8wZXL9U', 'price_1TMlVx60FYcAjVxlTlIYvWFd'],
+  accompagnement: ['price_1TLUSQ7qMJeoJ4KrYRnAjiPT', 'price_1TMlVu60FYcAjVxl8HONXsoV'],
+  scanner: ['price_1TLUSR7qMJeoJ4KraAIhkZNc', 'price_1TMlVy60FYcAjVxl06t2Sgq1'],
+  sms_100: ['price_1TLUSS7qMJeoJ4KrmbPWFh9V', 'price_1TMlVy60FYcAjVxln9HC0DaE'],
+  sms_500: ['price_1TLUSS7qMJeoJ4KrR2wppPSv', 'price_1TMlVy60FYcAjVxlRDOgzQWc'],
+  sms_2000: ['price_1TLUSS7qMJeoJ4Krtl3iQKiF', 'price_1TMlVy60FYcAjVxlD5phFUTz'],
+} as const;
+
 function loadPriceIds() {
   try {
     const raw = readFileSync(resolve(process.cwd(), 'stripe-price-ids.json'), 'utf8');
@@ -23,20 +37,29 @@ function loadPriceIds() {
   }
 }
 
+function slotIds(slot: keyof typeof LEGACY_PRICE_IDS, priceIds: Record<string, string>): string[] {
+  return Array.from(new Set([priceIds[slot], ...LEGACY_PRICE_IDS[slot]].filter(Boolean)));
+}
+
+function priceMatchesSlot(priceId: string | null, slot: keyof typeof LEGACY_PRICE_IDS, priceIds: Record<string, string>) {
+  if (!priceId) return false;
+  return slotIds(slot, priceIds).includes(priceId);
+}
+
 function resolvePlanFromPriceId(priceId: string | null, priceIds: Record<string, string>): PlanName {
   if (!priceId) return null;
 
   const starterIds = new Set([
-    priceIds.starter_mensuel,
-    priceIds.starter_annuel_mensuel,
-    priceIds.starter_annuel_once,
+    ...slotIds('starter_mensuel', priceIds),
+    ...slotIds('starter_annuel_mensuel', priceIds),
+    ...slotIds('starter_annuel_once', priceIds),
     priceIds.starter_annuel,
   ].filter(Boolean));
 
   const proIds = new Set([
-    priceIds.pro_mensuel,
-    priceIds.pro_annuel_mensuel,
-    priceIds.pro_annuel_once,
+    ...slotIds('pro_mensuel', priceIds),
+    ...slotIds('pro_annuel_mensuel', priceIds),
+    ...slotIds('pro_annuel_once', priceIds),
     priceIds.pro_annuel,
   ].filter(Boolean));
 
@@ -125,10 +148,15 @@ stripeWebhookRoutes.post('/', async (c) => {
           .map((item) => item.price?.id)
           .filter((id): id is string => Boolean(id));
         const firstPriceId = purchasedPriceIds[0] ?? null;
-        const matchedPlan = purchasedPriceIds
+        const selectedPlanFromMetadata = (() => {
+          const plan = String(session.metadata?.selected_plan ?? '').toLowerCase();
+          return (plan === 'starter' || plan === 'pro') ? plan : null;
+        })();
+        const matchedPlanFromLineItems = purchasedPriceIds
           .map((id) => resolvePlanFromPriceId(id, priceIds))
           .find((plan): plan is 'starter' | 'pro' => Boolean(plan)) ?? null;
-        const hasAccompagnementLineItem = Boolean(priceIds.accompagnement) && purchasedPriceIds.includes(priceIds.accompagnement);
+        const matchedPlan = selectedPlanFromMetadata ?? matchedPlanFromLineItems;
+        const hasAccompagnementLineItem = purchasedPriceIds.some((id) => priceMatchesSlot(id, 'accompagnement', priceIds));
 
         console.log('[stripe-webhook] checkout.session.completed | commerce:', commerceId, '| prices:', purchasedPriceIds);
 
@@ -141,7 +169,7 @@ stripeWebhookRoutes.post('/', async (c) => {
             })
             .eq('id', commerceId);
           console.log('[stripe-webhook] → plan =', matchedPlan);
-        } else if (firstPriceId === priceIds.scanner) {
+        } else if (priceMatchesSlot(firstPriceId, 'scanner', priceIds)) {
           await db.rpc('increment_scanners_count', { commerce_id_input: commerceId }).catch(() => {
             return db.from('commerces')
               .select('scanners_count')
@@ -150,15 +178,15 @@ stripeWebhookRoutes.post('/', async (c) => {
               .then(({ data }) => db.from('commerces').update({ scanners_count: (data?.scanners_count ?? 1) + 1 }).eq('id', commerceId));
           });
           console.log('[stripe-webhook] → scanners_count + 1');
-        } else if (firstPriceId === priceIds.sms_100) {
+        } else if (priceMatchesSlot(firstPriceId, 'sms_100', priceIds)) {
           const { data } = await db.from('commerces').select('sms_credits').eq('id', commerceId).single();
           await db.from('commerces').update({ sms_credits: (data?.sms_credits ?? 0) + 100 }).eq('id', commerceId);
           console.log('[stripe-webhook] → sms_credits + 100');
-        } else if (firstPriceId === priceIds.sms_500) {
+        } else if (priceMatchesSlot(firstPriceId, 'sms_500', priceIds)) {
           const { data } = await db.from('commerces').select('sms_credits').eq('id', commerceId).single();
           await db.from('commerces').update({ sms_credits: (data?.sms_credits ?? 0) + 500 }).eq('id', commerceId);
           console.log('[stripe-webhook] → sms_credits + 500');
-        } else if (firstPriceId === priceIds.sms_2000) {
+        } else if (priceMatchesSlot(firstPriceId, 'sms_2000', priceIds)) {
           const { data } = await db.from('commerces').select('sms_credits').eq('id', commerceId).single();
           await db.from('commerces').update({ sms_credits: (data?.sms_credits ?? 0) + 2000 }).eq('id', commerceId);
           console.log('[stripe-webhook] → sms_credits + 2000');
@@ -196,7 +224,14 @@ stripeWebhookRoutes.post('/', async (c) => {
         if (!commerceId) break;
 
         const priceId = sub.items.data[0]?.price?.id ?? null;
-        const plan = resolvePlanFromPriceId(priceId, priceIds) ?? sub.items.data[0]?.price?.metadata?.plan ?? null;
+        const selectedPlanFromMetadata = (() => {
+          const plan = String(sub.metadata?.selected_plan ?? '').toLowerCase();
+          return (plan === 'starter' || plan === 'pro') ? plan : null;
+        })();
+        const plan = selectedPlanFromMetadata
+          ?? resolvePlanFromPriceId(priceId, priceIds)
+          ?? sub.items.data[0]?.price?.metadata?.plan
+          ?? null;
         const trialEnd = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null;
 
         const updates: Record<string, unknown> = {

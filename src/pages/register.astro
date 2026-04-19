@@ -265,7 +265,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     return null;
   }
 
-  async function redirectAfterAuth(sessionFromFlow: { access_token: string } | null = null) {
+  async function redirectAfterAuth(
+    sessionFromFlow: { access_token: string } | null = null,
+    options: { redirectToPricingWhenNoAccess?: boolean } = {},
+  ) {
+    const { redirectToPricingWhenNoAccess = true } = options;
     const activeSession = sessionFromFlow?.access_token ? sessionFromFlow : await getValidSession();
     if (!activeSession?.access_token) {
       await supabase.auth.signOut().catch(() => undefined);
@@ -296,7 +300,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     }
 
     if (!billing?.data?.has_access) {
-      window.location.href = '/abonnement/choix';
+      if (redirectToPricingWhenNoAccess) {
+        window.location.href = '/abonnement/choix';
+      }
       return;
     }
 
@@ -305,13 +311,19 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   // Init
   const { data: { session } } = await supabase.auth.getSession();
-  if (session) { await redirectAfterAuth(session); }
+  if (session) { await redirectAfterAuth(session, { redirectToPricingWhenNoAccess: false }); }
 
   const oauthErr = new URLSearchParams(window.location.search).get('error_description')
     ?? new URLSearchParams(window.location.hash.replace(/^#/, '')).get('error_description');
   if (oauthErr) { setStep('method'); show(methodErrorMsg, getError(new Error(oauthErr), oauthErr)); }
 
-  supabase.auth.onAuthStateChange((_e, s) => { if (s) { clearPending(); void redirectAfterAuth(s); } });
+  supabase.auth.onAuthStateChange((event, s) => {
+    if (!s) return;
+    if (event === 'SIGNED_IN') {
+      clearPending();
+      void redirectAfterAuth(s, { redirectToPricingWhenNoAccess: true });
+    }
+  });
 
   const pending = loadPending();
   if (pending) setStep('verify', pending.email);

@@ -120,11 +120,46 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     return `${API}${path}`;
   }
 
-  async function redirectAfterAuth() {
-    const { data: { session: s } } = await supabase.auth.getSession();
-    const billing = await fetch(apiUrl('/api/billing/status'), {
-      headers: { Authorization: `Bearer ${s?.access_token}`, 'Content-Type': 'application/json' },
-    }).then(r => r.json()).catch(() => ({}));
+  async function getValidSession() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) return session;
+
+    const { data, error } = await supabase.auth.refreshSession();
+    if (!error && data.session?.access_token) return data.session;
+    return null;
+  }
+
+  async function redirectAfterAuth(sessionFromFlow: { access_token: string } | null = null) {
+    const activeSession = sessionFromFlow?.access_token ? sessionFromFlow : await getValidSession();
+
+    if (!activeSession?.access_token) {
+      await supabase.auth.signOut().catch(() => undefined);
+      errorMsg.textContent = 'Votre session a expiré. Merci de vous reconnecter.';
+      errorMsg.classList.remove('hidden');
+      return;
+    }
+
+    const billingResponse = await fetch(apiUrl('/api/billing/status'), {
+      headers: { Authorization: `Bearer ${activeSession.access_token}`, 'Content-Type': 'application/json' },
+    }).catch(() => null);
+
+    if (!billingResponse) {
+      errorMsg.textContent = 'Impossible de vérifier votre abonnement pour le moment.';
+      errorMsg.classList.remove('hidden');
+      return;
+    }
+
+    const billing = await billingResponse.json().catch(() => ({}));
+    if (!billingResponse.ok) {
+      if (billingResponse.status === 401) {
+        await supabase.auth.signOut().catch(() => undefined);
+        errorMsg.textContent = 'Session invalide ou expirée. Merci de vous reconnecter.';
+      } else {
+        errorMsg.textContent = billing?.error ?? 'Erreur lors de la vérification de votre abonnement.';
+      }
+      errorMsg.classList.remove('hidden');
+      return;
+    }
 
     if (!billing?.data?.has_access) {
       window.location.href = '/abonnement/choix';
@@ -136,7 +171,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   const { data: { session } } = await supabase.auth.getSession();
   if (session) {
-    await redirectAfterAuth();
+    await redirectAfterAuth(session);
   }
 
   async function startGoogleOAuth() {
@@ -223,7 +258,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     btn.disabled = true;
     btn.textContent = 'Connexion...';
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       const message = error.message?.toLowerCase?.() ?? '';
@@ -236,6 +271,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       return;
     }
 
-    await redirectAfterAuth();
+    await redirectAfterAuth(data.session ?? null);
   });
 </script>

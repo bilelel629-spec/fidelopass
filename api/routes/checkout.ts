@@ -26,13 +26,13 @@ function loadPriceIds() {
     return JSON.parse(raw) as Record<string, string>;
   } catch {
     return {
-      starter_mensuel: 'price_1TLWbz7qMJeoJ4KrW4C8UFLr',
-      starter_annuel_once: 'price_1TLWbz7qMJeoJ4KrpUsFIFPs',
-      starter_annuel_mensuel: 'price_1TLWbz7qMJeoJ4KrUuITfZUO',
-      pro_mensuel: 'price_1TLWc07qMJeoJ4KrbyyfYOlH',
-      pro_annuel_once: 'price_1TLWc07qMJeoJ4KrP8wZXL9U',
-      pro_annuel_mensuel: 'price_1TLWc07qMJeoJ4KrvqLZfE0u',
-      accompagnement: 'price_1TLUSQ7qMJeoJ4KrYRnAjiPT',
+      starter_mensuel: 'price_1TMlVz60FYcAjVxl8VNyc7o6',
+      starter_annuel_once: 'price_1TMlVz60FYcAjVxlSG7wb8dA',
+      starter_annuel_mensuel: 'price_1TMlVy60FYcAjVxlsTpI09J1',
+      pro_mensuel: 'price_1TMlVx60FYcAjVxlm2p12mJm',
+      pro_annuel_once: 'price_1TMlVx60FYcAjVxlTlIYvWFd',
+      pro_annuel_mensuel: 'price_1TMlVw60FYcAjVxlVWNs7aJd',
+      accompagnement: 'price_1TMlVu60FYcAjVxl8HONXsoV',
     } satisfies Record<string, string>;
   }
 }

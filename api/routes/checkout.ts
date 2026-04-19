@@ -197,10 +197,11 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
 checkoutRoutes.post('/create-portal-session', authMiddleware, async (c) => {
   const userId = c.get('userId') as string;
   const db = createServiceClient();
+  const priceIds = loadPriceIds();
 
   const { data: commerce } = await db
     .from('commerces')
-    .select('id, stripe_customer_id')
+    .select('id, stripe_customer_id, stripe_subscription_id')
     .eq('user_id', userId)
     .single();
 
@@ -235,9 +236,54 @@ checkoutRoutes.post('/create-portal-session', authMiddleware, async (c) => {
 
   const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
   try {
-    const session = await stripe.billingPortal.sessions.create({
+    const returnUrl = `${PUBLIC_SITE_URL}/dashboard/parametres?tab=plans`;
+    const subscriptionId = commerce.stripe_subscription_id;
+    let session: Stripe.BillingPortal.Session;
+
+    if (subscriptionId) {
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+      const commitment = String(subscription.metadata?.billing_commitment ?? '').toLowerCase();
+      const subscriptionPriceId = subscription.items?.data?.[0]?.price?.id ?? null;
+      const yearlyCommitmentPriceIds = new Set([
+        priceIds.starter_annuel_mensuel,
+        priceIds.pro_annuel_mensuel,
+      ].filter(Boolean));
+
+      const isAnnualCommitment = commitment === 'annual-12m-monthly'
+        || (subscriptionPriceId ? yearlyCommitmentPriceIds.has(subscriptionPriceId) : false);
+
+      if (isAnnualCommitment) {
+        const startTsMs = (subscription.start_date ?? Math.floor(Date.now() / 1000)) * 1000;
+        const commitmentEndMs = startTsMs + (365 * 24 * 60 * 60 * 1000);
+        const stillLocked = Date.now() < commitmentEndMs
+          && ['active', 'trialing', 'past_due', 'incomplete'].includes(subscription.status);
+
+        if (stillLocked) {
+          session = await stripe.billingPortal.sessions.create({
+            customer: customerId,
+            return_url: returnUrl,
+            flow_data: {
+              type: 'payment_method_update',
+              after_completion: {
+                type: 'redirect',
+                redirect: {
+                  return_url: `${returnUrl}&billing=updated`,
+                },
+              },
+            },
+          });
+          return c.json({
+            url: session.url,
+            commitment_locked: true,
+            engagement_until: new Date(commitmentEndMs).toISOString(),
+          });
+        }
+      }
+    }
+
+    session = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${PUBLIC_SITE_URL}/dashboard/parametres?tab=plans`,
+      return_url: returnUrl,
     });
     return c.json({ url: session.url });
   } catch (error) {

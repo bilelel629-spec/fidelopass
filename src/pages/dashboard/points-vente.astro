@@ -1,0 +1,256 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Points de vente — Fidelopass" activeNav="points-vente">
+  <div class="mb-6">
+    <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Multi-sites</p>
+    <h1 class="font-display mt-2 text-3xl font-bold text-slate-900">Gérer vos points de vente</h1>
+    <p class="mt-2 text-sm text-slate-600">Plan Pro: jusqu’à 3 points de vente, avec une carte et une adresse dédiées par point.</p>
+  </div>
+
+  <div class="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
+    <section class="card p-6">
+      <div class="mb-4 flex items-center justify-between gap-4">
+        <div>
+          <h2 class="font-display text-xl font-bold text-slate-900">Vos points de vente</h2>
+          <p class="mt-1 text-sm text-slate-500">Sélectionnez le point actif pour personnaliser sa carte et envoyer ses notifications.</p>
+        </div>
+        <span id="points-vente-usage-badge" class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">Chargement...</span>
+      </div>
+      <div id="points-vente-list" class="space-y-3">
+        <p class="text-sm text-slate-500">Chargement...</p>
+      </div>
+    </section>
+
+    <section class="card p-6">
+      <h2 class="font-display text-xl font-bold text-slate-900">Ajouter un point de vente</h2>
+      <p class="mt-1 text-sm text-slate-500">Ajoutez une adresse supplémentaire dans la limite de votre plan.</p>
+      <form id="add-point-vente-form" class="mt-4 space-y-3">
+        <div>
+          <label class="label" for="new-point-nom">Nom du point de vente</label>
+          <input id="new-point-nom" type="text" class="input" placeholder="Ex: BLF Centre-ville" required />
+        </div>
+        <div>
+          <label class="label" for="new-point-adresse">Adresse</label>
+          <input id="new-point-adresse" type="text" class="input" placeholder="Ex: 12 rue du Marché, Paris" />
+        </div>
+        <div>
+          <label class="label" for="new-point-rayon">Rayon géolocalisation (m)</label>
+          <input id="new-point-rayon" type="number" min="100" max="50000" value="1000" class="input" />
+        </div>
+        <div id="add-point-vente-error" class="hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+        <div id="add-point-vente-success" class="hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
+        <button type="submit" id="add-point-vente-btn" class="btn-primary w-full py-3">Ajouter ce point de vente</button>
+      </form>
+    </section>
+  </div>
+</DashboardLayout>
+
+<script>
+  import { ACTIVE_POINT_VENTE_STORAGE_KEY, authFetch } from '../../lib/api';
+
+  type PointVente = {
+    id: string;
+    nom: string;
+    adresse: string | null;
+    rayon_geo: number | null;
+    principal: boolean;
+    actif: boolean;
+  };
+
+  const listContainer = document.getElementById('points-vente-list') as HTMLDivElement;
+  const usageBadge = document.getElementById('points-vente-usage-badge') as HTMLSpanElement;
+  const addForm = document.getElementById('add-point-vente-form') as HTMLFormElement;
+  const addBtn = document.getElementById('add-point-vente-btn') as HTMLButtonElement;
+  const addError = document.getElementById('add-point-vente-error') as HTMLDivElement;
+  const addSuccess = document.getElementById('add-point-vente-success') as HTMLDivElement;
+
+  let selectedPointVenteId: string | null = null;
+  let pointsVente: PointVente[] = [];
+  let usage: { current: number; max: number; remaining: number } | null = null;
+
+  function escapeHtml(value: unknown) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;',
+    }[char] ?? char));
+  }
+
+  function saveActivePointVente(pointVenteId: string | null) {
+    try {
+      if (pointVenteId) window.localStorage.setItem(ACTIVE_POINT_VENTE_STORAGE_KEY, pointVenteId);
+      else window.localStorage.removeItem(ACTIVE_POINT_VENTE_STORAGE_KEY);
+    } catch {
+      // best effort
+    }
+  }
+
+  function renderPointsVente() {
+    if (!pointsVente.length) {
+      listContainer.innerHTML = '<p class="text-sm text-slate-500">Aucun point de vente actif.</p>';
+      return;
+    }
+
+    listContainer.innerHTML = pointsVente.map((point) => {
+      const isActive = point.id === selectedPointVenteId;
+      return `
+        <article class="rounded-2xl border ${isActive ? 'border-sky-300 bg-sky-50/70' : 'border-slate-200 bg-white'} p-4">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-sm font-semibold text-slate-900">${escapeHtml(point.nom)}</p>
+              <p class="mt-1 text-xs text-slate-500">${escapeHtml(point.adresse ?? 'Adresse non renseignée')}</p>
+              <p class="mt-1 text-xs text-slate-500">Rayon: ${(point.rayon_geo ?? 1000).toLocaleString('fr-FR')} m</p>
+            </div>
+            <div class="flex flex-col items-end gap-1.5">
+              ${point.principal ? '<span class="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-emerald-700">Principal</span>' : ''}
+              ${isActive ? '<span class="rounded-full border border-sky-200 bg-sky-100 px-2.5 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-sky-700">Actif</span>' : ''}
+            </div>
+          </div>
+
+          <div class="mt-3 grid gap-2 sm:grid-cols-2">
+            <button type="button" data-action="activate" data-id="${point.id}" class="btn-secondary py-2.5 text-xs">
+              Utiliser ce point de vente
+            </button>
+            <button type="button" data-action="make-principal" data-id="${point.id}" class="btn-secondary py-2.5 text-xs">
+              Définir principal
+            </button>
+            <button type="button" data-action="edit" data-id="${point.id}" class="btn-secondary py-2.5 text-xs">
+              Modifier
+            </button>
+            <button type="button" data-action="archive" data-id="${point.id}" class="rounded-2xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-semibold text-red-700 transition hover:bg-red-100">
+              Archiver
+            </button>
+          </div>
+        </article>
+      `;
+    }).join('');
+
+    listContainer.querySelectorAll('button[data-action]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const element = button as HTMLButtonElement;
+        const action = element.dataset.action;
+        const pointId = element.dataset.id;
+        if (!pointId) return;
+
+        if (action === 'activate') {
+          saveActivePointVente(pointId);
+          window.location.href = '/dashboard/carte';
+          return;
+        }
+
+        if (action === 'make-principal') {
+          await authFetch(`/api/commerces/points-vente/${pointId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ principal: true }),
+          });
+          await loadPointsVente();
+          return;
+        }
+
+        if (action === 'edit') {
+          const current = pointsVente.find((point) => point.id === pointId);
+          if (!current) return;
+          const nom = window.prompt('Nom du point de vente', current.nom);
+          if (!nom) return;
+          const adresse = window.prompt('Adresse', current.adresse ?? '') ?? '';
+          const rayon = window.prompt('Rayon (m)', String(current.rayon_geo ?? 1000)) ?? '1000';
+          await authFetch(`/api/commerces/points-vente/${pointId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              nom,
+              adresse: adresse || null,
+              rayon_geo: Math.max(100, parseInt(rayon, 10) || 1000),
+            }),
+          });
+          await loadPointsVente();
+          return;
+        }
+
+        if (action === 'archive') {
+          const confirmed = window.confirm('Archiver ce point de vente ?');
+          if (!confirmed) return;
+          const res = await authFetch(`/api/commerces/points-vente/${pointId}`, { method: 'DELETE' });
+          if (!res.ok) {
+            const payload = await res.json().catch(() => null);
+            window.alert(payload?.error ?? 'Impossible d’archiver ce point de vente.');
+          }
+          await loadPointsVente();
+        }
+      });
+    });
+  }
+
+  function renderUsage() {
+    if (!usage) {
+      usageBadge.textContent = '—';
+      return;
+    }
+    usageBadge.textContent = `${usage.current}/${usage.max} points`;
+    usageBadge.className = usage.remaining === 0
+      ? 'rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700'
+      : 'rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700';
+  }
+
+  async function loadPointsVente() {
+    let response = await authFetch('/api/commerces/points-vente');
+    if (response.status === 403) {
+      saveActivePointVente(null);
+      response = await authFetch('/api/commerces/points-vente');
+    }
+    if (!response.ok) {
+      listContainer.innerHTML = '<p class="text-sm text-red-600">Impossible de charger les points de vente.</p>';
+      return;
+    }
+    const payload = await response.json();
+    pointsVente = Array.isArray(payload?.data) ? payload.data : [];
+    selectedPointVenteId = payload?.selected_point_vente_id ?? pointsVente[0]?.id ?? null;
+    usage = payload?.usage ?? null;
+
+    saveActivePointVente(selectedPointVenteId);
+    renderUsage();
+    renderPointsVente();
+  }
+
+  addForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    addError.classList.add('hidden');
+    addSuccess.classList.add('hidden');
+
+    addBtn.disabled = true;
+    const original = addBtn.textContent;
+    addBtn.textContent = 'Ajout en cours...';
+
+    try {
+      const payload = {
+        nom: (document.getElementById('new-point-nom') as HTMLInputElement).value.trim(),
+        adresse: ((document.getElementById('new-point-adresse') as HTMLInputElement).value.trim() || null),
+        rayon_geo: Math.max(100, parseInt((document.getElementById('new-point-rayon') as HTMLInputElement).value, 10) || 1000),
+      };
+
+      const res = await authFetch('/api/commerces/points-vente', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? 'Impossible de créer ce point de vente.');
+
+      addSuccess.textContent = 'Point de vente ajouté avec succès.';
+      addSuccess.classList.remove('hidden');
+      addForm.reset();
+      (document.getElementById('new-point-rayon') as HTMLInputElement).value = '1000';
+      await loadPointsVente();
+    } catch (error) {
+      addError.textContent = error instanceof Error ? error.message : 'Erreur réseau.';
+      addError.classList.remove('hidden');
+    } finally {
+      addBtn.disabled = false;
+      addBtn.textContent = original;
+    }
+  });
+
+  await loadPointsVente();
+</script>

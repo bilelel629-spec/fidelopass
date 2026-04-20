@@ -6,6 +6,7 @@ import { paidMiddleware } from '../middleware/paid';
 import { updateGooglePassObject } from '../services/google-wallet';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { sendPushNotification } from '../services/push';
+import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 
 export const transactionsRoutes = new Hono();
 
@@ -24,19 +25,22 @@ transactionsRoutes.get('/', async (c) => {
   const userId = c.get('userId') as string;
   const limit = Math.min(parseInt(c.req.query('limit') ?? '50'), 200);
   const db = createServiceClient();
+  const requestedPointVenteId = readRequestedPointVenteId(c);
 
-  const { data: commerce } = await db
-    .from('commerces')
-    .select('id')
-    .eq('user_id', userId)
-    .single();
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, plan',
+  );
 
-  if (!commerce) return c.json({ data: [] });
+  if (!commerce || !pointVente) return c.json({ data: [] });
 
   const { data, error } = await db
     .from('transactions')
     .select('*')
     .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
     .order('created_at', { ascending: false })
     .limit(limit);
 
@@ -50,6 +54,7 @@ transactionsRoutes.post('/', async (c) => {
   const userId = c.get('userId') as string;
   const body = await c.req.json().catch(() => null);
   const parsed = transactionSchema.safeParse(body);
+  const requestedPointVenteId = readRequestedPointVenteId(c);
 
   if (!parsed.success) {
     return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides' }, 400);
@@ -58,19 +63,21 @@ transactionsRoutes.post('/', async (c) => {
   const db = createServiceClient();
 
   // Vérifie que le client appartient au commerce du commerçant connecté
-  const { data: commerce } = await db
-    .from('commerces')
-    .select('id')
-    .eq('user_id', userId)
-    .single();
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, plan',
+  );
 
-  if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
+  if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
   const { data: client, error: clientError } = await db
     .from('clients')
     .select('*, cartes(id, nom, type, tampons_total, points_recompense, recompense_description, couleur_fond, logo_url, strip_url, barcode_type, label_client, commerces(nom, logo_url))')
     .eq('id', parsed.data.client_id)
     .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
     .single();
 
   if (clientError || !client) return c.json({ error: 'Client introuvable' }, 404);
@@ -125,6 +132,7 @@ transactionsRoutes.post('/', async (c) => {
     db.from('transactions').insert({
       client_id: parsed.data.client_id,
       commerce_id: commerce.id,
+      point_vente_id: pointVente.id,
       type: parsed.data.type,
       valeur: parsed.data.valeur,
       points_avant: carte.type === 'points' ? avantPoints : avantTampons,

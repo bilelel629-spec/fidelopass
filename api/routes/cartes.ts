@@ -6,6 +6,7 @@ import { paidMiddleware } from '../middleware/paid';
 import { getPlanLimits } from './commerces';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { upsertLoyaltyClass, updateGooglePassObject } from '../services/google-wallet';
+import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 
 export const cartesRoutes = new Hono();
 
@@ -86,19 +87,22 @@ const carteSchema = z.object({
 cartesRoutes.get('/', authMiddleware, paidMiddleware, async (c) => {
   const userId = c.get('userId') as string;
   const db = createServiceClient();
+  const requestedPointVenteId = readRequestedPointVenteId(c);
 
-  const { data: commerce } = await db
-    .from('commerces')
-    .select('id, plan')
-    .eq('user_id', userId)
-    .single();
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, plan',
+  );
 
-  if (!commerce) return c.json({ data: null });
+  if (!commerce || !pointVente) return c.json({ data: null });
 
   const { data } = await db
     .from('cartes')
     .select('*')
     .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
     .single();
 
   return c.json({ data: data ?? null });
@@ -111,7 +115,7 @@ cartesRoutes.get('/:id/public', async (c) => {
 
   const { data: carte } = await db
     .from('cartes')
-    .select('*, commerces(id, nom, logo_url)')
+    .select('*, commerces(id, nom, logo_url), points_vente(id, nom, adresse, latitude, longitude, rayon_geo)')
     .eq('id', carteId)
     .eq('actif', true)
     .single();
@@ -120,12 +124,20 @@ cartesRoutes.get('/:id/public', async (c) => {
 
   withEffectiveCommerceLogo(carte);
 
-  const { commerces, ...carteData } = carte as typeof carte & { commerces: { id: string; nom: string; logo_url: string | null } };
+  const {
+    commerces,
+    points_vente: pointVente,
+    ...carteData
+  } = carte as typeof carte & {
+    commerces: { id: string; nom: string; logo_url: string | null };
+    points_vente: { id: string; nom: string; adresse: string | null; latitude: number | null; longitude: number | null; rayon_geo: number | null } | null;
+  };
 
   return c.json({
     data: {
       carte: carteData,
       commerce: commerces,
+      point_vente: pointVente ?? null,
     },
   });
 });
@@ -135,19 +147,21 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   const userId = c.get('userId') as string;
   const body = await c.req.json().catch(() => null);
   const parsed = carteSchema.safeParse(body);
+  const requestedPointVenteId = readRequestedPointVenteId(c);
 
   if (!parsed.success) {
     return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides' }, 400);
   }
 
   const db = createServiceClient();
-  const { data: commerce } = await db
-    .from('commerces')
-    .select('id, plan')
-    .eq('user_id', userId)
-    .single();
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, plan',
+  );
 
-  if (!commerce) return c.json({ error: 'Créez d\'abord votre commerce' }, 400);
+  if (!commerce || !pointVente) return c.json({ error: 'Créez d\'abord votre point de vente' }, 400);
 
   const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
 
@@ -164,6 +178,7 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
     couleur_accent: parsed.data.couleur_accent,
     message_geo: parsed.data.message_geo,
     commerce_id: commerce.id,
+    point_vente_id: pointVente.id,
     pass_type_id: passTypeId,
     updated_at: new Date().toISOString(),
   };
@@ -212,7 +227,7 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   // Essai 1 : tout (base + ext + adv + typo + programme)
   let result = await db
     .from('cartes')
-    .upsert({ ...baseFields, ...extFields, ...advFields, ...typoFields, ...programFields }, { onConflict: 'commerce_id' })
+    .upsert({ ...baseFields, ...extFields, ...advFields, ...typoFields, ...programFields }, { onConflict: 'point_vente_id' })
     .select()
     .single();
 
@@ -220,7 +235,7 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
     // Essai 2 : sans migration 006
     result = await db
       .from('cartes')
-      .upsert({ ...baseFields, ...extFields, ...advFields, ...typoFields }, { onConflict: 'commerce_id' })
+      .upsert({ ...baseFields, ...extFields, ...advFields, ...typoFields }, { onConflict: 'point_vente_id' })
       .select()
       .single();
   }
@@ -229,7 +244,7 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
     // Essai 3 : base + ext + adv (migration 004 pas encore exécutée)
     result = await db
       .from('cartes')
-      .upsert({ ...baseFields, ...extFields, ...advFields }, { onConflict: 'commerce_id' })
+      .upsert({ ...baseFields, ...extFields, ...advFields }, { onConflict: 'point_vente_id' })
       .select()
       .single();
   }
@@ -238,7 +253,7 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
     // Essai 4 : base + ext (migration 003 non plus)
     result = await db
       .from('cartes')
-      .upsert({ ...baseFields, ...extFields }, { onConflict: 'commerce_id' })
+      .upsert({ ...baseFields, ...extFields }, { onConflict: 'point_vente_id' })
       .select()
       .single();
   }
@@ -247,7 +262,7 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
     // Essai 5 : base only
     result = await db
       .from('cartes')
-      .upsert(baseFields, { onConflict: 'commerce_id' })
+      .upsert(baseFields, { onConflict: 'point_vente_id' })
       .select()
       .single();
   }
@@ -266,19 +281,21 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   const userId = c.get('userId') as string;
   const body = await c.req.json().catch(() => null);
   const parsed = carteSchema.partial().safeParse(body);
+  const requestedPointVenteId = readRequestedPointVenteId(c);
 
   if (!parsed.success) {
     return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides' }, 400);
   }
 
   const db = createServiceClient();
-  const { data: commerce } = await db
-    .from('commerces')
-    .select('id, plan')
-    .eq('user_id', userId)
-    .single();
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, plan',
+  );
 
-  if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
+  if (!commerce || !pointVente) return c.json({ error: 'Point de vente introuvable' }, 404);
 
   const {
     logo_url, strip_url, strip_position, tampon_icon_url, barcode_type, label_client, push_icon_bg_color,
@@ -335,6 +352,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
     .update({ ...baseData, ...extFields, ...advFields, ...typoFields, ...programFields, ...ts })
     .eq('id', carteId)
     .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
     .select()
     .single();
 
@@ -345,6 +363,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
       .update({ ...baseData, ...extFields, ...advFields, ...typoFields, ...ts })
       .eq('id', carteId)
       .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id)
       .select()
       .single();
   }
@@ -356,6 +375,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
       .update({ ...baseData, ...extFields, ...advFields, ...ts })
       .eq('id', carteId)
       .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id)
       .select()
       .single();
   }
@@ -367,6 +387,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
       .update({ ...baseData, ...extFields, ...ts })
       .eq('id', carteId)
       .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id)
       .select()
       .single();
   }
@@ -378,6 +399,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
       .update({ ...baseData, ...ts })
       .eq('id', carteId)
       .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id)
       .select()
       .single();
   }
@@ -395,7 +417,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
 
       const { data: commerceData, error: commerceError } = await db
         .from('commerces')
-        .select('nom, logo_url, latitude, longitude, rayon_geo, plan')
+        .select('nom, logo_url, plan')
         .eq('id', commerce.id)
         .single();
 
@@ -404,14 +426,20 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
         return;
       }
 
+      const { data: pointVenteData } = await db
+        .from('points_vente')
+        .select('latitude, longitude, rayon_geo')
+        .eq('id', (updatedCarte as { point_vente_id?: string | null }).point_vente_id ?? '')
+        .maybeSingle();
+
       const carteForWallet = {
         ...(updatedCarte as Record<string, unknown>),
         commerces: {
           nom: commerceData.nom ?? '',
           logo_url: commerceData.logo_url ?? null,
-          latitude: commerceData.latitude ?? null,
-          longitude: commerceData.longitude ?? null,
-          rayon_geo: commerceData.rayon_geo ?? null,
+          latitude: pointVenteData?.latitude ?? null,
+          longitude: pointVenteData?.longitude ?? null,
+          rayon_geo: pointVenteData?.rayon_geo ?? null,
           plan: commerceData.plan ?? 'starter',
         },
       } as Parameters<typeof updateGooglePassObject>[1];

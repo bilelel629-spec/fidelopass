@@ -4,6 +4,7 @@ import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
 import { sendSMS, personnaliserMessage } from '../../src/lib/brevo-sms';
+import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 
 export const smsRoutes = new Hono();
 
@@ -16,14 +17,15 @@ const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.
 smsRoutes.get('/stats', async (c) => {
   const userId = c.get('userId') as string;
   const db = createServiceClient();
+  const requestedPointVenteId = readRequestedPointVenteId(c);
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, sms_credits, sms_welcome_enabled, sms_welcome_message, sms_review_enabled, sms_relance_enabled, sms_relance_jours',
+  );
 
-  const { data: commerce } = await db
-    .from('commerces')
-    .select('id, sms_credits, sms_welcome_enabled, sms_welcome_message, sms_review_enabled, sms_relance_enabled, sms_relance_jours')
-    .eq('user_id', userId)
-    .single();
-
-  if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
+  if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const { data: logs } = await db
@@ -38,6 +40,7 @@ smsRoutes.get('/stats', async (c) => {
     .from('clients')
     .select('id', { count: 'exact', head: true })
     .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
     .not('telephone', 'is', null);
 
   return c.json({
@@ -71,7 +74,8 @@ smsRoutes.patch('/settings', async (c) => {
   if (!parsed.success) return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides' }, 400);
 
   const db = createServiceClient();
-  const { data: commerce } = await db.from('commerces').select('id').eq('user_id', userId).single();
+  const requestedPointVenteId = readRequestedPointVenteId(c);
+  const { commerce } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id');
   if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
 
   const { error } = await db.from('commerces').update(parsed.data).eq('id', commerce.id);
@@ -84,6 +88,7 @@ smsRoutes.patch('/settings', async (c) => {
 smsRoutes.post('/campagne', async (c) => {
   const userId = c.get('userId') as string;
   const body = await c.req.json().catch(() => null);
+  const requestedPointVenteId = readRequestedPointVenteId(c);
 
   const schema = z.object({
     filtre: z.enum(['tous', 'sans_avis', 'inactifs']).default('tous'),
@@ -96,13 +101,14 @@ smsRoutes.post('/campagne', async (c) => {
 
   const db = createServiceClient();
 
-  const { data: commerce } = await db
-    .from('commerces')
-    .select('id, nom, sms_credits')
-    .eq('user_id', userId)
-    .single();
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, nom, sms_credits',
+  );
 
-  if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
+  if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
   if ((commerce.sms_credits ?? 0) === 0) {
     return c.json({ error: 'Crédits SMS épuisés. Rechargez votre solde.' }, 402);
   }
@@ -112,6 +118,7 @@ smsRoutes.post('/campagne', async (c) => {
     .from('cartes')
     .select('id, google_maps_url')
     .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
     .eq('actif', true)
     .maybeSingle();
 
@@ -120,6 +127,7 @@ smsRoutes.post('/campagne', async (c) => {
     .from('clients')
     .select('id, nom, telephone')
     .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
     .not('telephone', 'is', null);
 
   if (parsed.data.filtre === 'sans_avis' && carte) {
@@ -178,17 +186,18 @@ smsRoutes.get('/preview', async (c) => {
   const filtre = c.req.query('filtre') ?? 'tous';
   const inactifsJours = parseInt(c.req.query('inactifs_jours') ?? '30');
   const db = createServiceClient();
-
-  const { data: commerce } = await db.from('commerces').select('id').eq('user_id', userId).single();
-  if (!commerce) return c.json({ count: 0 });
+  const requestedPointVenteId = readRequestedPointVenteId(c);
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id');
+  if (!commerce || !pointVente) return c.json({ count: 0 });
 
   const { data: carte } = await db
-    .from('cartes').select('id').eq('commerce_id', commerce.id).eq('actif', true).maybeSingle();
+    .from('cartes').select('id').eq('commerce_id', commerce.id).eq('point_vente_id', pointVente.id).eq('actif', true).maybeSingle();
 
   let query = db
     .from('clients')
     .select('id', { count: 'exact', head: true })
     .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
     .not('telephone', 'is', null);
 
   if (filtre === 'sans_avis' && carte) {

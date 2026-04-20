@@ -13,6 +13,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <p class="text-xs text-slate-500">Objectif: une carte opérationnelle en caisse aujourd'hui.</p>
     </div>
   </div>
+  <div id="active-point-banner" class="mb-5 rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3 text-sm text-sky-800">
+    Point de vente actif: <span id="active-point-name" class="font-semibold">Chargement...</span>
+  </div>
 
   <div id="setup-banner" class="hidden mb-6 rounded-[1.6rem] border border-sky-200 bg-gradient-to-r from-sky-50 to-white px-5 py-4 shadow-[0_24px_50px_-38px_rgba(14,165,233,0.35)]">
     <p class="font-medium text-sky-800">Dernière étape de l'onboarding</p>
@@ -2217,6 +2220,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const res = await authFetch('/api/commerces/me');
       if (!res.ok) return;
       const { data } = await res.json();
+      const activePointName = (document.getElementById('active-point-name') as HTMLSpanElement | null);
+      if (activePointName) {
+        activePointName.textContent = data?.point_vente_nom ?? data?.nom ?? 'Principal';
+      }
       const rayon = data?.rayon_geo ?? 1000;
       (document.getElementById('adresse-commerce') as HTMLInputElement).value = data?.adresse ?? '';
       rayonSlider.value = String(rayon);

@@ -7,6 +7,7 @@ import { getPlanLimits } from './commerces';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { updateGooglePassObject } from '../services/google-wallet';
 import { scheduleSMS, personnaliserMessage } from '../../src/lib/brevo-sms';
+import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 
 const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
 
@@ -74,20 +75,17 @@ clientsRoutes.get('/:id', authMiddleware, paidMiddleware, async (c) => {
   const clientId = c.req.param('id');
   const userId = c.get('userId') as string;
   const db = createServiceClient();
+  const requestedPointVenteId = readRequestedPointVenteId(c);
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id, plan');
 
-  const { data: commerce } = await db
-    .from('commerces')
-    .select('id')
-    .eq('user_id', userId)
-    .single();
-
-  if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
+  if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
   const { data, error } = await db
     .from('clients')
     .select('*, cartes(nom, type, tampons_total, points_recompense)')
     .eq('id', clientId)
     .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
     .single();
 
   if (error || !data) return c.json({ error: 'Client introuvable' }, 404);
@@ -100,19 +98,16 @@ clientsRoutes.get('/', authMiddleware, paidMiddleware, async (c) => {
   const userId = c.get('userId') as string;
   const search = c.req.query('search') ?? '';
   const db = createServiceClient();
+  const requestedPointVenteId = readRequestedPointVenteId(c);
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id, plan');
 
-  const { data: commerce } = await db
-    .from('commerces')
-    .select('id')
-    .eq('user_id', userId)
-    .single();
-
-  if (!commerce) return c.json({ data: [] });
+  if (!commerce || !pointVente) return c.json({ data: [] });
 
   let query = db
     .from('clients')
     .select('*')
     .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
     .order('derniere_visite', { ascending: false, nullsFirst: false });
 
   if (search) {
@@ -148,7 +143,7 @@ clientsRoutes.post('/', async (c) => {
 
   const { data: carte } = await db
     .from('cartes')
-    .select('commerce_id')
+    .select('commerce_id, point_vente_id')
     .eq('id', parsed.data.carte_id)
     .eq('actif', true)
     .single();
@@ -181,6 +176,7 @@ clientsRoutes.post('/', async (c) => {
     .select('*')
     .eq('carte_id', parsed.data.carte_id)
     .eq('commerce_id', carte.commerce_id)
+    .eq('point_vente_id', carte.point_vente_id)
     .eq('telephone', normalizedPhone)
     .maybeSingle();
 
@@ -218,6 +214,7 @@ clientsRoutes.post('/', async (c) => {
     .insert({
       carte_id: parsed.data.carte_id,
       commerce_id: carte.commerce_id,
+      point_vente_id: carte.point_vente_id,
       nom: parsed.data.nom,
       telephone: normalizedPhone,
       email: parsed.data.email ?? null,
@@ -252,6 +249,7 @@ clientsRoutes.patch('/:id/adjust', authMiddleware, paidMiddleware, async (c) => 
   const clientId = c.req.param('id');
   const userId = c.get('userId') as string;
   const body = await c.req.json().catch(() => null);
+  const requestedPointVenteId = readRequestedPointVenteId(c);
 
   const schema = z.object({
     delta: z.number().int().min(-1000).max(1000).refine((n) => n !== 0, 'Delta ne peut pas être 0'),
@@ -260,14 +258,15 @@ clientsRoutes.patch('/:id/adjust', authMiddleware, paidMiddleware, async (c) => 
   if (!parsed.success) return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides' }, 400);
 
   const db = createServiceClient();
-  const { data: commerce } = await db.from('commerces').select('id').eq('user_id', userId).single();
-  if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id, plan');
+  if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
   const { data: client } = await db
     .from('clients')
     .select('*, cartes(type, tampons_total, points_recompense)')
     .eq('id', clientId)
     .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
     .single();
   if (!client) return c.json({ error: 'Client introuvable' }, 404);
 
@@ -301,6 +300,7 @@ clientsRoutes.patch('/:id/adjust', authMiddleware, paidMiddleware, async (c) => 
     db.from('transactions').insert({
       client_id: clientId,
       commerce_id: commerce.id,
+      point_vente_id: pointVente.id,
       type,
       valeur: Math.abs(parsed.data.delta),
       points_avant: current,
@@ -323,9 +323,15 @@ clientsRoutes.patch('/:id/adjust', authMiddleware, paidMiddleware, async (c) => 
     if (clientFull.google_pass_id && carte) {
       const { data: commerceData } = await db
         .from('commerces')
-        .select('nom, logo_url, latitude, longitude, rayon_geo, plan')
+        .select('nom, logo_url, plan')
         .eq('id', commerce.id)
         .single();
+
+      const { data: pointVenteData } = await db
+        .from('points_vente')
+        .select('latitude, longitude, rayon_geo')
+        .eq('id', pointVente.id)
+        .maybeSingle();
 
       const carteForWallet = {
         ...carte,
@@ -334,9 +340,9 @@ clientsRoutes.patch('/:id/adjust', authMiddleware, paidMiddleware, async (c) => 
         commerces: {
           nom: commerceData?.nom ?? '',
           logo_url: commerceData?.logo_url ?? null,
-          latitude: commerceData?.latitude ?? null,
-          longitude: commerceData?.longitude ?? null,
-          rayon_geo: commerceData?.rayon_geo ?? null,
+          latitude: pointVenteData?.latitude ?? null,
+          longitude: pointVenteData?.longitude ?? null,
+          rayon_geo: pointVenteData?.rayon_geo ?? null,
           plan: commerceData?.plan ?? 'starter',
         },
       } as Parameters<typeof updateGooglePassObject>[1];

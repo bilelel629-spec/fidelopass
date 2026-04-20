@@ -8,6 +8,7 @@ import { sendPushNotification, sendPersonalizedPushNotifications } from '../serv
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { sendGoogleWalletMessage } from '../services/google-wallet';
 import { sendSMS, personnaliserMessage } from '../../src/lib/brevo-sms';
+import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 
 const PUBLIC_SITE_URL_NOTIF = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
 
@@ -20,12 +21,13 @@ notificationsRoutes.use('*', paidMiddleware);
 notificationsRoutes.get('/review-reminder-settings', async (c) => {
   const userId = c.get('userId') as string;
   const db = createServiceClient();
-
-  const { data: commerce } = await db
-    .from('commerces')
-    .select('id, plan, sms_review_enabled')
-    .eq('user_id', userId)
-    .single();
+  const requestedPointVenteId = readRequestedPointVenteId(c);
+  const { commerce } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, plan, sms_review_enabled',
+  );
 
   if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
 
@@ -45,17 +47,14 @@ notificationsRoutes.patch('/review-reminder-settings', async (c) => {
   const userId = c.get('userId') as string;
   const body = await c.req.json().catch(() => null);
   const parsed = z.object({ enabled: z.boolean() }).safeParse(body);
+  const requestedPointVenteId = readRequestedPointVenteId(c);
 
   if (!parsed.success) {
     return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides' }, 400);
   }
 
   const db = createServiceClient();
-  const { data: commerce } = await db
-    .from('commerces')
-    .select('id, plan')
-    .eq('user_id', userId)
-    .single();
+  const { commerce } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id, plan');
 
   if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
 
@@ -78,14 +77,10 @@ notificationsRoutes.patch('/review-reminder-settings', async (c) => {
 notificationsRoutes.get('/summary', async (c) => {
   const userId = c.get('userId') as string;
   const db = createServiceClient();
+  const requestedPointVenteId = readRequestedPointVenteId(c);
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id, plan');
 
-  const { data: commerce } = await db
-    .from('commerces')
-    .select('id')
-    .eq('user_id', userId)
-    .single();
-
-  if (!commerce) {
+  if (!commerce || !pointVente) {
     return c.json({
       data: {
         web_push_ready: 0,
@@ -99,12 +94,14 @@ notificationsRoutes.get('/summary', async (c) => {
       .from('clients')
       .select('id', { count: 'exact', head: true })
       .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id)
       .eq('push_enabled', true)
       .not('fcm_token', 'is', null),
     db
       .from('clients')
       .select('id, apple_pass_serial, google_pass_id')
-      .eq('commerce_id', commerce.id),
+      .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id),
   ]);
 
   const walletReady = (clients ?? []).filter((client) => client.apple_pass_serial || client.google_pass_id).length;
@@ -122,19 +119,16 @@ notificationsRoutes.get('/', async (c) => {
   const userId = c.get('userId') as string;
   const limit = Math.min(parseInt(c.req.query('limit') ?? '20'), 100);
   const db = createServiceClient();
+  const requestedPointVenteId = readRequestedPointVenteId(c);
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id, plan');
 
-  const { data: commerce } = await db
-    .from('commerces')
-    .select('id')
-    .eq('user_id', userId)
-    .single();
-
-  if (!commerce) return c.json({ data: [] });
+  if (!commerce || !pointVente) return c.json({ data: [] });
 
   const { data } = await db
     .from('notifications')
     .select('*')
     .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
     .order('created_at', { ascending: false })
     .limit(limit);
 
@@ -145,6 +139,7 @@ notificationsRoutes.get('/', async (c) => {
 notificationsRoutes.post('/', async (c) => {
   const userId = c.get('userId') as string;
   const body = await c.req.json().catch(() => null);
+  const requestedPointVenteId = readRequestedPointVenteId(c);
 
   const schema = z.object({
     titre: z.string().min(1).max(50),
@@ -158,19 +153,16 @@ notificationsRoutes.post('/', async (c) => {
   }
 
   const db = createServiceClient();
-  const { data: commerce } = await db
-    .from('commerces')
-    .select('id')
-    .eq('user_id', userId)
-    .single();
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id, plan');
 
-  if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
+  if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
   // Récupère les clients joignables par web push ou Wallet
   const { data: clients } = await db
     .from('clients')
     .select('id, fcm_token, push_enabled, google_pass_id, apple_pass_serial')
     .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
     .order('created_at', { ascending: false });
 
   const webPushClients = (clients ?? [])
@@ -193,6 +185,7 @@ notificationsRoutes.post('/', async (c) => {
     .from('notifications')
     .insert({
       commerce_id: commerce.id,
+      point_vente_id: pointVente.id,
       titre: parsed.data.titre,
       message: parsed.data.message,
       type: parsed.data.type,
@@ -296,17 +289,19 @@ notificationsRoutes.post('/review-campaign', async (c) => {
   const userId = c.get('userId') as string;
   const db = createServiceClient();
   const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
+  const requestedPointVenteId = readRequestedPointVenteId(c);
 
-  // Récupère le commerce ET le plan en une seule requête
-  const { data: commerce, error: commerceError } = await db
-    .from('commerces')
-    .select('id, plan, nom, sms_review_enabled, sms_credits')
-    .eq('user_id', userId)
-    .single();
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, plan, nom, sms_review_enabled, sms_credits',
+  );
+  const commerceError = null;
 
   console.log('[review-campaign] commerce:', commerce?.id, '| plan:', commerce?.plan, '| error:', commerceError?.message);
 
-  if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
+  if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
   // Vérification plan : avis Google réservé au plan Pro
   const planLimits = getPlanLimits(commerce.plan);
@@ -323,6 +318,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
     .from('cartes')
     .select('id, nom, type, review_reward_enabled, review_reward_value, google_maps_url')
     .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
     .eq('actif', true)
     .single();
 
@@ -344,7 +340,8 @@ notificationsRoutes.post('/review-campaign', async (c) => {
   const { data: clients } = await db
     .from('clients')
     .select('id, nom, telephone, fcm_token, push_enabled, google_pass_id, apple_pass_serial')
-    .eq('commerce_id', commerce.id);
+    .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id);
 
   const eligibles = (clients ?? []).filter((cl) => !claimedIds.has(cl.id));
 
@@ -390,6 +387,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
   // puis on envoie le push silencieux.
   await db.from('notifications').insert({
     commerce_id: commerce.id,
+    point_vente_id: pointVente.id,
     titre,
     message,
     type: 'promo',

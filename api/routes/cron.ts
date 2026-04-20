@@ -32,113 +32,115 @@ async function sendScheduledReviewPushes(db: ReturnType<typeof createServiceClie
   for (const commerce of commerces ?? []) {
     commercesProcessed++;
 
-    const { data: carte } = await db
+    const { data: cartes } = await db
       .from('cartes')
-      .select('id, nom, google_maps_url')
+      .select('id, nom, google_maps_url, point_vente_id')
       .eq('commerce_id', commerce.id)
       .eq('actif', true)
-      .maybeSingle();
+      .order('created_at', { ascending: true });
 
-    if (!carte) continue;
+    for (const carte of cartes ?? []) {
+      const { data: clients } = await db
+        .from('clients')
+        .select('id, nom, fcm_token, push_enabled, google_pass_id, apple_pass_serial, created_at')
+        .eq('commerce_id', commerce.id)
+        .eq('carte_id', carte.id)
+        .gt('created_at', windowStart)
+        .lte('created_at', windowEnd);
 
-    const { data: clients } = await db
-      .from('clients')
-      .select('id, nom, fcm_token, push_enabled, google_pass_id, apple_pass_serial, created_at')
-      .eq('commerce_id', commerce.id)
-      .gt('created_at', windowStart)
-      .lte('created_at', windowEnd);
+      if (!clients?.length) continue;
 
-    if (!clients?.length) continue;
+      const reviewUrl = carte.google_maps_url?.trim()
+        ? carte.google_maps_url.trim()
+        : `${PUBLIC_SITE_URL}/carte/${carte.id}`;
 
-    const reviewUrl = carte.google_maps_url?.trim()
-      ? carte.google_maps_url.trim()
-      : `${PUBLIC_SITE_URL}/carte/${carte.id}`;
+      const messageTitle = `Votre avis compte pour ${commerce.nom}`;
+      const messageBody = `Merci d'avoir ajouté votre carte ${carte.nom}. Donnez-nous votre avis Google en 30 secondes.`;
 
-    const messageTitle = `Votre avis compte pour ${commerce.nom}`;
-    const messageBody = `Merci d'avoir ajouté votre carte ${carte.nom}. Donnez-nous votre avis Google en 30 secondes.`;
+      const webPushClients = clients.filter((client) => client.push_enabled && client.fcm_token);
+      const googleWalletClients = clients.filter((client) => Boolean(client.google_pass_id));
+      const appleWalletClients = clients.filter((client) => Boolean(client.apple_pass_serial));
 
-    const webPushClients = clients.filter((client) => client.push_enabled && client.fcm_token);
-    const googleWalletClients = clients.filter((client) => Boolean(client.google_pass_id));
-    const appleWalletClients = clients.filter((client) => Boolean(client.apple_pass_serial));
+      const targetClientIds = new Set<string>([
+        ...webPushClients.map((c) => c.id),
+        ...googleWalletClients.map((c) => c.id),
+        ...appleWalletClients.map((c) => c.id),
+      ]);
 
-    const targetClientIds = new Set<string>([
-      ...webPushClients.map((c) => c.id),
-      ...googleWalletClients.map((c) => c.id),
-      ...appleWalletClients.map((c) => c.id),
-    ]);
+      if (targetClientIds.size === 0) continue;
+      eligibleClients += targetClientIds.size;
 
-    if (targetClientIds.size === 0) continue;
-    eligibleClients += targetClientIds.size;
-
-    const { data: insertedNotif } = await db
-      .from('notifications')
-      .insert({
-        commerce_id: commerce.id,
-        titre: messageTitle,
-        message: messageBody,
-        type: 'review_auto',
-        nb_destinataires: targetClientIds.size,
-        nb_delivrees: 0,
-      })
-      .select('id')
-      .single();
-
-    const deliveredClientIds = new Set<string>();
-
-    if (webPushClients.length > 0) {
-      const webRecipients = webPushClients.map((client) => ({
-        token: client.fcm_token as string,
-        clickUrl: reviewUrl,
-      }));
-
-      const webSent = await sendPersonalizedPushNotifications(webRecipients, messageTitle, messageBody)
-        .catch((err) => {
-          console.error('[cron review-auto webpush]', err);
-          return 0;
-        });
-
-      pushesSent += webSent;
-      webPushClients.slice(0, webSent).forEach((client) => deliveredClientIds.add(client.id));
-    }
-
-    for (const client of googleWalletClients) {
-      await sendGoogleWalletMessage(
-        client.google_pass_id as string,
-        messageTitle,
-        `${messageBody}\n${reviewUrl}`,
-        insertedNotif?.id,
-      )
-        .then(() => {
-          pushesSent++;
-          deliveredClientIds.add(client.id);
+      const { data: insertedNotif } = await db
+        .from('notifications')
+        .insert({
+          commerce_id: commerce.id,
+          point_vente_id: carte.point_vente_id,
+          titre: messageTitle,
+          message: messageBody,
+          type: 'review_auto',
+          nb_destinataires: targetClientIds.size,
+          nb_delivrees: 0,
         })
-        .catch((err) => console.error('[cron review-auto google-wallet]', err));
-    }
+        .select('id')
+        .single();
 
-    if (appleWalletClients.length > 0) {
-      const { data: registrations } = await db
-        .from('apple_pass_registrations')
-        .select('client_id, push_token, pass_type_identifier')
-        .in('client_id', appleWalletClients.map((client) => client.id));
+      const deliveredClientIds = new Set<string>();
 
-      await Promise.allSettled(
-        (registrations ?? []).map((registration) => pushApplePassUpdate(
-          registration.push_token,
-          registration.pass_type_identifier || passTypeId,
+      if (webPushClients.length > 0) {
+        const webRecipients = webPushClients.map((client) => ({
+          token: client.fcm_token as string,
+          clickUrl: reviewUrl,
+        }));
+
+        const webSent = await sendPersonalizedPushNotifications(webRecipients, messageTitle, messageBody)
+          .catch((err) => {
+            console.error('[cron review-auto webpush]', err);
+            return 0;
+          });
+
+        pushesSent += webSent;
+        webPushClients.slice(0, webSent).forEach((client) => deliveredClientIds.add(client.id));
+      }
+
+      for (const client of googleWalletClients) {
+        await sendGoogleWalletMessage(
+          client.google_pass_id as string,
+          messageTitle,
+          `${messageBody}\n${reviewUrl}`,
+          insertedNotif?.id,
         )
           .then(() => {
             pushesSent++;
-            deliveredClientIds.add(registration.client_id);
+            deliveredClientIds.add(client.id);
           })
-          .catch((err) => console.error('[cron review-auto apple-wallet]', err))),
-      );
-    }
+          .catch((err) => console.error('[cron review-auto google-wallet]', err));
+      }
 
-    if (insertedNotif?.id) {
-      await db
-        .from('notifications')
-        .update({ nb_delivrees: deliveredClientIds.size })
-        .eq('id', insertedNotif.id);
+      if (appleWalletClients.length > 0) {
+        const { data: registrations } = await db
+          .from('apple_pass_registrations')
+          .select('client_id, push_token, pass_type_identifier')
+          .in('client_id', appleWalletClients.map((client) => client.id));
+
+        await Promise.allSettled(
+          (registrations ?? []).map((registration) => pushApplePassUpdate(
+            registration.push_token,
+            registration.pass_type_identifier || passTypeId,
+          )
+            .then(() => {
+              pushesSent++;
+              deliveredClientIds.add(registration.client_id);
+            })
+            .catch((err) => console.error('[cron review-auto apple-wallet]', err))),
+        );
+      }
+
+      if (insertedNotif?.id) {
+        await db
+          .from('notifications')
+          .update({ nb_delivrees: deliveredClientIds.size })
+          .eq('id', insertedNotif.id);
+      }
     }
   }
 

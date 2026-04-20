@@ -3,6 +3,7 @@ import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
 import { getPlanLimits } from './commerces';
+import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 
 export const dashboardRoutes = new Hono();
 
@@ -13,28 +14,36 @@ dashboardRoutes.use('*', paidMiddleware);
 dashboardRoutes.get('/stats', async (c) => {
   const userId = c.get('userId') as string;
   const db = createServiceClient();
+  const requestedPointVenteId = readRequestedPointVenteId(c);
 
-  const { data: commerce } = await db
-    .from('commerces')
-    .select('id')
-    .eq('user_id', userId)
-    .single();
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, plan',
+  );
 
-  if (!commerce) {
+  if (!commerce || !pointVente) {
     return c.json({ totalClients: 0, scansAujourdhui: 0, totalRecompenses: 0, clientsPushActifs: 0 });
   }
 
   const today = new Date().toISOString().slice(0, 10);
 
   const [clientsRes, scansRes, recompensesRes, pushRes] = await Promise.all([
-    db.from('clients').select('id', { count: 'exact', head: true }).eq('commerce_id', commerce.id),
+    db.from('clients').select('id', { count: 'exact', head: true })
+      .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id),
     db.from('transactions')
       .select('id', { count: 'exact', head: true })
       .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id)
       .gte('created_at', today),
-    db.from('clients').select('recompenses_obtenues').eq('commerce_id', commerce.id),
+    db.from('clients').select('recompenses_obtenues')
+      .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id),
     db.from('clients').select('id', { count: 'exact', head: true })
       .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id)
       .eq('push_enabled', true),
   ]);
 
@@ -54,12 +63,14 @@ dashboardRoutes.get('/stats', async (c) => {
 dashboardRoutes.get('/plan', async (c) => {
   const userId = c.get('userId') as string;
   const db = createServiceClient();
+  const requestedPointVenteId = readRequestedPointVenteId(c);
 
-  const { data: commerce } = await db
-    .from('commerces')
-    .select('plan, id')
-    .eq('user_id', userId)
-    .single();
+  const { commerce, pointVente, pointsVente } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, plan',
+  );
 
   if (!commerce) return c.json({ data: { plan: 'starter', limits: getPlanLimits('starter'), clientsCount: 0 } });
 
@@ -68,13 +79,16 @@ dashboardRoutes.get('/plan', async (c) => {
   const { count: clientsCount } = await db
     .from('clients')
     .select('id', { count: 'exact', head: true })
-    .eq('commerce_id', commerce.id);
+    .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente?.id ?? '');
 
   return c.json({
     data: {
       plan: commerce.plan ?? 'starter',
       limits,
       clientsCount: clientsCount ?? 0,
+      pointsVenteCount: pointsVente.length,
+      selectedPointVenteId: pointVente?.id ?? null,
     },
   });
 });
@@ -83,14 +97,16 @@ dashboardRoutes.get('/plan', async (c) => {
 dashboardRoutes.get('/weekly-scans', async (c) => {
   const userId = c.get('userId') as string;
   const db = createServiceClient();
+  const requestedPointVenteId = readRequestedPointVenteId(c);
 
-  const { data: commerce } = await db
-    .from('commerces')
-    .select('id')
-    .eq('user_id', userId)
-    .single();
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, plan',
+  );
 
-  if (!commerce) return c.json({ data: [] });
+  if (!commerce || !pointVente) return c.json({ data: [] });
 
   const since = new Date();
   since.setDate(since.getDate() - 6);
@@ -100,6 +116,7 @@ dashboardRoutes.get('/weekly-scans', async (c) => {
     .from('transactions')
     .select('created_at, type')
     .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
     .gte('created_at', since.toISOString())
     .order('created_at', { ascending: true });
 

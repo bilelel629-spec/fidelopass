@@ -4,6 +4,7 @@ import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
 import { getPlanLimits } from './commerces';
+import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 
 export const scannersRoutes = new Hono();
 
@@ -14,21 +15,23 @@ const registerScannerSchema = z.object({
   device_name: z.string().max(120).optional().nullable(),
 });
 
-async function loadCommerceForUser(userId: string) {
+async function loadCommerceForUser(userId: string, requestedPointVenteId: string | null) {
   const db = createServiceClient();
-  const { data: commerce } = await db
-    .from('commerces')
-    .select('id, plan')
-    .eq('user_id', userId)
-    .single();
-  return { db, commerce };
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, plan',
+  );
+  return { db, commerce, pointVente };
 }
 
-async function loadOrderedScannerTokens(db: ReturnType<typeof createServiceClient>, commerceId: string) {
+async function loadOrderedScannerTokens(db: ReturnType<typeof createServiceClient>, commerceId: string, pointVenteId: string) {
   const { data } = await db
     .from('scanner_devices')
     .select('scanner_token')
     .eq('commerce_id', commerceId)
+    .eq('point_vente_id', pointVenteId)
     .order('created_at', { ascending: true });
   return (data ?? []).map((row) => row.scanner_token).filter(Boolean) as string[];
 }
@@ -37,13 +40,14 @@ async function loadOrderedScannerTokens(db: ReturnType<typeof createServiceClien
 scannersRoutes.get('/status', async (c) => {
   const userId = c.get('userId') as string;
   const scannerToken = c.req.query('scanner_token')?.trim() ?? null;
+  const requestedPointVenteId = readRequestedPointVenteId(c);
 
-  const { db, commerce } = await loadCommerceForUser(userId);
-  if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
+  const { db, commerce, pointVente } = await loadCommerceForUser(userId, requestedPointVenteId);
+  if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
   const limits = getPlanLimits(commerce.plan);
   const maxScanners = limits.maxScanners ?? 3;
-  const tokens = await loadOrderedScannerTokens(db, commerce.id);
+  const tokens = await loadOrderedScannerTokens(db, commerce.id, pointVente.id);
   const activeTokens = tokens.slice(0, maxScanners);
   const currentCount = activeTokens.length;
 
@@ -55,6 +59,7 @@ scannersRoutes.get('/status', async (c) => {
         .from('scanner_devices')
         .update({ last_seen_at: new Date().toISOString() })
         .eq('commerce_id', commerce.id)
+        .eq('point_vente_id', pointVente.id)
         .eq('scanner_token', scannerToken);
     }
   }
@@ -68,6 +73,7 @@ scannersRoutes.get('/status', async (c) => {
       remaining_scanners: Math.max(maxScanners - currentCount, 0),
       registered_for_token: registeredForToken,
       overflow_scanners: Math.max(tokens.length - maxScanners, 0),
+      point_vente_id: pointVente.id,
     },
   });
 });
@@ -76,24 +82,26 @@ scannersRoutes.get('/status', async (c) => {
 scannersRoutes.post('/register', async (c) => {
   const userId = c.get('userId') as string;
   const body = await c.req.json().catch(() => null);
+  const requestedPointVenteId = readRequestedPointVenteId(c);
   const parsed = registerScannerSchema.safeParse(body);
   if (!parsed.success) {
     return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides' }, 400);
   }
 
   const { scanner_token: scannerToken, device_name: deviceName } = parsed.data;
-  const { db, commerce } = await loadCommerceForUser(userId);
-  if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
+  const { db, commerce, pointVente } = await loadCommerceForUser(userId, requestedPointVenteId);
+  if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
   const limits = getPlanLimits(commerce.plan);
   const maxScanners = limits.maxScanners ?? 3;
-  const tokens = await loadOrderedScannerTokens(db, commerce.id);
+  const tokens = await loadOrderedScannerTokens(db, commerce.id, pointVente.id);
   const activeTokens = tokens.slice(0, maxScanners);
 
   const { data: existing } = await db
     .from('scanner_devices')
     .select('id')
     .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
     .eq('scanner_token', scannerToken)
     .maybeSingle();
 
@@ -146,6 +154,7 @@ scannersRoutes.post('/register', async (c) => {
     .from('scanner_devices')
     .insert({
       commerce_id: commerce.id,
+      point_vente_id: pointVente.id,
       scanner_token: scannerToken,
       device_name: deviceName ?? null,
       user_agent: c.req.header('user-agent') ?? null,
@@ -156,7 +165,7 @@ scannersRoutes.post('/register', async (c) => {
     return c.json({ error: 'Impossible d’enregistrer ce scanner pour le moment.' }, 500);
   }
 
-  const nextTokens = await loadOrderedScannerTokens(db, commerce.id);
+  const nextTokens = await loadOrderedScannerTokens(db, commerce.id, pointVente.id);
   const nextCurrentCount = Math.min(nextTokens.length, maxScanners);
   return c.json({
     data: {

@@ -137,6 +137,7 @@ reviewRoutes.post('/:carteId/claim', async (c) => {
     db.from('transactions').insert({
       client_id,
       commerce_id: client.commerce_id,
+      point_vente_id: client.point_vente_id,
       type: carte.type === 'tampons' ? 'ajout_tampon' : 'ajout_points',
       valeur: rewardValue,
       points_avant: carte.type === 'tampons' ? client.tampons_actuels : client.points_actuels,

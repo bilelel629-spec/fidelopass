@@ -73,6 +73,7 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
   );
   const API = (import.meta.env.PUBLIC_API_URL ?? '').trim();
+  const ACTIVE_POINT_VENTE_STORAGE_KEY = 'fidelopass_active_point_vente_id';
 
   async function loadGlobalCardActions(accessToken) {
     if (window.location.pathname === '/dashboard') return;
@@ -85,6 +86,9 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
         headers: {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
+          ...(typeof window !== 'undefined' && window.localStorage.getItem(ACTIVE_POINT_VENTE_STORAGE_KEY)
+            ? { 'X-Point-Vente-Id': String(window.localStorage.getItem(ACTIVE_POINT_VENTE_STORAGE_KEY)) }
+            : {}),
         },
       });
       if (!res.ok) return;

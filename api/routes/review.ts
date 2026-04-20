@@ -175,8 +175,11 @@ reviewRoutes.post('/:carteId/claim', async (c) => {
 
         if (registrations?.length) {
           const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
+          const uniqueRegistrations = Array.from(
+            new Map(registrations.map((registration) => [registration.push_token, registration])).values(),
+          );
           await Promise.allSettled(
-            registrations.map((r) => pushApplePassUpdate(r.push_token, r.pass_type_identifier || passTypeId)),
+            uniqueRegistrations.map((r) => pushApplePassUpdate(r.push_token, passTypeId || r.pass_type_identifier)),
           );
         }
       }

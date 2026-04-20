@@ -215,6 +215,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const reviewAutoSuccess = document.getElementById('review-auto-success') as HTMLDivElement;
   let reviewAutoEnabled = false;
   let reviewAutoIsPro = false;
+  const normalizePlan = (planRaw: unknown) => String(planRaw ?? 'starter').trim().toLowerCase();
+  const isProPlan = (planRaw: unknown) => {
+    const normalized = normalizePlan(planRaw);
+    return normalized === 'pro' || normalized.startsWith('pro-') || normalized.includes('pro');
+  };
 
   function setReviewAutoToggle(enabled: boolean) {
     reviewAutoEnabled = enabled;
@@ -227,8 +232,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   function setReviewPlanLabel(planRaw: unknown) {
-    const plan = String(planRaw ?? 'starter').toLowerCase();
-    reviewAutoPlanValue.textContent = plan === 'pro' ? 'Pro' : 'Starter';
+    const normalized = normalizePlan(planRaw);
+    if (isProPlan(normalized)) {
+      reviewAutoPlanValue.textContent = 'Pro';
+      return;
+    }
+    if (normalized.includes('sur-mesure') || normalized.includes('surmesure') || normalized.includes('custom') || normalized.includes('enterprise')) {
+      reviewAutoPlanValue.textContent = 'Sur mesure';
+      return;
+    }
+    reviewAutoPlanValue.textContent = 'Starter';
   }
 
   async function loadReviewAutoSettings() {
@@ -237,7 +250,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const payload = await res.json().catch(() => null);
       if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage.');
 
-      reviewAutoIsPro = Boolean(payload?.data?.is_pro);
+      reviewAutoIsPro = Boolean(payload?.data?.is_pro) || isProPlan(payload?.data?.plan ?? payload?.data?.raw_plan);
       setReviewPlanLabel(payload?.data?.plan);
       setReviewAutoToggle(Boolean(payload?.data?.enabled));
 
@@ -291,6 +304,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   });
 
+  setReviewPlanLabel('starter');
   loadSummary();
   loadHistory();
   loadReviewAutoSettings();

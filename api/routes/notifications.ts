@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
-import { getPlanLimits } from './commerces';
+import { getPlanLimits, normalizePlan } from './commerces';
 import { sendPushNotification, sendPersonalizedPushNotifications } from '../services/push';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { sendGoogleWalletMessage } from '../services/google-wallet';
@@ -32,10 +32,12 @@ notificationsRoutes.get('/review-reminder-settings', async (c) => {
   if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
 
   const planLimits = getPlanLimits(commerce.plan);
+  const normalizedPlan = normalizePlan(commerce.plan);
   return c.json({
     data: {
       enabled: Boolean(commerce.sms_review_enabled),
-      plan: commerce.plan ?? 'starter',
+      plan: normalizedPlan,
+      raw_plan: commerce.plan ?? 'starter',
       is_pro: Boolean(planLimits.avisGoogle),
       delay_minutes: 60,
     },
@@ -241,9 +243,13 @@ notificationsRoutes.post('/', async (c) => {
     if (registrationsError) {
       console.error('[notifications wallet apple registrations]', registrationsError);
     } else {
+      const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
+      const uniqueRegistrations = Array.from(
+        new Map((registrations ?? []).map((registration) => [registration.push_token, registration])).values(),
+      );
       const appleResults = await Promise.allSettled(
-        (registrations ?? []).map(async (registration) => {
-          await pushApplePassUpdate(registration.push_token, registration.pass_type_identifier);
+        uniqueRegistrations.map(async (registration) => {
+          await pushApplePassUpdate(registration.push_token, passTypeId || registration.pass_type_identifier);
           walletDeliveredClientIds.add(registration.client_id);
         }),
       );
@@ -435,10 +441,13 @@ notificationsRoutes.post('/review-campaign', async (c) => {
     console.log('[review-campaign] Apple registrations trouvées:', (registrations ?? []).length, '/', appleEligibles.length);
 
     const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
+    const uniqueRegistrations = Array.from(
+      new Map((registrations ?? []).map((registration) => [registration.push_token, registration])).values(),
+    );
     await Promise.allSettled(
-      (registrations ?? []).map((r) => pushApplePassUpdate(
+      uniqueRegistrations.map((r) => pushApplePassUpdate(
         r.push_token,
-        r.pass_type_identifier || passTypeId,
+        passTypeId || r.pass_type_identifier,
       ).then(() => { nbEnvoyes++; })
         .catch((err) => console.error('[review-campaign apple wallet]', err))),
     );

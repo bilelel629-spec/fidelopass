@@ -88,6 +88,11 @@ const firebasePushConfig = {
             <label class="label" for="client-tel">Téléphone</label>
             <input id="client-tel" type="tel" class="input" placeholder="06 12 34 56 78" autocomplete="tel" />
           </div>
+          <div>
+            <label class="label" for="client-birthdate">Date de naissance</label>
+            <input id="client-birthdate" type="date" class="input" autocomplete="bday" />
+            <p class="text-slate-500 text-xs mt-1">Utilisée pour les récompenses anniversaire (plan Pro).</p>
+          </div>
 
           <!-- Consentement notifications -->
           <div
@@ -417,15 +422,21 @@ const firebasePushConfig = {
     document.getElementById('error-msg').classList.add('hidden');
   }
 
-  ['client-nom', 'client-tel'].forEach(id => {
+  ['client-nom', 'client-tel', 'client-birthdate'].forEach(id => {
     document.getElementById(id).addEventListener('input', hideError);
   });
 
   function validateForm() {
     const nom = document.getElementById('client-nom').value.trim();
     const tel = document.getElementById('client-tel').value.trim().replace(/[\s\-\.]/g, '');
+    const birthdate = document.getElementById('client-birthdate').value.trim();
     if (!nom) { showError('Veuillez entrer votre prénom.'); document.getElementById('client-nom').focus(); return false; }
     if (!tel || tel.length < 8) { showError('Veuillez entrer un numéro de téléphone valide.'); document.getElementById('client-tel').focus(); return false; }
+    if (birthdate && !/^\d{4}-\d{2}-\d{2}$/.test(birthdate)) {
+      showError('Veuillez renseigner une date de naissance valide.');
+      document.getElementById('client-birthdate').focus();
+      return false;
+    }
     hideError();
     return true;
   }
@@ -438,6 +449,7 @@ const firebasePushConfig = {
         id: client.id,
         nom: client.nom ?? '',
         telephone: client.telephone ?? '',
+        date_naissance: client.date_naissance ?? '',
       }));
     } catch {
       // Le suivi local améliore seulement l'UX.
@@ -570,8 +582,10 @@ const firebasePushConfig = {
 
     const inputNom = document.getElementById('client-nom');
     const inputTel = document.getElementById('client-tel');
+    const inputBirthdate = document.getElementById('client-birthdate');
     if (!inputNom.value) inputNom.value = remembered.nom ?? '';
     if (!inputTel.value) inputTel.value = remembered.telephone ?? '';
+    if (!inputBirthdate.value) inputBirthdate.value = remembered.date_naissance ?? '';
 
     try {
       const res = await fetch(apiUrl(`/api/clients/public/${remembered.id}?carte_id=${encodeURIComponent(carteId)}`));
@@ -581,6 +595,7 @@ const firebasePushConfig = {
         id: data.id,
         nom: data.nom,
         telephone: data.telephone,
+        date_naissance: data.date_naissance ?? remembered.date_naissance ?? null,
       };
       refreshPushUi();
       renderClientProgress(data);
@@ -648,12 +663,19 @@ const firebasePushConfig = {
 
     const nom = document.getElementById('client-nom').value.trim();
     const telephone = document.getElementById('client-tel').value.trim();
+    const dateNaissance = document.getElementById('client-birthdate').value.trim();
 
     walletClientPromise = (async () => {
       const res = await fetch(apiUrl('/api/clients'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ carte_id: carteId, nom, telephone, push_consent: pushConsent && isPushConfigured }),
+        body: JSON.stringify({
+          carte_id: carteId,
+          nom,
+          telephone,
+          date_naissance: dateNaissance || null,
+          push_consent: pushConsent && isPushConfigured,
+        }),
       });
 
       const data = await res.json();

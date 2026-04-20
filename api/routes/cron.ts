@@ -4,6 +4,7 @@ import { sendSMS } from '../../src/lib/brevo-sms';
 import { sendPersonalizedPushNotifications } from '../services/push';
 import { sendGoogleWalletMessage } from '../services/google-wallet';
 import { pushApplePassUpdate } from '../services/apple-wallet';
+import { getPlanLimits, normalizePlan } from './commerces';
 
 export const cronRoutes = new Hono();
 const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
@@ -21,7 +22,6 @@ async function sendScheduledReviewPushes(db: ReturnType<typeof createServiceClie
   const { data: commerces, error: commercesError } = await db
     .from('commerces')
     .select('id, nom, plan, sms_review_enabled')
-    .eq('plan', 'pro')
     .eq('sms_review_enabled', true);
 
   if (commercesError) {
@@ -30,6 +30,7 @@ async function sendScheduledReviewPushes(db: ReturnType<typeof createServiceClie
   }
 
   for (const commerce of commerces ?? []) {
+    if (!getPlanLimits(normalizePlan(commerce.plan)).avisGoogle) continue;
     commercesProcessed++;
 
     const { data: cartes } = await db
@@ -122,10 +123,14 @@ async function sendScheduledReviewPushes(db: ReturnType<typeof createServiceClie
           .select('client_id, push_token, pass_type_identifier')
           .in('client_id', appleWalletClients.map((client) => client.id));
 
+        const uniqueRegistrations = Array.from(
+          new Map((registrations ?? []).map((registration) => [registration.push_token, registration])).values(),
+        );
+
         await Promise.allSettled(
-          (registrations ?? []).map((registration) => pushApplePassUpdate(
+          uniqueRegistrations.map((registration) => pushApplePassUpdate(
             registration.push_token,
-            registration.pass_type_identifier || passTypeId,
+            passTypeId || registration.pass_type_identifier,
           )
             .then(() => {
               pushesSent++;

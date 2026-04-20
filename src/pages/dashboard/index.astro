@@ -290,13 +290,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const res = await authFetch('/api/commerces/points-vente');
       if (!res.ok) throw new Error();
       const payload = await res.json().catch(() => null);
-      const plan = String(payload?.plan ?? 'starter').toLowerCase();
+      const plan = String(payload?.plan ?? 'starter').trim().toLowerCase();
+      const isPro = plan === 'pro' || plan.startsWith('pro-') || plan.includes('pro');
       const stats = payload?.usage;
       const selectedId = payload?.selected_point_vente_id;
       const points = Array.isArray(payload?.data) ? payload.data : [];
       const selected = points.find((point: { id: string; nom?: string }) => point.id === selectedId);
 
-      usage.textContent = `Plan ${plan === 'pro' ? 'Pro' : 'Starter'} : ${stats?.current ?? 0}/${stats?.max ?? 1} point(s) de vente utilisés. Actif: ${selected?.nom ?? '—'}.`;
+      usage.textContent = `Plan ${isPro ? 'Pro' : 'Starter'} : ${stats?.current ?? 0}/${stats?.max ?? 1} point(s) de vente utilisés. Actif: ${selected?.nom ?? '—'}.`;
     } catch {
       usage.textContent = 'Impossible de charger le quota des points de vente.';
     }

@@ -39,8 +39,27 @@ export const PLAN_LIMITS = {
   'sur-mesure': { maxClients: 20000, maxPointsDeVente: 10, anniversaire: true, avisGoogle: true, maxScanners: 20 },
 } as const;
 
+export function normalizePlan(plan: string | null | undefined): keyof typeof PLAN_LIMITS {
+  const normalized = String(plan ?? 'starter')
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, '-');
+
+  if (!normalized) return 'starter';
+  if (normalized === 'starter' || normalized.startsWith('starter-') || normalized.includes('starter')) return 'starter';
+  if (normalized === 'pro' || normalized.startsWith('pro-') || normalized.includes('pro')) return 'pro';
+  if (
+    normalized === 'sur-mesure'
+    || normalized.includes('sur-mesure')
+    || normalized.includes('surmesure')
+    || normalized.includes('custom')
+    || normalized.includes('enterprise')
+  ) return 'sur-mesure';
+  return 'starter';
+}
+
 export function getPlanLimits(plan: string | null | undefined) {
-  return PLAN_LIMITS[(plan as keyof typeof PLAN_LIMITS) ?? 'starter'] ?? PLAN_LIMITS.starter;
+  return PLAN_LIMITS[normalizePlan(plan)];
 }
 
 /** GET /api/commerces/me — Récupère le commerce de l'utilisateur connecté */

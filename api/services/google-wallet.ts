@@ -41,6 +41,11 @@ interface WalletMessage {
   message: string;
 }
 
+function isProPlan(plan: string | null | undefined): boolean {
+  const normalized = String(plan ?? 'starter').trim().toLowerCase();
+  return normalized === 'pro' || normalized.startsWith('pro-') || normalized.includes('pro');
+}
+
 const GOOGLE_WALLET_API = 'https://walletobjects.googleapis.com/walletobjects/v1';
 
 function getCredentials() {
@@ -205,7 +210,7 @@ export async function generateGooglePass(
         body: String(client.recompenses_obtenues ?? 0),
         id: 'recompenses_disponibles',
       },
-      ...((String(carte.commerces.plan ?? 'starter').toLowerCase() === 'pro' && carte.branding_powered_by_enabled === false)
+      ...((isProPlan(carte.commerces.plan) && carte.branding_powered_by_enabled === false)
         ? []
         : [{
           header: 'Signature',
@@ -290,7 +295,7 @@ export async function updateGooglePassObject(
           body: String(client.recompenses_obtenues ?? 0),
           id: 'recompenses_disponibles',
         },
-        ...((String(carte.commerces.plan ?? 'starter').toLowerCase() === 'pro' && carte.branding_powered_by_enabled === false)
+        ...((isProPlan(carte.commerces.plan) && carte.branding_powered_by_enabled === false)
           ? []
           : [{
             header: 'Signature',

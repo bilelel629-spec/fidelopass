@@ -409,97 +409,98 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
     return c.json({ error: result.error.message }, 500);
   }
 
-  // Synchronisation Wallet des clients déjà inscrits (fire-and-forget)
-  void (async () => {
-    try {
-      const updatedCarte = result.data;
-      if (!updatedCarte) return;
+  // Synchronisation Wallet des clients déjà inscrits
+  try {
+    const updatedCarte = result.data;
+    if (!updatedCarte) return c.json({ data: result.data });
 
-      const { data: commerceData, error: commerceError } = await db
-        .from('commerces')
-        .select('nom, logo_url, plan')
-        .eq('id', commerce.id)
-        .single();
+    const { data: commerceData, error: commerceError } = await db
+      .from('commerces')
+      .select('nom, logo_url, plan')
+      .eq('id', commerce.id)
+      .single();
 
-      if (commerceError || !commerceData) {
-        console.error('[cartes PATCH wallet commerce]', commerceError);
-        return;
-      }
-
-      const { data: pointVenteData } = await db
-        .from('points_vente')
-        .select('latitude, longitude, rayon_geo')
-        .eq('id', (updatedCarte as { point_vente_id?: string | null }).point_vente_id ?? '')
-        .maybeSingle();
-
-      const carteForWallet = {
-        ...(updatedCarte as Record<string, unknown>),
-        commerces: {
-          nom: commerceData.nom ?? '',
-          logo_url: commerceData.logo_url ?? null,
-          latitude: pointVenteData?.latitude ?? null,
-          longitude: pointVenteData?.longitude ?? null,
-          rayon_geo: pointVenteData?.rayon_geo ?? null,
-          plan: commerceData.plan ?? 'starter',
-        },
-      } as Parameters<typeof updateGooglePassObject>[1];
-
-      const { data: clients, error: clientsError } = await db
-        .from('clients')
-        .select('id, nom, points_actuels, tampons_actuels, recompenses_obtenues, google_pass_id, apple_pass_serial')
-        .eq('carte_id', carteId);
-
-      if (clientsError) {
-        console.error('[cartes PATCH wallet clients]', clientsError);
-        return;
-      }
-
-      const walletClients = clients ?? [];
-      if (walletClients.length === 0) return;
-
-      const googleClients = walletClients.filter((client) => !!client.google_pass_id);
-      const appleClients = walletClients.filter((client) => !!client.apple_pass_serial);
-
-      if (googleClients.length > 0) {
-        await upsertLoyaltyClass(carteForWallet).catch((err) => {
-          console.error('[cartes PATCH wallet google class]', err);
-        });
-
-        await Promise.allSettled(
-          googleClients.map((client) =>
-            updateGooglePassObject(client.google_pass_id as string, carteForWallet, {
-              id: client.id,
-              nom: client.nom ?? null,
-              points_actuels: client.points_actuels,
-              tampons_actuels: client.tampons_actuels,
-              recompenses_obtenues: client.recompenses_obtenues ?? 0,
-            }),
-          ),
-        );
-      }
-
-      if (appleClients.length > 0) {
-        const { data: registrations, error: registrationsError } = await db
-          .from('apple_pass_registrations')
-          .select('client_id, push_token, pass_type_identifier')
-          .in('client_id', appleClients.map((client) => client.id));
-
-        if (registrationsError) {
-          console.error('[cartes PATCH wallet apple registrations]', registrationsError);
-          return;
-        }
-
-        const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
-        await Promise.allSettled(
-          (registrations ?? []).map((registration) =>
-            pushApplePassUpdate(registration.push_token, registration.pass_type_identifier || passTypeId),
-          ),
-        );
-      }
-    } catch (err) {
-      console.error('[cartes PATCH wallet-sync]', err);
+    if (commerceError || !commerceData) {
+      console.error('[cartes PATCH wallet commerce]', commerceError);
+      return c.json({ data: result.data });
     }
-  })();
+
+    const { data: pointVenteData } = await db
+      .from('points_vente')
+      .select('latitude, longitude, rayon_geo')
+      .eq('id', (updatedCarte as { point_vente_id?: string | null }).point_vente_id ?? '')
+      .maybeSingle();
+
+    const carteForWallet = {
+      ...(updatedCarte as Record<string, unknown>),
+      commerces: {
+        nom: commerceData.nom ?? '',
+        logo_url: commerceData.logo_url ?? null,
+        latitude: pointVenteData?.latitude ?? null,
+        longitude: pointVenteData?.longitude ?? null,
+        rayon_geo: pointVenteData?.rayon_geo ?? null,
+        plan: commerceData.plan ?? 'starter',
+      },
+    } as Parameters<typeof updateGooglePassObject>[1];
+
+    const { data: clients, error: clientsError } = await db
+      .from('clients')
+      .select('id, nom, points_actuels, tampons_actuels, recompenses_obtenues, google_pass_id, apple_pass_serial')
+      .eq('carte_id', carteId);
+
+    if (clientsError) {
+      console.error('[cartes PATCH wallet clients]', clientsError);
+      return c.json({ data: result.data });
+    }
+
+    const walletClients = clients ?? [];
+    if (walletClients.length === 0) return c.json({ data: result.data });
+
+    const googleClients = walletClients.filter((client) => !!client.google_pass_id);
+    const appleClients = walletClients.filter((client) => !!client.apple_pass_serial);
+
+    if (googleClients.length > 0) {
+      await upsertLoyaltyClass(carteForWallet).catch((err) => {
+        console.error('[cartes PATCH wallet google class]', err);
+      });
+
+      await Promise.allSettled(
+        googleClients.map((client) =>
+          updateGooglePassObject(client.google_pass_id as string, carteForWallet, {
+            id: client.id,
+            nom: client.nom ?? null,
+            points_actuels: client.points_actuels,
+            tampons_actuels: client.tampons_actuels,
+            recompenses_obtenues: client.recompenses_obtenues ?? 0,
+          }),
+        ),
+      );
+    }
+
+    if (appleClients.length > 0) {
+      const { data: registrations, error: registrationsError } = await db
+        .from('apple_pass_registrations')
+        .select('client_id, push_token, pass_type_identifier')
+        .in('client_id', appleClients.map((client) => client.id));
+
+      if (registrationsError) {
+        console.error('[cartes PATCH wallet apple registrations]', registrationsError);
+        return c.json({ data: result.data });
+      }
+
+      const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
+      const uniqueRegistrations = Array.from(
+        new Map((registrations ?? []).map((registration) => [registration.push_token, registration])).values(),
+      );
+      await Promise.allSettled(
+        uniqueRegistrations.map((registration) =>
+          pushApplePassUpdate(registration.push_token, passTypeId || registration.pass_type_identifier),
+        ),
+      );
+    }
+  } catch (err) {
+    console.error('[cartes PATCH wallet-sync]', err);
+  }
 
   return c.json({ data: result.data });
 });

@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
-import { getPlanLimits } from './commerces';
+import { getPlanLimits, normalizePlan } from './commerces';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 
 export const dashboardRoutes = new Hono();
@@ -75,6 +75,7 @@ dashboardRoutes.get('/plan', async (c) => {
   if (!commerce) return c.json({ data: { plan: 'starter', limits: getPlanLimits('starter'), clientsCount: 0 } });
 
   const limits = getPlanLimits(commerce.plan);
+  const normalizedPlan = normalizePlan(commerce.plan);
 
   const { count: clientsCount } = await db
     .from('clients')
@@ -84,7 +85,9 @@ dashboardRoutes.get('/plan', async (c) => {
 
   return c.json({
     data: {
-      plan: commerce.plan ?? 'starter',
+      plan: normalizedPlan,
+      raw_plan: commerce.plan ?? 'starter',
+      normalized_plan: normalizedPlan,
       limits,
       clientsCount: clientsCount ?? 0,
       pointsVenteCount: pointsVente.length,

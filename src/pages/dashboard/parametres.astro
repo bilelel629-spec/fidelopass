@@ -231,18 +231,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const data = payload?.data;
       if (!data) throw new Error();
 
-      const plan = String(data.plan ?? 'starter').toLowerCase();
+      const plan = String(data.plan ?? 'starter').trim().toLowerCase();
+      const isPro = plan === 'pro' || plan.startsWith('pro-') || plan.includes('pro');
+      const isStarter = plan === 'starter' || plan.startsWith('starter-') || plan.includes('starter');
+      const isCustom = plan.includes('sur-mesure') || plan.includes('surmesure') || plan.includes('custom') || plan.includes('enterprise');
       const status = String(data.billing_status ?? 'unpaid');
       const hasSubscription = Boolean(data.stripe_subscription_id);
-      const readablePlan = plan === 'pro' ? 'Pro' : plan === 'sur-mesure' ? 'Sur mesure' : 'Starter';
+      const readablePlan = isCustom ? 'Sur mesure' : isPro ? 'Pro' : 'Starter';
 
       plansCurrentPlan.textContent = readablePlan;
       plansCurrentStatus.textContent = status;
 
-      if (plan === 'starter') {
+      if (isStarter) {
         plansUpgradeBtn.textContent = 'Passer au plan Pro';
         plansUpgradeBtn.href = '/abonnement/choix';
-      } else if (plan === 'pro') {
+      } else if (isPro) {
         plansUpgradeBtn.textContent = 'Passer en Sur mesure';
         plansUpgradeBtn.href = '/contact';
       } else {

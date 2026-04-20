@@ -29,6 +29,7 @@ clientsRoutes.get('/public/:id', async (c) => {
       id,
       nom,
       telephone,
+      date_naissance,
       carte_id,
       points_actuels,
       tampons_actuels,
@@ -56,6 +57,7 @@ clientsRoutes.get('/public/:id', async (c) => {
       id: data.id,
       nom: data.nom,
       telephone: data.telephone,
+      date_naissance: data.date_naissance,
       points_actuels: data.points_actuels,
       tampons_actuels: data.tampons_actuels,
       recompenses_obtenues: data.recompenses_obtenues,
@@ -129,6 +131,10 @@ clientsRoutes.post('/', async (c) => {
     nom: z.string().min(1, 'Le prénom est obligatoire').max(255),
     telephone: z.string().min(8, 'Le numéro de téléphone est obligatoire').max(20),
     email: z.string().email().nullable().optional(),
+    date_naissance: z.preprocess(
+      (value) => (value === '' ? null : value),
+      z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format attendu: AAAA-MM-JJ').nullable().optional(),
+    ),
     push_consent: z.boolean().default(false),
     fcm_token: z.string().nullable().optional(),
   });
@@ -194,6 +200,7 @@ clientsRoutes.post('/', async (c) => {
         nom: parsed.data.nom,
         telephone: normalizedPhone,
         email: parsed.data.email ?? existingClient.email,
+        date_naissance: parsed.data.date_naissance ?? existingClient.date_naissance ?? null,
         fcm_token: nextFcmToken,
         push_enabled: pushEnabled,
         updated_at: new Date().toISOString(),
@@ -202,6 +209,28 @@ clientsRoutes.post('/', async (c) => {
       .select()
       .single();
 
+    if (updateError && updateError.message?.includes('date_naissance')) {
+      const { data: fallbackUpdatedClient, error: fallbackUpdateError } = await db
+        .from('clients')
+        .update({
+          nom: parsed.data.nom,
+          telephone: normalizedPhone,
+          email: parsed.data.email ?? existingClient.email,
+          fcm_token: nextFcmToken,
+          push_enabled: pushEnabled,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingClient.id)
+        .select()
+        .single();
+
+      if (fallbackUpdateError || !fallbackUpdatedClient) {
+        return c.json({ error: 'Erreur lors de la mise à jour du client' }, 500);
+      }
+
+      return c.json({ data: fallbackUpdatedClient, existing: true });
+    }
+
     if (updateError || !updatedClient) {
       return c.json({ error: 'Erreur lors de la mise à jour du client' }, 500);
     }
@@ -209,7 +238,7 @@ clientsRoutes.post('/', async (c) => {
     return c.json({ data: updatedClient, existing: true });
   }
 
-  const { data, error } = await db
+  let insertResult = await db
     .from('clients')
     .insert({
       carte_id: parsed.data.carte_id,
@@ -218,12 +247,31 @@ clientsRoutes.post('/', async (c) => {
       nom: parsed.data.nom,
       telephone: normalizedPhone,
       email: parsed.data.email ?? null,
+      date_naissance: parsed.data.date_naissance ?? null,
       fcm_token: parsed.data.fcm_token ?? null,
       push_enabled: parsed.data.push_consent && Boolean(parsed.data.fcm_token),
     })
     .select()
     .single();
 
+  if (insertResult.error?.message?.includes('date_naissance')) {
+    insertResult = await db
+      .from('clients')
+      .insert({
+        carte_id: parsed.data.carte_id,
+        commerce_id: carte.commerce_id,
+        point_vente_id: carte.point_vente_id,
+        nom: parsed.data.nom,
+        telephone: normalizedPhone,
+        email: parsed.data.email ?? null,
+        fcm_token: parsed.data.fcm_token ?? null,
+        push_enabled: parsed.data.push_consent && Boolean(parsed.data.fcm_token),
+      })
+      .select()
+      .single();
+  }
+
+  const { data, error } = insertResult;
   if (error) return c.json({ error: 'Erreur lors de la création du client' }, 500);
 
   // SMS bienvenue planifié 60 min après l'inscription
@@ -364,8 +412,11 @@ clientsRoutes.patch('/:id/adjust', authMiddleware, paidMiddleware, async (c) => 
         .eq('client_id', clientId);
 
       const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
-      for (const reg of registrations ?? []) {
-        pushApplePassUpdate(reg.push_token, reg.pass_type_identifier || passTypeId)
+      const uniqueRegistrations = Array.from(
+        new Map((registrations ?? []).map((registration) => [registration.push_token, registration])).values(),
+      );
+      for (const reg of uniqueRegistrations) {
+        pushApplePassUpdate(reg.push_token, passTypeId || reg.pass_type_identifier)
           .catch((err) => console.error('[adjust wallet apple]', err));
       }
     }

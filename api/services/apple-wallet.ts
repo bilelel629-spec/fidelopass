@@ -57,11 +57,20 @@ interface WalletMessage {
   message: string;
 }
 
+function isProPlan(plan: string | null | undefined): boolean {
+  const normalized = String(plan ?? 'starter').trim().toLowerCase();
+  return normalized === 'pro' || normalized.startsWith('pro-') || normalized.includes('pro');
+}
+
 function hexToRgb(hex: string): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   return `rgb(${r}, ${g}, ${b})`;
+}
+
+function isHexColor(value: string | null | undefined): value is string {
+  return /^#[0-9a-f]{6}$/i.test(String(value ?? ''));
 }
 
 function hexToSharpColor(hex: string, alpha = 1): { r: number; g: number; b: number; alpha: number } {
@@ -218,12 +227,6 @@ export async function generateApplePass(
           value: String(client.recompenses_obtenues ?? 0),
           changeMessage: 'Récompenses disponibles : %@.',
         },
-        ...(carte.google_maps_url ? [{
-          key: 'avis_google',
-          label: 'Laisser un avis Google ⭐',
-          value: 'Gagner 1 tampon →',
-          attributedValue: `<a href='${carte.google_maps_url}'>Laisser un avis Google ⭐</a>`,
-        }] : []),
       ],
       backFields: [
         {
@@ -284,8 +287,7 @@ export async function generateApplePass(
     }];
   }
 
-  const commercePlan = String(carte.commerces.plan ?? 'starter').toLowerCase();
-  const showBranding = commercePlan === 'pro'
+  const showBranding = isProPlan(carte.commerces.plan)
     ? carte.branding_powered_by_enabled !== false
     : true;
 
@@ -314,7 +316,9 @@ export async function generateApplePass(
   const logo2x = logoRaw ? await resizeTo(logoRaw, 240, 240) : readAsset('logo@2x.png');
   // iOS 15+ affiche une icône de notification Wallet plus grande.
   // Apple recommande maintenant 38x38 minimum à l'échelle 1x.
-  const iconBgColor = carte.push_icon_bg_color ?? carte.couleur_accent;
+  const iconBgColor = isHexColor(carte.push_icon_bg_color)
+    ? carte.push_icon_bg_color
+    : (isHexColor(carte.couleur_accent) ? carte.couleur_accent : '#6366f1');
   const icon1x = logoRaw ? await createPassIcon(logoRaw, 38, iconBgColor) : await resizeTo(readAsset('icon@3x.png'), 38, 38);
   const icon2x = logoRaw ? await createPassIcon(logoRaw, 76, iconBgColor) : await resizeTo(readAsset('icon@3x.png'), 76, 76);
   const icon3x = logoRaw ? await createPassIcon(logoRaw, 114, iconBgColor) : await resizeTo(readAsset('icon@3x.png'), 114, 114);

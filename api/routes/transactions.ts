@@ -205,9 +205,13 @@ transactionsRoutes.post('/', async (c) => {
         }
 
         const registrations = data ?? [];
+        const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
+        const uniqueRegistrations = Array.from(
+          new Map(registrations.map((registration) => [registration.push_token, registration])).values(),
+        );
         return Promise.allSettled(
-          registrations.map((registration) =>
-            pushApplePassUpdate(registration.push_token, registration.pass_type_identifier),
+          uniqueRegistrations.map((registration) =>
+            pushApplePassUpdate(registration.push_token, passTypeId || registration.pass_type_identifier),
           ),
         ).then((results) => {
           const failed = results.find((result) => result.status === 'rejected');

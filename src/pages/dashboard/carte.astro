@@ -2591,9 +2591,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const res = await authFetch('/api/dashboard/plan');
       if (!res.ok) return;
       const { data } = await res.json();
-      const plan: string = data?.plan ?? 'starter';
-      const isStarter = plan === 'starter';
-      isProPlan = plan === 'pro';
+      const planRaw = String(data?.plan ?? data?.raw_plan ?? 'starter').trim().toLowerCase();
+      const isStarter = planRaw === 'starter' || planRaw.startsWith('starter-') || planRaw.includes('starter');
+      isProPlan = planRaw === 'pro' || planRaw.startsWith('pro-') || planRaw.includes('pro');
 
       // Anniversaire : toujours verrouillé sur starter
       if (isStarter) {
@@ -2623,7 +2623,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         const bar = document.getElementById('error-msg') as HTMLDivElement | null;
         const infoMsg = document.createElement('div');
         infoMsg.className = 'text-amber-600 text-sm bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4';
-        infoMsg.textContent = `${clientsCount} / ${limits.maxClients} cartes actives utilisées sur votre plan ${plan}.`;
+        infoMsg.textContent = `${clientsCount} / ${limits.maxClients} cartes actives utilisées sur votre plan ${isProPlan ? 'pro' : 'starter'}.`;
         bar?.parentNode?.insertBefore(infoMsg, bar);
       }
     } catch { /* silencieux */ }

@@ -37,6 +37,25 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </div>
   </div>
 
+  <div id="points-vente-cta" class="mb-8 rounded-[1.4rem] border border-sky-100 bg-gradient-to-r from-sky-50/90 to-white p-5 shadow-[0_18px_48px_-36px_rgba(59,130,246,0.3)]">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div>
+        <p class="text-[0.64rem] font-semibold uppercase tracking-[0.24em] text-sky-700/70">Points de vente</p>
+        <h2 class="mt-2 font-display text-xl font-bold text-slate-900">Où créer ou ajouter un point de vente ?</h2>
+        <p class="mt-1 text-sm text-slate-600">Tout se fait ici : gérez vos adresses, choisissez le point actif, puis personnalisez la carte correspondante.</p>
+        <p id="points-vente-cta-usage" class="mt-2 text-xs font-medium text-sky-700">Chargement du quota...</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <a href="/dashboard/points-vente" class="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-sky-700">
+          Gérer mes points de vente
+        </a>
+        <a href="/dashboard/carte" class="rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-50">
+          Personnaliser le point actif
+        </a>
+      </div>
+    </div>
+  </div>
+
   <!-- Stats (en premier sur mobile) -->
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 order-first">
     <div class="stat-card">
@@ -263,6 +282,26 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   }
 
+  async function loadPointsVenteCta() {
+    const usage = document.getElementById('points-vente-cta-usage');
+    if (!usage) return;
+
+    try {
+      const res = await authFetch('/api/commerces/points-vente');
+      if (!res.ok) throw new Error();
+      const payload = await res.json().catch(() => null);
+      const plan = String(payload?.plan ?? 'starter').toLowerCase();
+      const stats = payload?.usage;
+      const selectedId = payload?.selected_point_vente_id;
+      const points = Array.isArray(payload?.data) ? payload.data : [];
+      const selected = points.find((point: { id: string; nom?: string }) => point.id === selectedId);
+
+      usage.textContent = `Plan ${plan === 'pro' ? 'Pro' : 'Starter'} : ${stats?.current ?? 0}/${stats?.max ?? 1} point(s) de vente utilisés. Actif: ${selected?.nom ?? '—'}.`;
+    } catch {
+      usage.textContent = 'Impossible de charger le quota des points de vente.';
+    }
+  }
+
   async function loadAdminShortcut() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -277,7 +316,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const btn = document.getElementById('refresh-btn') as HTMLButtonElement;
     btn.disabled = true;
     icon.style.animation = 'spin 0.8s linear infinite';
-    await Promise.all([loadStats(), loadChart(), loadRecentTransactions(), loadCardShortcuts()]);
+    await Promise.all([loadStats(), loadChart(), loadRecentTransactions(), loadCardShortcuts(), loadPointsVenteCta()]);
     icon.style.animation = '';
     btn.disabled = false;
   }
@@ -293,5 +332,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   loadChart();
   loadRecentTransactions();
   loadCardShortcuts();
+  loadPointsVenteCta();
   loadAdminShortcut();
 </script>

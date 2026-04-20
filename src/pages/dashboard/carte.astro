@@ -114,6 +114,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </div>
   </div>
 
+  <div id="mobile-step-guidance" class="mb-4 rounded-[1.2rem] border border-sky-100 bg-white/95 px-4 py-3 shadow-[0_14px_35px_-30px_rgba(59,130,246,0.45)] lg:hidden">
+    <p id="mobile-step-guidance-title" class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700/80">Objectif de l’étape</p>
+    <p id="mobile-step-guidance-text" class="mt-1 text-sm font-medium text-slate-800">Choisissez le type de programme le plus simple pour votre équipe.</p>
+    <p id="mobile-step-guidance-required" class="mt-1 text-[0.7rem] text-slate-500">Obligatoire: type de programme</p>
+  </div>
+
   <div class="grid lg:grid-cols-[1fr_370px] gap-6 items-start">
 
     <div class="flex flex-col gap-5 pb-40 lg:pb-0">
@@ -290,6 +296,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <div class="mb-5">
           <h2 class="font-display font-bold text-slate-900">Ce que gagne le client</h2>
           <p class="mt-1 text-sm leading-6 text-slate-500">Définissez le rythme de fidélité et la promesse de récompense affichée dans Wallet.</p>
+          <p class="mt-2 text-xs text-slate-500">Conseil conversion: une récompense claire et rapide (5 à 10 passages max) augmente l’usage en caisse.</p>
         </div>
         <div id="step-error-3" class="step-error hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
         <div class="flex flex-col gap-4">
@@ -339,10 +346,27 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <div class="card wizard-section step-4 p-6">
         <div class="mb-5">
           <h2 class="font-display font-bold text-slate-900">Apparence</h2>
-          <p class="mt-1 text-sm leading-6 text-slate-500">Réglez le style visuel de la carte par blocs: thème, bannière et code-barres.</p>
+          <p class="mt-1 text-sm leading-6 text-slate-500">Mode simple recommandé: 1 thème + 1 bannière + QR code. Les options avancées restent disponibles.</p>
         </div>
         <div id="step-error-4" class="step-error hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
-        <div class="mb-4 flex flex-wrap gap-2 rounded-2xl border border-sky-100 bg-sky-50/60 p-2">
+        <div class="mb-4 grid grid-cols-1 gap-2 rounded-2xl border border-sky-100 bg-sky-50/60 p-2 lg:hidden">
+          {[
+            { key: 'theme', label: '1. Thème principal', desc: 'Couleurs et identité visuelle' },
+            { key: 'banner', label: '2. Bannière', desc: 'Image et cadrage de couverture' },
+            { key: 'barcode', label: '3. Code-barres', desc: 'QR recommandé pour scanner vite' },
+          ].map(({ key, label, desc }) => (
+            <button
+              type="button"
+              class="appearance-tab rounded-xl border border-white/80 bg-white px-3 py-2.5 text-left transition-all"
+              data-appearance-target={key}
+            >
+              <p class="text-sm font-semibold text-slate-800">{label}</p>
+              <p class="mt-0.5 text-xs text-slate-500">{desc}</p>
+            </button>
+          ))}
+        </div>
+
+        <div class="hidden mb-4 flex-wrap gap-2 rounded-2xl border border-sky-100 bg-sky-50/60 p-2 lg:flex">
           {[
             { key: 'theme', label: 'Thème' },
             { key: 'banner', label: 'Bannière' },
@@ -356,7 +380,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
         <div data-appearance-panel="theme">
           <label class="label mb-3 block">Thèmes prédéfinis</label>
-          <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-5">
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
             {[
               {name:'Nuit',fond:'#0f172a',texte:'#ffffff',accent:'#6366f1',fond2:''},
               {name:'Rose',fond:'#3d0d1e',texte:'#fce7f3',accent:'#ec4899',fond2:'#6d1439'},
@@ -364,8 +388,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               {name:'Océan',fond:'#0c4a6e',texte:'#ffffff',accent:'#38bdf8',fond2:'#075985'},
               {name:'Café',fond:'#1c0e04',texte:'#fef3c7',accent:'#d97706',fond2:'#292200'},
               {name:'Noir',fond:'#000000',texte:'#ffffff',accent:'#8b5cf6',fond2:'#18003a'},
-            ].map(({name,fond,texte,accent,fond2})=>(
-              <button type="button" class="preset-btn flex flex-col items-center gap-1.5 rounded-xl border border-sky-100 bg-white p-2 transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_40px_-28px_rgba(59,130,246,0.35)]" data-fond={fond} data-texte={texte} data-accent={accent} data-fond2={fond2}>
+            ].map(({name,fond,texte,accent,fond2}, index)=>(
+              <button type="button" class={`preset-btn flex flex-col items-center gap-1.5 rounded-xl border border-sky-100 bg-white p-2 transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_40px_-28px_rgba(59,130,246,0.35)] ${index >= 3 ? 'theme-extra hidden sm:flex' : ''}`} data-fond={fond} data-texte={texte} data-accent={accent} data-fond2={fond2}>
                 <div class="w-full h-8 rounded-lg flex gap-1 p-1" style={fond2?`background:linear-gradient(135deg,${fond},${fond2})`:`background:${fond}`}>
                   <div class="w-3 h-full rounded-sm" style={`background:${accent}`}></div>
                   <div class="flex-1 h-full rounded-sm opacity-60" style={`background:${texte}`}></div>
@@ -374,6 +398,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               </button>
             ))}
           </div>
+          <button id="theme-toggle-more-btn" type="button" class="mb-5 w-full btn-secondary py-2 text-xs lg:hidden">Voir plus de thèmes</button>
 
           <div class="mb-5">
             <div class="flex items-center justify-between mb-3">
@@ -400,7 +425,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
           <div>
             <button type="button" id="pattern-toggle" class="flex w-full items-center justify-between rounded-xl border border-sky-100 bg-sky-50/60 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-sky-100">
-              <span>Options avancées: pattern</span>
+              <span>Pattern (optionnel)</span>
               <span id="pattern-arrow" class="text-slate-400 transition-transform">▼</span>
             </button>
             <div id="pattern-panel" class="hidden mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -460,7 +485,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               <a href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3NTAiIGhlaWdodD0iMjQ2Ij48cmVjdCB3aWR0aD0iNzUwIiBoZWlnaHQ9IjI0NiIgZmlsbD0iIzFlMjkzYiIvPjxyZWN0IHg9IjQwIiB5PSI0MCIgd2lkdGg9IjY3MCIgaGVpZ2h0PSIxNjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzYzNjZmMSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI4IDQiIHJ4PSI4Ii8+PHRleHQgeD0iMzc1IiB5PSIxMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2MzY2ZjEiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5ab25lIGJhbm5pZXJlIOKAlCA3NTAgw5cgMjQ2IHB4PC90ZXh0Pjx0ZXh0IHg9IjM3NSIgeT0iMTQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyI+TGVzIHRhbXBvbnMgc29udCBjZW50csOpcyBwYXItZGVzc3VzPC90ZXh0Pjwvc3ZnPg=="
                 download="template-banniere-fidelopass.svg" class="text-indigo-400 text-xs underline underline-offset-2 hover:text-indigo-300 text-center">⬇ Template SVG 750×246</a>
               <button id="banner-advanced-toggle" type="button" class="flex w-full items-center justify-between rounded-xl border border-sky-100 bg-sky-50/60 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-sky-100">
-                <span>Options avancées: placement</span>
+                <span>Placement avancé (optionnel)</span>
                 <span id="banner-advanced-arrow" class="text-slate-400 transition-transform">▼</span>
               </button>
               <div id="banner-advanced-panel" class="hidden space-y-3">
@@ -511,6 +536,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <div class="mb-5">
           <h2 class="font-display font-bold text-slate-900">Messages client</h2>
           <p class="mt-1 text-sm leading-6 text-slate-500">Préparez les textes visibles par vos clients au moment de la création et après l'ajout dans Wallet.</p>
+          <p class="mt-2 text-xs text-slate-500">Restez court et concret: 80 à 120 caractères donnent de meilleurs taux de lecture.</p>
         </div>
         <div id="step-error-5" class="step-error hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
         <div class="grid sm:grid-cols-2 gap-4">
@@ -530,6 +556,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <div class="mb-5">
           <h2 class="font-display font-bold text-slate-900">Options</h2>
           <p class="mt-1 text-sm leading-6 text-slate-500">Activez la géolocalisation pour faire remonter la carte en boutique.</p>
+          <p class="mt-2 text-xs text-slate-500">Commencez avec 500m à 1000m pour éviter des notifications trop loin du commerce.</p>
         </div>
         <div id="step-error-6" class="step-error hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
 
@@ -886,6 +913,43 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     'Options',
     'Scanner & Partage',
   ] as const;
+  const STEP_GUIDANCE = [
+    {
+      title: 'Choisissez le socle du programme',
+      text: 'Tampons: le plus simple en caisse. Points: plus flexible pour offres évolutives.',
+      required: 'Obligatoire: type de programme',
+    },
+    {
+      title: 'Posez votre identité',
+      text: 'Nom clair + logo bien centré = carte reconnue instantanément par le client.',
+      required: 'Obligatoire: nom de carte',
+    },
+    {
+      title: 'Définissez la promesse client',
+      text: 'Fixez un objectif atteignable et une récompense qui donne envie de revenir vite.',
+      required: 'Obligatoire: configuration programme + récompense',
+    },
+    {
+      title: 'Habillez la carte en mode simple',
+      text: 'Commencez par thème + bannière + QR. Les options avancées restent optionnelles.',
+      required: 'Obligatoire: aucun (design libre)',
+    },
+    {
+      title: 'Rassurez le client avec des messages courts',
+      text: 'Un accueil clair et un message post-ajout augmentent l’activation de la carte.',
+      required: 'Obligatoire: aucun',
+    },
+    {
+      title: 'Activez la proximité si utile',
+      text: 'Géolocalisation: renseignez une adresse précise et un message utile en passage boutique.',
+      required: 'Obligatoire si activé: adresse du commerce',
+    },
+    {
+      title: 'Passez en mode opérationnel',
+      text: 'Installez le scanner équipe puis affichez le QR client en caisse.',
+      required: 'Obligatoire: carte déjà enregistrée',
+    },
+  ] as const;
 
   let carteId: string | null = null;
   let logoUrl = '', stripUrl = '', tamponIconUrl = '', tamponEmoji = '';
@@ -917,7 +981,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const state = document.getElementById('draft-state');
     const mobileDraft = document.getElementById('mobile-save-draft-btn') as HTMLButtonElement | null;
     if (mobileDraft) {
-      mobileDraft.textContent = dirty ? 'Brouillon a sauver' : 'Brouillon OK';
+      mobileDraft.textContent = dirty ? 'Brouillon à sauvegarder' : 'Brouillon OK';
     }
     if (!state) return;
     if (dirty) {
@@ -1043,6 +1107,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     if (mobileTitle) mobileTitle.textContent = STEP_TITLES[currentStep - 1];
     const mobileProgress = document.getElementById('wizard-mobile-progress') as HTMLDivElement | null;
     if (mobileProgress) mobileProgress.style.width = `${(currentStep / TOTAL_STEPS) * 100}%`;
+    const guidanceTitle = document.getElementById('mobile-step-guidance-title');
+    const guidanceText = document.getElementById('mobile-step-guidance-text');
+    const guidanceRequired = document.getElementById('mobile-step-guidance-required');
+    const guidance = STEP_GUIDANCE[currentStep - 1];
+    if (guidanceTitle) guidanceTitle.textContent = guidance.title;
+    if (guidanceText) guidanceText.textContent = guidance.text;
+    if (guidanceRequired) guidanceRequired.textContent = guidance.required;
 
     prevButtons.forEach((button) => {
       button.disabled = isSaving || currentStep === 1;
@@ -1273,6 +1344,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const shouldOpen = Array.from(extra).some((item) => item.classList.contains('hidden'));
     extra.forEach((item) => item.classList.toggle('hidden', !shouldOpen));
     btn.textContent = shouldOpen ? 'Masquer les modèles supplémentaires' : 'Voir plus de modèles';
+  });
+
+  document.getElementById('theme-toggle-more-btn')?.addEventListener('click', () => {
+    const extra = document.querySelectorAll('.theme-extra');
+    const btn = document.getElementById('theme-toggle-more-btn') as HTMLButtonElement;
+    const shouldOpen = Array.from(extra).some((item) => item.classList.contains('hidden'));
+    extra.forEach((item) => item.classList.toggle('hidden', !shouldOpen));
+    btn.textContent = shouldOpen ? 'Masquer les thèmes' : 'Voir plus de thèmes';
   });
 
   function setPageScrollLock(locked: boolean) {

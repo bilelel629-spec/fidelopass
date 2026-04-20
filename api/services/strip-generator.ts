@@ -3,6 +3,8 @@
  * Supporte : fond uni, dégradé, patterns SVG, grille équilibrée de tampons, emojis.
  */
 import sharp from 'sharp';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 interface StripOptions {
   type: 'tampons' | 'points';
@@ -20,6 +22,28 @@ interface StripOptions {
   tamponEmoji?: string | null;
   stripLayout?: string | null;
   showBranding?: boolean;
+}
+
+const BRANDING_WATERMARK_PATHS = [
+  resolve(process.cwd(), 'public/logo-premium-cropped.png'),
+  resolve(process.cwd(), 'assets/pass/logo.png'),
+];
+
+let brandingWatermarkCache: Buffer | null | undefined;
+
+function loadBrandingWatermark(): Buffer | null {
+  if (brandingWatermarkCache !== undefined) return brandingWatermarkCache;
+  for (const filePath of BRANDING_WATERMARK_PATHS) {
+    if (!existsSync(filePath)) continue;
+    try {
+      brandingWatermarkCache = readFileSync(filePath);
+      return brandingWatermarkCache;
+    } catch {
+      // Try the next path.
+    }
+  }
+  brandingWatermarkCache = null;
+  return null;
 }
 
 // Hex → { r, g, b }
@@ -84,20 +108,33 @@ async function cropImageToFocus(
 }
 
 async function applyBrandingWatermark(buffer: Buffer, width: number, height: number): Promise<Buffer> {
-  const fontSize = Math.max(11, Math.round(height * 0.07));
-  const overlay = Buffer.from(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-      <text x="${width - 14}" y="${height - 10}" text-anchor="end"
-        font-family="Arial, Helvetica, sans-serif"
-        font-size="${fontSize}" letter-spacing="1.2"
-        fill="rgba(255,255,255,0.5)">Propulsé par Fidelopass</text>
-    </svg>
-  `);
+  const source = loadBrandingWatermark();
+  if (!source) return buffer;
 
-  return sharp(buffer)
-    .composite([{ input: overlay, blend: 'over' }])
-    .png()
-    .toBuffer();
+  try {
+    const watermarkWidth = Math.max(92, Math.round(width * 0.22));
+    const resized = await sharp(source).resize({ width: watermarkWidth }).png().toBuffer();
+    const resizedMeta = await sharp(resized).metadata();
+    const renderedWidth = resizedMeta.width ?? watermarkWidth;
+    const renderedHeight = resizedMeta.height ?? Math.round(height * 0.12);
+    const paddingX = Math.max(10, Math.round(width * 0.018));
+    const paddingY = Math.max(8, Math.round(height * 0.04));
+    const left = Math.max(0, width - renderedWidth - paddingX);
+    const top = Math.max(0, height - renderedHeight - paddingY);
+    const dataUri = resized.toString('base64');
+    const overlay = Buffer.from(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+        <image href="data:image/png;base64,${dataUri}" x="${left}" y="${top}" width="${renderedWidth}" height="${renderedHeight}" opacity="0.33"/>
+      </svg>
+    `);
+
+    return sharp(buffer)
+      .composite([{ input: overlay, blend: 'over' }])
+      .png()
+      .toBuffer();
+  } catch {
+    return buffer;
+  }
 }
 
 /** Colonnes optimales pour une grille équilibrée */

@@ -266,11 +266,19 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       }
     } catch (error) {
       console.error('[notifications review auto]', error);
-      setReviewPlanLabel('starter');
-      reviewAutoIsPro = false;
+      try {
+        const planRes = await authFetch('/api/dashboard/plan');
+        const planPayload = await planRes.json().catch(() => null);
+        const fallbackPlan = planPayload?.data?.plan ?? planPayload?.data?.raw_plan ?? 'starter';
+        setReviewPlanLabel(fallbackPlan);
+        reviewAutoIsPro = isProPlan(fallbackPlan);
+      } catch {
+        setReviewPlanLabel('starter');
+        reviewAutoIsPro = false;
+      }
       reviewAutoToggle.disabled = true;
       reviewAutoToggle.classList.add('opacity-40', 'cursor-not-allowed');
-      reviewAutoLocked.classList.remove('hidden');
+      if (!reviewAutoIsPro) reviewAutoLocked.classList.remove('hidden');
       reviewAutoStatus.textContent = 'Impossible de charger le statut pour le moment.';
     }
   }

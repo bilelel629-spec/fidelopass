@@ -17,6 +17,61 @@ export const notificationsRoutes = new Hono();
 notificationsRoutes.use('*', authMiddleware);
 notificationsRoutes.use('*', paidMiddleware);
 
+type CommerceFlags = {
+  review_auto_enabled?: boolean | null;
+  sms_review_enabled?: boolean | null;
+  sms_credits?: number | null;
+};
+
+function getReviewAutoEnabled(flags: CommerceFlags | null): boolean {
+  if (!flags) return false;
+  return Boolean(flags.review_auto_enabled ?? flags.sms_review_enabled ?? false);
+}
+
+async function loadCommerceFlags(db: ReturnType<typeof createServiceClient>, commerceId: string): Promise<CommerceFlags | null> {
+  const { data, error } = await db
+    .from('commerces')
+    .select('*')
+    .eq('id', commerceId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data as CommerceFlags;
+}
+
+async function persistReviewAutoEnabled(
+  db: ReturnType<typeof createServiceClient>,
+  commerceId: string,
+  enabled: boolean,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const attempts: Array<Record<string, unknown>> = [
+    { review_auto_enabled: enabled, sms_review_enabled: enabled },
+    { review_auto_enabled: enabled },
+    { sms_review_enabled: enabled },
+  ];
+
+  let lastErrorMessage = 'Impossible de mettre à jour le réglage.';
+
+  for (const patch of attempts) {
+    const { error } = await db
+      .from('commerces')
+      .update(patch)
+      .eq('id', commerceId);
+
+    if (!error) return { ok: true };
+
+    lastErrorMessage = error.message ?? lastErrorMessage;
+    const isUnknownColumn =
+      /column/i.test(lastErrorMessage)
+      || /does not exist/i.test(lastErrorMessage)
+      || /schema cache/i.test(lastErrorMessage);
+
+    if (!isUnknownColumn) break;
+  }
+
+  return { ok: false, message: lastErrorMessage };
+}
+
 /** GET /api/notifications/review-reminder-settings — Réglage push auto avis Google (+1h) */
 notificationsRoutes.get('/review-reminder-settings', async (c) => {
   const userId = c.get('userId') as string;
@@ -26,16 +81,17 @@ notificationsRoutes.get('/review-reminder-settings', async (c) => {
     db,
     userId,
     requestedPointVenteId,
-    'id, plan, sms_review_enabled',
+    'id, plan',
   );
 
   if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
 
+  const flags = await loadCommerceFlags(db, commerce.id);
   const planLimits = getPlanLimits(commerce.plan);
   const normalizedPlan = normalizePlan(commerce.plan);
   return c.json({
     data: {
-      enabled: Boolean(commerce.sms_review_enabled),
+      enabled: getReviewAutoEnabled(flags),
       plan: normalizedPlan,
       raw_plan: commerce.plan ?? 'starter',
       is_pro: Boolean(planLimits.avisGoogle),
@@ -65,12 +121,12 @@ notificationsRoutes.patch('/review-reminder-settings', async (c) => {
     return c.json({ error: 'Cette automatisation est réservée au plan Pro.' }, 403);
   }
 
-  const { error } = await db
-    .from('commerces')
-    .update({ sms_review_enabled: parsed.data.enabled })
-    .eq('id', commerce.id);
-
-  if (error) return c.json({ error: 'Impossible de mettre à jour le réglage.' }, 500);
+  const writeResult = await persistReviewAutoEnabled(db, commerce.id, parsed.data.enabled);
+  if (!writeResult.ok) {
+    return c.json({
+      error: `Impossible de mettre à jour le réglage (${writeResult.message}). Vérifiez que les migrations Supabase sont bien à jour.`,
+    }, 500);
+  }
 
   return c.json({ ok: true, data: { enabled: parsed.data.enabled, delay_minutes: 60 } });
 });
@@ -301,13 +357,14 @@ notificationsRoutes.post('/review-campaign', async (c) => {
     db,
     userId,
     requestedPointVenteId,
-    'id, plan, nom, sms_review_enabled, sms_credits',
+    'id, plan, nom',
   );
   const commerceError = null;
 
   console.log('[review-campaign] commerce:', commerce?.id, '| plan:', commerce?.plan, '| error:', commerceError?.message);
 
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
+  const flags = await loadCommerceFlags(db, commerce.id);
 
   // Vérification plan : avis Google réservé au plan Pro
   const planLimits = getPlanLimits(commerce.plan);
@@ -457,7 +514,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
 
   // 4. SMS (si toggle activé et crédits disponibles)
   let nbSmsEnvoyes = 0;
-  if (commerce.sms_review_enabled && (commerce.sms_credits ?? 0) > 0) {
+  if (Boolean(flags?.sms_review_enabled) && Number(flags?.sms_credits ?? 0) > 0) {
     const lienAvis = (carte as { google_maps_url?: string | null }).google_maps_url ?? '';
     const smsEligibles = eligibles.filter((cl) => !!(cl as { telephone?: string | null }).telephone);
     console.log('[review-campaign] SMS éligibles:', smsEligibles.length);

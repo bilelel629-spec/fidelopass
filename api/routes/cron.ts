@@ -21,8 +21,8 @@ async function sendScheduledReviewPushes(db: ReturnType<typeof createServiceClie
 
   const { data: commerces, error: commercesError } = await db
     .from('commerces')
-    .select('id, nom, plan, sms_review_enabled')
-    .eq('sms_review_enabled', true);
+    .select('*')
+    .eq('actif', true);
 
   if (commercesError) {
     console.error('[cron] Erreur lecture commerces pour push avis auto:', commercesError.message);
@@ -31,6 +31,11 @@ async function sendScheduledReviewPushes(db: ReturnType<typeof createServiceClie
 
   for (const commerce of commerces ?? []) {
     if (!getPlanLimits(normalizePlan(commerce.plan)).avisGoogle) continue;
+    const reviewAutoEnabled = Boolean(
+      (commerce as { review_auto_enabled?: boolean | null }).review_auto_enabled
+      ?? (commerce as { sms_review_enabled?: boolean | null }).sms_review_enabled,
+    );
+    if (!reviewAutoEnabled) continue;
     commercesProcessed++;
 
     const { data: cartes } = await db

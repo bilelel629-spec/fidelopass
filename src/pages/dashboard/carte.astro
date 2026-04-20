@@ -3,21 +3,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 ---
 
 <DashboardLayout title="Ma carte — Fidelopass" activeNav="carte">
-  <div class="mb-5 rounded-[1.6rem] border border-sky-100 bg-white/90 px-5 py-5 shadow-[0_24px_50px_-38px_rgba(59,130,246,0.35)]">
+  <div id="wizard-top-anchor" class="mb-4 rounded-[1.6rem] border border-sky-100 bg-white/90 px-5 py-4 shadow-[0_24px_50px_-38px_rgba(59,130,246,0.35)] sm:mb-5 sm:py-5">
     <p class="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-sky-600/70">Éditeur de carte</p>
     <div class="mt-2 flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <h1 class="font-display text-2xl font-bold text-slate-900 sm:text-3xl">Créez votre carte en 7 étapes</h1>
         <p class="mt-1 text-sm leading-6 text-slate-500">Choisissez un type de programme, personnalisez le design, puis publiez votre QR client et votre scanner équipe.</p>
       </div>
-      <p class="text-xs text-slate-500">Objectif: une carte opérationnelle en caisse aujourd'hui.</p>
+      <p class="hidden text-xs text-slate-500 lg:block">Objectif: une carte opérationnelle en caisse aujourd'hui.</p>
     </div>
   </div>
-  <div id="active-point-banner" class="mb-5 rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3">
+  <div id="active-point-banner" class="mb-4 rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3 sm:mb-5">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div class="text-sm text-sky-800">
         <p class="font-medium">Point de vente actif: <span id="active-point-name" class="font-semibold">Chargement...</span></p>
-        <p class="mt-1 text-xs text-sky-700/90">Besoin d’ajouter une autre adresse ? Cliquez sur “Gérer les points de vente”.</p>
+        <p class="mt-1 hidden text-xs text-sky-700/90 sm:block">Besoin d’ajouter une autre adresse ? Cliquez sur “Gérer les points de vente”.</p>
       </div>
       <a href="/dashboard/points-vente" class="rounded-xl border border-sky-200 bg-white px-3.5 py-2 text-xs font-semibold text-sky-700 transition hover:border-sky-300 hover:bg-sky-50">
         Gérer les points de vente
@@ -32,7 +32,22 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </p>
   </div>
 
-  <div class="mb-6 rounded-[1.6rem] border border-sky-100 bg-white/95 shadow-[0_18px_48px_-36px_rgba(59,130,246,0.4)] lg:sticky lg:top-4 z-20">
+  <div class="mb-4 rounded-[1.4rem] border border-sky-100 bg-white/95 p-4 shadow-[0_18px_48px_-36px_rgba(59,130,246,0.4)] lg:hidden">
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <p id="wizard-mobile-counter" class="text-[0.64rem] font-semibold uppercase tracking-[0.22em] text-sky-700/70">Étape 1/7</p>
+        <p id="wizard-mobile-title" class="mt-1 text-sm font-semibold text-slate-900">Type de programme</p>
+      </div>
+      <button id="mobile-step-picker-btn" type="button" class="btn-secondary px-3 py-2 text-xs">
+        Changer d’étape
+      </button>
+    </div>
+    <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-sky-100">
+      <div id="wizard-mobile-progress" class="h-full rounded-full bg-sky-600 transition-all duration-300" style="width:14.2857%"></div>
+    </div>
+  </div>
+
+  <div class="mb-6 hidden rounded-[1.6rem] border border-sky-100 bg-white/95 shadow-[0_18px_48px_-36px_rgba(59,130,246,0.4)] lg:sticky lg:top-4 lg:block z-20">
     <div class="flex items-center justify-between px-4 py-3 border-b border-sky-50">
       <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-600/70">Parcours guidé</p>
       <div class="flex items-center gap-2">
@@ -65,9 +80,43 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </div>
   </div>
 
+  <div id="mobile-step-sheet" class="fixed inset-0 z-[70] hidden lg:hidden">
+    <button id="mobile-step-sheet-backdrop" type="button" class="absolute inset-0 bg-slate-900/50 backdrop-blur-[1px]"></button>
+    <div class="absolute inset-x-0 bottom-0 rounded-t-[1.8rem] border border-sky-100 bg-white px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4 shadow-[0_-32px_55px_-35px_rgba(15,23,42,0.55)]">
+      <div class="mx-auto mb-3 h-1 w-11 rounded-full bg-slate-200"></div>
+      <div class="mb-3 flex items-center justify-between">
+        <p class="text-sm font-semibold text-slate-900">Aller à une étape</p>
+        <button id="mobile-step-sheet-close" type="button" class="btn-secondary px-3 py-1.5 text-xs">Fermer</button>
+      </div>
+      <div class="max-h-[62vh] space-y-2 overflow-y-auto pb-2">
+        {[
+          'Type',
+          'Identité',
+          'Programme',
+          'Apparence',
+          'Messages',
+          'Options',
+          'Partage',
+        ].map((label, index) => (
+          <button
+            type="button"
+            class="mobile-step-item flex w-full items-center justify-between rounded-xl border border-sky-100 bg-white px-3 py-2.5 text-left transition-all"
+            data-step-target={String(index + 1)}
+          >
+            <div class="flex items-center gap-2">
+              <span class="flex h-6 w-6 items-center justify-center rounded-full bg-sky-100 text-[0.65rem] font-bold text-sky-700">{index + 1}</span>
+              <span class="text-sm font-medium text-slate-800">{label}</span>
+            </div>
+            <span class="wizard-step-status text-[0.65rem] text-slate-400">À faire</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  </div>
+
   <div class="grid lg:grid-cols-[1fr_370px] gap-6 items-start">
 
-    <div class="flex flex-col gap-5">
+    <div class="flex flex-col gap-5 pb-40 lg:pb-0">
 
       <!-- Étape 1 : Type de programme -->
       <div class="card wizard-section step-1 p-6">
@@ -645,7 +694,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       <div id="error-msg" class="hidden text-red-700 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3"></div>
       <div id="success-msg" class="hidden text-emerald-700 text-sm bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3"></div>
-      <div class="rounded-[1.6rem] border border-sky-100 bg-white/90 px-4 py-4 shadow-[0_18px_48px_-36px_rgba(59,130,246,0.35)] flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="hidden rounded-[1.6rem] border border-sky-100 bg-white/90 px-4 py-4 shadow-[0_18px_48px_-36px_rgba(59,130,246,0.35)] lg:flex lg:flex-col lg:gap-3 xl:flex-row xl:items-center xl:justify-between">
         <button type="button" id="prev-step-btn" class="btn-secondary py-3 px-5">Étape précédente</button>
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
           <button type="button" id="save-draft-btn" class="btn-secondary py-3 px-5">Enregistrer le brouillon</button>
@@ -657,12 +706,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     <!-- Aperçu -->
     <div class="lg:sticky lg:top-8 space-y-5">
       <button id="preview-toggle-btn" type="button" class="btn-secondary w-full py-3 text-sm lg:hidden">Voir l’aperçu</button>
+      <div id="preview-mobile-backdrop" class="fixed inset-0 z-[72] hidden bg-slate-900/50 backdrop-blur-[1px] lg:hidden"></div>
       <div id="preview-panel" class="card p-4 hidden lg:block">
         <div class="flex items-start justify-between gap-3 mb-3">
           <div>
             <p class="label mb-1">Aperçu temps réel</p>
             <p class="text-xs leading-5 text-slate-500">Le rendu Wallet évolue en direct selon vos choix. Vérifiez le contraste, le nom de carte et la récompense avant publication.</p>
           </div>
+          <button id="preview-close-btn" type="button" class="hidden btn-secondary px-3 py-1.5 text-xs lg:hidden">Fermer</button>
         </div>
         <div class="flex rounded-2xl p-1 gap-1 mb-4 bg-sky-50">
           <button id="switch-apple" type="button" class="flex-1 py-1.5 text-xs rounded-lg font-medium transition-all flex items-center justify-center gap-1.5" style="background:#1e293b;color:white">
@@ -751,6 +802,19 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     </div>
   </div>
+
+  <div class="fixed inset-x-0 z-[71] px-3 pb-[calc(env(safe-area-inset-bottom)+0.45rem)] lg:hidden" style="bottom:4.2rem;">
+    <div class="rounded-2xl border border-sky-100 bg-white/95 p-3 shadow-[0_24px_46px_-28px_rgba(15,23,42,0.35)]">
+      <div class="mb-2 flex items-center justify-between gap-3">
+        <button type="button" id="mobile-save-draft-btn" class="btn-secondary px-3 py-2 text-xs">Brouillon</button>
+        <button type="button" id="mobile-preview-btn" class="btn-secondary px-3 py-2 text-xs">Aperçu</button>
+      </div>
+      <div class="grid grid-cols-[132px_1fr] gap-2">
+        <button type="button" id="mobile-prev-step-btn" class="btn-secondary py-3 text-sm">Étape précédente</button>
+        <button type="button" id="mobile-save-continue-btn" class="btn-primary py-3 text-sm">Enregistrer et continuer</button>
+      </div>
+    </div>
+  </div>
 </DashboardLayout>
 
 <style>
@@ -780,6 +844,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     cursor: not-allowed;
   }
 
+  .mobile-step-item:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .mobile-step-item[data-state='active'] {
+    border-color: #93c5fd;
+    background: #eff6ff;
+  }
+
+  .mobile-step-item[data-state='done'] {
+    border-color: #bbf7d0;
+    background: #f0fdf4;
+  }
+
   .appearance-tab[data-active='true'] {
     background: #ffffff;
     color: #0f172a;
@@ -798,6 +877,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const setupMode = new URLSearchParams(window.location.search).get('setup') === '1';
   const TOTAL_STEPS = 7;
   const STEP_LABELS = ['Type', 'Identité', 'Programme', 'Apparence', 'Messages', 'Options', 'Partage'] as const;
+  const STEP_TITLES = [
+    'Type de programme',
+    'Identité visuelle',
+    'Programme fidélité',
+    'Apparence',
+    'Messages client',
+    'Options',
+    'Scanner & Partage',
+  ] as const;
 
   let carteId: string | null = null;
   let logoUrl = '', stripUrl = '', tamponIconUrl = '', tamponEmoji = '';
@@ -817,6 +905,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   let multiRewardsEnabled = false;
   let brandingEnabled = true;
   let isProPlan = false;
+  let previewMobileOpen = false;
+  let stepSheetOpen = false;
   const completedSteps = new Set<WizardStep>();
   type RewardTier = { seuil: number; recompense: string };
   type VipTier = { nom: string; seuil: number; avantage?: string };
@@ -825,6 +915,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     if (!force && (suppressDirtyTracking || isSaving)) return;
     isDirty = dirty;
     const state = document.getElementById('draft-state');
+    const mobileDraft = document.getElementById('mobile-save-draft-btn') as HTMLButtonElement | null;
+    if (mobileDraft) {
+      mobileDraft.textContent = dirty ? 'Brouillon a sauver' : 'Brouillon OK';
+    }
     if (!state) return;
     if (dirty) {
       state.textContent = 'Brouillon non enregistré';
@@ -929,18 +1023,44 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   function updateWizardActions() {
-    const prevBtn = document.getElementById('prev-step-btn') as HTMLButtonElement;
-    const saveDraftBtn = document.getElementById('save-draft-btn') as HTMLButtonElement;
-    const saveContinueBtn = document.getElementById('save-continue-btn') as HTMLButtonElement;
+    const prevButtons = [
+      document.getElementById('prev-step-btn'),
+      document.getElementById('mobile-prev-step-btn'),
+    ].filter(Boolean) as HTMLButtonElement[];
+    const saveDraftButtons = [
+      document.getElementById('save-draft-btn'),
+      document.getElementById('mobile-save-draft-btn'),
+    ].filter(Boolean) as HTMLButtonElement[];
+    const saveContinueButtons = [
+      document.getElementById('save-continue-btn'),
+      document.getElementById('mobile-save-continue-btn'),
+    ].filter(Boolean) as HTMLButtonElement[];
     const currentLabel = document.getElementById('wizard-current-label');
     if (currentLabel) currentLabel.textContent = `Étape ${currentStep} · ${STEP_LABELS[currentStep - 1]}`;
+    const mobileCounter = document.getElementById('wizard-mobile-counter');
+    if (mobileCounter) mobileCounter.textContent = `Étape ${currentStep}/${TOTAL_STEPS}`;
+    const mobileTitle = document.getElementById('wizard-mobile-title');
+    if (mobileTitle) mobileTitle.textContent = STEP_TITLES[currentStep - 1];
+    const mobileProgress = document.getElementById('wizard-mobile-progress') as HTMLDivElement | null;
+    if (mobileProgress) mobileProgress.style.width = `${(currentStep / TOTAL_STEPS) * 100}%`;
 
-    prevBtn.classList.toggle('invisible', currentStep === 1);
-    saveDraftBtn.disabled = isSaving;
-    saveContinueBtn.disabled = isSaving;
+    prevButtons.forEach((button) => {
+      button.disabled = isSaving || currentStep === 1;
+      button.classList.toggle('opacity-50', button.disabled);
+      button.classList.toggle('cursor-not-allowed', button.disabled);
+    });
+    saveDraftButtons.forEach((button) => {
+      button.disabled = isSaving;
+      button.classList.toggle('opacity-50', button.disabled);
+      button.classList.toggle('cursor-not-allowed', button.disabled);
+    });
+    saveContinueButtons.forEach((button) => {
+      button.disabled = isSaving;
+      button.classList.toggle('opacity-50', button.disabled);
+      button.classList.toggle('cursor-not-allowed', button.disabled);
+    });
 
-    document.querySelectorAll('.wizard-tab').forEach((tab) => {
-      const element = tab as HTMLElement;
+    document.querySelectorAll<HTMLElement>('[data-step-target]').forEach((element) => {
       const step = Number(element.dataset.stepTarget) as WizardStep;
       const state = step === currentStep
         ? 'active'
@@ -949,6 +1069,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           : 'todo';
       element.dataset.state = state;
       element.toggleAttribute('disabled', step > maxUnlockedStep && step !== currentStep);
+      if (element.classList.contains('mobile-step-item')) {
+        element.classList.toggle('border-sky-300', state === 'active');
+        element.classList.toggle('bg-sky-50', state === 'active');
+        element.classList.toggle('border-emerald-200', state === 'done');
+        element.classList.toggle('bg-emerald-50', state === 'done');
+      }
       const status = element.querySelector('.wizard-step-status') as HTMLElement | null;
       if (status) {
         status.dataset.state = state;
@@ -974,9 +1100,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const lockMsg = document.getElementById('step7-lock-msg');
     if (lockMsg) lockMsg.classList.toggle('hidden', !!carteId);
 
+    if (stepSheetOpen) closeMobileStepSheet();
     updateWizardActions();
     renderReviewSummary();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const topAnchor = document.getElementById('wizard-top-anchor');
+    if (topAnchor) {
+      const mobileOffset = window.innerWidth < 1024 ? 94 : 24;
+      const y = topAnchor.getBoundingClientRect().top + window.scrollY - mobileOffset;
+      window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+    }
   }
 
   if (setupMode) {
@@ -1143,14 +1275,103 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     btn.textContent = shouldOpen ? 'Masquer les modèles supplémentaires' : 'Voir plus de modèles';
   });
 
+  function setPageScrollLock(locked: boolean) {
+    document.body.style.overflow = locked ? 'hidden' : '';
+  }
+
+  function openMobilePreview() {
+    if (window.innerWidth >= 1024) return;
+    if (stepSheetOpen) closeMobileStepSheet();
+    const panel = document.getElementById('preview-panel') as HTMLDivElement | null;
+    const backdrop = document.getElementById('preview-mobile-backdrop') as HTMLDivElement | null;
+    const closeBtn = document.getElementById('preview-close-btn') as HTMLButtonElement | null;
+    const toggleBtn = document.getElementById('preview-toggle-btn') as HTMLButtonElement | null;
+    if (!panel || !backdrop) return;
+
+    previewMobileOpen = true;
+    panel.classList.remove('hidden');
+    panel.classList.add(
+      'fixed',
+      'inset-x-0',
+      'bottom-0',
+      'z-[73]',
+      'max-h-[82vh]',
+      'overflow-y-auto',
+      'rounded-t-[1.8rem]',
+      'rounded-b-none',
+      'border',
+      'border-sky-100',
+      'bg-white',
+      'shadow-[0_-30px_52px_-30px_rgba(15,23,42,0.55)]',
+    );
+    backdrop.classList.remove('hidden');
+    closeBtn?.classList.remove('hidden');
+    if (toggleBtn) toggleBtn.textContent = 'Masquer l’aperçu';
+    setPageScrollLock(true);
+  }
+
+  function closeMobilePreview() {
+    const panel = document.getElementById('preview-panel') as HTMLDivElement | null;
+    const backdrop = document.getElementById('preview-mobile-backdrop') as HTMLDivElement | null;
+    const closeBtn = document.getElementById('preview-close-btn') as HTMLButtonElement | null;
+    const toggleBtn = document.getElementById('preview-toggle-btn') as HTMLButtonElement | null;
+    if (!panel || !backdrop) return;
+
+    previewMobileOpen = false;
+    panel.classList.add('hidden');
+    panel.classList.remove(
+      'fixed',
+      'inset-x-0',
+      'bottom-0',
+      'z-[73]',
+      'max-h-[82vh]',
+      'overflow-y-auto',
+      'rounded-t-[1.8rem]',
+      'rounded-b-none',
+      'border',
+      'border-sky-100',
+      'bg-white',
+      'shadow-[0_-30px_52px_-30px_rgba(15,23,42,0.55)]',
+    );
+    backdrop.classList.add('hidden');
+    closeBtn?.classList.add('hidden');
+    if (toggleBtn) toggleBtn.textContent = 'Voir l’aperçu';
+    if (!stepSheetOpen) setPageScrollLock(false);
+  }
+
+  function openMobileStepSheet() {
+    if (window.innerWidth >= 1024) return;
+    if (previewMobileOpen) closeMobilePreview();
+    const sheet = document.getElementById('mobile-step-sheet') as HTMLDivElement | null;
+    if (!sheet) return;
+    stepSheetOpen = true;
+    sheet.classList.remove('hidden');
+    setPageScrollLock(true);
+  }
+
+  function closeMobileStepSheet() {
+    const sheet = document.getElementById('mobile-step-sheet') as HTMLDivElement | null;
+    if (!sheet) return;
+    stepSheetOpen = false;
+    sheet.classList.add('hidden');
+    if (!previewMobileOpen) setPageScrollLock(false);
+  }
+
   // Preview mobile
   document.getElementById('preview-toggle-btn')!.addEventListener('click', () => {
-    const panel = document.getElementById('preview-panel') as HTMLDivElement;
-    const btn = document.getElementById('preview-toggle-btn') as HTMLButtonElement;
-    const isHidden = panel.classList.contains('hidden');
-    panel.classList.toggle('hidden', !isHidden);
-    btn.textContent = isHidden ? 'Masquer l’aperçu' : 'Voir l’aperçu';
+    if (previewMobileOpen) closeMobilePreview();
+    else openMobilePreview();
   });
+  document.getElementById('mobile-preview-btn')!.addEventListener('click', () => {
+    if (previewMobileOpen) closeMobilePreview();
+    else openMobilePreview();
+  });
+  document.getElementById('preview-close-btn')!.addEventListener('click', closeMobilePreview);
+  document.getElementById('preview-mobile-backdrop')!.addEventListener('click', closeMobilePreview);
+
+  document.getElementById('mobile-step-picker-btn')!.addEventListener('click', openMobileStepSheet);
+  document.getElementById('mobile-step-sheet-close')!.addEventListener('click', closeMobileStepSheet);
+  document.getElementById('mobile-step-sheet-backdrop')!.addEventListener('click', closeMobileStepSheet);
 
   // Géolocalisation toggle
   let geoEnabled = false;
@@ -1941,7 +2162,29 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   });
 
   document.querySelectorAll('#nom-carte,#recompense,#label-client,#tampons-total,#points-recompense,#couleur-fond,#couleur-texte,#couleur-accent,#couleur-fond-2').forEach(el=>el.addEventListener('input',updatePreview));
-  window.addEventListener('resize',()=>requestAnimationFrame(updatePreview));
+  window.addEventListener('resize', () => {
+    requestAnimationFrame(updatePreview);
+    if (window.innerWidth >= 1024) {
+      if (previewMobileOpen) closeMobilePreview();
+      if (stepSheetOpen) closeMobileStepSheet();
+      setPageScrollLock(false);
+      const panel = document.getElementById('preview-panel') as HTMLDivElement | null;
+      if (panel) panel.classList.remove(
+        'fixed',
+        'inset-x-0',
+        'bottom-0',
+        'z-[73]',
+        'max-h-[82vh]',
+        'overflow-y-auto',
+        'rounded-t-[1.8rem]',
+        'rounded-b-none',
+        'border',
+        'border-sky-100',
+        'bg-white',
+        'shadow-[0_-30px_52px_-30px_rgba(15,23,42,0.55)]',
+      );
+    }
+  });
 
   async function loadExistingCarte(){
     try{
@@ -2019,10 +2262,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     });
   });
 
-  document.querySelectorAll('.wizard-tab').forEach((tab) => {
+  document.querySelectorAll('[data-step-target]').forEach((tab) => {
     tab.addEventListener('click', () => {
       const target = Number((tab as HTMLElement).dataset.stepTarget ?? '1');
       if (target > maxUnlockedStep) {
+        if (stepSheetOpen) closeMobileStepSheet();
         showStepError(currentStep, 'Enregistrez cette étape pour débloquer la suivante.');
         return;
       }
@@ -2031,10 +2275,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     });
   });
 
-  document.getElementById('prev-step-btn')!.addEventListener('click', () => {
+  function goToPreviousStep() {
     clearStepError(currentStep);
     showStep(currentStep - 1);
-  });
+  }
+
+  document.getElementById('prev-step-btn')!.addEventListener('click', goToPreviousStep);
+  document.getElementById('mobile-prev-step-btn')!.addEventListener('click', goToPreviousStep);
 
   function buildPayload() {
     const getChecked = (name: string) => (document.querySelector(`input[name="${name}"]:checked`) as HTMLInputElement)?.value ?? '';
@@ -2097,12 +2344,22 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     suc.classList.add('hidden');
     isSaving = true;
     updateWizardActions();
-    const saveDraftBtn = document.getElementById('save-draft-btn') as HTMLButtonElement;
-    const saveContinueBtn = document.getElementById('save-continue-btn') as HTMLButtonElement;
-    const originalDraft = saveDraftBtn.textContent;
-    const originalContinue = saveContinueBtn.textContent;
-    saveDraftBtn.textContent = 'Enregistrement...';
-    saveContinueBtn.textContent = 'Enregistrement...';
+    const saveDraftButtons = [
+      document.getElementById('save-draft-btn'),
+      document.getElementById('mobile-save-draft-btn'),
+    ].filter(Boolean) as HTMLButtonElement[];
+    const saveContinueButtons = [
+      document.getElementById('save-continue-btn'),
+      document.getElementById('mobile-save-continue-btn'),
+    ].filter(Boolean) as HTMLButtonElement[];
+    const originalDraft = saveDraftButtons.map((button) => button.textContent ?? '');
+    const originalContinue = saveContinueButtons.map((button) => button.textContent ?? '');
+    saveDraftButtons.forEach((button) => {
+      button.textContent = 'Enregistrement...';
+    });
+    saveContinueButtons.forEach((button) => {
+      button.textContent = 'Enregistrement...';
+    });
 
     const hadExistingCard = !!carteId;
     try{
@@ -2169,17 +2426,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       err.classList.remove('hidden');
     } finally {
       isSaving = false;
-      saveDraftBtn.textContent = originalDraft;
-      saveContinueBtn.textContent = originalContinue;
+      saveDraftButtons.forEach((button, index) => {
+        button.textContent = originalDraft[index] ?? 'Enregistrer le brouillon';
+      });
+      saveContinueButtons.forEach((button, index) => {
+        button.textContent = originalContinue[index] ?? 'Enregistrer et continuer';
+      });
       updateWizardActions();
     }
   }
 
-  document.getElementById('save-draft-btn')!.addEventListener('click', async () => {
+  async function handleSaveDraft() {
     await persistCard(false);
-  });
+  }
 
-  document.getElementById('save-continue-btn')!.addEventListener('click', async () => {
+  async function handleSaveContinue() {
     const validation = stepValidators[currentStep]();
     if (validation) {
       showStepError(currentStep, validation);
@@ -2187,7 +2448,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
     clearStepError(currentStep);
     await persistCard(true);
-  });
+  }
+
+  document.getElementById('save-draft-btn')!.addEventListener('click', handleSaveDraft);
+  document.getElementById('mobile-save-draft-btn')!.addEventListener('click', handleSaveDraft);
+  document.getElementById('save-continue-btn')!.addEventListener('click', handleSaveContinue);
+  document.getElementById('mobile-save-continue-btn')!.addEventListener('click', handleSaveContinue);
 
   document.getElementById('download-qr-btn')!.addEventListener('click', async () => {
     if (!carteId) return;

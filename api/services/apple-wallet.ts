@@ -270,11 +270,26 @@ export async function generateApplePass(
     passJson.webServiceURL = webServiceURL;
   }
 
+  const showBranding = isProPlan(carte.commerces.plan)
+    ? carte.branding_powered_by_enabled !== false
+    : true;
+
   // Code-barres
   if (barcodeType !== 'NONE') {
     const format = BARCODE_FORMAT_MAP[barcodeType] ?? 'PKBarcodeFormatQR';
-    passJson.barcode = { message: client.id, format, messageEncoding: 'iso-8859-1' };
-    passJson.barcodes = [{ message: client.id, format, messageEncoding: 'iso-8859-1' }];
+    const brandingAltText = showBranding ? 'Powered by Fidelopass' : undefined;
+    passJson.barcode = {
+      message: client.id,
+      format,
+      messageEncoding: 'iso-8859-1',
+      ...(brandingAltText ? { altText: brandingAltText } : {}),
+    };
+    passJson.barcodes = [{
+      message: client.id,
+      format,
+      messageEncoding: 'iso-8859-1',
+      ...(brandingAltText ? { altText: brandingAltText } : {}),
+    }];
   }
 
   // Géolocalisation
@@ -286,10 +301,6 @@ export async function generateApplePass(
       maxDistance: carte.commerces.rayon_geo,
     }];
   }
-
-  const showBranding = isProPlan(carte.commerces.plan)
-    ? carte.branding_powered_by_enabled !== false
-    : true;
 
   // ── Génération de la strip (image bannière avec tampons) ──────────
   const stripBuffer = await generateStripImage({
@@ -306,7 +317,7 @@ export async function generateApplePass(
     patternType: carte.pattern_type,
     tamponEmoji: carte.tampon_emoji,
     stripLayout: carte.strip_layout,
-    showBranding,
+    showBranding: false,
   });
 
   // ── Logo ──────────────────────────────────────────────────────────

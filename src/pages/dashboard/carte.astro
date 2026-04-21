@@ -700,9 +700,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           </div>
           <div class="grid sm:grid-cols-2 gap-2 mt-4 text-left">
             <button id="download-qr-btn" type="button" class="btn-secondary text-sm py-2.5">Télécharger le QR code</button>
-            <a id="poster-link-minimal" href="#" target="_blank" rel="noreferrer" class="btn-secondary text-sm py-2.5 text-center">Affiche A4 minimal</a>
-            <a id="poster-link-premium" href="#" target="_blank" rel="noreferrer" class="btn-secondary text-sm py-2.5 text-center">Affiche A4 premium</a>
-            <a id="poster-link-promo" href="#" target="_blank" rel="noreferrer" class="btn-secondary text-sm py-2.5 text-center">Affiche A4 promo</a>
+            <a id="poster-link-essential" href="#" target="_blank" rel="noreferrer" class="btn-secondary text-sm py-2.5 text-center">Affiche A4 essentiel</a>
+            <a id="poster-link-signature" href="#" target="_blank" rel="noreferrer" class="btn-secondary text-sm py-2.5 text-center">Affiche A4 signature</a>
           </div>
           <p class="text-slate-600 text-xs mt-3">Ouvrez un modèle A4, imprimez-le ou exportez-le en PDF pour l'afficher dans votre commerce.</p>
         </div>
@@ -1016,9 +1015,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   function updateQrTools(id: string) {
-    (document.getElementById('poster-link-minimal') as HTMLAnchorElement).href = posterUrl(id, 'minimal');
-    (document.getElementById('poster-link-premium') as HTMLAnchorElement).href = posterUrl(id, 'premium');
-    (document.getElementById('poster-link-promo') as HTMLAnchorElement).href = posterUrl(id, 'promo');
+    (document.getElementById('poster-link-essential') as HTMLAnchorElement).href = posterUrl(id, 'essential');
+    (document.getElementById('poster-link-signature') as HTMLAnchorElement).href = posterUrl(id, 'signature');
     ensureQr('qr-container', publicCardUrl(id));
   }
 

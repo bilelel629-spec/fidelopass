@@ -2126,7 +2126,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const apple=document.getElementById('apple-preview')!;
     apple.style.background=bg; apple.style.color=texte;
     const ag=document.getElementById('a-pattern-global')!;
-    ag.style.backgroundImage=pat.image; ag.style.backgroundSize=pat.size;
+    // Apple Wallet (storeCard) n'affiche pas le pattern sur toute la carte:
+    // on reflète le rendu réel en preview => pattern uniquement dans la bannière.
+    ag.style.backgroundImage='none'; ag.style.backgroundSize='auto';
     const sc=document.getElementById('preview-strip-color')!; sc.style.background=bg;
     const so=document.getElementById('preview-pattern-overlay')!; so.style.backgroundImage=pat.image; so.style.backgroundSize=pat.size;
 

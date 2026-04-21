@@ -11,6 +11,10 @@ import { sendSMS, personnaliserMessage } from '../../src/lib/brevo-sms';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 
 const PUBLIC_SITE_URL_NOTIF = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
+const BIRTHDAY_TIMEZONE = 'Europe/Paris';
+const BIRTHDAY_SEND_HOUR = 10;
+const DEFAULT_BIRTHDAY_PUSH_TITLE = 'Joyeux anniversaire 🎉';
+const DEFAULT_BIRTHDAY_PUSH_MESSAGE = 'Votre bonus anniversaire est disponible sur votre carte Fidelopass.';
 
 export const notificationsRoutes = new Hono();
 
@@ -21,6 +25,14 @@ type CommerceFlags = {
   review_auto_enabled?: boolean | null;
   sms_review_enabled?: boolean | null;
   sms_credits?: number | null;
+};
+
+type BirthdaySettingsRow = {
+  id: string;
+  birthday_auto_enabled?: boolean | null;
+  birthday_reward_value?: number | null;
+  birthday_push_title?: string | null;
+  birthday_push_message?: string | null;
 };
 
 function getReviewAutoEnabled(flags: CommerceFlags | null): boolean {
@@ -70,6 +82,11 @@ async function persistReviewAutoEnabled(
   }
 
   return { ok: false, message: lastErrorMessage };
+}
+
+function getBirthdayDefaultMessage(carteName?: string | null): string {
+  if (!carteName) return DEFAULT_BIRTHDAY_PUSH_MESSAGE;
+  return `Votre bonus anniversaire est disponible sur ${carteName}.`;
 }
 
 /** GET /api/notifications/review-reminder-settings — Réglage push auto avis Google (+1h) */
@@ -129,6 +146,172 @@ notificationsRoutes.patch('/review-reminder-settings', async (c) => {
   }
 
   return c.json({ ok: true, data: { enabled: parsed.data.enabled, delay_minutes: 60 } });
+});
+
+/** GET /api/notifications/birthday-settings — Réglage auto anniversaire (jour J à 10h) */
+notificationsRoutes.get('/birthday-settings', async (c) => {
+  const userId = c.get('userId') as string;
+  const db = createServiceClient();
+  const requestedPointVenteId = readRequestedPointVenteId(c);
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, plan',
+  );
+
+  if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
+
+  const planLimits = getPlanLimits(commerce.plan);
+  const normalizedPlan = normalizePlan(commerce.plan);
+
+  let carte: Record<string, unknown> | null = null;
+  const birthdaySelect = await db
+    .from('cartes')
+    .select('id, nom, birthday_auto_enabled, birthday_reward_value, birthday_push_title, birthday_push_message')
+    .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
+    .eq('actif', true)
+    .maybeSingle();
+
+  if (birthdaySelect.error && /column|does not exist|schema cache/i.test(birthdaySelect.error.message ?? '')) {
+    const fallback = await db
+      .from('cartes')
+      .select('id, nom')
+      .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id)
+      .eq('actif', true)
+      .maybeSingle();
+    carte = (fallback.data as Record<string, unknown> | null) ?? null;
+  } else {
+    carte = (birthdaySelect.data as Record<string, unknown> | null) ?? null;
+  }
+
+  const row = (carte ?? null) as BirthdaySettingsRow | null;
+  const defaultMessage = getBirthdayDefaultMessage((carte as { nom?: string | null } | null)?.nom ?? null);
+
+  return c.json({
+    data: {
+      enabled: Boolean(row?.birthday_auto_enabled ?? false),
+      reward_value: Number(row?.birthday_reward_value ?? 1),
+      push_title: row?.birthday_push_title ?? DEFAULT_BIRTHDAY_PUSH_TITLE,
+      push_message: row?.birthday_push_message ?? defaultMessage,
+      plan: normalizedPlan,
+      raw_plan: commerce.plan ?? 'starter',
+      is_pro: Boolean(planLimits.anniversaire),
+      schedule: {
+        timezone: BIRTHDAY_TIMEZONE,
+        hour: BIRTHDAY_SEND_HOUR,
+      },
+      has_active_card: Boolean(carte),
+    },
+  });
+});
+
+/** PATCH /api/notifications/birthday-settings — Active/désactive + configure anniversaire */
+notificationsRoutes.patch('/birthday-settings', async (c) => {
+  const userId = c.get('userId') as string;
+  const body = await c.req.json().catch(() => null);
+  const schema = z.object({
+    enabled: z.boolean().optional(),
+    reward_value: z.number().int().min(1).max(50).optional(),
+    push_title: z.string().max(80).nullable().optional(),
+    push_message: z.string().max(180).nullable().optional(),
+  }).refine((data) => Object.keys(data).length > 0, {
+    message: 'Aucune donnée à mettre à jour.',
+  });
+  const parsed = schema.safeParse(body);
+  const requestedPointVenteId = readRequestedPointVenteId(c);
+
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides' }, 400);
+  }
+
+  const db = createServiceClient();
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, plan',
+  );
+
+  if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
+
+  const planLimits = getPlanLimits(commerce.plan);
+  if (!planLimits.anniversaire) {
+    return c.json({ error: 'Cette automatisation est réservée au plan Pro.' }, 403);
+  }
+
+  const cardRead = await db
+    .from('cartes')
+    .select('id, nom, birthday_reward_value')
+    .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
+    .eq('actif', true)
+    .maybeSingle();
+
+  let carte = cardRead.data as ({ id: string; nom?: string | null; birthday_reward_value?: number | null } | null);
+  if (!carte && cardRead.error && /column|does not exist|schema cache/i.test(cardRead.error.message ?? '')) {
+    const fallback = await db
+      .from('cartes')
+      .select('id, nom')
+      .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id)
+      .eq('actif', true)
+      .maybeSingle();
+    carte = fallback.data as ({ id: string; nom?: string | null; birthday_reward_value?: number | null } | null);
+  }
+
+  if (!carte) {
+    return c.json({ error: 'Aucune carte active sur ce point de vente.' }, 404);
+  }
+
+  const nextTitle = parsed.data.push_title === undefined
+    ? undefined
+    : (parsed.data.push_title ?? DEFAULT_BIRTHDAY_PUSH_TITLE);
+  const nextMessage = parsed.data.push_message === undefined
+    ? undefined
+    : (parsed.data.push_message ?? getBirthdayDefaultMessage((carte as { nom?: string | null }).nom ?? null));
+  const nextRewardValue = parsed.data.reward_value ?? (carte as { birthday_reward_value?: number | null }).birthday_reward_value ?? 1;
+
+  const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (parsed.data.enabled !== undefined) payload.birthday_auto_enabled = parsed.data.enabled;
+  if (nextRewardValue !== undefined) payload.birthday_reward_value = nextRewardValue;
+  if (nextTitle !== undefined) payload.birthday_push_title = nextTitle;
+  if (nextMessage !== undefined) payload.birthday_push_message = nextMessage;
+
+  const { data: updated, error: updateError } = await db
+    .from('cartes')
+    .update(payload)
+    .eq('id', carte.id)
+    .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
+    .select('birthday_auto_enabled, birthday_reward_value, birthday_push_title, birthday_push_message')
+    .single();
+
+  if (updateError) {
+    const updateMessage = updateError.message ?? 'Impossible de mettre à jour le réglage anniversaire.';
+    if (/column|does not exist|schema cache/i.test(updateMessage)) {
+      return c.json({
+        error: `Impossible de mettre à jour le réglage anniversaire (${updateMessage}). Vérifiez que la migration Supabase 014 est bien appliquée.`,
+      }, 500);
+    }
+    return c.json({ error: updateMessage }, 500);
+  }
+
+  return c.json({
+    ok: true,
+    data: {
+      enabled: Boolean(updated?.birthday_auto_enabled ?? false),
+      reward_value: Number(updated?.birthday_reward_value ?? 1),
+      push_title: updated?.birthday_push_title ?? DEFAULT_BIRTHDAY_PUSH_TITLE,
+      push_message: updated?.birthday_push_message ?? getBirthdayDefaultMessage((carte as { nom?: string | null }).nom ?? null),
+      schedule: {
+        timezone: BIRTHDAY_TIMEZONE,
+        hour: BIRTHDAY_SEND_HOUR,
+      },
+    },
+  });
 });
 
 /** GET /api/notifications/summary — Résumé des canaux réellement disponibles */

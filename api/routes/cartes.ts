@@ -81,6 +81,11 @@ const carteSchema = z.object({
   review_reward_enabled: z.boolean().default(false),
   review_reward_value: z.number().int().min(1).max(50).default(1),
   google_maps_url: z.string().url().nullable().optional(),
+  // Programmation anniversaire (migration 014)
+  birthday_auto_enabled: z.boolean().default(false),
+  birthday_reward_value: z.number().int().min(1).max(50).default(1),
+  birthday_push_title: z.string().max(80).nullable().optional(),
+  birthday_push_message: z.string().max(180).nullable().optional(),
 });
 
 /** GET /api/cartes — Récupère la carte du commerce connecté */
@@ -223,6 +228,10 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   if (parsed.data.review_reward_enabled !== undefined) programFields.review_reward_enabled = parsed.data.review_reward_enabled;
   if (parsed.data.review_reward_value !== undefined) programFields.review_reward_value = parsed.data.review_reward_value;
   if (parsed.data.google_maps_url !== undefined) programFields.google_maps_url = parsed.data.google_maps_url;
+  if (parsed.data.birthday_auto_enabled !== undefined) programFields.birthday_auto_enabled = parsed.data.birthday_auto_enabled;
+  if (parsed.data.birthday_reward_value !== undefined) programFields.birthday_reward_value = parsed.data.birthday_reward_value;
+  if (parsed.data.birthday_push_title !== undefined) programFields.birthday_push_title = parsed.data.birthday_push_title;
+  if (parsed.data.birthday_push_message !== undefined) programFields.birthday_push_message = parsed.data.birthday_push_message;
 
   // Essai 1 : tout (base + ext + adv + typo + programme)
   let result = await db
@@ -302,6 +311,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
     couleur_fond_2, gradient_angle, pattern_type, tampon_emoji,
     police, police_taille, police_gras, texte_alignement, strip_plein_largeur,
     welcome_message, success_message, rewards_config, rewards_multi_enabled, vip_tiers, strip_layout, branding_powered_by_enabled,
+    birthday_auto_enabled, birthday_reward_value, birthday_push_title, birthday_push_message,
     ...baseData
   } = parsed.data;
 
@@ -343,6 +353,10 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   if (parsed.data.review_reward_enabled !== undefined) programFields.review_reward_enabled = parsed.data.review_reward_enabled;
   if (parsed.data.review_reward_value !== undefined) programFields.review_reward_value = parsed.data.review_reward_value;
   if (parsed.data.google_maps_url !== undefined) programFields.google_maps_url = parsed.data.google_maps_url;
+  if (birthday_auto_enabled !== undefined) programFields.birthday_auto_enabled = birthday_auto_enabled;
+  if (birthday_reward_value !== undefined) programFields.birthday_reward_value = birthday_reward_value;
+  if (birthday_push_title !== undefined) programFields.birthday_push_title = birthday_push_title;
+  if (birthday_push_message !== undefined) programFields.birthday_push_message = birthday_push_message;
 
   const ts = { updated_at: new Date().toISOString() };
 

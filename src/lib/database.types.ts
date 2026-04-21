@@ -61,6 +61,15 @@ export interface Database {
           rewards_config: Json | null;
           vip_tiers: Json | null;
           strip_layout: string | null;
+          review_reward_enabled: boolean | null;
+          review_reward_value: number | null;
+          google_maps_url: string | null;
+          branding_powered_by_enabled: boolean | null;
+          push_icon_bg_color: string | null;
+          birthday_auto_enabled: boolean | null;
+          birthday_reward_value: number | null;
+          birthday_push_title: string | null;
+          birthday_push_message: string | null;
           pass_type_id: string | null;
           qr_code_url: string | null;
           actif: boolean;
@@ -88,6 +97,7 @@ export interface Database {
           nom: string | null;
           telephone: string | null;
           email: string | null;
+          date_naissance: string | null;
           points_actuels: number;
           tampons_actuels: number;
           recompenses_obtenues: number;
@@ -129,6 +139,7 @@ export interface Database {
         Row: {
           id: string;
           commerce_id: string;
+          point_vente_id: string;
           titre: string;
           message: string;
           type: string;
@@ -160,6 +171,23 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database['public']['Tables']['apple_pass_registrations']['Insert']>;
+      };
+      birthday_rewards: {
+        Row: {
+          id: string;
+          client_id: string;
+          carte_id: string;
+          birth_year: number;
+          reward_value: number;
+          sent_at: string;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['birthday_rewards']['Row'], 'id' | 'sent_at' | 'created_at'> & {
+          id?: string;
+          sent_at?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['birthday_rewards']['Insert']>;
       };
     };
   };

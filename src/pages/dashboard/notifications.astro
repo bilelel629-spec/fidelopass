@@ -85,6 +85,56 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <p id="review-auto-status" class="text-slate-500 text-xs mt-2 text-center">Chargement du statut...</p>
     </div>
 
+    <!-- Push auto anniversaire -->
+    <div class="card p-6 border-pink-100 bg-pink-50/40">
+      <div class="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <h2 class="font-display font-bold text-slate-900">Anniversaire automatique (jour J à 10h)</h2>
+          <p class="text-slate-500 text-sm mt-1">Envoie automatiquement un push anniversaire et ajoute un bonus sur la carte du client.</p>
+        </div>
+        <span class="rounded-full border border-amber-200 bg-amber-100 px-2 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-700">Pro uniquement</span>
+      </div>
+      <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-600 text-sm mb-4">
+        Plan actuel: <span id="birthday-plan-value" class="font-semibold text-slate-900">Chargement...</span>
+      </div>
+      <div id="birthday-locked" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-700 text-sm mb-4">
+        Cette fonctionnalite est reservee au plan Pro. Ce n'est pas un bug. Passez au plan Pro pour l'activer.
+        <a href="/pricing" class="font-semibold underline ml-1">Voir les plans</a>
+      </div>
+      <div id="birthday-error" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-3"></div>
+      <div id="birthday-success" class="hidden text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 mb-3"></div>
+      <div class="space-y-3 mb-4">
+        <div>
+          <label class="label" for="birthday-reward-value">Bonus anniversaire (tampon/point)</label>
+          <input id="birthday-reward-value" type="number" min="1" max="50" value="1" class="input" />
+        </div>
+        <div>
+          <label class="label" for="birthday-title">Titre du push</label>
+          <input id="birthday-title" type="text" maxlength="80" class="input" placeholder="Joyeux anniversaire 🎉" />
+        </div>
+        <div>
+          <label class="label" for="birthday-message">Message du push</label>
+          <textarea id="birthday-message" maxlength="180" class="input resize-none h-24" placeholder="Votre bonus anniversaire est disponible sur votre carte Fidelopass."></textarea>
+        </div>
+      </div>
+      <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
+        <div>
+          <p class="text-slate-800 text-sm font-medium">Activer la programmation anniversaire</p>
+          <p class="text-slate-500 text-xs mt-0.5">Execution: Europe/Paris, chaque jour à 10h.</p>
+        </div>
+        <button
+          id="birthday-toggle"
+          type="button"
+          class="relative w-12 h-6 rounded-full transition-colors flex-shrink-0"
+          style="background:#334155"
+          aria-pressed="false"
+        >
+          <span id="birthday-knob" class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" style="left:2px"></span>
+        </button>
+      </div>
+      <p id="birthday-status" class="text-slate-500 text-xs mt-2 text-center">Chargement du statut...</p>
+    </div>
+
   <!-- Historique -->
     <div class="card p-6">
       <h2 class="font-display font-bold text-slate-900 mb-4">Historique</h2>
@@ -316,4 +366,157 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   loadSummary();
   loadHistory();
   loadReviewAutoSettings();
+
+  // Push auto anniversaire
+  const birthdayToggle = document.getElementById('birthday-toggle') as HTMLButtonElement;
+  const birthdayKnob = document.getElementById('birthday-knob') as HTMLSpanElement;
+  const birthdayStatus = document.getElementById('birthday-status') as HTMLParagraphElement;
+  const birthdayPlanValue = document.getElementById('birthday-plan-value') as HTMLSpanElement;
+  const birthdayLocked = document.getElementById('birthday-locked') as HTMLDivElement;
+  const birthdayError = document.getElementById('birthday-error') as HTMLDivElement;
+  const birthdaySuccess = document.getElementById('birthday-success') as HTMLDivElement;
+  const birthdayRewardValue = document.getElementById('birthday-reward-value') as HTMLInputElement;
+  const birthdayTitle = document.getElementById('birthday-title') as HTMLInputElement;
+  const birthdayMessage = document.getElementById('birthday-message') as HTMLTextAreaElement;
+  let birthdayEnabled = false;
+  let birthdayIsPro = false;
+
+  function setBirthdayToggle(enabled: boolean) {
+    birthdayEnabled = enabled;
+    birthdayToggle.style.background = enabled ? '#4f46e5' : '#334155';
+    birthdayKnob.style.left = enabled ? '26px' : '2px';
+    birthdayToggle.setAttribute('aria-pressed', String(enabled));
+    birthdayStatus.textContent = enabled
+      ? 'Automatisation active: envoi anniversaire le jour J à 10h.'
+      : 'Automatisation inactive.';
+  }
+
+  function setBirthdayPlanLabel(planRaw: unknown) {
+    const normalized = normalizePlan(planRaw);
+    if (isProPlan(normalized)) {
+      birthdayPlanValue.textContent = 'Pro';
+      return;
+    }
+    if (normalized.includes('sur-mesure') || normalized.includes('surmesure') || normalized.includes('custom') || normalized.includes('enterprise')) {
+      birthdayPlanValue.textContent = 'Sur mesure';
+      return;
+    }
+    birthdayPlanValue.textContent = 'Starter';
+  }
+
+  function setBirthdayFormDisabled(disabled: boolean) {
+    birthdayToggle.disabled = disabled;
+    birthdayRewardValue.disabled = disabled;
+    birthdayTitle.disabled = disabled;
+    birthdayMessage.disabled = disabled;
+    birthdayToggle.classList.toggle('opacity-40', disabled);
+    birthdayToggle.classList.toggle('cursor-not-allowed', disabled);
+  }
+
+  async function loadBirthdaySettings() {
+    try {
+      const res = await authFetch('/api/notifications/birthday-settings');
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage anniversaire.');
+
+      birthdayIsPro = Boolean(payload?.data?.is_pro) || isProPlan(payload?.data?.plan ?? payload?.data?.raw_plan);
+      setBirthdayPlanLabel(payload?.data?.plan);
+      setBirthdayToggle(Boolean(payload?.data?.enabled));
+      birthdayRewardValue.value = String(payload?.data?.reward_value ?? 1);
+      birthdayTitle.value = String(payload?.data?.push_title ?? '');
+      birthdayMessage.value = String(payload?.data?.push_message ?? '');
+
+      if (!payload?.data?.has_active_card) {
+        setBirthdayFormDisabled(true);
+        birthdayStatus.textContent = 'Aucune carte active sur ce point de vente.';
+        return;
+      }
+
+      if (!birthdayIsPro) {
+        birthdayLocked.classList.remove('hidden');
+        setBirthdayFormDisabled(true);
+        birthdayStatus.textContent = 'Plan Starter: indisponible. Activez le plan Pro pour debloquer cette automatisation.';
+      } else {
+        birthdayLocked.classList.add('hidden');
+        setBirthdayFormDisabled(false);
+        birthdayStatus.textContent = birthdayEnabled
+          ? 'Plan Pro: automatisation active (jour J à 10h, Europe/Paris).'
+          : 'Plan Pro: vous pouvez activer cette automatisation.';
+      }
+    } catch (error) {
+      console.error('[notifications birthday auto]', error);
+      setBirthdayFormDisabled(true);
+      birthdayStatus.textContent = 'Impossible de charger le statut pour le moment.';
+      setBirthdayPlanLabel('starter');
+      birthdayLocked.classList.remove('hidden');
+    }
+  }
+
+  async function persistBirthdaySettings(nextEnabled: boolean) {
+    const rewardValue = Number.parseInt(birthdayRewardValue.value, 10);
+    if (!Number.isFinite(rewardValue) || rewardValue < 1 || rewardValue > 50) {
+      throw new Error('Le bonus anniversaire doit être compris entre 1 et 50.');
+    }
+    const title = birthdayTitle.value.trim();
+    const message = birthdayMessage.value.trim();
+
+    const res = await authFetch('/api/notifications/birthday-settings', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        enabled: nextEnabled,
+        reward_value: rewardValue,
+        push_title: title || null,
+        push_message: message || null,
+      }),
+    });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(payload?.error ?? 'Impossible de mettre à jour le réglage anniversaire.');
+    return payload;
+  }
+
+  birthdayToggle.addEventListener('click', async () => {
+    if (!birthdayIsPro) return;
+
+    birthdayError.classList.add('hidden');
+    birthdaySuccess.classList.add('hidden');
+    setBirthdayFormDisabled(true);
+
+    try {
+      const nextEnabled = !birthdayEnabled;
+      const payload = await persistBirthdaySettings(nextEnabled);
+      setBirthdayToggle(Boolean(payload?.data?.enabled));
+      birthdayRewardValue.value = String(payload?.data?.reward_value ?? birthdayRewardValue.value);
+      birthdayTitle.value = String(payload?.data?.push_title ?? birthdayTitle.value);
+      birthdayMessage.value = String(payload?.data?.push_message ?? birthdayMessage.value);
+      birthdaySuccess.textContent = nextEnabled
+        ? 'Programmation anniversaire activée.'
+        : 'Programmation anniversaire désactivée.';
+      birthdaySuccess.classList.remove('hidden');
+    } catch (err: unknown) {
+      birthdayError.textContent = err instanceof Error ? err.message : 'Erreur réseau. Réessayez.';
+      birthdayError.classList.remove('hidden');
+    } finally {
+      setBirthdayFormDisabled(!birthdayIsPro);
+    }
+  });
+
+  [birthdayRewardValue, birthdayTitle, birthdayMessage].forEach((field) => {
+    field.addEventListener('change', async () => {
+      if (!birthdayIsPro) return;
+      birthdayError.classList.add('hidden');
+      birthdaySuccess.classList.add('hidden');
+
+      try {
+        await persistBirthdaySettings(birthdayEnabled);
+        birthdaySuccess.textContent = 'Réglage anniversaire enregistré.';
+        birthdaySuccess.classList.remove('hidden');
+      } catch (err: unknown) {
+        birthdayError.textContent = err instanceof Error ? err.message : 'Erreur réseau. Réessayez.';
+        birthdayError.classList.remove('hidden');
+      }
+    });
+  });
+
+  setBirthdayPlanLabel('starter');
+  loadBirthdaySettings();
 </script>

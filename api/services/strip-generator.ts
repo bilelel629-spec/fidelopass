@@ -209,68 +209,169 @@ function patternOverlay(type: string, W: number, H: number, accent: string): str
   }
 }
 
-/** Génère un SVG représentant la grille de tampons */
-function buildStampSvg(opts: {
-  width: number;
-  height: number;
-  total: number;
-  current: number;
-  accentHex: string;
-  fondHex: string;
-  fondHex2?: string | null;
-  gradientAngle?: number;
-  patternType?: string | null;
-  emoji?: string | null;
-}): string {
-  const { width: W, height: H, total, current, accentHex, fondHex, fondHex2, patternType, emoji } = opts;
-  const angle = opts.gradientAngle ?? 135;
-  const acc = hexToRgb(accentHex);
-  const fnd = hexToRgb(fondHex);
+type TamponLayout = 'background' | 'top' | 'bottom';
 
-  // Fond : dégradé ou couleur unie
-  const hasDeg = !!fondHex2;
-  const defs = hasDeg ? gradientDef(fondHex, fondHex2!, angle) : '';
+interface StampDot {
+  cx: number;
+  cy: number;
+  filled: boolean;
+}
+
+function normalizeTamponLayout(value: string | null | undefined): TamponLayout {
+  if (value === 'top' || value === 'bottom') return value;
+  return 'background';
+}
+
+function computeStampGrid(total: number, current: number, W: number, H: number, layout: TamponLayout): { dots: StampDot[]; radius: number } {
+  const displayTotal = Math.max(1, Math.min(total, 12));
+  const cols = stampCols(displayTotal);
+  const rows = Math.ceil(displayTotal / cols);
+  const radius = Math.min(26, Math.floor((W * 0.65) / (cols * 2.8)));
+  const spacingX = radius * 2.8;
+  const spacingY = radius * 2.8;
+  const totalW = cols * spacingX - spacingX + radius * 2;
+  const totalH = rows * spacingY - spacingY + radius * 2;
+  const startX = (W - totalW) / 2 + radius;
+  const startY = layout === 'top'
+    ? H - totalH - 18 + radius
+    : layout === 'bottom'
+      ? 18 + radius
+      : (H - totalH) / 2 + radius;
+
+  const normalizedCurrent = Math.max(0, Math.min(current, displayTotal));
+  const dots: StampDot[] = Array.from({ length: displayTotal }, (_, i) => ({
+    cx: startX + (i % cols) * spacingX,
+    cy: startY + Math.floor(i / cols) * spacingY,
+    filled: i < normalizedCurrent,
+  }));
+  return { dots, radius };
+}
+
+async function buildBaseStripBackground(opts: StripOptions, W: number, H: number): Promise<Buffer> {
+  const fnd = hexToRgb(opts.couleurFond);
+  const hasDeg = !!opts.couleurFond2;
+  const defs = hasDeg ? gradientDef(opts.couleurFond, opts.couleurFond2!, opts.gradientAngle ?? 135) : '';
   const bgFill = hasDeg ? 'url(#bg)' : `rgb(${fnd.r},${fnd.g},${fnd.b})`;
-
-  // Disposition équilibrée
-  const cols = stampCols(Math.min(total, 12));
-  const rows = Math.ceil(Math.min(total, 12) / cols);
-  const r = Math.min(26, Math.floor((W * 0.7) / (cols * 2.8)));
-  const spacingX = r * 2.8;
-  const spacingY = r * 2.8;
-  const totalW = cols * spacingX - spacingX + r * 2;
-  const totalH = rows * spacingY - spacingY + r * 2;
-  const startX = (W - totalW) / 2 + r;
-  const startY = (H - totalH) / 2 + r;
-
-  const display = Math.min(total, 12);
-  const circles = Array.from({ length: display }, (_, i) => {
-    const col = i % cols;
-    const row = Math.floor(i / cols);
-    const cx = startX + col * spacingX;
-    const cy = startY + row * spacingY;
-    const filled = i < current;
-
-    if (filled) {
-      const inner = emoji
-        ? `<text x="${cx}" y="${cy + r * 0.38}" text-anchor="middle" font-size="${r * 1.1}" dominant-baseline="middle">${emoji}</text>`
-        : `<polyline points="${cx - r*0.45},${cy} ${cx - r*0.1},${cy + r*0.38} ${cx + r*0.48},${cy - r*0.32}"
-            stroke="white" stroke-width="${r * 0.2}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
-      return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="rgb(${acc.r},${acc.g},${acc.b})"/>
-        ${inner}`;
-    }
-    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none"
-      stroke="rgba(${acc.r},${acc.g},${acc.b},0.45)" stroke-width="${r * 0.15}"/>`;
-  }).join('');
-
-  const pat = patternOverlay(patternType ?? 'none', W, H, accentHex);
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
     ${defs}
     <rect width="${W}" height="${H}" fill="${bgFill}"/>
-    ${pat}
-    ${circles}
   </svg>`;
+  return sharp(Buffer.from(svg)).png().toBuffer();
+}
+
+async function applyPatternOverlay(base: Buffer, patternType: string | null | undefined, accentColor: string, W: number, H: number): Promise<Buffer> {
+  if (!patternType || patternType === 'none') return base;
+  const overlaySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
+    ${patternOverlay(patternType, W, H, accentColor)}
+  </svg>`;
+  return sharp(base)
+    .composite([{ input: Buffer.from(overlaySvg), blend: 'over' }])
+    .png()
+    .toBuffer();
+}
+
+async function prepareCircularTamponIcon(iconUrl: string | null | undefined, diameter: number): Promise<Buffer | null> {
+  if (!iconUrl) return null;
+  const source = await fetchBuffer(iconUrl);
+  if (!source) return null;
+
+  try {
+    const size = Math.max(18, Math.round(diameter));
+    const inner = Math.max(12, Math.round(size * 0.74));
+    const trimmed = await sharp(source).trim().png().toBuffer();
+    const contained = await sharp(trimmed)
+      .resize(inner, inner, {
+        fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .png()
+      .toBuffer();
+    const canvas = await sharp({
+      create: {
+        width: size,
+        height: size,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
+    })
+      .composite([{ input: contained, gravity: 'centre' }])
+      .png()
+      .toBuffer();
+
+    const mask = Buffer.from(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+        <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="white"/>
+      </svg>
+    `);
+    return sharp(canvas).composite([{ input: mask, blend: 'dest-in' }]).png().toBuffer();
+  } catch {
+    return null;
+  }
+}
+
+function buildTamponCirclesSvg(W: number, H: number, accentHex: string, dots: StampDot[], radius: number, emoji: string | null | undefined, hasCustomIcon: boolean, useLightStyle: boolean): string {
+  const acc = hexToRgb(accentHex);
+  const ringStroke = useLightStyle
+    ? 'rgba(255,255,255,0.62)'
+    : `rgba(${acc.r},${acc.g},${acc.b},0.45)`;
+  const ringFill = hasCustomIcon
+    ? 'rgba(255,255,255,0.12)'
+    : (useLightStyle ? 'rgba(255,255,255,0.2)' : 'none');
+
+  const circles = dots.map((dot) => {
+    const cx = Math.round(dot.cx * 100) / 100;
+    const cy = Math.round(dot.cy * 100) / 100;
+
+    if (dot.filled) {
+      const inner = hasCustomIcon
+        ? ''
+        : (emoji
+          ? `<text x="${cx}" y="${cy + radius * 0.38}" text-anchor="middle" font-size="${radius * 1.1}" dominant-baseline="middle">${emoji}</text>`
+          : `<polyline points="${cx - radius * 0.45},${cy} ${cx - radius * 0.1},${cy + radius * 0.38} ${cx + radius * 0.48},${cy - radius * 0.32}"
+              stroke="white" stroke-width="${radius * 0.18}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`);
+      return `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="rgba(${acc.r},${acc.g},${acc.b},0.94)"/>${inner}`;
+    }
+
+    return `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="${ringFill}"
+      stroke="${ringStroke}" stroke-width="${radius * 0.12}"/>`;
+  }).join('');
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${circles}</svg>`;
+}
+
+async function composeTamponGrid(base: Buffer, opts: StripOptions, W: number, H: number, layout: TamponLayout, useLightStyle: boolean): Promise<Buffer> {
+  const { dots, radius } = computeStampGrid(opts.tamponsTotal, opts.tamponsActuels, W, H, layout);
+  const iconSize = Math.max(18, Math.round(radius * 1.42));
+  const iconBuffer = await prepareCircularTamponIcon(opts.tamponIconUrl, iconSize);
+
+  const overlaySvg = buildTamponCirclesSvg(
+    W,
+    H,
+    opts.couleurAccent,
+    dots,
+    radius,
+    opts.tamponEmoji,
+    !!iconBuffer,
+    useLightStyle,
+  );
+
+  const composites: sharp.OverlayOptions[] = [
+    { input: Buffer.from(overlaySvg), blend: 'over' },
+  ];
+
+  if (iconBuffer) {
+    for (const dot of dots) {
+      composites.push({
+        input: iconBuffer,
+        left: Math.round(dot.cx - iconSize / 2),
+        top: Math.round(dot.cy - iconSize / 2),
+        blend: 'over',
+        opacity: dot.filled ? 1 : 0.34,
+      });
+    }
+  }
+
+  return sharp(base).composite(composites).png().toBuffer();
 }
 
 export async function generateStripImage(opts: StripOptions): Promise<Buffer> {
@@ -305,77 +406,38 @@ export async function generateStripImage(opts: StripOptions): Promise<Buffer> {
   }
 
   // Type tampons
-  if (opts.stripImageUrl) {
-    const bgBuf = await fetchBuffer(opts.stripImageUrl);
-    if (bgBuf) {
-      try {
-        let bg: Buffer;
-        const layout = opts.stripLayout ?? 'background';
+  try {
+    const layout = normalizeTamponLayout(opts.stripLayout);
+    let base = await buildBaseStripBackground(opts, W, H);
+
+    if (opts.stripImageUrl) {
+      const bgBuf = await fetchBuffer(opts.stripImageUrl);
+      if (bgBuf) {
         if (layout === 'top' || layout === 'bottom') {
           const bannerH = Math.round(H * 0.42);
           const banner = await cropImageToFocus(bgBuf, W, bannerH, focus);
-          const baseSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
-            <rect width="${W}" height="${H}" fill="${opts.couleurFond}"/>
-            ${patternOverlay(opts.patternType ?? 'none', W, H, opts.couleurAccent)}
-          </svg>`;
-          bg = await sharp(Buffer.from(baseSvg))
+          base = await sharp(base)
             .composite([{ input: banner, left: 0, top: layout === 'top' ? 0 : H - bannerH }])
             .png()
             .toBuffer();
         } else {
-          bg = await cropImageToFocus(bgBuf, W, H, focus);
+          base = await cropImageToFocus(bgBuf, W, H, focus);
         }
-        const acc = hexToRgb(opts.couleurAccent);
-        const cols = stampCols(opts.tamponsTotal);
-        const rows = Math.ceil(opts.tamponsTotal / cols);
-        const r = Math.min(26, Math.floor((W * 0.65) / (cols * 2.8)));
-        const spacingX = r * 2.8;
-        const spacingY = r * 2.8;
-        const totalW = cols * spacingX - spacingX + r * 2;
-        const totalH = rows * spacingY - spacingY + r * 2;
-        const startX = (W - totalW) / 2 + r;
-        const stampLayout = opts.stripLayout ?? 'background';
-        const startY = stampLayout === 'top'
-          ? H - totalH - 18 + r
-          : stampLayout === 'bottom'
-            ? 18 + r
-            : (H - totalH) / 2 + r;
-
-        const circles = Array.from({ length: opts.tamponsTotal }, (_, i) => {
-          const cx = startX + (i % cols) * spacingX;
-          const cy = startY + Math.floor(i / cols) * spacingY;
-          const filled = i < opts.tamponsActuels;
-          if (filled) {
-            const inner = opts.tamponEmoji
-              ? `<text x="${cx}" y="${cy + r*0.38}" text-anchor="middle" font-size="${r*1.1}" dominant-baseline="middle">${opts.tamponEmoji}</text>`
-              : `<polyline points="${cx - r*0.45},${cy} ${cx - r*0.1},${cy + r*0.38} ${cx + r*0.48},${cy - r*0.32}"
-                  stroke="white" stroke-width="${r*0.18}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
-            return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="rgba(${acc.r},${acc.g},${acc.b},0.9)"/>${inner}`;
-          }
-          return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="rgba(255,255,255,0.25)"
-            stroke="rgba(255,255,255,0.6)" stroke-width="${r*0.12}"/>`;
-        }).join('');
-
-        const overlaySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${circles}</svg>`;
-        const overlayBuf = await sharp(Buffer.from(overlaySvg)).png().toBuffer();
-        const composed = await sharp(bg).composite([{ input: overlayBuf, blend: 'over' }]).png().toBuffer();
-        return withBranding ? applyBrandingWatermark(composed, W, H) : composed;
-      } catch { /* fallback ci-dessous */ }
+      }
     }
-  }
 
-  // Pas d'image custom : SVG pur avec dégradé + pattern + tampons
-  const svg = buildStampSvg({
-    width: W, height: H,
-    total: Math.min(opts.tamponsTotal, 12),
-    current: opts.tamponsActuels,
-    accentHex: opts.couleurAccent,
-    fondHex: opts.couleurFond,
-    fondHex2: opts.couleurFond2,
-    gradientAngle: opts.gradientAngle ?? 135,
-    patternType: opts.patternType,
-    emoji: opts.tamponEmoji,
-  });
-  const fallback = await sharp(Buffer.from(svg)).png().toBuffer();
-  return withBranding ? applyBrandingWatermark(fallback, W, H) : fallback;
+    base = await applyPatternOverlay(base, opts.patternType, opts.couleurAccent, W, H);
+    const composed = await composeTamponGrid(base, opts, W, H, layout, !!opts.stripImageUrl);
+    return withBranding ? applyBrandingWatermark(composed, W, H) : composed;
+  } catch {
+    const fallbackBase = await applyPatternOverlay(
+      await buildBaseStripBackground(opts, W, H),
+      opts.patternType,
+      opts.couleurAccent,
+      W,
+      H,
+    );
+    const fallback = await composeTamponGrid(fallbackBase, opts, W, H, 'background', false);
+    return withBranding ? applyBrandingWatermark(fallback, W, H) : fallback;
+  }
 }

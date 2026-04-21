@@ -60,7 +60,7 @@ export async function sendSMS(
   }
 
   if ((commerce.sms_credits ?? 0) < 1) {
-    return { success: false, error: 'Crédits SMS insuffisants. Rechargez votre solde sur /dashboard/sms.' };
+    return { success: false, error: "Crédits SMS insuffisants. Les campagnes SMS sont temporairement en pause." };
   }
 
   const recipient = normalizePhoneFR(telephone);

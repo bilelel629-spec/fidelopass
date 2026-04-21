@@ -28,10 +28,7 @@ type PriceSlot =
   | 'pro_annuel_once'
   | 'pro_annuel_mensuel'
   | 'accompagnement'
-  | 'scanner'
-  | 'sms_100'
-  | 'sms_500'
-  | 'sms_2000';
+  | 'scanner';
 
 const PRICE_SLOTS: PriceSlot[] = [
   'starter_mensuel',
@@ -42,9 +39,6 @@ const PRICE_SLOTS: PriceSlot[] = [
   'pro_annuel_mensuel',
   'accompagnement',
   'scanner',
-  'sms_100',
-  'sms_500',
-  'sms_2000',
 ];
 
 const LEGACY_PRICE_IDS: Record<PriceSlot, string[]> = {
@@ -56,9 +50,6 @@ const LEGACY_PRICE_IDS: Record<PriceSlot, string[]> = {
   pro_annuel_mensuel: ['price_1TLWc07qMJeoJ4KrvqLZfE0u', 'price_1TMlVw60FYcAjVxlVWNs7aJd'],
   accompagnement: ['price_1TLUSQ7qMJeoJ4KrYRnAjiPT', 'price_1TMlVu60FYcAjVxl8HONXsoV'],
   scanner: ['price_1TLUSR7qMJeoJ4KraAIhkZNc', 'price_1TMlVy60FYcAjVxl06t2Sgq1'],
-  sms_100: ['price_1TLUSS7qMJeoJ4KrmbPWFh9V', 'price_1TMlVy60FYcAjVxln9HC0DaE'],
-  sms_500: ['price_1TLUSS7qMJeoJ4KrR2wppPSv', 'price_1TMlVy60FYcAjVxlRDOgzQWc'],
-  sms_2000: ['price_1TLUSS7qMJeoJ4Krtl3iQKiF', 'price_1TMlVy60FYcAjVxlD5phFUTz'],
 };
 
 function loadPriceIds() {
@@ -75,9 +66,6 @@ function loadPriceIds() {
       pro_annuel_mensuel: 'price_1TMlVw60FYcAjVxlVWNs7aJd',
       accompagnement: 'price_1TMlVu60FYcAjVxl8HONXsoV',
       scanner: 'price_1TMlVy60FYcAjVxl06t2Sgq1',
-      sms_100: 'price_1TMlVy60FYcAjVxln9HC0DaE',
-      sms_500: 'price_1TMlVy60FYcAjVxlRDOgzQWc',
-      sms_2000: 'price_1TMlVy60FYcAjVxlD5phFUTz',
     } satisfies Record<string, string>;
   }
 }
@@ -229,10 +217,10 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
   const successUrl = isPlanCheckout
     ? `${PUBLIC_SITE_URL}/onboarding?paid=1`
-    : `${PUBLIC_SITE_URL}/dashboard/sms?checkout=success`;
+    : `${PUBLIC_SITE_URL}/dashboard/parametres?tab=plans&checkout=success`;
   const cancelUrl = isPlanCheckout
     ? `${PUBLIC_SITE_URL}/abonnement/choix?cancelled=1`
-    : `${PUBLIC_SITE_URL}/dashboard/sms?checkout=cancelled`;
+    : `${PUBLIC_SITE_URL}/dashboard/parametres?tab=plans&checkout=cancelled`;
 
   const lineItems = [{ price: resolvedBasePriceId, quantity: 1 }];
   if (resolvedAccompagnementPriceId) {

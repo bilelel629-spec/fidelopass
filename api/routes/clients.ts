@@ -8,6 +8,7 @@ import { pushApplePassUpdate } from '../services/apple-wallet';
 import { updateGooglePassObject } from '../services/google-wallet';
 import { scheduleSMS, personnaliserMessage } from '../../src/lib/brevo-sms';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
+import { getEffectivePlanRaw } from '../utils/effective-plan';
 
 const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
 
@@ -164,7 +165,7 @@ clientsRoutes.post('/', async (c) => {
     .single();
 
   if (commerce) {
-    const limits = getPlanLimits(commerce.plan);
+    const limits = getPlanLimits(getEffectivePlanRaw(commerce));
     const { count: activeCount } = await db
       .from('clients')
       .select('id', { count: 'exact', head: true })

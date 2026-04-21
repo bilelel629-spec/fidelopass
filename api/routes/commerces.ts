@@ -4,6 +4,7 @@ import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { geocodeAddress } from '../services/geocoding';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
+import { getEffectivePlanRaw } from '../utils/effective-plan';
 
 export const commercesRoutes = new Hono();
 
@@ -253,11 +254,14 @@ commercesRoutes.get('/points-vente', async (c) => {
 
   if (!commerce) return c.json({ data: [], selected_point_vente_id: null });
 
-  const limits = getPlanLimits(commerce.plan);
+  const effectivePlan = getEffectivePlanRaw(commerce);
+  const limits = getPlanLimits(effectivePlan);
   return c.json({
     data: pointsVente,
     selected_point_vente_id: pointVente?.id ?? null,
-    plan: commerce.plan ?? 'starter',
+    plan: effectivePlan,
+    raw_plan: commerce.plan ?? 'starter',
+    plan_override: commerce.plan_override ?? null,
     limits,
     usage: {
       current: pointsVente.length,
@@ -286,10 +290,11 @@ commercesRoutes.post('/points-vente', async (c) => {
 
   if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
 
-  const limits = getPlanLimits(commerce.plan);
+  const effectivePlan = getEffectivePlanRaw(commerce);
+  const limits = getPlanLimits(effectivePlan);
   if (pointsVente.length >= limits.maxPointsDeVente) {
     return c.json({
-      error: `Limite atteinte: votre plan ${commerce.plan ?? 'starter'} autorise ${limits.maxPointsDeVente} point(s) de vente.`,
+      error: `Limite atteinte: votre plan ${effectivePlan} autorise ${limits.maxPointsDeVente} point(s) de vente.`,
       code: 'POINTS_VENTE_LIMIT_REACHED',
       data: { max: limits.maxPointsDeVente, current: pointsVente.length },
     }, 403);

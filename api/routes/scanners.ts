@@ -5,6 +5,7 @@ import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
 import { getPlanLimits } from './commerces';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
+import { getEffectivePlanRaw } from '../utils/effective-plan';
 
 export const scannersRoutes = new Hono();
 
@@ -45,7 +46,8 @@ scannersRoutes.get('/status', async (c) => {
   const { db, commerce, pointVente } = await loadCommerceForUser(userId, requestedPointVenteId);
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
-  const limits = getPlanLimits(commerce.plan);
+  const effectivePlan = getEffectivePlanRaw(commerce);
+  const limits = getPlanLimits(effectivePlan);
   const maxScanners = limits.maxScanners ?? 3;
   const tokens = await loadOrderedScannerTokens(db, commerce.id, pointVente.id);
   const activeTokens = tokens.slice(0, maxScanners);
@@ -66,7 +68,9 @@ scannersRoutes.get('/status', async (c) => {
 
   return c.json({
     data: {
-      plan: commerce.plan ?? 'starter',
+      plan: effectivePlan,
+      raw_plan: commerce.plan ?? 'starter',
+      plan_override: commerce.plan_override ?? null,
       max_scanners: maxScanners,
       current_scanners: currentCount,
       total_scanners: tokens.length,
@@ -92,7 +96,7 @@ scannersRoutes.post('/register', async (c) => {
   const { db, commerce, pointVente } = await loadCommerceForUser(userId, requestedPointVenteId);
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
-  const limits = getPlanLimits(commerce.plan);
+  const limits = getPlanLimits(getEffectivePlanRaw(commerce));
   const maxScanners = limits.maxScanners ?? 3;
   const tokens = await loadOrderedScannerTokens(db, commerce.id, pointVente.id);
   const activeTokens = tokens.slice(0, maxScanners);

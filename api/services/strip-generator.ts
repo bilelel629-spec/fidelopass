@@ -21,6 +21,7 @@ interface StripOptions {
   patternType?: string | null;
   tamponEmoji?: string | null;
   stripLayout?: string | null;
+  bannerOverlayOpacity?: number | null;
   showBranding?: boolean;
 }
 
@@ -331,6 +332,22 @@ async function applyPatternOverlay(base: Buffer, patternType: string | null | un
     .toBuffer();
 }
 
+function normalizeOverlayOpacity(value: number | null | undefined): number {
+  const numeric = Number(value ?? 0);
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.max(0, Math.min(0.85, numeric / 100));
+}
+
+async function applyDarkOverlay(buffer: Buffer, W: number, H: number, overlayOpacity: number): Promise<Buffer> {
+  if (overlayOpacity <= 0) return buffer;
+  const overlay = Buffer.from(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
+      <rect x="0" y="0" width="${W}" height="${H}" fill="rgba(2,6,23,${overlayOpacity})"/>
+    </svg>
+  `);
+  return sharp(buffer).composite([{ input: overlay, blend: 'over' }]).png().toBuffer();
+}
+
 export async function generatePassBackgroundImage(opts: PassBackgroundOptions): Promise<Buffer> {
   const W = opts.width ?? 360;
   const H = opts.height ?? 440;
@@ -483,13 +500,15 @@ export async function generateStripImage(opts: StripOptions): Promise<Buffer> {
   const H = 246;
   const focus = parseStripFocus(opts.stripPosition);
   const withBranding = opts.showBranding !== false;
+  const overlayOpacity = normalizeOverlayOpacity(opts.bannerOverlayOpacity);
 
   if (opts.type === 'points') {
     if (opts.stripImageUrl) {
       const buf = await fetchBuffer(opts.stripImageUrl);
       if (buf) {
         const cropped = await cropImageToFocus(buf, W, H, focus);
-        return withBranding ? applyBrandingWatermark(cropped, W, H) : cropped;
+        const darkened = await applyDarkOverlay(cropped, W, H, overlayOpacity);
+        return withBranding ? applyBrandingWatermark(darkened, W, H) : darkened;
       }
     }
     const fnd = hexToRgb(opts.couleurFond);
@@ -520,12 +539,14 @@ export async function generateStripImage(opts: StripOptions): Promise<Buffer> {
         if (layout === 'top' || layout === 'bottom') {
           const bannerH = Math.round(H * 0.42);
           const banner = await cropImageToFocus(bgBuf, W, bannerH, focus);
+          const darkBanner = await applyDarkOverlay(banner, W, bannerH, overlayOpacity);
           base = await sharp(base)
-            .composite([{ input: banner, left: 0, top: layout === 'top' ? 0 : H - bannerH }])
+            .composite([{ input: darkBanner, left: 0, top: layout === 'top' ? 0 : H - bannerH }])
             .png()
             .toBuffer();
         } else {
-          base = await cropImageToFocus(bgBuf, W, H, focus);
+          const cropped = await cropImageToFocus(bgBuf, W, H, focus);
+          base = await applyDarkOverlay(cropped, W, H, overlayOpacity);
         }
       }
     }

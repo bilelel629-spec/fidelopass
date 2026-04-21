@@ -119,6 +119,23 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
       <p id="birthday-status" class="mt-2 text-center text-xs text-slate-500">Chargement du statut...</p>
     </div>
+
+    <div class="card border-sky-100 bg-white p-6">
+      <div class="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h2 class="font-display font-bold text-slate-900">Fond du logo des notifications</h2>
+          <p class="mt-1 text-sm text-slate-500">Couleur affichée derrière le logo commerçant dans les notifications Wallet.</p>
+        </div>
+        <div id="push-icon-preview" class="h-11 w-11 rounded-xl border border-slate-200 shadow-inner"></div>
+      </div>
+      <div id="push-icon-error" class="mb-3 hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+      <div id="push-icon-success" class="mb-3 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
+      <div class="space-y-2">
+        <label class="label" for="push-icon-bg-color">Couleur du fond</label>
+        <input id="push-icon-bg-color" type="color" value="#6366f1" class="h-11 w-full cursor-pointer rounded-xl border border-slate-200 bg-white" />
+        <p id="push-icon-status" class="text-xs text-slate-500">Chargement du réglage...</p>
+      </div>
+    </div>
   </section>
 
   <section id="tab-history" class="notif-panel hidden card p-6">
@@ -194,6 +211,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const birthdayRewardValue = document.getElementById('birthday-reward-value') as HTMLInputElement;
   const birthdayTitle = document.getElementById('birthday-title') as HTMLInputElement;
   const birthdayMessage = document.getElementById('birthday-message') as HTMLTextAreaElement;
+  const pushIconColorInput = document.getElementById('push-icon-bg-color') as HTMLInputElement;
+  const pushIconPreview = document.getElementById('push-icon-preview') as HTMLDivElement;
+  const pushIconStatus = document.getElementById('push-icon-status') as HTMLParagraphElement;
+  const pushIconError = document.getElementById('push-icon-error') as HTMLDivElement;
+  const pushIconSuccess = document.getElementById('push-icon-success') as HTMLDivElement;
+  let cachedPlan: string = 'starter';
 
   function setReviewPlanLabel(planRaw: unknown) {
     const normalized = normalizePlan(planRaw);
@@ -236,6 +259,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     birthdayMessage.disabled = disabled;
     birthdayToggle.classList.toggle('opacity-40', disabled);
     birthdayToggle.classList.toggle('cursor-not-allowed', disabled);
+  }
+
+  function updatePushIconPreview(color: string) {
+    pushIconPreview.style.background = color;
+  }
+
+  async function loadPlanFallback() {
+    try {
+      const res = await authFetch('/api/dashboard/plan');
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) return;
+      cachedPlan = String(payload?.data?.plan ?? payload?.data?.raw_plan ?? 'starter');
+    } catch {
+      cachedPlan = 'starter';
+    }
   }
 
   async function loadSummary() {
@@ -401,12 +439,44 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         setBirthdayFormDisabled(false);
       }
     } catch {
-      setBirthdayPlanLabel('starter');
+      setBirthdayPlanLabel(cachedPlan);
       setBirthdayToggle(false);
       birthdayLocked.classList.remove('hidden');
       setBirthdayFormDisabled(true);
       birthdayStatus.textContent = 'Impossible de charger le statut pour le moment.';
     }
+  }
+
+  async function loadPushIconSettings() {
+    pushIconError.classList.add('hidden');
+    pushIconSuccess.classList.add('hidden');
+    try {
+      const res = await authFetch('/api/notifications/push-icon-settings');
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage.');
+      const color = String(payload?.data?.push_icon_bg_color ?? '#6366f1');
+      pushIconColorInput.value = color;
+      updatePushIconPreview(color);
+      pushIconStatus.textContent = payload?.data?.has_active_card
+        ? 'Réglage actif pour la carte du point de vente sélectionné.'
+        : 'Aucune carte active sur ce point de vente.';
+      pushIconColorInput.disabled = !payload?.data?.has_active_card;
+    } catch (error: unknown) {
+      pushIconStatus.textContent = 'Impossible de charger le réglage.';
+      pushIconColorInput.disabled = true;
+      pushIconError.textContent = error instanceof Error ? error.message : 'Erreur réseau.';
+      pushIconError.classList.remove('hidden');
+    }
+  }
+
+  async function persistPushIconColor(color: string) {
+    const res = await authFetch('/api/notifications/push-icon-settings', {
+      method: 'PATCH',
+      body: JSON.stringify({ push_icon_bg_color: color }),
+    });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(payload?.error ?? 'Impossible de mettre à jour la couleur.');
+    return payload;
   }
 
   async function persistBirthdaySettings(nextEnabled: boolean) {
@@ -464,10 +534,31 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     });
   });
 
+  pushIconColorInput.addEventListener('input', () => {
+    updatePushIconPreview(pushIconColorInput.value);
+  });
+
+  pushIconColorInput.addEventListener('change', async () => {
+    if (pushIconColorInput.disabled) return;
+    pushIconError.classList.add('hidden');
+    pushIconSuccess.classList.add('hidden');
+    try {
+      await persistPushIconColor(pushIconColorInput.value);
+      pushIconSuccess.textContent = 'Couleur de fond des notifications enregistrée.';
+      pushIconSuccess.classList.remove('hidden');
+      pushIconStatus.textContent = 'Réglage actif pour la carte du point de vente sélectionné.';
+    } catch (error: unknown) {
+      pushIconError.textContent = error instanceof Error ? error.message : 'Erreur réseau.';
+      pushIconError.classList.remove('hidden');
+    }
+  });
+
   setNotifTab('manual');
   loadSummary();
   loadHistory();
-  loadReviewAutoSettings();
-  loadBirthdaySettings();
+  loadPlanFallback().then(() => Promise.all([
+    loadReviewAutoSettings(),
+    loadBirthdaySettings(),
+    loadPushIconSettings(),
+  ]));
 </script>
-

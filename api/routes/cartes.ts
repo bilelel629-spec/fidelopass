@@ -7,6 +7,7 @@ import { getPlanLimits } from './commerces';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { upsertLoyaltyClass, updateGooglePassObject } from '../services/google-wallet';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
+import { getEffectivePlanRaw } from '../utils/effective-plan';
 
 export const cartesRoutes = new Hono();
 
@@ -69,6 +70,7 @@ const carteSchema = z.object({
   police_gras: z.boolean().default(false),
   texte_alignement: z.enum(['left', 'center', 'right']).default('left'),
   strip_plein_largeur: z.boolean().default(true),
+  banner_overlay_opacity: z.number().int().min(0).max(85).default(0),
   // Personnalisation programme (migration 006)
   welcome_message: z.string().max(180).nullable().optional(),
   success_message: z.string().max(180).nullable().optional(),
@@ -209,6 +211,7 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   if (parsed.data.police_gras !== undefined) typoFields.police_gras = parsed.data.police_gras;
   if (parsed.data.texte_alignement !== undefined) typoFields.texte_alignement = parsed.data.texte_alignement;
   if (parsed.data.strip_plein_largeur !== undefined) typoFields.strip_plein_largeur = parsed.data.strip_plein_largeur;
+  if (parsed.data.banner_overlay_opacity !== undefined) typoFields.banner_overlay_opacity = parsed.data.banner_overlay_opacity;
 
   const programFields: Record<string, unknown> = {};
   if (parsed.data.welcome_message !== undefined) programFields.welcome_message = parsed.data.welcome_message;
@@ -220,7 +223,7 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   if (parsed.data.vip_tiers !== undefined) programFields.vip_tiers = parsed.data.vip_tiers;
   if (parsed.data.strip_layout !== undefined) programFields.strip_layout = parsed.data.strip_layout;
   if (parsed.data.branding_powered_by_enabled !== undefined) {
-    const planLimits = getPlanLimits(commerce.plan);
+    const planLimits = getPlanLimits(getEffectivePlanRaw(commerce));
     programFields.branding_powered_by_enabled = planLimits.avisGoogle
       ? parsed.data.branding_powered_by_enabled
       : true;
@@ -309,7 +312,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   const {
     logo_url, strip_url, strip_position, tampon_icon_url, barcode_type, label_client, push_icon_bg_color,
     couleur_fond_2, gradient_angle, pattern_type, tampon_emoji,
-    police, police_taille, police_gras, texte_alignement, strip_plein_largeur,
+    police, police_taille, police_gras, texte_alignement, strip_plein_largeur, banner_overlay_opacity,
     welcome_message, success_message, rewards_config, rewards_multi_enabled, vip_tiers, strip_layout, branding_powered_by_enabled,
     birthday_auto_enabled, birthday_reward_value, birthday_push_title, birthday_push_message,
     ...baseData
@@ -336,6 +339,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   if (police_gras !== undefined) typoFields.police_gras = police_gras;
   if (texte_alignement !== undefined) typoFields.texte_alignement = texte_alignement;
   if (strip_plein_largeur !== undefined) typoFields.strip_plein_largeur = strip_plein_largeur;
+  if (banner_overlay_opacity !== undefined) typoFields.banner_overlay_opacity = banner_overlay_opacity;
 
   const programFields: Record<string, unknown> = {};
   if (welcome_message !== undefined) programFields.welcome_message = welcome_message;
@@ -347,7 +351,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   if (vip_tiers !== undefined) programFields.vip_tiers = vip_tiers;
   if (strip_layout !== undefined) programFields.strip_layout = strip_layout;
   if (branding_powered_by_enabled !== undefined) {
-    const planLimits = getPlanLimits(commerce.plan);
+    const planLimits = getPlanLimits(getEffectivePlanRaw(commerce));
     programFields.branding_powered_by_enabled = planLimits.avisGoogle ? branding_powered_by_enabled : true;
   }
   if (parsed.data.review_reward_enabled !== undefined) programFields.review_reward_enabled = parsed.data.review_reward_enabled;

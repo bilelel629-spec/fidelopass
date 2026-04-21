@@ -127,7 +127,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <label id="type-tampons-label" class="cursor-pointer rounded-2xl border-2 p-4 transition-all" style="border-color:#60a5fa;background:rgb(239 246 255)">
             <input type="radio" name="type" value="tampons" class="hidden" checked />
             <div class="flex items-center gap-3">
-              <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">TM</span>
+              <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
+                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 11h14"></path>
+                  <path d="M7 8h10v8H7z"></path>
+                  <path d="M9 8V6h6v2"></path>
+                </svg>
+              </span>
               <div>
                 <div class="font-medium text-slate-900 text-sm">Tampons</div>
                 <div class="text-slate-500 text-xs mt-0.5">Simple à comprendre, rapide à utiliser en caisse.</div>
@@ -137,7 +143,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <label id="type-points-label" class="cursor-pointer rounded-2xl border-2 p-4 transition-all" style="border-color:#dbeafe;background:#ffffff">
             <input type="radio" name="type" value="points" class="hidden" />
             <div class="flex items-center gap-3">
-              <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">PT</span>
+              <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="8"></circle>
+                  <path d="M12 8v8"></path>
+                  <path d="M9.5 10.5h4"></path>
+                  <path d="M9.5 13.5h4"></path>
+                </svg>
+              </span>
               <div>
                 <div class="font-medium text-slate-900 text-sm">Points</div>
                 <div class="text-slate-500 text-xs mt-0.5">Plus souple pour les paliers VIP et les récompenses progressives.</div>
@@ -474,6 +487,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                   Ajustez le zoom puis déplacez directement l'image dans l'encadré pour le cadrage précis.
                 </p>
               </div>
+              <div class="w-full rounded-xl border border-sky-100 bg-white/85 px-3 py-3">
+                <div class="flex items-center justify-between text-xs text-slate-600 mb-1.5">
+                  <span>Filtre sombre bannière</span>
+                  <span id="banner-overlay-val" class="font-semibold text-slate-800">0%</span>
+                </div>
+                <input id="banner-overlay-opacity" type="range" min="0" max="85" step="5" value="0" class="w-full accent-indigo-500" />
+                <p class="text-[0.68rem] leading-tight text-slate-500 mt-2">
+                  Assombrit la bannière pour garder le texte lisible sur la carte.
+                </p>
+              </div>
               <a href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3NTAiIGhlaWdodD0iMjQ2Ij48cmVjdCB3aWR0aD0iNzUwIiBoZWlnaHQ9IjI0NiIgZmlsbD0iIzFlMjkzYiIvPjxyZWN0IHg9IjQwIiB5PSI0MCIgd2lkdGg9IjY3MCIgaGVpZ2h0PSIxNjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzYzNjZmMSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI4IDQiIHJ4PSI4Ii8+PHRleHQgeD0iMzc1IiB5PSIxMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2MzY2ZjEiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5ab25lIGJhbm5pZXJlIOKAlCA3NTAgw5cgMjQ2IHB4PC90ZXh0Pjx0ZXh0IHg9IjM3NSIgeT0iMTQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyI+TGVzIHRhbXBvbnMgc29udCBjZW50csOpcyBwYXItZGVzc3VzPC90ZXh0Pjwvc3ZnPg=="
                 download="template-banniere-fidelopass.svg" class="text-indigo-400 text-xs underline underline-offset-2 hover:text-indigo-300 text-center">⬇ Template SVG 750×246</a>
               <button id="banner-advanced-toggle" type="button" class="flex w-full items-center justify-between rounded-xl border border-sky-100 bg-sky-50/60 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-sky-100">
@@ -630,17 +653,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           </p>
         </div>
 
-        <div class="rounded-2xl border border-sky-100 bg-sky-50/40 p-4">
-          <div class="flex items-center justify-between gap-4 mb-2">
-            <div>
-              <p class="text-sm font-semibold text-slate-900">Fond du logo de notification push</p>
-              <p class="text-slate-500 text-xs mt-0.5">Couleur affichée derrière le logo commerçant dans les notifications Wallet.</p>
-            </div>
-            <div id="push-icon-preview" class="h-10 w-10 rounded-xl border border-slate-200 shadow-inner"></div>
-          </div>
-          <input id="push-icon-bg-color" type="color" value="#6366f1" class="w-full h-10 rounded-xl border border-sky-100 cursor-pointer bg-white" />
-        </div>
-
       </div>
 
       <!-- Étape 7 : Scanner & Partage -->
@@ -703,10 +715,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <div id="success-msg" class="hidden text-emerald-700 text-sm bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3"></div>
       <div class="hidden rounded-[1.6rem] border border-sky-100 bg-white/90 px-4 py-4 shadow-[0_18px_48px_-36px_rgba(59,130,246,0.35)] lg:flex lg:flex-col lg:gap-3 xl:flex-row xl:items-center xl:justify-between">
         <button type="button" id="prev-step-btn" class="btn-secondary py-3 px-5">Étape précédente</button>
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <button type="button" id="save-draft-btn" class="btn-secondary py-3 px-5">Enregistrer le brouillon</button>
-          <button type="button" id="save-continue-btn" class="btn-primary py-3 px-5">Enregistrer et continuer</button>
-        </div>
+        <button type="button" id="save-continue-btn" class="btn-primary py-3 px-5">Enregistrer et continuer</button>
       </div>
     </div>
 
@@ -751,6 +760,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <div id="a-strip-zone" class="relative z-10 mx-3 mb-3 rounded-xl overflow-hidden" style="min-height:120px">
             <div id="preview-strip-wrap" class="absolute inset-0" style="display:none"><img id="preview-strip" src="" alt="" class="w-full h-full object-cover" /></div>
             <div id="preview-strip-color" class="absolute inset-0" style="background:rgba(255,255,255,0.06)"></div>
+            <div id="preview-strip-dark-overlay" class="absolute inset-0" style="background:rgba(2,6,23,0)"></div>
             <div id="preview-pattern-overlay" class="absolute inset-0"></div>
             <div id="preview-stamps-wrap" class="relative z-10 flex items-center justify-center p-3" style="min-height:120px">
               <div id="preview-stamps" class="w-full"></div>
@@ -778,6 +788,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <div class="relative h-32 overflow-hidden">
             <img id="g-strip-img" src="" alt="" class="hidden w-full h-full object-cover" />
             <div id="g-strip-bg" class="absolute inset-0" style="background:#0f172a"></div>
+            <div id="g-strip-dark-overlay" class="absolute inset-0" style="background:rgba(2,6,23,0)"></div>
             <div id="g-pattern-overlay" class="absolute inset-0"></div>
             <div class="absolute bottom-3 left-3 flex items-center gap-2 z-10">
               <div class="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0" style="background:rgba(255,255,255,0.2)">
@@ -812,8 +823,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   <div class="fixed inset-x-0 z-[71] px-3 pb-[calc(env(safe-area-inset-bottom)+0.45rem)] lg:hidden" style="bottom:4.2rem;">
     <div class="rounded-2xl border border-sky-100 bg-white/95 p-3 shadow-[0_24px_46px_-28px_rgba(15,23,42,0.35)]">
-      <div class="mb-2 flex items-center justify-between gap-3">
-        <button type="button" id="mobile-save-draft-btn" class="btn-secondary px-3 py-2 text-xs">Brouillon</button>
+      <div class="mb-2 flex justify-end">
         <button type="button" id="mobile-preview-btn" class="btn-secondary px-3 py-2 text-xs">Aperçu</button>
       </div>
       <div class="grid grid-cols-[132px_1fr] gap-2">
@@ -937,6 +947,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   let stripScale = 1;
   let stripFocusX = 50;
   let stripFocusY = 50;
+  let bannerOverlayOpacity = 0;
   let isGradient = false;
   type WizardStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
   let currentStep: WizardStep = 1;
@@ -959,10 +970,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     if (!force && (suppressDirtyTracking || isSaving)) return;
     isDirty = dirty;
     const state = document.getElementById('draft-state');
-    const mobileDraft = document.getElementById('mobile-save-draft-btn') as HTMLButtonElement | null;
-    if (mobileDraft) {
-      mobileDraft.textContent = dirty ? 'Brouillon à sauvegarder' : 'Brouillon OK';
-    }
     if (!state) return;
     if (dirty) {
       state.textContent = 'Brouillon non enregistré';
@@ -1070,10 +1077,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       document.getElementById('prev-step-btn'),
       document.getElementById('mobile-prev-step-btn'),
     ].filter(Boolean) as HTMLButtonElement[];
-    const saveDraftButtons = [
-      document.getElementById('save-draft-btn'),
-      document.getElementById('mobile-save-draft-btn'),
-    ].filter(Boolean) as HTMLButtonElement[];
     const saveContinueButtons = [
       document.getElementById('save-continue-btn'),
       document.getElementById('mobile-save-continue-btn'),
@@ -1096,11 +1099,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     prevButtons.forEach((button) => {
       button.disabled = isSaving || currentStep === 1;
-      button.classList.toggle('opacity-50', button.disabled);
-      button.classList.toggle('cursor-not-allowed', button.disabled);
-    });
-    saveDraftButtons.forEach((button) => {
-      button.disabled = isSaving;
       button.classList.toggle('opacity-50', button.disabled);
       button.classList.toggle('cursor-not-allowed', button.disabled);
     });
@@ -1469,17 +1467,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     setBrandingEnabled(!brandingEnabled);
   });
 
-  // Couleur fond icône push
-  const pushIconBgColorInput = document.getElementById('push-icon-bg-color') as HTMLInputElement;
-  const pushIconPreview = document.getElementById('push-icon-preview') as HTMLDivElement;
-  function updatePushIconPreview() {
-    pushIconPreview.style.background = pushIconBgColorInput.value;
-  }
-  pushIconBgColorInput.addEventListener('input', () => {
-    updatePushIconPreview();
-    markDirty();
-  });
-
   // Strip style
   function applyStripStyle() {
     const sz=document.getElementById('a-strip-zone')!;
@@ -1778,6 +1765,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const stripScaleInput = document.getElementById('strip-scale') as HTMLInputElement;
   const stripScaleVal = document.getElementById('strip-scale-val') as HTMLSpanElement;
   const stripApplyResizeBtn = document.getElementById('strip-apply-resize') as HTMLButtonElement;
+  const bannerOverlayInput = document.getElementById('banner-overlay-opacity') as HTMLInputElement;
+  const bannerOverlayVal = document.getElementById('banner-overlay-val') as HTMLSpanElement;
   const stripPositionInput = document.getElementById('strip-position') as HTMLInputElement;
   const stripPositionLabel = document.getElementById('strip-position-label') as HTMLParagraphElement;
   const stripDragArea = document.getElementById('strip-drag-area') as HTMLDivElement;
@@ -1827,6 +1816,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const value = parseInt((event.target as HTMLInputElement).value, 10);
     setStripScale(value / 100, false);
     markDirty();
+  });
+  bannerOverlayInput.addEventListener('input', (event) => {
+    bannerOverlayOpacity = clamp(parseInt((event.target as HTMLInputElement).value, 10) || 0, 0, 85);
+    bannerOverlayInput.value = String(bannerOverlayOpacity);
+    bannerOverlayVal.textContent = `${bannerOverlayOpacity}%`;
+    markDirty();
+    updatePreview();
   });
   document.getElementById('strip-position-reset')!.addEventListener('click', resetStripFocus);
 
@@ -2121,6 +2117,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     ag.style.backgroundImage='none'; ag.style.backgroundSize='auto';
     const sc=document.getElementById('preview-strip-color')!; sc.style.background=bg;
     const so=document.getElementById('preview-pattern-overlay')!; so.style.backgroundImage=pat.image; so.style.backgroundSize=pat.size;
+    const sDark=document.getElementById('preview-strip-dark-overlay')!;
+    sDark.style.background = `rgba(2,6,23,${bannerOverlayOpacity / 100})`;
 
     document.getElementById('preview-card-name')!.textContent=nom;
     document.getElementById('preview-recompense')!.textContent=rewardSummary;
@@ -2145,6 +2143,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     // Google
     const gb=document.getElementById('g-strip-bg')!; gb.style.background=bg;
     const gp=document.getElementById('g-pattern-overlay')!; gp.style.backgroundImage=pat.image; gp.style.backgroundSize=pat.size;
+    const gDark=document.getElementById('g-strip-dark-overlay')!;
+    gDark.style.background = `rgba(2,6,23,${bannerOverlayOpacity / 100})`;
 
     document.getElementById('g-card-name')!.textContent=nom;
     document.getElementById('g-recompense')!.textContent=rewardSummary;
@@ -2258,8 +2258,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       set('points-par-euro',String(data.points_par_euro??1)); set('points-recompense',String(data.points_recompense??100));
       set('recompense',data.recompense_description??''); set('message-geo',data.message_geo??'');
       set('couleur-fond',data.couleur_fond??'#0f172a'); set('couleur-texte',data.couleur_texte??'#ffffff'); set('couleur-accent',data.couleur_accent??'#6366f1');
-      set('push-icon-bg-color', data.push_icon_bg_color ?? data.couleur_accent ?? '#6366f1');
-      updatePushIconPreview();
+      bannerOverlayOpacity = clamp(Number(data.banner_overlay_opacity ?? 0), 0, 85);
+      bannerOverlayInput.value = String(bannerOverlayOpacity);
+      bannerOverlayVal.textContent = `${bannerOverlayOpacity}%`;
       set('label-client',data.label_client??'Client');
       if(data.couleur_fond_2){set('couleur-fond-2',data.couleur_fond_2);if(!isGradient)gradientToggle.click();}
       if(data.gradient_angle!=null){set('gradient-angle',String(data.gradient_angle));document.getElementById('gradient-angle-val')!.textContent=`${data.gradient_angle}°`;}
@@ -2358,7 +2359,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       couleur_fond:getInput('couleur-fond'),
       couleur_texte:getInput('couleur-texte'),
       couleur_accent:getInput('couleur-accent'),
-      push_icon_bg_color:getInput('push-icon-bg-color'),
       logo_url:logoUrl||null,
       strip_url:stripUrl||null,
       strip_position:stripPositionInput.value || getSerializedStripPosition(),
@@ -2374,6 +2374,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       police_gras:false,
       texte_alignement:'left',
       strip_plein_largeur:true,
+      banner_overlay_opacity:bannerOverlayOpacity,
       strip_layout:getChecked('strip_layout')||'background',
       branding_powered_by_enabled:brandingEnabled,
       rewards_multi_enabled:multiRewardsEnabled,
@@ -2404,19 +2405,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     suc.classList.add('hidden');
     isSaving = true;
     updateWizardActions();
-    const saveDraftButtons = [
-      document.getElementById('save-draft-btn'),
-      document.getElementById('mobile-save-draft-btn'),
-    ].filter(Boolean) as HTMLButtonElement[];
     const saveContinueButtons = [
       document.getElementById('save-continue-btn'),
       document.getElementById('mobile-save-continue-btn'),
     ].filter(Boolean) as HTMLButtonElement[];
-    const originalDraft = saveDraftButtons.map((button) => button.textContent ?? '');
     const originalContinue = saveContinueButtons.map((button) => button.textContent ?? '');
-    saveDraftButtons.forEach((button) => {
-      button.textContent = 'Enregistrement...';
-    });
     saveContinueButtons.forEach((button) => {
       button.textContent = 'Enregistrement...';
     });
@@ -2485,18 +2478,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       err.classList.remove('hidden');
     } finally {
       isSaving = false;
-      saveDraftButtons.forEach((button, index) => {
-        button.textContent = originalDraft[index] ?? 'Enregistrer le brouillon';
-      });
       saveContinueButtons.forEach((button, index) => {
         button.textContent = originalContinue[index] ?? 'Enregistrer et continuer';
       });
       updateWizardActions();
     }
-  }
-
-  async function handleSaveDraft() {
-    await persistCard(false);
   }
 
   async function handleSaveContinue() {
@@ -2508,9 +2494,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     clearStepError(currentStep);
     await persistCard(true);
   }
-
-  document.getElementById('save-draft-btn')!.addEventListener('click', handleSaveDraft);
-  document.getElementById('mobile-save-draft-btn')!.addEventListener('click', handleSaveDraft);
   document.getElementById('save-continue-btn')!.addEventListener('click', handleSaveContinue);
   document.getElementById('mobile-save-continue-btn')!.addEventListener('click', handleSaveContinue);
 
@@ -2606,7 +2589,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   setStripFocus(50, 50, { silent: true });
   setMultiRewardsEnabled(false, { silent: true });
   setBrandingEnabled(true, { silent: true });
-  updatePushIconPreview();
   updatePreview();
   applyTypeUI('tampons');
   applyStripStyle();

@@ -43,12 +43,33 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     email: string | null;
     telephone: string | null;
     actif: boolean;
+    plan?: string | null;
+    plan_override?: string | null;
+    effective_plan?: string | null;
     created_at: string;
     cartes: unknown[];
     clients: unknown[];
   };
 
   let allCommerces: AdminCommerce[] = [];
+
+  function normalizePlan(planRaw: unknown) {
+    return String(planRaw ?? 'starter').trim().toLowerCase();
+  }
+
+  function planLabel(planRaw: unknown) {
+    const plan = normalizePlan(planRaw);
+    if (plan.includes('sur-mesure') || plan.includes('surmesure') || plan.includes('custom')) return 'Sur mesure';
+    if (plan.includes('pro')) return 'Pro';
+    return 'Starter';
+  }
+
+  function planSelectValue(planRaw: unknown): 'starter' | 'pro' | 'sur-mesure' {
+    const plan = normalizePlan(planRaw);
+    if (plan.includes('sur-mesure') || plan.includes('surmesure') || plan.includes('custom')) return 'sur-mesure';
+    if (plan.includes('pro')) return 'pro';
+    return 'starter';
+  }
 
   function getOnboardingState(commerce: AdminCommerce) {
     if (!commerce.cartes.length) return { label: 'Compte créé', badge: 'badge-warning' };
@@ -71,7 +92,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
   function exportCsv(data: AdminCommerce[]) {
     const rows = [
-      ['Nom', 'Email', 'Téléphone', 'Adresse', 'Carte configurée', 'Clients', 'Onboarding', 'Statut', 'Créé le'],
+      ['Nom', 'Email', 'Téléphone', 'Adresse', 'Carte configurée', 'Clients', 'Plan effectif', 'Plan source', 'Onboarding', 'Statut', 'Créé le'],
       ...data.map((commerce) => [
         commerce.nom,
         commerce.email ?? '',
@@ -79,6 +100,8 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         commerce.adresse ?? '',
         commerce.cartes.length > 0 ? 'Oui' : 'Non',
         String(commerce.clients.length),
+        planLabel(commerce.effective_plan ?? commerce.plan),
+        commerce.plan_override ? `Override: ${planLabel(commerce.plan_override)}` : planLabel(commerce.plan),
         getOnboardingState(commerce).label,
         commerce.actif ? 'Actif' : 'Inactif',
         new Date(commerce.created_at).toLocaleDateString('fr-FR'),
@@ -107,7 +130,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
     container.innerHTML = `
       <div class="overflow-x-auto">
-        <table class="w-full min-w-[980px]">
+        <table class="w-full min-w-[1100px]">
           <thead class="border-b border-slate-200">
             <tr class="text-left">
               <th class="px-6 py-3 text-xs uppercase tracking-wide text-slate-500">Commerce</th>
@@ -139,7 +162,31 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
                 </td>
                 <td class="px-6 py-4 font-mono text-sm text-sky-700">${commerce.clients.length}</td>
                 <td class="px-6 py-4">
-                  <span class="badge bg-slate-100 text-slate-600 border border-slate-200">Plan manuel</span>
+                  <div class="space-y-2">
+                    <span class="badge bg-slate-100 text-slate-700 border border-slate-200">${planLabel(commerce.effective_plan ?? commerce.plan)}</span>
+                    <div class="flex items-center gap-2">
+                      <select
+                        data-plan-select="${commerce.id}"
+                        class="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700"
+                      >
+                        <option value="starter" ${planSelectValue(commerce.effective_plan ?? commerce.plan) === 'starter' ? 'selected' : ''}>Starter</option>
+                        <option value="pro" ${planSelectValue(commerce.effective_plan ?? commerce.plan) === 'pro' ? 'selected' : ''}>Pro</option>
+                        <option value="sur-mesure" ${planSelectValue(commerce.effective_plan ?? commerce.plan) === 'sur-mesure' ? 'selected' : ''}>Sur mesure</option>
+                      </select>
+                      <button
+                        data-plan-apply="${commerce.id}"
+                        class="rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-[0.7rem] font-semibold text-sky-700 transition hover:border-sky-300 hover:bg-sky-100"
+                        type="button"
+                      >
+                        Appliquer
+                      </button>
+                    </div>
+                    <p class="text-[0.68rem] text-slate-500">
+                      ${commerce.plan_override
+                        ? `Override actif (${planLabel(commerce.plan_override)}). Base: ${planLabel(commerce.plan)}`
+                        : `Base: ${planLabel(commerce.plan)}`}
+                    </p>
+                  </div>
                 </td>
                 <td class="px-6 py-4">
                   <span class="badge ${getOnboardingState(commerce).badge}">${getOnboardingState(commerce).label}</span>
@@ -184,6 +231,42 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     await loadCommerces();
   }
 
+  async function updatePlan(id: string, planOverride: 'starter' | 'pro' | 'sur-mesure') {
+    const endpoint = `${import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001'}/api/admin/commerces/${id}/plan`;
+    const response = await authFetch(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify({ plan_override: planOverride }),
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      throw new Error(payload?.error ?? 'Impossible de mettre à jour le plan.');
+    }
+  }
+
+  function bindPlanActions() {
+    document.querySelectorAll<HTMLButtonElement>('[data-plan-apply]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const id = button.dataset.planApply;
+        if (!id) return;
+        const select = document.querySelector<HTMLSelectElement>(`[data-plan-select="${id}"]`);
+        if (!select) return;
+
+        const nextPlan = select.value as 'starter' | 'pro' | 'sur-mesure';
+        const initialLabel = button.textContent ?? 'Appliquer';
+        button.disabled = true;
+        button.textContent = '...';
+        try {
+          await updatePlan(id, nextPlan);
+          await loadCommerces();
+        } catch (error) {
+          window.alert(error instanceof Error ? error.message : 'Erreur de mise à jour du plan.');
+          button.disabled = false;
+          button.textContent = initialLabel;
+        }
+      });
+    });
+  }
+
   function applyFilters() {
     const search = (document.getElementById('search') as HTMLInputElement).value.toLowerCase();
     const statut = (document.getElementById('filter-statut') as HTMLSelectElement).value;
@@ -204,6 +287,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     });
 
     renderTable(filtered);
+    bindPlanActions();
   }
 
   (window as unknown as Record<string, unknown>).toggleCommerce = toggleCommerce;

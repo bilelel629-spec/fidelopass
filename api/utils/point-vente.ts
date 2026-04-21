@@ -4,6 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 type CommerceRow = {
   id: string;
   plan: string | null;
+  plan_override?: string | null;
   nom?: string | null;
   adresse?: string | null;
   logo_url?: string | null;
@@ -38,11 +39,50 @@ export async function resolveCommerceAndPointVente<T extends CommerceRow = Comme
   requestedPointVenteId: string | null,
   commerceSelect = 'id, plan',
 ): Promise<{ commerce: T | null; pointVente: PointVenteRow | null; pointsVente: PointVenteRow[] }> {
-  const { data: commerce } = await db
+  const requestedSelect = commerceSelect.trim();
+  const normalizedSelect = (() => {
+    const select = commerceSelect.trim();
+    if (select === '*' || select.includes('plan_override')) return select;
+    return `${select}, plan_override`;
+  })();
+
+  let commerce: T | null = null;
+  let commerceErrorMessage = '';
+
+  const { data: commerceWithOverride, error: commerceWithOverrideError } = await db
     .from('commerces')
-    .select(commerceSelect)
+    .select(normalizedSelect)
     .eq('user_id', userId)
     .single();
+
+  if (!commerceWithOverrideError) {
+    commerce = (commerceWithOverride as T | null) ?? null;
+  } else {
+    commerceErrorMessage = commerceWithOverrideError.message ?? '';
+    const missingOverrideColumn = /plan_override/i.test(commerceErrorMessage)
+      && (/does not exist/i.test(commerceErrorMessage) || /schema cache/i.test(commerceErrorMessage));
+
+    if (!missingOverrideColumn) {
+      throw commerceWithOverrideError;
+    }
+
+    const cleanedFallbackSelect = requestedSelect === '*'
+      ? '*'
+      : requestedSelect
+        .split(',')
+        .map((part) => part.trim())
+        .filter((part) => part !== 'plan_override')
+        .join(', ');
+    const fallbackSelect = cleanedFallbackSelect === '' ? 'id, plan' : cleanedFallbackSelect;
+    const { data: fallbackCommerce, error: fallbackError } = await db
+      .from('commerces')
+      .select(fallbackSelect)
+      .eq('user_id', userId)
+      .single();
+
+    if (fallbackError) throw fallbackError;
+    commerce = (fallbackCommerce as T | null) ?? null;
+  }
 
   if (!commerce) {
     return { commerce: null, pointVente: null, pointsVente: [] };

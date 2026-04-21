@@ -40,15 +40,140 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
 
 <script>
   import { createClient } from '@supabase/supabase-js';
+
   const supabase = createClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
   );
+  const API = (import.meta.env.PUBLIC_API_URL ?? 'https://api.fidelopass.com').replace(/\/$/, '');
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    window.location.replace('/login');
-  } else {
+  type SessionLike = { access_token: string };
+  type TourStep = { selector: string; title: string; body: string };
+
+  const TOUR_STEPS: TourStep[] = [
+    { selector: 'a[href="/dashboard"]', title: 'Dashboard', body: 'Suivez vos indicateurs clés et les actions prioritaires de la journée.' },
+    { selector: 'a[href="/dashboard/carte"]', title: 'Ma carte', body: 'Personnalisez votre carte fidélité: visuel, programme, messages et options.' },
+    { selector: 'a[href="/dashboard/points-vente"]', title: 'Points de vente', body: 'Ajoutez vos lieux et passez facilement d’un point de vente à l’autre.' },
+    { selector: 'a[href="/dashboard/notifications"]', title: 'Notifications push', body: 'Envoyez des messages immédiats ou activez vos automatisations clients.' },
+    { selector: 'a[href="/app"]', title: 'Scanner', body: 'Installez et ouvrez le scanner équipe pour valider les passages en caisse.' },
+  ];
+
+  function getVisibleTarget(selector: string): HTMLElement | null {
+    const nodes = Array.from(document.querySelectorAll<HTMLElement>(selector));
+    return nodes.find((node) => node.offsetParent !== null) ?? nodes[0] ?? null;
+  }
+
+  async function setTourSeen(accessToken: string, seen: boolean) {
+    try {
+      await fetch(`${API}/api/dashboard/tour-status`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ seen }),
+      });
+    } catch {
+      // best effort
+    }
+  }
+
+  function startDashboardTour(accessToken: string) {
+    const style = document.createElement('style');
+    style.textContent = `
+      .dashboard-tour-highlight {
+        position: relative;
+        z-index: 80 !important;
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.55), 0 0 0 8px rgba(56, 189, 248, 0.18);
+        border-radius: 1rem;
+      }
+    `;
+    document.head.appendChild(style);
+
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 z-[75] bg-slate-900/45 backdrop-blur-[1px]';
+
+    const card = document.createElement('div');
+    card.className = 'fixed z-[85] left-1/2 -translate-x-1/2 bottom-5 w-[min(92vw,460px)] rounded-2xl border border-sky-100 bg-white p-5 shadow-2xl';
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+
+    let index = 0;
+    let activeTarget: HTMLElement | null = null;
+
+    const cleanupTarget = () => {
+      if (!activeTarget) return;
+      activeTarget.classList.remove('dashboard-tour-highlight');
+      activeTarget = null;
+    };
+
+    const finish = async () => {
+      cleanupTarget();
+      overlay.remove();
+      style.remove();
+      await setTourSeen(accessToken, true);
+    };
+
+    const render = () => {
+      const step = TOUR_STEPS[index];
+      cleanupTarget();
+      activeTarget = getVisibleTarget(step.selector);
+      activeTarget?.classList.add('dashboard-tour-highlight');
+
+      card.innerHTML = `
+        <p class="text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-sky-700/75">Guide rapide (${index + 1}/${TOUR_STEPS.length})</p>
+        <h3 class="mt-2 text-lg font-display font-bold text-slate-900">${step.title}</h3>
+        <p class="mt-2 text-sm text-slate-600">${step.body}</p>
+        <div class="mt-4 flex items-center justify-between gap-2">
+          <button type="button" id="tour-skip" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+            Passer
+          </button>
+          <button type="button" id="tour-next" class="rounded-xl bg-sky-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-sky-700">
+            ${index === TOUR_STEPS.length - 1 ? 'Terminer' : 'Suivant'}
+          </button>
+        </div>
+      `;
+
+      const nextBtn = card.querySelector<HTMLButtonElement>('#tour-next');
+      const skipBtn = card.querySelector<HTMLButtonElement>('#tour-skip');
+      nextBtn?.addEventListener('click', async () => {
+        if (index >= TOUR_STEPS.length - 1) {
+          await finish();
+          return;
+        }
+        index += 1;
+        render();
+      });
+      skipBtn?.addEventListener('click', finish);
+    };
+
+    render();
+  }
+
+  async function maybeShowTour(session: SessionLike) {
+    try {
+      const res = await fetch(`${API}/api/dashboard/tour-status`, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!res.ok) return;
+      const payload = await res.json().catch(() => null);
+      if (payload?.data?.seen) return;
+      startDashboardTour(session.access_token);
+    } catch {
+      // ignore
+    }
+  }
+
+  async function initDashboardGuard() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.replace('/login');
+      return;
+    }
+
     const billing = await fetch(`${API}/api/billing/status`, {
       headers: {
         Authorization: `Bearer ${session.access_token}`,
@@ -58,8 +183,15 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
 
     if (!billing?.data?.has_access) {
       window.location.replace('/abonnement/choix');
-    } else if (!billing?.data?.onboarding_completed) {
-      window.location.replace('/onboarding');
+      return;
     }
+    if (!billing?.data?.onboarding_completed) {
+      window.location.replace('/onboarding');
+      return;
+    }
+
+    maybeShowTour(session as SessionLike);
   }
+
+  initDashboardGuard();
 </script>

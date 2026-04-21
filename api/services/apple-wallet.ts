@@ -30,6 +30,7 @@ interface CarteData {
   pattern_type?: string | null;
   tampon_emoji?: string | null;
   strip_layout?: string | null;
+  banner_overlay_opacity?: number | null;
   branding_powered_by_enabled?: boolean | null;
   google_maps_url?: string | null;
   rewards_config?: Array<{ seuil: number; recompense: string }> | null;
@@ -317,6 +318,7 @@ export async function generateApplePass(
     patternType: carte.pattern_type,
     tamponEmoji: carte.tampon_emoji,
     stripLayout: carte.strip_layout,
+    bannerOverlayOpacity: carte.banner_overlay_opacity,
     showBranding: false,
   });
   const background2x = await generatePassBackgroundImage({

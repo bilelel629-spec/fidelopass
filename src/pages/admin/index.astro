@@ -97,12 +97,33 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     telephone: string | null;
     adresse: string | null;
     actif: boolean;
+    plan?: string | null;
+    plan_override?: string | null;
+    effective_plan?: string | null;
     created_at: string;
     cartes: unknown[];
     clients: unknown[];
   };
 
   let allCommerces: AdminCommerce[] = [];
+
+  function normalizePlan(planRaw: unknown) {
+    return String(planRaw ?? 'starter').trim().toLowerCase();
+  }
+
+  function planLabel(planRaw: unknown) {
+    const plan = normalizePlan(planRaw);
+    if (plan.includes('sur-mesure') || plan.includes('surmesure') || plan.includes('custom')) return 'Sur mesure';
+    if (plan.includes('pro')) return 'Pro';
+    return 'Starter';
+  }
+
+  function planSelectValue(planRaw: unknown): 'starter' | 'pro' | 'sur-mesure' {
+    const plan = normalizePlan(planRaw);
+    if (plan.includes('sur-mesure') || plan.includes('surmesure') || plan.includes('custom')) return 'sur-mesure';
+    if (plan.includes('pro')) return 'pro';
+    return 'starter';
+  }
 
   function getOnboardingState(commerce: AdminCommerce) {
     if (!commerce.cartes.length) return { label: 'Compte créé', badge: 'badge-warning' };
@@ -211,7 +232,22 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
                       : '<span class="badge bg-slate-100 text-slate-500 border border-slate-200">À faire</span>'}
                   </td>
                   <td class="px-4 py-4 font-mono text-sm text-sky-700">${commerce.clients.length}</td>
-                  <td class="px-4 py-4"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">Plan manuel</span></td>
+                  <td class="px-4 py-4">
+                    <div class="space-y-2">
+                      <span class="badge bg-slate-100 text-slate-700 border border-slate-200">${planLabel(commerce.effective_plan ?? commerce.plan)}</span>
+                      <div class="flex items-center gap-2">
+                        <select
+                          data-admin-plan-select="${commerce.id}"
+                          class="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[0.72rem] font-medium text-slate-700"
+                        >
+                          <option value="starter" ${planSelectValue(commerce.effective_plan ?? commerce.plan) === 'starter' ? 'selected' : ''}>Starter</option>
+                          <option value="pro" ${planSelectValue(commerce.effective_plan ?? commerce.plan) === 'pro' ? 'selected' : ''}>Pro</option>
+                          <option value="sur-mesure" ${planSelectValue(commerce.effective_plan ?? commerce.plan) === 'sur-mesure' ? 'selected' : ''}>Sur mesure</option>
+                        </select>
+                        <button data-admin-plan-apply="${commerce.id}" class="rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-[0.68rem] font-semibold text-sky-700 transition hover:border-sky-300 hover:bg-sky-100" type="button">OK</button>
+                      </div>
+                    </div>
+                  </td>
                   <td class="px-4 py-4">
                     <span class="badge ${getOnboardingState(commerce).badge}">${getOnboardingState(commerce).label}</span>
                   </td>
@@ -232,6 +268,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
           </table>
         </div>
       `;
+      bindPlanActions();
     } catch {
       container.innerHTML = '<p class="text-sm text-red-500">Erreur lors du chargement admin.</p>';
     }
@@ -246,6 +283,41 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       await loadStats();
       await loadRecentCommerces();
     } catch {}
+  }
+
+  async function updatePlan(id: string, planOverride: 'starter' | 'pro' | 'sur-mesure') {
+    const endpoint = `${import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001'}/api/admin/commerces/${id}/plan`;
+    const response = await authFetch(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify({ plan_override: planOverride }),
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      throw new Error(payload?.error ?? 'Impossible de mettre à jour le plan.');
+    }
+  }
+
+  function bindPlanActions() {
+    document.querySelectorAll<HTMLButtonElement>('[data-admin-plan-apply]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const id = button.dataset.adminPlanApply;
+        if (!id) return;
+        const select = document.querySelector<HTMLSelectElement>(`[data-admin-plan-select="${id}"]`);
+        if (!select) return;
+        button.disabled = true;
+        const previous = button.textContent ?? 'OK';
+        button.textContent = '...';
+        try {
+          await updatePlan(id, select.value as 'starter' | 'pro' | 'sur-mesure');
+          await loadStats();
+          await loadRecentCommerces();
+        } catch (error) {
+          window.alert(error instanceof Error ? error.message : 'Erreur de mise à jour du plan.');
+          button.disabled = false;
+          button.textContent = previous;
+        }
+      });
+    });
   }
 
   (window as unknown as Record<string, unknown>).toggleCommerce = toggleCommerce;

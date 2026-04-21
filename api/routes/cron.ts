@@ -4,7 +4,8 @@ import { sendSMS } from '../../src/lib/brevo-sms';
 import { sendPersonalizedPushNotifications } from '../services/push';
 import { sendGoogleWalletMessage } from '../services/google-wallet';
 import { pushApplePassUpdate } from '../services/apple-wallet';
-import { getPlanLimits, normalizePlan } from './commerces';
+import { getPlanLimits } from './commerces';
+import { getEffectivePlanRaw } from '../utils/effective-plan';
 
 export const cronRoutes = new Hono();
 const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
@@ -144,7 +145,7 @@ async function sendScheduledReviewPushes(db: ReturnType<typeof createServiceClie
   }
 
   for (const commerce of commerces ?? []) {
-    if (!getPlanLimits(normalizePlan(commerce.plan)).avisGoogle) continue;
+    if (!getPlanLimits(getEffectivePlanRaw(commerce)).avisGoogle) continue;
     const reviewAutoEnabled = Boolean(
       (commerce as { review_auto_enabled?: boolean | null }).review_auto_enabled
       ?? (commerce as { sms_review_enabled?: boolean | null }).sms_review_enabled,
@@ -316,7 +317,7 @@ async function sendScheduledBirthdayPushes(db: ReturnType<typeof createServiceCl
     }
 
     for (const commerce of commerces ?? []) {
-      if (!getPlanLimits(normalizePlan(commerce.plan)).anniversaire) continue;
+      if (!getPlanLimits(getEffectivePlanRaw(commerce)).anniversaire) continue;
       commercesProcessed++;
 
       const { data: cartes, error: cartesError } = await db
@@ -479,7 +480,7 @@ async function sendScheduledBirthdayPushes(db: ReturnType<typeof createServiceCl
             latitude: pointVenteRef?.latitude ?? null,
             longitude: pointVenteRef?.longitude ?? null,
             rayon_geo: pointVenteRef?.rayon_geo ?? null,
-            plan: commerceRef?.plan ?? commerce.plan ?? 'starter',
+            plan: getEffectivePlanRaw(commerce),
           },
         } as Parameters<typeof updateGooglePassObject>[1];
 

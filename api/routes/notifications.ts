@@ -9,6 +9,7 @@ import { pushApplePassUpdate } from '../services/apple-wallet';
 import { sendGoogleWalletMessage } from '../services/google-wallet';
 import { sendSMS, personnaliserMessage } from '../../src/lib/brevo-sms';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
+import { getEffectivePlanRaw } from '../utils/effective-plan';
 
 const PUBLIC_SITE_URL_NOTIF = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
 const BIRTHDAY_TIMEZONE = 'Europe/Paris';
@@ -98,19 +99,21 @@ notificationsRoutes.get('/review-reminder-settings', async (c) => {
     db,
     userId,
     requestedPointVenteId,
-    'id, plan',
+    'id, plan, plan_override',
   );
 
   if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
 
   const flags = await loadCommerceFlags(db, commerce.id);
-  const planLimits = getPlanLimits(commerce.plan);
-  const normalizedPlan = normalizePlan(commerce.plan);
+  const effectivePlan = getEffectivePlanRaw(commerce);
+  const planLimits = getPlanLimits(effectivePlan);
+  const normalizedPlan = normalizePlan(effectivePlan);
   return c.json({
     data: {
       enabled: getReviewAutoEnabled(flags),
       plan: normalizedPlan,
       raw_plan: commerce.plan ?? 'starter',
+      plan_override: commerce.plan_override ?? null,
       is_pro: Boolean(planLimits.avisGoogle),
       delay_minutes: 60,
     },
@@ -129,11 +132,11 @@ notificationsRoutes.patch('/review-reminder-settings', async (c) => {
   }
 
   const db = createServiceClient();
-  const { commerce } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id, plan');
+  const { commerce } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id, plan, plan_override');
 
   if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
 
-  const planLimits = getPlanLimits(commerce.plan);
+  const planLimits = getPlanLimits(getEffectivePlanRaw(commerce));
   if (!planLimits.avisGoogle) {
     return c.json({ error: 'Cette automatisation est réservée au plan Pro.' }, 403);
   }
@@ -157,13 +160,14 @@ notificationsRoutes.get('/birthday-settings', async (c) => {
     db,
     userId,
     requestedPointVenteId,
-    'id, plan',
+    'id, plan, plan_override',
   );
 
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
-  const planLimits = getPlanLimits(commerce.plan);
-  const normalizedPlan = normalizePlan(commerce.plan);
+  const effectivePlan = getEffectivePlanRaw(commerce);
+  const planLimits = getPlanLimits(effectivePlan);
+  const normalizedPlan = normalizePlan(effectivePlan);
 
   let carte: Record<string, unknown> | null = null;
   const birthdaySelect = await db
@@ -198,6 +202,7 @@ notificationsRoutes.get('/birthday-settings', async (c) => {
       push_message: row?.birthday_push_message ?? defaultMessage,
       plan: normalizedPlan,
       raw_plan: commerce.plan ?? 'starter',
+      plan_override: commerce.plan_override ?? null,
       is_pro: Boolean(planLimits.anniversaire),
       schedule: {
         timezone: BIRTHDAY_TIMEZONE,
@@ -232,12 +237,12 @@ notificationsRoutes.patch('/birthday-settings', async (c) => {
     db,
     userId,
     requestedPointVenteId,
-    'id, plan',
+    'id, plan, plan_override',
   );
 
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
-  const planLimits = getPlanLimits(commerce.plan);
+  const planLimits = getPlanLimits(getEffectivePlanRaw(commerce));
   if (!planLimits.anniversaire) {
     return c.json({ error: 'Cette automatisation est réservée au plan Pro.' }, 403);
   }
@@ -314,12 +319,90 @@ notificationsRoutes.patch('/birthday-settings', async (c) => {
   });
 });
 
+/** GET /api/notifications/push-icon-settings — Couleur de fond du logo push */
+notificationsRoutes.get('/push-icon-settings', async (c) => {
+  const userId = c.get('userId') as string;
+  const db = createServiceClient();
+  const requestedPointVenteId = readRequestedPointVenteId(c);
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, plan, plan_override',
+  );
+
+  if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
+
+  const { data: carte } = await db
+    .from('cartes')
+    .select('id, push_icon_bg_color')
+    .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
+    .eq('actif', true)
+    .maybeSingle();
+
+  return c.json({
+    data: {
+      has_active_card: Boolean(carte),
+      push_icon_bg_color: (carte as { push_icon_bg_color?: string | null } | null)?.push_icon_bg_color ?? '#6366f1',
+    },
+  });
+});
+
+/** PATCH /api/notifications/push-icon-settings — Met à jour la couleur de fond du logo push */
+notificationsRoutes.patch('/push-icon-settings', async (c) => {
+  const userId = c.get('userId') as string;
+  const body = await c.req.json().catch(() => null);
+  const parsed = z.object({
+    push_icon_bg_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+  }).safeParse(body);
+  const requestedPointVenteId = readRequestedPointVenteId(c);
+
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.errors[0]?.message ?? 'Couleur invalide.' }, 400);
+  }
+
+  const db = createServiceClient();
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, plan, plan_override',
+  );
+
+  if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
+
+  const { data: carte } = await db
+    .from('cartes')
+    .select('id')
+    .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
+    .eq('actif', true)
+    .maybeSingle();
+
+  if (!carte) return c.json({ error: 'Aucune carte active sur ce point de vente.' }, 404);
+
+  const { error } = await db
+    .from('cartes')
+    .update({
+      push_icon_bg_color: parsed.data.push_icon_bg_color,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', (carte as { id: string }).id)
+    .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id);
+
+  if (error) return c.json({ error: 'Impossible de mettre à jour la couleur.' }, 500);
+
+  return c.json({ ok: true, data: { push_icon_bg_color: parsed.data.push_icon_bg_color } });
+});
+
 /** GET /api/notifications/summary — Résumé des canaux réellement disponibles */
 notificationsRoutes.get('/summary', async (c) => {
   const userId = c.get('userId') as string;
   const db = createServiceClient();
   const requestedPointVenteId = readRequestedPointVenteId(c);
-  const { commerce, pointVente } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id, plan');
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id, plan, plan_override');
 
   if (!commerce || !pointVente) {
     return c.json({
@@ -361,7 +444,7 @@ notificationsRoutes.get('/', async (c) => {
   const limit = Math.min(parseInt(c.req.query('limit') ?? '20'), 100);
   const db = createServiceClient();
   const requestedPointVenteId = readRequestedPointVenteId(c);
-  const { commerce, pointVente } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id, plan');
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id, plan, plan_override');
 
   if (!commerce || !pointVente) return c.json({ data: [] });
 
@@ -394,7 +477,7 @@ notificationsRoutes.post('/', async (c) => {
   }
 
   const db = createServiceClient();
-  const { commerce, pointVente } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id, plan');
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id, plan, plan_override');
 
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
@@ -540,7 +623,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
     db,
     userId,
     requestedPointVenteId,
-    'id, plan, nom',
+    'id, plan, plan_override, nom',
   );
   const commerceError = null;
 
@@ -550,12 +633,13 @@ notificationsRoutes.post('/review-campaign', async (c) => {
   const flags = await loadCommerceFlags(db, commerce.id);
 
   // Vérification plan : avis Google réservé au plan Pro
-  const planLimits = getPlanLimits(commerce.plan);
+  const effectivePlan = getEffectivePlanRaw(commerce);
+  const planLimits = getPlanLimits(effectivePlan);
   console.log('[review-campaign] planLimits.avisGoogle:', planLimits.avisGoogle);
   if (!planLimits.avisGoogle) {
     return c.json({
-      error: `La campagne avis Google est réservée au plan Pro. Plan actuel : ${commerce.plan ?? 'starter (colonne plan absente ou null)'}. Mettez à niveau votre abonnement.`,
-      plan: commerce.plan ?? null,
+      error: `La campagne avis Google est réservée au plan Pro. Plan actuel : ${effectivePlan}. Mettez à niveau votre abonnement.`,
+      plan: effectivePlan,
     }, 403);
   }
 

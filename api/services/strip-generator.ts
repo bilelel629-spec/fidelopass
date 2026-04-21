@@ -24,6 +24,16 @@ interface StripOptions {
   showBranding?: boolean;
 }
 
+interface PassBackgroundOptions {
+  couleurFond: string;
+  couleurAccent: string;
+  couleurFond2?: string | null;
+  gradientAngle?: number | null;
+  patternType?: string | null;
+  width?: number;
+  height?: number;
+}
+
 const BRANDING_WATERMARK_PATHS = [
   resolve(process.cwd(), 'public/logo-premium-cropped.png'),
   resolve(process.cwd(), 'assets/pass/logo.png'),
@@ -292,6 +302,24 @@ async function buildBaseStripBackground(opts: StripOptions, W: number, H: number
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
+async function buildBaseBackground(
+  couleurFond: string,
+  couleurFond2: string | null | undefined,
+  gradientAngle: number | null | undefined,
+  W: number,
+  H: number,
+): Promise<Buffer> {
+  const fnd = hexToRgb(couleurFond);
+  const hasDeg = !!couleurFond2;
+  const defs = hasDeg ? gradientDef(couleurFond, couleurFond2!, gradientAngle ?? 135) : '';
+  const bgFill = hasDeg ? 'url(#bg)' : `rgb(${fnd.r},${fnd.g},${fnd.b})`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
+    ${defs}
+    <rect width="${W}" height="${H}" fill="${bgFill}"/>
+  </svg>`;
+  return sharp(Buffer.from(svg)).png().toBuffer();
+}
+
 async function applyPatternOverlay(base: Buffer, patternType: string | null | undefined, accentColor: string, W: number, H: number): Promise<Buffer> {
   if (!patternType || patternType === 'none') return base;
   const overlaySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
@@ -301,6 +329,19 @@ async function applyPatternOverlay(base: Buffer, patternType: string | null | un
     .composite([{ input: Buffer.from(overlaySvg), blend: 'over' }])
     .png()
     .toBuffer();
+}
+
+export async function generatePassBackgroundImage(opts: PassBackgroundOptions): Promise<Buffer> {
+  const W = opts.width ?? 360;
+  const H = opts.height ?? 440;
+  const base = await buildBaseBackground(
+    opts.couleurFond,
+    opts.couleurFond2,
+    opts.gradientAngle,
+    W,
+    H,
+  );
+  return applyPatternOverlay(base, opts.patternType, opts.couleurAccent, W, H);
 }
 
 async function prepareCircularTamponIcon(iconUrl: string | null | undefined, diameter: number): Promise<Buffer | null> {

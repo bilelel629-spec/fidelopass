@@ -5,7 +5,7 @@ import { tmpdir } from 'os';
 import { randomUUID } from 'crypto';
 import { connect } from 'http2';
 import sharp from 'sharp';
-import { generateStripImage } from './strip-generator';
+import { generatePassBackgroundImage, generateStripImage } from './strip-generator';
 
 interface CarteData {
   id: string;
@@ -319,6 +319,15 @@ export async function generateApplePass(
     stripLayout: carte.strip_layout,
     showBranding: false,
   });
+  const background2x = await generatePassBackgroundImage({
+    couleurFond: carte.couleur_fond,
+    couleurAccent: carte.couleur_accent,
+    couleurFond2: carte.couleur_fond_2,
+    gradientAngle: carte.gradient_angle,
+    patternType: carte.pattern_type,
+    width: 360,
+    height: 440,
+  });
 
   // ── Logo ──────────────────────────────────────────────────────────
   const logoUrl = carte.logo_url ?? carte.commerces.logo_url;
@@ -352,6 +361,11 @@ export async function generateApplePass(
     const strip1x = await sharp(stripBuffer).resize(375, 123, { fit: 'cover' }).png().toBuffer();
     writeFileSync(resolve(tmpPassDir, 'strip.png'), strip1x);
     writeFileSync(resolve(tmpPassDir, 'strip@2x.png'), stripBuffer);
+    const background1x = await sharp(background2x).resize(180, 220, { fit: 'cover' }).png().toBuffer();
+    const background3x = await sharp(background2x).resize(540, 660, { fit: 'cover' }).png().toBuffer();
+    writeFileSync(resolve(tmpPassDir, 'background.png'), background1x);
+    writeFileSync(resolve(tmpPassDir, 'background@2x.png'), background2x);
+    writeFileSync(resolve(tmpPassDir, 'background@3x.png'), background3x);
 
     const pass = await PKPass.from(
       {

@@ -3,210 +3,127 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 ---
 
 <DashboardLayout title="Mon compte commerçant — Fidelopass" activeNav="parametres">
-  <div class="mb-8">
-    <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Espace commerçant</p>
-    <h1 class="font-display text-3xl font-bold text-slate-900 mt-2">Mon compte commerçant</h1>
-    <p class="text-slate-600 text-sm mt-2">Retrouvez ici vos informations de profil, votre organisation et les éléments liés à votre abonnement.</p>
+  <div class="mb-6">
+    <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Compte commerçant</p>
+    <h1 class="mt-2 font-display text-3xl font-bold text-slate-900">Mon compte</h1>
+    <p class="mt-2 text-sm text-slate-600">Gérez vos informations, votre abonnement et l’organisation de vos points de vente.</p>
   </div>
 
-  <div class="grid xl:grid-cols-[240px_1fr] gap-6 items-start">
-    <aside class="card p-3">
-      <div class="grid gap-1">
-        {[
-          ['profil', 'Profil'],
-          ['abonnement', 'Abonnement et facturation'],
-          ['plans', 'Plans'],
-          ['organisation', 'Organisation'],
-          ['paiements', 'Paiements'],
-        ].map(([value, label], index) => (
-          <button
-            type="button"
-            class={`account-tab rounded-2xl px-4 py-3 text-left text-sm font-medium transition-all ${index === 0 ? 'bg-sky-100 text-sky-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
-            data-tab={value}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-    </aside>
-
-    <div class="space-y-6">
-      <section id="tab-profil" class="account-panel card p-6">
-        <h2 class="font-display font-bold text-slate-900 text-xl mb-5">Profil</h2>
-        <form id="settings-form" class="flex flex-col gap-5">
-          <div class="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label class="label" for="nom">Nom du commerce</label>
-              <input id="nom" type="text" class="input" placeholder="Ma Boutique" required />
-            </div>
-            <div>
-              <label class="label" for="telephone">Téléphone</label>
-              <input id="telephone" type="tel" class="input" placeholder="06 12 34 56 78" />
-            </div>
-          </div>
-
-          <div>
-            <label class="label" for="email-commerce">Email contact</label>
-            <input id="email-commerce" type="email" class="input" placeholder="contact@moncommerce.fr" />
-          </div>
-
-          <div class="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-slate-700">
-            L’adresse du commerce et le rayon de géolocalisation se règlent maintenant dans
-            <a href="/dashboard/carte" class="font-semibold text-sky-700 underline underline-offset-2">Ma carte → Géolocalisation</a>.
-          </div>
-
-          <div id="error-msg" class="hidden text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3"></div>
-          <div id="success-msg" class="hidden text-emerald-700 text-sm bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3"></div>
-
-          <div class="flex gap-3">
-            <button type="submit" class="btn-primary px-6 py-2.5">Enregistrer</button>
-          </div>
-        </form>
-      </section>
-
-      <section id="tab-abonnement" class="account-panel hidden card p-6">
-        <h2 class="font-display font-bold text-slate-900 text-xl mb-2">Abonnement et facturation</h2>
-        <p class="text-slate-600 text-sm mb-5">Cette section prépare l’arrivée du vrai suivi abonnement. Pour l’instant, on y met les repères utiles et les prochaines étapes de facturation.</p>
-        <div class="grid gap-4 lg:grid-cols-2">
-          <div class="rounded-2xl border border-sky-100 bg-sky-50/90 p-5">
-            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600/80">Plan actuel</p>
-            <p class="mt-2 text-xl font-semibold text-slate-900">Plan en cours de configuration</p>
-            <p class="mt-2 text-sm text-slate-600">Votre produit est prêt à recevoir une vraie logique de plan. On branchera ici le plan choisi, le renouvellement et le statut d’essai.</p>
-          </div>
-          <div class="rounded-2xl border border-slate-200 bg-white p-5">
-            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Facturation</p>
-            <p class="mt-2 text-xl font-semibold text-slate-900">Mise en place par l’équipe</p>
-            <p class="mt-2 text-sm text-slate-600">Comme prévu sur la vitrine, la mise en place accompagnée pourra apparaître ici comme option à 20€ une seule fois.</p>
-          </div>
-        </div>
-      </section>
-
-      <section id="tab-plans" class="account-panel hidden card p-6">
-        <h2 class="font-display font-bold text-slate-900 text-xl mb-2">Plans</h2>
-        <p class="text-slate-600 text-sm mb-5">Comparez les offres Fidelopass et préparez vos évolutions de capacité sans sortir de l’espace commerçant.</p>
-        <div class="mb-5 rounded-2xl border border-sky-100 bg-sky-50/80 p-4">
-          <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700/75">Gestion abonnement</p>
-          <p class="mt-2 text-sm text-slate-700">
-            Plan actuel :
-            <span id="plans-current-plan" class="font-semibold text-slate-900">Chargement…</span>
-            ·
-            Statut :
-            <span id="plans-current-status" class="font-semibold text-slate-900">Chargement…</span>
-          </p>
-          <div class="mt-4 flex flex-col gap-2 sm:flex-row">
-            <a id="plans-upgrade-btn" href="/abonnement/choix" class="btn-primary px-4 py-2.5 text-sm text-center">
-              Passer au plan supérieur
-            </a>
-            <button id="plans-cancel-btn" type="button" class="btn-secondary px-4 py-2.5 text-sm">
-              Annuler / gérer mon abonnement
-            </button>
-          </div>
-          <p id="plans-action-feedback" class="hidden mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"></p>
-        </div>
-        <div class="grid gap-4 xl:grid-cols-3">
-          <div class="rounded-2xl border border-slate-200 bg-white p-5">
-            <p class="text-sm font-semibold text-slate-900">Lancement</p>
-            <p class="mt-2 text-3xl font-bold text-slate-900">25€<span class="text-sm font-medium text-slate-500">/mois</span></p>
-            <p class="mt-3 text-sm text-slate-600">Jusqu’à 500 cartes clients actives, 3 scanners inclus, notifications push, points & VIP, géolocalisation.</p>
-          </div>
-          <div class="rounded-2xl border border-sky-200 bg-sky-50 p-5 shadow-[0_20px_50px_-38px_rgba(59,130,246,0.7)]">
-            <p class="text-sm font-semibold text-slate-900">Croissance</p>
-            <p class="mt-2 text-3xl font-bold text-slate-900">65€<span class="text-sm font-medium text-slate-500">/mois</span></p>
-            <p class="mt-3 text-sm text-slate-600">Jusqu’à 5 000 cartes clients actives, 3 lieux / commerces, 6 scanners par lieu.</p>
-          </div>
-          <div class="rounded-2xl border border-slate-200 bg-white p-5">
-            <p class="text-sm font-semibold text-slate-900">Sur mesure</p>
-            <p class="mt-2 text-3xl font-bold text-slate-900">Sur devis</p>
-            <p class="mt-3 text-sm text-slate-600">Volume, multi-sites et équipement adaptés à votre réseau. Scanner supplémentaire à partir de 5€.</p>
-          </div>
-        </div>
-        <a href="/pricing" class="btn-secondary mt-5 inline-flex px-4 py-2.5 text-sm">Voir la page tarifs complète</a>
-      </section>
-
-      <section id="tab-organisation" class="account-panel hidden card p-6">
-        <h2 class="font-display font-bold text-slate-900 text-xl mb-2">Organisation</h2>
-        <p class="text-slate-600 text-sm mb-5">Cette zone prépare la gestion multi-lieux, les associés et l’équipement scanner du personnel.</p>
-        <div class="grid gap-4 lg:grid-cols-2">
-          <div class="rounded-2xl border border-slate-200 bg-white p-5">
-            <p class="text-sm font-semibold text-slate-900">Lieu principal</p>
-            <p id="organisation-adresse" class="mt-2 text-sm text-slate-600">Adresse en cours de chargement…</p>
-            <p id="organisation-rayon" class="mt-2 text-xs text-slate-500">Rayon de géolocalisation : —</p>
-            <a href="/dashboard/carte" class="btn-secondary mt-4 inline-flex px-4 py-2.5 text-sm">Modifier l’adresse et la proximité</a>
-          </div>
-          <div class="rounded-2xl border border-slate-200 bg-white p-5">
-            <p class="text-sm font-semibold text-slate-900">Équipe & scanner</p>
-            <p class="mt-2 text-sm text-slate-600">Le scanner du personnel se configure désormais après la création de la carte. Cette section accueillera ensuite les accès par collaborateur.</p>
-            <a href="/dashboard/carte" class="btn-secondary mt-4 inline-flex px-4 py-2.5 text-sm">Configurer la carte et le scanner</a>
-          </div>
-        </div>
-      </section>
-
-      <section id="tab-paiements" class="account-panel hidden card p-6">
-        <h2 class="font-display font-bold text-slate-900 text-xl mb-2">Paiements</h2>
-        <p class="text-slate-600 text-sm mb-5">Retrouvez ici les encaissements liés à votre abonnement et les informations bancaires nécessaires, dès le branchement de la facturation réelle.</p>
-        <div class="grid gap-4 lg:grid-cols-2">
-          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <p class="text-slate-900 font-medium">Paiements à connecter</p>
-            <p class="text-slate-600 text-sm mt-1">Cette section recevra la méthode de paiement, les prochaines échéances et l’historique des factures.</p>
-          </div>
-          <div class="rounded-2xl border border-sky-100 bg-sky-50/90 p-5">
-            <p class="text-slate-900 font-medium">Besoin d’un coup de main ?</p>
-            <p class="text-slate-600 text-sm mt-1">En attendant, on peut garder ici un support manuel pour la mise en place et les ajustements de facturation.</p>
-            <a href="/contact" class="btn-secondary mt-4 inline-flex px-4 py-2.5 text-sm">Contacter l’équipe</a>
-          </div>
-        </div>
-      </section>
-
-      <section class="card p-6 border border-red-100">
-        <h2 class="font-display font-bold text-slate-900 mb-1">Déconnexion</h2>
-        <p class="text-slate-600 text-sm mb-4">Vous serez redirigé vers la page de connexion.</p>
-        <button id="logout-btn" class="btn-secondary text-red-600 hover:text-red-600 hover:bg-red-50 border-red-200 px-5 py-2">
-          Se déconnecter
-        </button>
-      </section>
+  <div class="mb-5 rounded-2xl border border-sky-100 bg-white p-2">
+    <div class="grid gap-2 sm:grid-cols-3">
+      <button type="button" data-tab="profil" class="account-tab rounded-xl bg-sky-100 px-4 py-2.5 text-sm font-semibold text-sky-800">Profil</button>
+      <button type="button" data-tab="abonnement" class="account-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Abonnement</button>
+      <button type="button" data-tab="organisation" class="account-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Organisation</button>
     </div>
   </div>
+
+  <section id="tab-profil" class="account-panel card p-6">
+    <h2 class="mb-5 font-display text-xl font-bold text-slate-900">Profil du commerce</h2>
+    <form id="settings-form" class="flex flex-col gap-5">
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label class="label" for="nom">Nom du commerce</label>
+          <input id="nom" type="text" class="input" placeholder="Ma Boutique" required />
+        </div>
+        <div>
+          <label class="label" for="telephone">Téléphone</label>
+          <input id="telephone" type="tel" class="input" placeholder="06 12 34 56 78" />
+        </div>
+      </div>
+      <div>
+        <label class="label" for="email-commerce">Email contact</label>
+        <input id="email-commerce" type="email" class="input" placeholder="contact@moncommerce.fr" />
+      </div>
+      <div class="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-slate-700">
+        Adresse, géolocalisation et message de proximité se règlent dans
+        <a href="/dashboard/carte" class="font-semibold text-sky-700 underline underline-offset-2">Ma carte</a>.
+      </div>
+      <div id="error-msg" class="hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+      <div id="success-msg" class="hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
+      <button type="submit" class="btn-primary w-fit px-6 py-2.5">Enregistrer</button>
+    </form>
+  </section>
+
+  <section id="tab-abonnement" class="account-panel hidden card p-6">
+    <h2 class="mb-5 font-display text-xl font-bold text-slate-900">Abonnement</h2>
+    <div class="grid gap-4 lg:grid-cols-2">
+      <div class="rounded-2xl border border-sky-100 bg-sky-50/80 p-5">
+        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700/75">Plan actuel</p>
+        <p class="mt-2 text-xl font-semibold text-slate-900"><span id="plans-current-plan">Chargement…</span></p>
+        <p class="mt-1 text-sm text-slate-600">Statut: <span id="plans-current-status" class="font-semibold text-slate-900">Chargement…</span></p>
+        <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+          <a id="plans-upgrade-btn" href="/abonnement/choix" class="btn-primary px-4 py-2.5 text-sm text-center">Changer de plan</a>
+          <button id="plans-cancel-btn" type="button" class="btn-secondary px-4 py-2.5 text-sm">Gérer mon abonnement</button>
+        </div>
+        <p id="plans-action-feedback" class="hidden mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"></p>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white p-5">
+        <p class="text-sm font-semibold text-slate-900">Résumé capacité</p>
+        <ul class="mt-3 space-y-2 text-sm text-slate-600">
+          <li>Starter: 1 point de vente, 3 scanners</li>
+          <li>Pro: jusqu’à 3 points de vente, 6 scanners par lieu</li>
+          <li>Sur mesure: capacité adaptée à votre réseau</li>
+        </ul>
+        <a href="/pricing" class="btn-secondary mt-4 inline-flex px-4 py-2.5 text-sm">Voir les tarifs détaillés</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-organisation" class="account-panel hidden card p-6">
+    <h2 class="mb-5 font-display text-xl font-bold text-slate-900">Organisation</h2>
+    <div class="grid gap-4 lg:grid-cols-2">
+      <div class="rounded-2xl border border-slate-200 bg-white p-5">
+        <p class="text-sm font-semibold text-slate-900">Point de vente actif</p>
+        <p id="organisation-adresse" class="mt-2 text-sm text-slate-600">Adresse en cours de chargement…</p>
+        <p id="organisation-rayon" class="mt-2 text-xs text-slate-500">Rayon de géolocalisation: —</p>
+        <a href="/dashboard/points-vente" class="btn-secondary mt-4 inline-flex px-4 py-2.5 text-sm">Gérer les points de vente</a>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white p-5">
+        <p class="text-sm font-semibold text-slate-900">Scanner équipe</p>
+        <p class="mt-2 text-sm text-slate-600">Installez le scanner en caisse et partagez le QR client rapidement.</p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <a href="/app/install" class="btn-secondary px-4 py-2.5 text-sm">Installer un scanner</a>
+          <a href="/dashboard/carte" class="btn-secondary px-4 py-2.5 text-sm">Afficher le QR client</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mt-6 card border border-red-100 p-6">
+    <h2 class="mb-1 font-display font-bold text-slate-900">Déconnexion</h2>
+    <p class="mb-4 text-sm text-slate-600">Vous serez redirigé vers la page de connexion.</p>
+    <button id="logout-btn" class="btn-secondary border-red-200 px-5 py-2 text-red-600 hover:bg-red-50 hover:text-red-600">
+      Se déconnecter
+    </button>
+  </section>
 </DashboardLayout>
 
 <script>
   import { authFetch } from '../../lib/api';
   import { signOut } from '../../lib/auth';
+  import { planLabel } from '../../lib/dashboard-config';
 
   function setAccountTab(tab: string) {
-    document.querySelectorAll('.account-tab').forEach((el) => {
-      const button = el as HTMLButtonElement;
-      const isActive = button.dataset.tab === tab;
-      button.className = isActive
-        ? 'account-tab rounded-2xl px-4 py-3 text-left text-sm font-medium transition-all bg-sky-100 text-sky-800'
-        : 'account-tab rounded-2xl px-4 py-3 text-left text-sm font-medium transition-all text-slate-600 hover:bg-slate-50 hover:text-slate-900';
+    document.querySelectorAll<HTMLElement>('.account-tab').forEach((button) => {
+      const active = button.dataset.tab === tab;
+      button.className = active
+        ? 'account-tab rounded-xl bg-sky-100 px-4 py-2.5 text-sm font-semibold text-sky-800'
+        : 'account-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50';
     });
-    document.querySelectorAll('.account-panel').forEach((panel) => panel.classList.add('hidden'));
+    document.querySelectorAll<HTMLElement>('.account-panel').forEach((panel) => panel.classList.add('hidden'));
     document.getElementById(`tab-${tab}`)?.classList.remove('hidden');
   }
 
-  document.querySelectorAll('.account-tab').forEach((button) => {
-    button.addEventListener('click', () => setAccountTab((button as HTMLButtonElement).dataset.tab ?? 'profil'));
+  document.querySelectorAll<HTMLElement>('.account-tab').forEach((button) => {
+    button.addEventListener('click', () => setAccountTab(button.dataset.tab ?? 'profil'));
   });
 
   const requestedTab = new URLSearchParams(window.location.search).get('tab');
   if (requestedTab) setAccountTab(requestedTab);
 
-  async function loadSettings() {
-    try {
-      const res = await authFetch('/api/commerces/me');
-      if (!res.ok) return;
-      const { data } = await res.json();
-      if (!data) return;
-
-      (document.getElementById('nom') as HTMLInputElement).value = data.nom ?? '';
-      (document.getElementById('telephone') as HTMLInputElement).value = data.telephone ?? '';
-      (document.getElementById('email-commerce') as HTMLInputElement).value = data.email ?? '';
-
-      document.getElementById('organisation-adresse')!.textContent = data.adresse ?? 'Adresse non renseignée';
-      document.getElementById('organisation-rayon')!.textContent = `Rayon de géolocalisation : ${(data.rayon_geo ?? 1000).toLocaleString('fr-FR')} m`;
-    } catch { /* silencieux */ }
-  }
-
+  const form = document.getElementById('settings-form') as HTMLFormElement;
+  const errorMsg = document.getElementById('error-msg') as HTMLDivElement;
+  const successMsg = document.getElementById('success-msg') as HTMLDivElement;
   const plansCurrentPlan = document.getElementById('plans-current-plan') as HTMLSpanElement;
   const plansCurrentStatus = document.getElementById('plans-current-status') as HTMLSpanElement;
   const plansUpgradeBtn = document.getElementById('plans-upgrade-btn') as HTMLAnchorElement;
@@ -223,6 +140,23 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     plansActionFeedback.classList.remove('hidden');
   }
 
+  async function loadSettings() {
+    try {
+      const res = await authFetch('/api/commerces/me');
+      if (!res.ok) return;
+      const { data } = await res.json();
+      if (!data) return;
+
+      (document.getElementById('nom') as HTMLInputElement).value = data.nom ?? '';
+      (document.getElementById('telephone') as HTMLInputElement).value = data.telephone ?? '';
+      (document.getElementById('email-commerce') as HTMLInputElement).value = data.email ?? '';
+      document.getElementById('organisation-adresse')!.textContent = data.adresse ?? 'Adresse non renseignée';
+      document.getElementById('organisation-rayon')!.textContent = `Rayon de géolocalisation: ${(data.rayon_geo ?? 1000).toLocaleString('fr-FR')} m`;
+    } catch {
+      // best effort
+    }
+  }
+
   async function loadPlansControls() {
     try {
       const res = await authFetch('/api/billing/status');
@@ -231,52 +165,44 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const data = payload?.data;
       if (!data) throw new Error();
 
-      const plan = String(data.plan ?? 'starter').trim().toLowerCase();
-      const isPro = plan === 'pro' || plan.startsWith('pro-') || plan.includes('pro');
-      const isStarter = plan === 'starter' || plan.startsWith('starter-') || plan.includes('starter');
-      const isCustom = plan.includes('sur-mesure') || plan.includes('surmesure') || plan.includes('custom') || plan.includes('enterprise');
+      const rawPlan = data.plan ?? 'starter';
+      const readablePlan = planLabel(rawPlan);
       const status = String(data.billing_status ?? 'unpaid');
       const hasSubscription = Boolean(data.stripe_subscription_id);
-      const readablePlan = isCustom ? 'Sur mesure' : isPro ? 'Pro' : 'Starter';
 
       plansCurrentPlan.textContent = readablePlan;
       plansCurrentStatus.textContent = status;
 
-      if (isStarter) {
+      if (readablePlan === 'STARTER') {
         plansUpgradeBtn.textContent = 'Passer au plan Pro';
         plansUpgradeBtn.href = '/abonnement/choix';
-      } else if (isPro) {
+      } else if (readablePlan === 'PRO') {
         plansUpgradeBtn.textContent = 'Passer en Sur mesure';
         plansUpgradeBtn.href = '/contact';
       } else {
-        plansUpgradeBtn.textContent = 'Plan déjà sur mesure';
+        plansUpgradeBtn.textContent = 'Contacter l’équipe';
         plansUpgradeBtn.href = '/contact';
       }
 
       plansCancelBtn.disabled = !hasSubscription;
+      plansCancelBtn.classList.toggle('opacity-50', !hasSubscription);
+      plansCancelBtn.classList.toggle('cursor-not-allowed', !hasSubscription);
       if (!hasSubscription) {
-        plansCancelBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        setPlansFeedback("Aucun abonnement Stripe actif détecté pour l'instant.");
+        setPlansFeedback('Aucun abonnement Stripe actif détecté pour le moment.');
       } else {
-        plansCancelBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         setPlansFeedback('');
       }
     } catch {
       plansCurrentPlan.textContent = 'Indisponible';
       plansCurrentStatus.textContent = 'Indisponible';
-      setPlansFeedback("Impossible de charger le statut d'abonnement.");
+      setPlansFeedback('Impossible de charger le statut d’abonnement.');
     }
   }
 
-  const form = document.getElementById('settings-form') as HTMLFormElement;
-  const errorMsg = document.getElementById('error-msg') as HTMLDivElement;
-  const successMsg = document.getElementById('success-msg') as HTMLDivElement;
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
     errorMsg.classList.add('hidden');
     successMsg.classList.add('hidden');
-
     const btn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
     btn.disabled = true;
     btn.textContent = 'Enregistrement...';
@@ -290,27 +216,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           email: (document.getElementById('email-commerce') as HTMLInputElement).value || null,
         }),
       });
-
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Erreur');
-      const { data } = await res.json();
-
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error ?? 'Erreur');
       successMsg.textContent = 'Profil commerçant enregistré.';
       successMsg.classList.remove('hidden');
-
-      document.getElementById('organisation-adresse')!.textContent = data?.adresse ?? 'Adresse non renseignée';
-      document.getElementById('organisation-rayon')!.textContent = `Rayon de géolocalisation : ${(data?.rayon_geo ?? 1000).toLocaleString('fr-FR')} m`;
-    } catch (err: unknown) {
-      errorMsg.textContent = err instanceof Error ? err.message : 'Erreur lors de l’enregistrement.';
+      await loadSettings();
+    } catch (error: unknown) {
+      errorMsg.textContent = error instanceof Error ? error.message : 'Erreur lors de l’enregistrement.';
       errorMsg.classList.remove('hidden');
     } finally {
       btn.disabled = false;
       btn.textContent = 'Enregistrer';
     }
-  });
-
-  document.getElementById('logout-btn')!.addEventListener('click', async () => {
-    await signOut();
-    window.location.href = '/login';
   });
 
   plansCancelBtn.addEventListener('click', async () => {
@@ -321,17 +238,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     try {
       const res = await authFetch('/api/checkout/create-portal-session', { method: 'POST' });
       const payload = await res.json().catch(() => null);
-      if (!res.ok || !payload?.url) {
-        throw new Error(payload?.error ?? 'Impossible d’ouvrir la gestion de l’abonnement.');
-      }
+      if (!res.ok || !payload?.url) throw new Error(payload?.error ?? 'Impossible d’ouvrir la gestion de l’abonnement.');
       window.location.href = payload.url;
-    } catch (error) {
+    } catch (error: unknown) {
       setPlansFeedback(error instanceof Error ? error.message : 'Impossible d’ouvrir la gestion de l’abonnement.');
       plansCancelBtn.disabled = false;
-      plansCancelBtn.textContent = previousLabel ?? 'Annuler / gérer mon abonnement';
+      plansCancelBtn.textContent = previousLabel ?? 'Gérer mon abonnement';
     }
+  });
+
+  document.getElementById('logout-btn')!.addEventListener('click', async () => {
+    await signOut();
+    window.location.href = '/login';
   });
 
   loadSettings();
   loadPlansControls();
 </script>
+

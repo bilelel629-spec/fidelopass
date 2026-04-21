@@ -3,107 +3,98 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 ---
 
 <DashboardLayout title="Notifications push — Fidelopass" activeNav="notifications">
-  <div class="mb-8">
+  <div class="mb-6">
     <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Communication client</p>
-    <h1 class="font-display text-3xl font-bold text-slate-900 mt-2">Notifications push</h1>
-    <p class="text-slate-600 text-sm mt-2">Envoyez un message à vos porteurs de carte et suivez les clients réellement joignables depuis votre programme fidélité.</p>
+    <h1 class="mt-2 font-display text-3xl font-bold text-slate-900">Notifications push</h1>
+    <p class="mt-2 text-sm text-slate-600">Envoyez un message immédiat ou activez des automatisations pour vos clients Wallet.</p>
   </div>
 
-  <div id="notif-summary" class="grid gap-4 md:grid-cols-1 mb-6">
+  <div class="mb-5 grid gap-4 sm:grid-cols-2">
     <div class="card p-5">
-      <p class="text-slate-500 text-xs uppercase tracking-wide">Canal Wallet</p>
-      <p id="summary-wallet" class="text-slate-900 text-2xl font-display font-bold mt-2">—</p>
-      <p class="text-slate-600 text-sm mt-2">Clients joignables sans app via Apple Wallet ou Google Wallet.</p>
+      <p class="text-slate-500 text-xs uppercase tracking-wide">Clients joignables Wallet</p>
+      <p id="summary-wallet" class="mt-2 text-2xl font-display font-bold text-slate-900">—</p>
+      <p class="mt-1 text-xs text-slate-500">Apple Wallet + Google Wallet</p>
+    </div>
+    <div class="card p-5">
+      <p class="text-slate-500 text-xs uppercase tracking-wide">Campagnes envoyées</p>
+      <p id="summary-history" class="mt-2 text-2xl font-display font-bold text-slate-900">—</p>
+      <p class="mt-1 text-xs text-slate-500">Historique du point de vente actif</p>
     </div>
   </div>
 
-  <div class="grid lg:grid-cols-2 gap-6">
-    <!-- Formulaire d'envoi -->
-    <div class="card p-6">
-      <h2 class="font-display font-bold text-slate-900 mb-4">Nouveau message client</h2>
-      <form id="notif-form" class="flex flex-col gap-4">
-        <div>
-          <label class="label" for="titre">Titre</label>
-          <input id="titre" type="text" class="input" placeholder="Ex: Offre du weekend !" maxlength="50" required />
-        </div>
-        <div>
-          <label class="label" for="message">Message</label>
-          <textarea
-            id="message"
-            class="input resize-none h-24"
-            placeholder="Ex: -20% sur tout le magasin ce samedi uniquement 🎉"
-            maxlength="150"
-            required
-          ></textarea>
-          <span class="text-slate-500 text-xs mt-1 block text-right">
-            <span id="char-count">0</span>/150
-          </span>
-        </div>
-
-        <div id="error-msg" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"></div>
-        <div id="success-msg" class="hidden text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3"></div>
-
-        <button type="submit" class="btn-primary py-3">
-          Envoyer le message
-        </button>
-      </form>
+  <div class="mb-5 rounded-2xl border border-sky-100 bg-white p-2">
+    <div class="grid gap-2 sm:grid-cols-3">
+      <button type="button" data-tab="manual" class="notif-tab rounded-xl bg-sky-100 px-4 py-2.5 text-sm font-semibold text-sky-800">Envoi manuel</button>
+      <button type="button" data-tab="automation" class="notif-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Automatisations</button>
+      <button type="button" data-tab="history" class="notif-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Historique</button>
     </div>
+  </div>
 
-    <!-- Push auto avis Google -->
-    <div class="card p-6 border-sky-100 bg-sky-50/40">
-      <div class="flex items-start justify-between gap-3 mb-4">
+  <section id="tab-manual" class="notif-panel card p-6">
+    <h2 class="mb-4 font-display font-bold text-slate-900">Nouveau message client</h2>
+    <form id="notif-form" class="flex flex-col gap-4">
+      <div>
+        <label class="label" for="titre">Titre</label>
+        <input id="titre" type="text" class="input" placeholder="Ex: Offre du weekend" maxlength="50" required />
+      </div>
+      <div>
+        <label class="label" for="message">Message</label>
+        <textarea id="message" class="input h-24 resize-none" placeholder="Ex: -20% ce samedi pour les membres fidélité." maxlength="150" required></textarea>
+        <span class="mt-1 block text-right text-xs text-slate-500"><span id="char-count">0</span>/150</span>
+      </div>
+      <div id="error-msg" class="hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+      <div id="success-msg" class="hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
+      <button type="submit" class="btn-primary py-3">Envoyer le message</button>
+    </form>
+  </section>
+
+  <section id="tab-automation" class="notif-panel hidden space-y-5">
+    <div class="card border-sky-100 bg-sky-50/40 p-6">
+      <div class="mb-4 flex items-start justify-between gap-3">
         <div>
           <h2 class="font-display font-bold text-slate-900">Avis Google automatique (+1h)</h2>
-          <p class="text-slate-500 text-sm mt-1">Envoie automatiquement un push 60 minutes après l'installation de la carte pour inviter le client à laisser un avis Google.</p>
+          <p class="mt-1 text-sm text-slate-500">Push envoyé 60 minutes après l’installation de la carte.</p>
         </div>
         <span class="rounded-full border border-amber-200 bg-amber-100 px-2 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-700">Pro uniquement</span>
       </div>
-      <div id="review-auto-plan-info" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-600 text-sm mb-4">
+      <div class="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
         Plan actuel: <span id="review-auto-plan-value" class="font-semibold text-slate-900">Chargement...</span>
       </div>
-      <div id="review-auto-locked" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-700 text-sm mb-4">
-        Cette fonctionnalite est reservee au plan Pro. Ce n'est pas un bug. Passez au plan Pro pour l'activer depuis cette page.
-        <a href="/pricing" class="font-semibold underline ml-1">Voir les plans</a>
+      <div id="review-auto-locked" class="mb-4 hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+        Cette fonctionnalité est réservée au plan Pro.
       </div>
-      <div id="review-auto-error" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-3"></div>
-      <div id="review-auto-success" class="hidden text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 mb-3"></div>
+      <div id="review-auto-error" class="mb-3 hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+      <div id="review-auto-success" class="mb-3 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
       <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
         <div>
-          <p class="text-slate-800 text-sm font-medium">Activer le push avis Google automatique</p>
-          <p class="text-slate-500 text-xs mt-0.5">Le lien Google Maps de la carte active est utilisé dans le push.</p>
+          <p class="text-sm font-medium text-slate-800">Activer l’automatisation</p>
+          <p class="mt-0.5 text-xs text-slate-500">Utilise le lien Google Maps du point de vente actif.</p>
         </div>
-        <button
-          id="review-auto-toggle"
-          type="button"
-          class="relative w-12 h-6 rounded-full transition-colors flex-shrink-0"
-          style="background:#334155"
-          aria-pressed="false"
-        >
-          <span id="review-auto-knob" class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" style="left:2px"></span>
+        <button id="review-auto-toggle" type="button" class="relative h-6 w-12 flex-shrink-0 rounded-full transition-colors" style="background:#334155" aria-pressed="false">
+          <span id="review-auto-knob" class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all" style="left:2px"></span>
         </button>
       </div>
-      <p id="review-auto-status" class="text-slate-500 text-xs mt-2 text-center">Chargement du statut...</p>
+      <p id="review-auto-status" class="mt-2 text-center text-xs text-slate-500">Chargement du statut...</p>
     </div>
 
-    <!-- Push auto anniversaire -->
-    <div class="card p-6 border-pink-100 bg-pink-50/40">
-      <div class="flex items-start justify-between gap-3 mb-4">
+    <div class="card border-pink-100 bg-pink-50/40 p-6">
+      <div class="mb-4 flex items-start justify-between gap-3">
         <div>
           <h2 class="font-display font-bold text-slate-900">Anniversaire automatique (jour J à 10h)</h2>
-          <p class="text-slate-500 text-sm mt-1">Envoie automatiquement un push anniversaire et ajoute un bonus sur la carte du client.</p>
+          <p class="mt-1 text-sm text-slate-500">Push anniversaire + bonus automatique sur la carte client.</p>
         </div>
         <span class="rounded-full border border-amber-200 bg-amber-100 px-2 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-700">Pro uniquement</span>
       </div>
-      <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-600 text-sm mb-4">
+      <div class="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
         Plan actuel: <span id="birthday-plan-value" class="font-semibold text-slate-900">Chargement...</span>
       </div>
-      <div id="birthday-locked" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-700 text-sm mb-4">
-        Cette fonctionnalite est reservee au plan Pro. Ce n'est pas un bug. Passez au plan Pro pour l'activer.
-        <a href="/pricing" class="font-semibold underline ml-1">Voir les plans</a>
+      <div id="birthday-locked" class="mb-4 hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+        Cette fonctionnalité est réservée au plan Pro.
       </div>
-      <div id="birthday-error" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-3"></div>
-      <div id="birthday-success" class="hidden text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 mb-3"></div>
-      <div class="space-y-3 mb-4">
+      <div id="birthday-error" class="mb-3 hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+      <div id="birthday-success" class="mb-3 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
+
+      <div class="mb-4 space-y-3">
         <div>
           <label class="label" for="birthday-reward-value">Bonus anniversaire (tampon/point)</label>
           <input id="birthday-reward-value" type="number" min="1" max="50" value="1" class="input" />
@@ -114,39 +105,33 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
         <div>
           <label class="label" for="birthday-message">Message du push</label>
-          <textarea id="birthday-message" maxlength="180" class="input resize-none h-24" placeholder="Votre bonus anniversaire est disponible sur votre carte Fidelopass."></textarea>
+          <textarea id="birthday-message" maxlength="180" class="input h-24 resize-none" placeholder="Votre bonus anniversaire est disponible sur votre carte Fidelopass."></textarea>
         </div>
       </div>
       <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
         <div>
-          <p class="text-slate-800 text-sm font-medium">Activer la programmation anniversaire</p>
-          <p class="text-slate-500 text-xs mt-0.5">Execution: Europe/Paris, chaque jour à 10h.</p>
+          <p class="text-sm font-medium text-slate-800">Activer l’automatisation anniversaire</p>
+          <p class="mt-0.5 text-xs text-slate-500">Execution Europe/Paris à 10h.</p>
         </div>
-        <button
-          id="birthday-toggle"
-          type="button"
-          class="relative w-12 h-6 rounded-full transition-colors flex-shrink-0"
-          style="background:#334155"
-          aria-pressed="false"
-        >
-          <span id="birthday-knob" class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" style="left:2px"></span>
+        <button id="birthday-toggle" type="button" class="relative h-6 w-12 flex-shrink-0 rounded-full transition-colors" style="background:#334155" aria-pressed="false">
+          <span id="birthday-knob" class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all" style="left:2px"></span>
         </button>
       </div>
-      <p id="birthday-status" class="text-slate-500 text-xs mt-2 text-center">Chargement du statut...</p>
+      <p id="birthday-status" class="mt-2 text-center text-xs text-slate-500">Chargement du statut...</p>
     </div>
+  </section>
 
-  <!-- Historique -->
-    <div class="card p-6">
-      <h2 class="font-display font-bold text-slate-900 mb-4">Historique</h2>
-      <div id="notif-history" class="flex flex-col gap-3">
-        <p class="text-slate-500 text-sm">Chargement...</p>
-      </div>
+  <section id="tab-history" class="notif-panel hidden card p-6">
+    <h2 class="mb-4 font-display font-bold text-slate-900">Historique des messages</h2>
+    <div id="notif-history" class="flex flex-col gap-3">
+      <p class="text-sm text-slate-500">Chargement...</p>
     </div>
-  </div>
+  </section>
 </DashboardLayout>
 
 <script>
   import { authFetch } from '../../lib/api';
+  import { isProPlan, normalizePlan } from '../../lib/dashboard-config';
 
   function escapeHtml(value: unknown) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -158,78 +143,125 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }[char] ?? char));
   }
 
-  // Compteur de caractères
+  function setNotifTab(tab: 'manual' | 'automation' | 'history') {
+    document.querySelectorAll<HTMLElement>('.notif-panel').forEach((panel) => panel.classList.add('hidden'));
+    document.getElementById(`tab-${tab}`)?.classList.remove('hidden');
+
+    document.querySelectorAll<HTMLElement>('.notif-tab').forEach((btn) => {
+      const active = btn.dataset.tab === tab;
+      btn.className = active
+        ? 'notif-tab rounded-xl bg-sky-100 px-4 py-2.5 text-sm font-semibold text-sky-800'
+        : 'notif-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50';
+    });
+  }
+
+  document.querySelectorAll<HTMLElement>('.notif-tab').forEach((btn) => {
+    btn.addEventListener('click', () => setNotifTab((btn.dataset.tab as 'manual' | 'automation' | 'history') ?? 'manual'));
+  });
+
   const messageInput = document.getElementById('message') as HTMLTextAreaElement;
-  const charCount = document.getElementById('char-count')!;
+  const charCount = document.getElementById('char-count') as HTMLSpanElement;
+  const errorMsg = document.getElementById('error-msg') as HTMLDivElement;
+  const successMsg = document.getElementById('success-msg') as HTMLDivElement;
+  const form = document.getElementById('notif-form') as HTMLFormElement;
+
   messageInput.addEventListener('input', () => {
     charCount.textContent = String(messageInput.value.length);
   });
 
-  // Envoi de notification
-  const form = document.getElementById('notif-form') as HTMLFormElement;
-  const errorMsg = document.getElementById('error-msg') as HTMLDivElement;
-  const successMsg = document.getElementById('success-msg') as HTMLDivElement;
-  let notificationSummary = { web_push_ready: 0, wallet_ready: 0 };
+  let summaryWallet = 0;
+  let summaryHistory = 0;
+  let reviewAutoEnabled = false;
+  let reviewAutoIsPro = false;
+  let birthdayEnabled = false;
+  let birthdayIsPro = false;
+
+  const reviewAutoToggle = document.getElementById('review-auto-toggle') as HTMLButtonElement;
+  const reviewAutoKnob = document.getElementById('review-auto-knob') as HTMLSpanElement;
+  const reviewAutoStatus = document.getElementById('review-auto-status') as HTMLParagraphElement;
+  const reviewAutoPlanValue = document.getElementById('review-auto-plan-value') as HTMLSpanElement;
+  const reviewAutoLocked = document.getElementById('review-auto-locked') as HTMLDivElement;
+  const reviewAutoError = document.getElementById('review-auto-error') as HTMLDivElement;
+  const reviewAutoSuccess = document.getElementById('review-auto-success') as HTMLDivElement;
+
+  const birthdayToggle = document.getElementById('birthday-toggle') as HTMLButtonElement;
+  const birthdayKnob = document.getElementById('birthday-knob') as HTMLSpanElement;
+  const birthdayStatus = document.getElementById('birthday-status') as HTMLParagraphElement;
+  const birthdayPlanValue = document.getElementById('birthday-plan-value') as HTMLSpanElement;
+  const birthdayLocked = document.getElementById('birthday-locked') as HTMLDivElement;
+  const birthdayError = document.getElementById('birthday-error') as HTMLDivElement;
+  const birthdaySuccess = document.getElementById('birthday-success') as HTMLDivElement;
+  const birthdayRewardValue = document.getElementById('birthday-reward-value') as HTMLInputElement;
+  const birthdayTitle = document.getElementById('birthday-title') as HTMLInputElement;
+  const birthdayMessage = document.getElementById('birthday-message') as HTMLTextAreaElement;
+
+  function setReviewPlanLabel(planRaw: unknown) {
+    const normalized = normalizePlan(planRaw);
+    if (normalized.includes('sur-mesure') || normalized.includes('surmesure') || normalized.includes('custom') || normalized.includes('enterprise')) {
+      reviewAutoPlanValue.textContent = 'Sur mesure';
+      return;
+    }
+    reviewAutoPlanValue.textContent = isProPlan(normalized) ? 'Pro' : 'Starter';
+  }
+
+  function setReviewToggle(enabled: boolean) {
+    reviewAutoEnabled = enabled;
+    reviewAutoToggle.style.background = enabled ? '#4f46e5' : '#334155';
+    reviewAutoKnob.style.left = enabled ? '26px' : '2px';
+    reviewAutoToggle.setAttribute('aria-pressed', String(enabled));
+    reviewAutoStatus.textContent = enabled ? 'Automatisation active.' : 'Automatisation inactive.';
+  }
+
+  function setBirthdayPlanLabel(planRaw: unknown) {
+    const normalized = normalizePlan(planRaw);
+    if (normalized.includes('sur-mesure') || normalized.includes('surmesure') || normalized.includes('custom') || normalized.includes('enterprise')) {
+      birthdayPlanValue.textContent = 'Sur mesure';
+      return;
+    }
+    birthdayPlanValue.textContent = isProPlan(normalized) ? 'Pro' : 'Starter';
+  }
+
+  function setBirthdayToggle(enabled: boolean) {
+    birthdayEnabled = enabled;
+    birthdayToggle.style.background = enabled ? '#4f46e5' : '#334155';
+    birthdayKnob.style.left = enabled ? '26px' : '2px';
+    birthdayToggle.setAttribute('aria-pressed', String(enabled));
+    birthdayStatus.textContent = enabled ? 'Automatisation active.' : 'Automatisation inactive.';
+  }
+
+  function setBirthdayFormDisabled(disabled: boolean) {
+    birthdayToggle.disabled = disabled;
+    birthdayRewardValue.disabled = disabled;
+    birthdayTitle.disabled = disabled;
+    birthdayMessage.disabled = disabled;
+    birthdayToggle.classList.toggle('opacity-40', disabled);
+    birthdayToggle.classList.toggle('cursor-not-allowed', disabled);
+  }
 
   async function loadSummary() {
     try {
-      const res = await authFetch('/api/notifications/summary');
-      if (!res.ok) throw new Error();
-      const { data } = await res.json();
-      notificationSummary = {
-        web_push_ready: data?.web_push_ready ?? 0,
-        wallet_ready: data?.wallet_ready ?? 0,
-      };
+      const [summaryRes, historyRes] = await Promise.all([
+        authFetch('/api/notifications/summary'),
+        authFetch('/api/notifications?limit=50'),
+      ]);
+      const summaryPayload = await summaryRes.json().catch(() => null);
+      const historyPayload = await historyRes.json().catch(() => null);
 
-      document.getElementById('summary-wallet')!.textContent = String(notificationSummary.wallet_ready);
+      summaryWallet = summaryPayload?.data?.wallet_ready ?? 0;
+      summaryHistory = Array.isArray(historyPayload?.data) ? historyPayload.data.length : 0;
+
+      document.getElementById('summary-wallet')!.textContent = String(summaryWallet);
+      document.getElementById('summary-history')!.textContent = String(summaryHistory);
     } catch {
       document.getElementById('summary-wallet')!.textContent = '—';
+      document.getElementById('summary-history')!.textContent = '—';
     }
   }
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    errorMsg.classList.add('hidden');
-    successMsg.classList.add('hidden');
-
-    const titre = (document.getElementById('titre') as HTMLInputElement).value;
-    const message = messageInput.value;
-    const btn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
-
-    btn.disabled = true;
-    btn.textContent = 'Envoi en cours...';
-
-    try {
-      const res = await authFetch('/api/notifications', {
-        method: 'POST',
-        body: JSON.stringify({ titre, message }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Erreur');
-
-      successMsg.textContent = data.nb_destinataires === 0
-        ? `Aucun client n'est encore joignable depuis votre programme pour le moment.`
-        : `Message envoyé à ${data.nb_delivrees} client(s) sur ${data.nb_destinataires}. Canal Wallet : ${data.nb_wallet ?? 0}. Canal web : ${data.nb_web_push ?? 0}.`;
-      successMsg.classList.remove('hidden');
-      form.reset();
-      charCount.textContent = '0';
-      await loadSummary();
-      loadHistory();
-    } catch (err: unknown) {
-      errorMsg.textContent = err instanceof Error ? err.message : 'Erreur lors de l\'envoi.';
-      errorMsg.classList.remove('hidden');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Envoyer le message';
-    }
-  });
-
-  // Chargement historique
   async function loadHistory() {
     const container = document.getElementById('notif-history')!;
     try {
-      const res = await authFetch('/api/notifications?limit=10');
+      const res = await authFetch('/api/notifications?limit=20');
       if (!res.ok) throw new Error();
       const { data } = await res.json();
 
@@ -242,57 +274,52 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <div class="border-b border-slate-200 pb-3 last:border-0 last:pb-0">
           <div class="flex items-start justify-between gap-2">
             <div>
-              <p class="text-slate-900 text-sm font-medium">${escapeHtml(n.titre)}</p>
-              <p class="text-slate-600 text-xs mt-0.5">${escapeHtml(n.message)}</p>
+              <p class="text-sm font-medium text-slate-900">${escapeHtml(n.titre)}</p>
+              <p class="mt-0.5 text-xs text-slate-600">${escapeHtml(n.message)}</p>
             </div>
             <span class="badge badge-info shrink-0">${n.nb_delivrees ?? 0}/${n.nb_destinataires}</span>
           </div>
-          <p class="text-slate-500 text-xs mt-1">${new Date(n.created_at).toLocaleString('fr-FR')}</p>
+          <p class="mt-1 text-xs text-slate-500">${new Date(n.created_at).toLocaleString('fr-FR')}</p>
         </div>
       `).join('');
     } catch {
-      container.innerHTML = '<p class="text-red-400 text-sm">Erreur lors du chargement.</p>';
+      container.innerHTML = '<p class="text-red-600 text-sm">Erreur lors du chargement.</p>';
     }
   }
 
-  // Push auto avis Google (+1h)
-  const reviewAutoToggle = document.getElementById('review-auto-toggle') as HTMLButtonElement;
-  const reviewAutoKnob = document.getElementById('review-auto-knob') as HTMLSpanElement;
-  const reviewAutoStatus = document.getElementById('review-auto-status') as HTMLParagraphElement;
-  const reviewAutoPlanValue = document.getElementById('review-auto-plan-value') as HTMLSpanElement;
-  const reviewAutoLocked = document.getElementById('review-auto-locked') as HTMLDivElement;
-  const reviewAutoError = document.getElementById('review-auto-error') as HTMLDivElement;
-  const reviewAutoSuccess = document.getElementById('review-auto-success') as HTMLDivElement;
-  let reviewAutoEnabled = false;
-  let reviewAutoIsPro = false;
-  const normalizePlan = (planRaw: unknown) => String(planRaw ?? 'starter').trim().toLowerCase();
-  const isProPlan = (planRaw: unknown) => {
-    const normalized = normalizePlan(planRaw);
-    return normalized === 'pro' || normalized.startsWith('pro-') || normalized.includes('pro');
-  };
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorMsg.classList.add('hidden');
+    successMsg.classList.add('hidden');
+    const btn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+    btn.disabled = true;
+    btn.textContent = 'Envoi en cours...';
 
-  function setReviewAutoToggle(enabled: boolean) {
-    reviewAutoEnabled = enabled;
-    reviewAutoToggle.style.background = enabled ? '#4f46e5' : '#334155';
-    reviewAutoKnob.style.left = enabled ? '26px' : '2px';
-    reviewAutoToggle.setAttribute('aria-pressed', String(enabled));
-    reviewAutoStatus.textContent = enabled
-      ? 'Automatisation active: push envoyé 1h après installation.'
-      : 'Automatisation inactive.';
-  }
+    try {
+      const titre = (document.getElementById('titre') as HTMLInputElement).value.trim();
+      const message = messageInput.value.trim();
+      const res = await authFetch('/api/notifications', {
+        method: 'POST',
+        body: JSON.stringify({ titre, message }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? 'Erreur lors de l’envoi.');
 
-  function setReviewPlanLabel(planRaw: unknown) {
-    const normalized = normalizePlan(planRaw);
-    if (isProPlan(normalized)) {
-      reviewAutoPlanValue.textContent = 'Pro';
-      return;
+      successMsg.textContent = data?.nb_destinataires === 0
+        ? 'Aucun client joignable pour le moment.'
+        : `Message envoyé à ${data?.nb_delivrees ?? 0}/${data?.nb_destinataires ?? 0} client(s).`;
+      successMsg.classList.remove('hidden');
+      form.reset();
+      charCount.textContent = '0';
+      await Promise.all([loadSummary(), loadHistory()]);
+    } catch (error: unknown) {
+      errorMsg.textContent = error instanceof Error ? error.message : 'Erreur réseau.';
+      errorMsg.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Envoyer le message';
     }
-    if (normalized.includes('sur-mesure') || normalized.includes('surmesure') || normalized.includes('custom') || normalized.includes('enterprise')) {
-      reviewAutoPlanValue.textContent = 'Sur mesure';
-      return;
-    }
-    reviewAutoPlanValue.textContent = 'Starter';
-  }
+  });
 
   async function loadReviewAutoSettings() {
     try {
@@ -302,40 +329,28 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       reviewAutoIsPro = Boolean(payload?.data?.is_pro) || isProPlan(payload?.data?.plan ?? payload?.data?.raw_plan);
       setReviewPlanLabel(payload?.data?.plan);
-      setReviewAutoToggle(Boolean(payload?.data?.enabled));
+      setReviewToggle(Boolean(payload?.data?.enabled));
 
       if (!reviewAutoIsPro) {
         reviewAutoLocked.classList.remove('hidden');
         reviewAutoToggle.disabled = true;
         reviewAutoToggle.classList.add('opacity-40', 'cursor-not-allowed');
-        reviewAutoStatus.textContent = 'Plan Starter: indisponible. Activez le plan Pro pour debloquer cette automatisation.';
       } else {
-        reviewAutoStatus.textContent = reviewAutoEnabled
-          ? 'Plan Pro: automatisation active (envoi 1h apres installation).'
-          : 'Plan Pro: vous pouvez activer cette automatisation.';
+        reviewAutoLocked.classList.add('hidden');
+        reviewAutoToggle.disabled = false;
+        reviewAutoToggle.classList.remove('opacity-40', 'cursor-not-allowed');
       }
-    } catch (error) {
-      console.error('[notifications review auto]', error);
-      try {
-        const planRes = await authFetch('/api/dashboard/plan');
-        const planPayload = await planRes.json().catch(() => null);
-        const fallbackPlan = planPayload?.data?.plan ?? planPayload?.data?.raw_plan ?? 'starter';
-        setReviewPlanLabel(fallbackPlan);
-        reviewAutoIsPro = isProPlan(fallbackPlan);
-      } catch {
-        setReviewPlanLabel('starter');
-        reviewAutoIsPro = false;
-      }
+    } catch {
+      setReviewPlanLabel('starter');
+      setReviewToggle(false);
       reviewAutoToggle.disabled = true;
-      reviewAutoToggle.classList.add('opacity-40', 'cursor-not-allowed');
-      if (!reviewAutoIsPro) reviewAutoLocked.classList.remove('hidden');
+      reviewAutoLocked.classList.remove('hidden');
       reviewAutoStatus.textContent = 'Impossible de charger le statut pour le moment.';
     }
   }
 
   reviewAutoToggle.addEventListener('click', async () => {
     if (!reviewAutoIsPro) return;
-
     reviewAutoError.classList.add('hidden');
     reviewAutoSuccess.classList.add('hidden');
     reviewAutoToggle.disabled = true;
@@ -346,72 +361,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         method: 'PATCH',
         body: JSON.stringify({ enabled: nextValue }),
       });
-      const payload = await res.json();
-      if (!res.ok) throw new Error(payload.error ?? 'Impossible de mettre à jour le réglage.');
-
-      setReviewAutoToggle(nextValue);
-      reviewAutoSuccess.textContent = nextValue
-        ? 'Automatisation activée.'
-        : 'Automatisation désactivée.';
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error ?? 'Impossible de mettre à jour le réglage.');
+      setReviewToggle(nextValue);
+      reviewAutoSuccess.textContent = nextValue ? 'Automatisation activée.' : 'Automatisation désactivée.';
       reviewAutoSuccess.classList.remove('hidden');
-    } catch (err: unknown) {
-      reviewAutoError.textContent = err instanceof Error ? err.message : 'Erreur réseau. Réessayez.';
+    } catch (error: unknown) {
+      reviewAutoError.textContent = error instanceof Error ? error.message : 'Erreur réseau.';
       reviewAutoError.classList.remove('hidden');
     } finally {
       reviewAutoToggle.disabled = false;
     }
   });
-
-  setReviewPlanLabel('starter');
-  loadSummary();
-  loadHistory();
-  loadReviewAutoSettings();
-
-  // Push auto anniversaire
-  const birthdayToggle = document.getElementById('birthday-toggle') as HTMLButtonElement;
-  const birthdayKnob = document.getElementById('birthday-knob') as HTMLSpanElement;
-  const birthdayStatus = document.getElementById('birthday-status') as HTMLParagraphElement;
-  const birthdayPlanValue = document.getElementById('birthday-plan-value') as HTMLSpanElement;
-  const birthdayLocked = document.getElementById('birthday-locked') as HTMLDivElement;
-  const birthdayError = document.getElementById('birthday-error') as HTMLDivElement;
-  const birthdaySuccess = document.getElementById('birthday-success') as HTMLDivElement;
-  const birthdayRewardValue = document.getElementById('birthday-reward-value') as HTMLInputElement;
-  const birthdayTitle = document.getElementById('birthday-title') as HTMLInputElement;
-  const birthdayMessage = document.getElementById('birthday-message') as HTMLTextAreaElement;
-  let birthdayEnabled = false;
-  let birthdayIsPro = false;
-
-  function setBirthdayToggle(enabled: boolean) {
-    birthdayEnabled = enabled;
-    birthdayToggle.style.background = enabled ? '#4f46e5' : '#334155';
-    birthdayKnob.style.left = enabled ? '26px' : '2px';
-    birthdayToggle.setAttribute('aria-pressed', String(enabled));
-    birthdayStatus.textContent = enabled
-      ? 'Automatisation active: envoi anniversaire le jour J à 10h.'
-      : 'Automatisation inactive.';
-  }
-
-  function setBirthdayPlanLabel(planRaw: unknown) {
-    const normalized = normalizePlan(planRaw);
-    if (isProPlan(normalized)) {
-      birthdayPlanValue.textContent = 'Pro';
-      return;
-    }
-    if (normalized.includes('sur-mesure') || normalized.includes('surmesure') || normalized.includes('custom') || normalized.includes('enterprise')) {
-      birthdayPlanValue.textContent = 'Sur mesure';
-      return;
-    }
-    birthdayPlanValue.textContent = 'Starter';
-  }
-
-  function setBirthdayFormDisabled(disabled: boolean) {
-    birthdayToggle.disabled = disabled;
-    birthdayRewardValue.disabled = disabled;
-    birthdayTitle.disabled = disabled;
-    birthdayMessage.disabled = disabled;
-    birthdayToggle.classList.toggle('opacity-40', disabled);
-    birthdayToggle.classList.toggle('cursor-not-allowed', disabled);
-  }
 
   async function loadBirthdaySettings() {
     try {
@@ -435,20 +396,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (!birthdayIsPro) {
         birthdayLocked.classList.remove('hidden');
         setBirthdayFormDisabled(true);
-        birthdayStatus.textContent = 'Plan Starter: indisponible. Activez le plan Pro pour debloquer cette automatisation.';
       } else {
         birthdayLocked.classList.add('hidden');
         setBirthdayFormDisabled(false);
-        birthdayStatus.textContent = birthdayEnabled
-          ? 'Plan Pro: automatisation active (jour J à 10h, Europe/Paris).'
-          : 'Plan Pro: vous pouvez activer cette automatisation.';
       }
-    } catch (error) {
-      console.error('[notifications birthday auto]', error);
+    } catch {
+      setBirthdayPlanLabel('starter');
+      setBirthdayToggle(false);
+      birthdayLocked.classList.remove('hidden');
       setBirthdayFormDisabled(true);
       birthdayStatus.textContent = 'Impossible de charger le statut pour le moment.';
-      setBirthdayPlanLabel('starter');
-      birthdayLocked.classList.remove('hidden');
     }
   }
 
@@ -457,16 +414,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     if (!Number.isFinite(rewardValue) || rewardValue < 1 || rewardValue > 50) {
       throw new Error('Le bonus anniversaire doit être compris entre 1 et 50.');
     }
-    const title = birthdayTitle.value.trim();
-    const message = birthdayMessage.value.trim();
-
     const res = await authFetch('/api/notifications/birthday-settings', {
       method: 'PATCH',
       body: JSON.stringify({
         enabled: nextEnabled,
         reward_value: rewardValue,
-        push_title: title || null,
-        push_message: message || null,
+        push_title: birthdayTitle.value.trim() || null,
+        push_message: birthdayMessage.value.trim() || null,
       }),
     });
     const payload = await res.json().catch(() => null);
@@ -476,7 +430,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   birthdayToggle.addEventListener('click', async () => {
     if (!birthdayIsPro) return;
-
     birthdayError.classList.add('hidden');
     birthdaySuccess.classList.add('hidden');
     setBirthdayFormDisabled(true);
@@ -485,15 +438,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const nextEnabled = !birthdayEnabled;
       const payload = await persistBirthdaySettings(nextEnabled);
       setBirthdayToggle(Boolean(payload?.data?.enabled));
-      birthdayRewardValue.value = String(payload?.data?.reward_value ?? birthdayRewardValue.value);
-      birthdayTitle.value = String(payload?.data?.push_title ?? birthdayTitle.value);
-      birthdayMessage.value = String(payload?.data?.push_message ?? birthdayMessage.value);
-      birthdaySuccess.textContent = nextEnabled
-        ? 'Programmation anniversaire activée.'
-        : 'Programmation anniversaire désactivée.';
+      birthdaySuccess.textContent = nextEnabled ? 'Programmation anniversaire activée.' : 'Programmation anniversaire désactivée.';
       birthdaySuccess.classList.remove('hidden');
-    } catch (err: unknown) {
-      birthdayError.textContent = err instanceof Error ? err.message : 'Erreur réseau. Réessayez.';
+    } catch (error: unknown) {
+      birthdayError.textContent = error instanceof Error ? error.message : 'Erreur réseau.';
       birthdayError.classList.remove('hidden');
     } finally {
       setBirthdayFormDisabled(!birthdayIsPro);
@@ -505,18 +453,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (!birthdayIsPro) return;
       birthdayError.classList.add('hidden');
       birthdaySuccess.classList.add('hidden');
-
       try {
         await persistBirthdaySettings(birthdayEnabled);
         birthdaySuccess.textContent = 'Réglage anniversaire enregistré.';
         birthdaySuccess.classList.remove('hidden');
-      } catch (err: unknown) {
-        birthdayError.textContent = err instanceof Error ? err.message : 'Erreur réseau. Réessayez.';
+      } catch (error: unknown) {
+        birthdayError.textContent = error instanceof Error ? error.message : 'Erreur réseau.';
         birthdayError.classList.remove('hidden');
       }
     });
   });
 
-  setBirthdayPlanLabel('starter');
+  setNotifTab('manual');
+  loadSummary();
+  loadHistory();
+  loadReviewAutoSettings();
   loadBirthdaySettings();
 </script>
+

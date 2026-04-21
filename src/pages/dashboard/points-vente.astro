@@ -45,6 +45,36 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </form>
     </section>
   </div>
+
+  <div id="edit-point-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <button id="edit-point-backdrop" type="button" class="absolute inset-0 bg-slate-900/50 backdrop-blur-[1px]"></button>
+    <div class="relative w-full max-w-lg rounded-[1.6rem] border border-sky-100 bg-white p-6 shadow-[0_32px_80px_-24px_rgba(15,23,42,0.35)]">
+      <div class="mb-4 flex items-center justify-between">
+        <h3 class="font-display text-xl font-bold text-slate-900">Modifier le point de vente</h3>
+        <button id="edit-point-close" type="button" class="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">Fermer</button>
+      </div>
+      <form id="edit-point-form" class="space-y-3">
+        <input id="edit-point-id" type="hidden" />
+        <div>
+          <label class="label" for="edit-point-nom">Nom</label>
+          <input id="edit-point-nom" type="text" class="input" required />
+        </div>
+        <div>
+          <label class="label" for="edit-point-adresse">Adresse</label>
+          <input id="edit-point-adresse" type="text" class="input" />
+        </div>
+        <div>
+          <label class="label" for="edit-point-rayon">Rayon géolocalisation (m)</label>
+          <input id="edit-point-rayon" type="number" min="100" max="50000" class="input" />
+        </div>
+        <div id="edit-point-error" class="hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+        <div class="flex gap-2">
+          <button type="submit" id="edit-point-submit" class="btn-primary flex-1 py-3">Enregistrer</button>
+          <button type="button" id="edit-point-cancel" class="btn-secondary flex-1 py-3">Annuler</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </DashboardLayout>
 
 <script>
@@ -65,6 +95,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const addBtn = document.getElementById('add-point-vente-btn') as HTMLButtonElement;
   const addError = document.getElementById('add-point-vente-error') as HTMLDivElement;
   const addSuccess = document.getElementById('add-point-vente-success') as HTMLDivElement;
+  const editModal = document.getElementById('edit-point-modal') as HTMLDivElement;
+  const editBackdrop = document.getElementById('edit-point-backdrop') as HTMLButtonElement;
+  const editCloseBtn = document.getElementById('edit-point-close') as HTMLButtonElement;
+  const editCancelBtn = document.getElementById('edit-point-cancel') as HTMLButtonElement;
+  const editForm = document.getElementById('edit-point-form') as HTMLFormElement;
+  const editSubmitBtn = document.getElementById('edit-point-submit') as HTMLButtonElement;
+  const editError = document.getElementById('edit-point-error') as HTMLDivElement;
+  const editPointId = document.getElementById('edit-point-id') as HTMLInputElement;
+  const editPointNom = document.getElementById('edit-point-nom') as HTMLInputElement;
+  const editPointAdresse = document.getElementById('edit-point-adresse') as HTMLInputElement;
+  const editPointRayon = document.getElementById('edit-point-rayon') as HTMLInputElement;
 
   let selectedPointVenteId: string | null = null;
   let pointsVente: PointVente[] = [];
@@ -154,19 +195,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         if (action === 'edit') {
           const current = pointsVente.find((point) => point.id === pointId);
           if (!current) return;
-          const nom = window.prompt('Nom du point de vente', current.nom);
-          if (!nom) return;
-          const adresse = window.prompt('Adresse', current.adresse ?? '') ?? '';
-          const rayon = window.prompt('Rayon (m)', String(current.rayon_geo ?? 1000)) ?? '1000';
-          await authFetch(`/api/commerces/points-vente/${pointId}`, {
-            method: 'PATCH',
-            body: JSON.stringify({
-              nom,
-              adresse: adresse || null,
-              rayon_geo: Math.max(100, parseInt(rayon, 10) || 1000),
-            }),
-          });
-          await loadPointsVente();
+          openEditModal(current);
           return;
         }
 
@@ -182,6 +211,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         }
       });
     });
+  }
+
+  function openEditModal(point: PointVente) {
+    editError.classList.add('hidden');
+    editPointId.value = point.id;
+    editPointNom.value = point.nom;
+    editPointAdresse.value = point.adresse ?? '';
+    editPointRayon.value = String(point.rayon_geo ?? 1000);
+    editModal.classList.remove('hidden');
+  }
+
+  function closeEditModal() {
+    editModal.classList.add('hidden');
+    editForm.reset();
+    editError.classList.add('hidden');
   }
 
   function renderUsage() {
@@ -250,6 +294,46 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       addBtn.disabled = false;
       addBtn.textContent = original;
     }
+  });
+
+  editForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    editError.classList.add('hidden');
+    editSubmitBtn.disabled = true;
+    const originalLabel = editSubmitBtn.textContent;
+    editSubmitBtn.textContent = 'Enregistrement...';
+
+    try {
+      const pointId = editPointId.value;
+      const nom = editPointNom.value.trim();
+      if (!pointId || !nom) throw new Error('Nom du point de vente requis.');
+      const adresse = editPointAdresse.value.trim();
+      const rayon = Math.max(100, parseInt(editPointRayon.value, 10) || 1000);
+
+      const res = await authFetch(`/api/commerces/points-vente/${pointId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          nom,
+          adresse: adresse || null,
+          rayon_geo: rayon,
+        }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error ?? 'Impossible de modifier ce point de vente.');
+
+      closeEditModal();
+      await loadPointsVente();
+    } catch (error) {
+      editError.textContent = error instanceof Error ? error.message : 'Erreur réseau.';
+      editError.classList.remove('hidden');
+    } finally {
+      editSubmitBtn.disabled = false;
+      editSubmitBtn.textContent = originalLabel ?? 'Enregistrer';
+    }
+  });
+
+  [editBackdrop, editCloseBtn, editCancelBtn].forEach((element) => {
+    element?.addEventListener('click', closeEditModal);
   });
 
   await loadPointsVente();

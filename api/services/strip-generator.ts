@@ -30,6 +30,7 @@ const BRANDING_WATERMARK_PATHS = [
 ];
 
 let brandingWatermarkCache: Buffer | null | undefined;
+const emojiImageCache = new Map<string, Buffer | null>();
 
 function loadBrandingWatermark(): Buffer | null {
   if (brandingWatermarkCache !== undefined) return brandingWatermarkCache;
@@ -62,6 +63,38 @@ async function fetchBuffer(url: string): Promise<Buffer | null> {
     if (!res.ok) return null;
     return Buffer.from(await res.arrayBuffer());
   } catch { return null; }
+}
+
+function emojiToCodepointPath(emoji: string, keepVariationSelector = true): string | null {
+  const input = String(emoji ?? '').trim();
+  if (!input) return null;
+  const cps = Array.from(input)
+    .map((char) => char.codePointAt(0))
+    .filter((value): value is number => typeof value === 'number')
+    .filter((value) => keepVariationSelector || value !== 0xfe0f);
+  if (!cps.length) return null;
+  return cps.map((value) => value.toString(16)).join('-');
+}
+
+async function fetchEmojiImage(emoji: string): Promise<Buffer | null> {
+  const cacheKey = String(emoji ?? '').trim();
+  if (!cacheKey) return null;
+  if (emojiImageCache.has(cacheKey)) return emojiImageCache.get(cacheKey) ?? null;
+
+  const withVs = emojiToCodepointPath(cacheKey, true);
+  const withoutVs = emojiToCodepointPath(cacheKey, false);
+  const candidatePaths = [withVs, withoutVs].filter((value, index, arr): value is string => !!value && arr.indexOf(value) === index);
+  for (const codepointPath of candidatePaths) {
+    const url = `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${codepointPath}.png`;
+    const image = await fetchBuffer(url);
+    if (image) {
+      emojiImageCache.set(cacheKey, image);
+      return image;
+    }
+  }
+
+  emojiImageCache.set(cacheKey, null);
+  return null;
 }
 
 function parseStripFocus(raw: string | null | undefined): { x: number; y: number; legacy: 'top' | 'center' | 'bottom' } {
@@ -309,12 +342,43 @@ async function prepareCircularTamponIcon(iconUrl: string | null | undefined, dia
   }
 }
 
-function buildTamponCirclesSvg(W: number, H: number, accentHex: string, dots: StampDot[], radius: number, emoji: string | null | undefined, hasCustomIcon: boolean, useLightStyle: boolean): string {
+async function prepareCircularEmojiIcon(emoji: string | null | undefined, diameter: number): Promise<Buffer | null> {
+  const source = await fetchEmojiImage(String(emoji ?? '').trim());
+  if (!source) return null;
+
+  try {
+    const size = Math.max(18, Math.round(diameter));
+    const inner = Math.max(12, Math.round(size * 0.7));
+    const contained = await sharp(source)
+      .resize(inner, inner, {
+        fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .png()
+      .toBuffer();
+    const canvas = await sharp({
+      create: {
+        width: size,
+        height: size,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
+    })
+      .composite([{ input: contained, gravity: 'centre' }])
+      .png()
+      .toBuffer();
+    return canvas;
+  } catch {
+    return null;
+  }
+}
+
+function buildTamponCirclesSvg(W: number, H: number, accentHex: string, dots: StampDot[], radius: number, hasVisualIcon: boolean, useLightStyle: boolean): string {
   const acc = hexToRgb(accentHex);
   const ringStroke = useLightStyle
     ? 'rgba(255,255,255,0.62)'
     : `rgba(${acc.r},${acc.g},${acc.b},0.45)`;
-  const ringFill = hasCustomIcon
+  const ringFill = hasVisualIcon
     ? 'rgba(255,255,255,0.12)'
     : (useLightStyle ? 'rgba(255,255,255,0.2)' : 'none');
 
@@ -323,12 +387,10 @@ function buildTamponCirclesSvg(W: number, H: number, accentHex: string, dots: St
     const cy = Math.round(dot.cy * 100) / 100;
 
     if (dot.filled) {
-      const inner = hasCustomIcon
+      const inner = hasVisualIcon
         ? ''
-        : (emoji
-          ? `<text x="${cx}" y="${cy + radius * 0.38}" text-anchor="middle" font-size="${radius * 1.1}" dominant-baseline="middle">${emoji}</text>`
-          : `<polyline points="${cx - radius * 0.45},${cy} ${cx - radius * 0.1},${cy + radius * 0.38} ${cx + radius * 0.48},${cy - radius * 0.32}"
-              stroke="white" stroke-width="${radius * 0.18}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`);
+        : `<polyline points="${cx - radius * 0.45},${cy} ${cx - radius * 0.1},${cy + radius * 0.38} ${cx + radius * 0.48},${cy - radius * 0.32}"
+            stroke="white" stroke-width="${radius * 0.18}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
       return `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="rgba(${acc.r},${acc.g},${acc.b},0.94)"/>${inner}`;
     }
 
@@ -342,7 +404,9 @@ function buildTamponCirclesSvg(W: number, H: number, accentHex: string, dots: St
 async function composeTamponGrid(base: Buffer, opts: StripOptions, W: number, H: number, layout: TamponLayout, useLightStyle: boolean): Promise<Buffer> {
   const { dots, radius } = computeStampGrid(opts.tamponsTotal, opts.tamponsActuels, W, H, layout);
   const iconSize = Math.max(18, Math.round(radius * 1.42));
-  const iconBuffer = await prepareCircularTamponIcon(opts.tamponIconUrl, iconSize);
+  const customIconBuffer = await prepareCircularTamponIcon(opts.tamponIconUrl, iconSize);
+  const emojiIconBuffer = customIconBuffer ? null : await prepareCircularEmojiIcon(opts.tamponEmoji, iconSize);
+  const iconBuffer = customIconBuffer ?? emojiIconBuffer;
 
   const overlaySvg = buildTamponCirclesSvg(
     W,
@@ -350,7 +414,6 @@ async function composeTamponGrid(base: Buffer, opts: StripOptions, W: number, H:
     opts.couleurAccent,
     dots,
     radius,
-    opts.tamponEmoji,
     !!iconBuffer,
     useLightStyle,
   );

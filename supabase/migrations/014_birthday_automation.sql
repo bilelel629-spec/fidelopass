@@ -38,6 +38,10 @@ CREATE INDEX IF NOT EXISTS idx_birthday_rewards_carte_year
 CREATE INDEX IF NOT EXISTS idx_birthday_rewards_client
   ON birthday_rewards(client_id);
 
+-- Compat legacy : certaines bases n'ont pas encore la migration 012
+ALTER TABLE clients
+  ADD COLUMN IF NOT EXISTS date_naissance DATE;
+
 -- Accélère le filtrage des clients éligibles par carte + date de naissance
 CREATE INDEX IF NOT EXISTS idx_clients_carte_birth_date
   ON clients(carte_id, date_naissance)

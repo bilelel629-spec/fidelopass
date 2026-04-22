@@ -338,7 +338,6 @@ notificationsRoutes.get('/push-icon-settings', async (c) => {
     .select('id, push_icon_bg_color, updated_at')
     .eq('commerce_id', commerce.id)
     .eq('point_vente_id', pointVente.id)
-    .eq('actif', true)
     .order('updated_at', { ascending: false });
 
   const carte = (cartes ?? [])[0] ?? null;
@@ -379,8 +378,7 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
     .from('cartes')
     .select('id')
     .eq('commerce_id', commerce.id)
-    .eq('point_vente_id', pointVente.id)
-    .eq('actif', true);
+    .eq('point_vente_id', pointVente.id);
 
   if (!(cartes ?? []).length) return c.json({ error: 'Aucune carte active sur ce point de vente.' }, 404);
 
@@ -405,7 +403,6 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
     .select('id')
     .eq('commerce_id', commerce.id)
     .eq('point_vente_id', pointVente.id)
-    .in('carte_id', carteIds)
     .not('apple_pass_serial', 'is', null);
 
   if (appleClientsError) {

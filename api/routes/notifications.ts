@@ -17,6 +17,10 @@ const BIRTHDAY_SEND_HOUR = 10;
 const DEFAULT_BIRTHDAY_PUSH_TITLE = 'Joyeux anniversaire 🎉';
 const DEFAULT_BIRTHDAY_PUSH_MESSAGE = 'Votre bonus anniversaire est disponible sur votre carte Fidelopass.';
 
+function isHexColor(value: string | null | undefined): value is string {
+  return /^#[0-9A-Fa-f]{6}$/.test(String(value ?? '').trim());
+}
+
 async function resolveScopedCarteIdsForPoint(
   db: ReturnType<typeof createServiceClient>,
   commerceId: string,
@@ -389,13 +393,16 @@ notificationsRoutes.get('/push-icon-settings', async (c) => {
   const { data: cartes } = scopedCarteIds.length
     ? await db
       .from('cartes')
-      .select('id, push_icon_bg_color, updated_at')
+      .select('id, couleur_fond, updated_at')
       .in('id', scopedCarteIds)
       .eq('commerce_id', commerce.id)
       .order('updated_at', { ascending: false })
-    : { data: [] as Array<{ id: string; push_icon_bg_color?: string | null; updated_at?: string | null }> };
+    : { data: [] as Array<{ id: string; couleur_fond?: string | null; updated_at?: string | null }> };
 
   const carte = (cartes ?? [])[0] ?? null;
+  const iconBgColor = isHexColor((carte as { couleur_fond?: string | null } | null)?.couleur_fond)
+    ? (carte as { couleur_fond?: string | null }).couleur_fond as string
+    : '#6366f1';
 
   return c.json({
     data: {
@@ -403,7 +410,8 @@ notificationsRoutes.get('/push-icon-settings', async (c) => {
       cards_count: (cartes ?? []).length,
       scoped_cards_count: scopedCarteIds.length,
       point_vente_id: pointVente.id,
-      push_icon_bg_color: (carte as { push_icon_bg_color?: string | null } | null)?.push_icon_bg_color ?? '#6366f1',
+      push_icon_bg_color: iconBgColor,
+      derived_from_card_background: true,
     },
   });
 });
@@ -439,16 +447,16 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
   );
   if (!carteIds.length) return c.json({ error: 'Aucune carte active sur ce point de vente.' }, 404);
 
-  const { error } = await db
+  const { data: cartes } = await db
     .from('cartes')
-    .update({
-      push_icon_bg_color: parsed.data.push_icon_bg_color,
-      updated_at: new Date().toISOString(),
-    })
+    .select('id, couleur_fond, updated_at')
     .in('id', carteIds)
-    .eq('commerce_id', commerce.id);
+    .eq('commerce_id', commerce.id)
+    .order('updated_at', { ascending: false });
 
-  if (error) return c.json({ error: 'Impossible de mettre à jour la couleur.' }, 500);
+  const effectiveColor = isHexColor((cartes?.[0] as { couleur_fond?: string | null } | undefined)?.couleur_fond)
+    ? (cartes?.[0] as { couleur_fond?: string | null }).couleur_fond as string
+    : '#6366f1';
 
   let appleRefreshSent = 0;
 
@@ -505,10 +513,11 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
   return c.json({
     ok: true,
     data: {
-      push_icon_bg_color: parsed.data.push_icon_bg_color,
+      push_icon_bg_color: effectiveColor,
       updated_cards_count: carteIds.length,
       point_vente_id: pointVente.id,
       apple_refresh_sent: appleRefreshSent,
+      derived_from_card_background: true,
     },
   });
 });

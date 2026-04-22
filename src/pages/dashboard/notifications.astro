@@ -51,16 +51,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <div class="mb-3 flex items-start justify-between gap-3">
         <div>
           <h3 class="font-semibold text-slate-900">Fond du logo des notifications</h3>
-          <p class="mt-0.5 text-xs text-slate-500">Réglage identique à l’onglet Automatisations, appliqué au point de vente sélectionné.</p>
+          <p class="mt-0.5 text-xs text-slate-500">Automatique: reprend la Couleur de fond 1 de la carte du point de vente sélectionné.</p>
         </div>
         <div id="push-icon-preview-manual" class="h-10 w-10 rounded-xl border border-slate-200 shadow-inner"></div>
       </div>
       <div id="push-icon-error-manual" class="mb-2 hidden rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"></div>
       <div id="push-icon-success-manual" class="mb-2 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"></div>
       <div class="space-y-2">
-        <label class="label" for="push-icon-bg-color-manual">Couleur du fond</label>
-        <input id="push-icon-bg-color-manual" type="color" value="#6366f1" class="h-11 w-full cursor-pointer rounded-xl border border-slate-200 bg-white" />
-        <p id="push-icon-status-manual" class="text-xs text-slate-500">Chargement du réglage...</p>
+        <label class="label" for="push-icon-bg-color-manual">Synchronisé automatiquement</label>
+        <input id="push-icon-bg-color-manual" type="color" value="#6366f1" disabled class="h-11 w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 opacity-70" />
+        <p id="push-icon-status-manual" class="text-xs text-slate-500">Chargement de la couleur...</p>
       </div>
     </div>
   </section>
@@ -141,16 +141,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <div class="mb-4 flex items-start justify-between gap-3">
         <div>
           <h2 class="font-display font-bold text-slate-900">Fond du logo des notifications</h2>
-          <p class="mt-1 text-sm text-slate-500">Couleur affichée derrière le logo commerçant dans les notifications Wallet.</p>
+          <p class="mt-1 text-sm text-slate-500">Couleur automatique basée sur la Couleur de fond 1 de la carte.</p>
         </div>
         <div id="push-icon-preview" class="h-11 w-11 rounded-xl border border-slate-200 shadow-inner"></div>
       </div>
       <div id="push-icon-error" class="mb-3 hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
       <div id="push-icon-success" class="mb-3 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
       <div class="space-y-2">
-        <label class="label" for="push-icon-bg-color">Couleur du fond</label>
-        <input id="push-icon-bg-color" type="color" value="#6366f1" class="h-11 w-full cursor-pointer rounded-xl border border-slate-200 bg-white" />
-        <p id="push-icon-status" class="text-xs text-slate-500">Chargement du réglage...</p>
+        <label class="label" for="push-icon-bg-color">Synchronisé automatiquement</label>
+        <input id="push-icon-bg-color" type="color" value="#6366f1" disabled class="h-11 w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 opacity-70" />
+        <p id="push-icon-status" class="text-xs text-slate-500">Chargement de la couleur...</p>
       </div>
     </div>
   </section>
@@ -244,9 +244,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const pushIconErrors = [pushIconError, pushIconErrorManual].filter(Boolean) as HTMLDivElement[];
   const pushIconSuccesses = [pushIconSuccess, pushIconSuccessManual].filter(Boolean) as HTMLDivElement[];
   let cachedPlan: string = 'starter';
-  let pushIconSaveTimer: ReturnType<typeof setTimeout> | null = null;
-  let pushIconLastSavedColor = '#6366f1';
-  let pushIconIsSaving = false;
 
   function withPointVente(path: string): string {
     if (typeof window === 'undefined') return path;
@@ -412,12 +409,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     btn.textContent = 'Envoi en cours...';
 
     try {
-      if (pushIconSaveTimer) {
-        clearTimeout(pushIconSaveTimer);
-        pushIconSaveTimer = null;
-      }
-      await savePushIconColorNow(pushIconInputs[0]?.value ?? '#6366f1');
-
       const titre = (document.getElementById('titre') as HTMLInputElement).value.trim();
       const message = messageInput.value.trim();
       const res = await authFetch(withPointVente('/api/notifications'), {
@@ -539,51 +530,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage.');
       const color = String(payload?.data?.push_icon_bg_color ?? '#6366f1');
       syncPushIconInputs(color);
-      pushIconLastSavedColor = color;
       updatePushIconPreview(color);
       setPushIconStatusText(payload?.data?.has_active_card
-        ? 'Réglage actif pour la carte du point de vente sélectionné.'
+        ? 'Automatique: synchronisé avec la Couleur de fond 1 de la carte.'
         : 'Aucune carte active sur ce point de vente.');
-      setPushIconInputsDisabled(!payload?.data?.has_active_card);
+      setPushIconInputsDisabled(true);
     } catch (error: unknown) {
       setPushIconStatusText('Impossible de charger le réglage.');
       setPushIconInputsDisabled(true);
-      showPushIconError(error instanceof Error ? error.message : 'Erreur réseau.');
-    }
-  }
-
-  async function persistPushIconColor(color: string) {
-    if (pushIconIsSaving) return null;
-    if (color === pushIconLastSavedColor) return null;
-    pushIconIsSaving = true;
-    try {
-      const res = await authFetch(withPointVente('/api/notifications/push-icon-settings'), {
-        method: 'PATCH',
-        body: JSON.stringify({ push_icon_bg_color: color }),
-      });
-      const payload = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(payload?.error ?? 'Impossible de mettre à jour la couleur.');
-      }
-      pushIconLastSavedColor = color;
-      return payload;
-    } finally {
-      pushIconIsSaving = false;
-    }
-  }
-
-  async function savePushIconColorNow(color: string) {
-    if (pushIconInputs.every((input) => input.disabled)) return;
-    hidePushIconAlerts();
-    try {
-      const payload = await persistPushIconColor(color);
-      if (!payload) return;
-      const refreshed = Number(payload?.data?.apple_refresh_sent ?? 0);
-      showPushIconSuccess(refreshed > 0
-        ? `Couleur appliquée. ${refreshed} carte(s) Apple Wallet mise(s) à jour.`
-        : 'Couleur de fond des notifications enregistrée.');
-      setPushIconStatusText('Réglage actif pour la carte du point de vente sélectionné.');
-    } catch (error: unknown) {
       showPushIconError(error instanceof Error ? error.message : 'Erreur réseau.');
     }
   }
@@ -642,27 +596,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       }
     });
   });
-
-  function bindPushIconInput(input: HTMLInputElement) {
-    input.addEventListener('input', () => {
-      const color = input.value;
-      syncPushIconInputs(color, input);
-      updatePushIconPreview(color);
-      if (pushIconSaveTimer) clearTimeout(pushIconSaveTimer);
-      pushIconSaveTimer = setTimeout(() => {
-        void savePushIconColorNow(color);
-      }, 220);
-    });
-
-    input.addEventListener('change', async () => {
-      if (pushIconSaveTimer) clearTimeout(pushIconSaveTimer);
-      syncPushIconInputs(input.value, input);
-      updatePushIconPreview(input.value);
-      await savePushIconColorNow(input.value);
-    });
-  }
-
-  pushIconInputs.forEach(bindPushIconInput);
 
   setNotifTab('manual');
   loadSummary();

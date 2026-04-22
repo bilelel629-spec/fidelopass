@@ -333,19 +333,18 @@ notificationsRoutes.get('/push-icon-settings', async (c) => {
 
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
-  const { data: cartes } = await db
+  const { data: carte } = await db
     .from('cartes')
-    .select('id, push_icon_bg_color, updated_at')
+    .select('id, push_icon_bg_color')
     .eq('commerce_id', commerce.id)
     .eq('point_vente_id', pointVente.id)
-    .order('updated_at', { ascending: false });
-
-  const carte = (cartes ?? [])[0] ?? null;
+    .eq('actif', true)
+    .maybeSingle();
 
   return c.json({
     data: {
       has_active_card: Boolean(carte),
-      active_cards_count: (cartes ?? []).length,
+      point_vente_id: pointVente.id,
       push_icon_bg_color: (carte as { push_icon_bg_color?: string | null } | null)?.push_icon_bg_color ?? '#6366f1',
     },
   });
@@ -374,15 +373,16 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
 
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
-  const { data: cartes } = await db
+  const { data: carte } = await db
     .from('cartes')
     .select('id')
     .eq('commerce_id', commerce.id)
-    .eq('point_vente_id', pointVente.id);
+    .eq('point_vente_id', pointVente.id)
+    .eq('actif', true)
+    .maybeSingle();
 
-  if (!(cartes ?? []).length) return c.json({ error: 'Aucune carte active sur ce point de vente.' }, 404);
-
-  const carteIds = (cartes ?? []).map((row) => row.id).filter(Boolean);
+  if (!carte) return c.json({ error: 'Aucune carte active sur ce point de vente.' }, 404);
+  const carteId = (carte as { id: string }).id;
 
   const { error } = await db
     .from('cartes')
@@ -390,7 +390,7 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
       push_icon_bg_color: parsed.data.push_icon_bg_color,
       updated_at: new Date().toISOString(),
     })
-    .in('id', carteIds)
+    .eq('id', carteId)
     .eq('commerce_id', commerce.id)
     .eq('point_vente_id', pointVente.id);
 
@@ -403,6 +403,7 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
     .select('id')
     .eq('commerce_id', commerce.id)
     .eq('point_vente_id', pointVente.id)
+    .eq('carte_id', carteId)
     .not('apple_pass_serial', 'is', null);
 
   if (appleClientsError) {
@@ -441,7 +442,8 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
     ok: true,
     data: {
       push_icon_bg_color: parsed.data.push_icon_bg_color,
-      updated_cards_count: carteIds.length,
+      updated_card_id: carteId,
+      point_vente_id: pointVente.id,
       apple_refresh_sent: appleRefreshSent,
     },
   });

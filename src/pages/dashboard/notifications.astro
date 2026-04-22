@@ -147,7 +147,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 </DashboardLayout>
 
 <script>
-  import { authFetch } from '../../lib/api';
+  import { ACTIVE_POINT_VENTE_STORAGE_KEY, authFetch } from '../../lib/api';
   import { isProPlan, normalizePlan } from '../../lib/dashboard-config';
 
   function escapeHtml(value: unknown) {
@@ -221,6 +221,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   let pushIconLastSavedColor = '#6366f1';
   let pushIconIsSaving = false;
 
+  function withPointVente(path: string): string {
+    if (typeof window === 'undefined') return path;
+    try {
+      const pointVenteId = window.localStorage.getItem(ACTIVE_POINT_VENTE_STORAGE_KEY)?.trim() ?? '';
+      if (!pointVenteId) return path;
+      const separator = path.includes('?') ? '&' : '?';
+      return `${path}${separator}point_vente_id=${encodeURIComponent(pointVenteId)}`;
+    } catch {
+      return path;
+    }
+  }
+
   function setReviewPlanLabel(planRaw: unknown) {
     const normalized = normalizePlan(planRaw);
     if (normalized.includes('sur-mesure') || normalized.includes('surmesure') || normalized.includes('custom') || normalized.includes('enterprise')) {
@@ -270,7 +282,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   async function loadPlanFallback() {
     try {
-      const res = await authFetch('/api/dashboard/plan');
+      const res = await authFetch(withPointVente('/api/dashboard/plan'));
       const payload = await res.json().catch(() => null);
       if (!res.ok) return;
       cachedPlan = String(payload?.data?.plan ?? payload?.data?.raw_plan ?? 'starter');
@@ -282,8 +294,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   async function loadSummary() {
     try {
       const [summaryRes, historyRes] = await Promise.all([
-        authFetch('/api/notifications/summary'),
-        authFetch('/api/notifications?limit=50'),
+        authFetch(withPointVente('/api/notifications/summary')),
+        authFetch(withPointVente('/api/notifications?limit=50')),
       ]);
       const summaryPayload = await summaryRes.json().catch(() => null);
       const historyPayload = await historyRes.json().catch(() => null);
@@ -302,7 +314,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   async function loadHistory() {
     const container = document.getElementById('notif-history')!;
     try {
-      const res = await authFetch('/api/notifications?limit=20');
+      const res = await authFetch(withPointVente('/api/notifications?limit=20'));
       if (!res.ok) throw new Error();
       const { data } = await res.json();
 
@@ -339,7 +351,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     try {
       const titre = (document.getElementById('titre') as HTMLInputElement).value.trim();
       const message = messageInput.value.trim();
-      const res = await authFetch('/api/notifications', {
+      const res = await authFetch(withPointVente('/api/notifications'), {
         method: 'POST',
         body: JSON.stringify({ titre, message }),
       });
@@ -364,7 +376,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   async function loadReviewAutoSettings() {
     try {
-      const res = await authFetch('/api/notifications/review-reminder-settings');
+      const res = await authFetch(withPointVente('/api/notifications/review-reminder-settings'));
       const payload = await res.json().catch(() => null);
       if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage.');
 
@@ -398,7 +410,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     try {
       const nextValue = !reviewAutoEnabled;
-      const res = await authFetch('/api/notifications/review-reminder-settings', {
+      const res = await authFetch(withPointVente('/api/notifications/review-reminder-settings'), {
         method: 'PATCH',
         body: JSON.stringify({ enabled: nextValue }),
       });
@@ -417,7 +429,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   async function loadBirthdaySettings() {
     try {
-      const res = await authFetch('/api/notifications/birthday-settings');
+      const res = await authFetch(withPointVente('/api/notifications/birthday-settings'));
       const payload = await res.json().catch(() => null);
       if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage anniversaire.');
 
@@ -454,7 +466,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     pushIconError.classList.add('hidden');
     pushIconSuccess.classList.add('hidden');
     try {
-      const res = await authFetch('/api/notifications/push-icon-settings');
+      const res = await authFetch(withPointVente('/api/notifications/push-icon-settings'));
       const payload = await res.json().catch(() => null);
       if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage.');
       const color = String(payload?.data?.push_icon_bg_color ?? '#6366f1');
@@ -478,7 +490,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     if (color === pushIconLastSavedColor) return null;
     pushIconIsSaving = true;
     try {
-      const res = await authFetch('/api/notifications/push-icon-settings', {
+      const res = await authFetch(withPointVente('/api/notifications/push-icon-settings'), {
         method: 'PATCH',
         body: JSON.stringify({ push_icon_bg_color: color }),
       });
@@ -517,7 +529,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     if (!Number.isFinite(rewardValue) || rewardValue < 1 || rewardValue > 50) {
       throw new Error('Le bonus anniversaire doit être compris entre 1 et 50.');
     }
-    const res = await authFetch('/api/notifications/birthday-settings', {
+    const res = await authFetch(withPointVente('/api/notifications/birthday-settings'), {
       method: 'PATCH',
       body: JSON.stringify({
         enabled: nextEnabled,

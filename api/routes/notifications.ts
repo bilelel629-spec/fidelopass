@@ -17,6 +17,38 @@ const BIRTHDAY_SEND_HOUR = 10;
 const DEFAULT_BIRTHDAY_PUSH_TITLE = 'Joyeux anniversaire 🎉';
 const DEFAULT_BIRTHDAY_PUSH_MESSAGE = 'Votre bonus anniversaire est disponible sur votre carte Fidelopass.';
 
+async function resolveScopedCarteIdsForPoint(
+  db: ReturnType<typeof createServiceClient>,
+  commerceId: string,
+  pointVenteId: string,
+): Promise<string[]> {
+  const ids = new Set<string>();
+
+  const { data: pointCards } = await db
+    .from('cartes')
+    .select('id')
+    .eq('commerce_id', commerceId)
+    .eq('point_vente_id', pointVenteId);
+
+  for (const card of pointCards ?? []) {
+    if (card?.id) ids.add(card.id);
+  }
+
+  const { data: clientCards } = await db
+    .from('clients')
+    .select('carte_id')
+    .eq('commerce_id', commerceId)
+    .eq('point_vente_id', pointVenteId)
+    .not('carte_id', 'is', null);
+
+  for (const row of clientCards ?? []) {
+    const carteId = (row as { carte_id?: string | null })?.carte_id;
+    if (carteId) ids.add(carteId);
+  }
+
+  return Array.from(ids);
+}
+
 export const notificationsRoutes = new Hono();
 
 notificationsRoutes.use('*', authMiddleware);
@@ -333,12 +365,15 @@ notificationsRoutes.get('/push-icon-settings', async (c) => {
 
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
-  const { data: cartes } = await db
-    .from('cartes')
-    .select('id, push_icon_bg_color, updated_at')
-    .eq('commerce_id', commerce.id)
-    .eq('point_vente_id', pointVente.id)
-    .order('updated_at', { ascending: false });
+  const scopedCarteIds = await resolveScopedCarteIdsForPoint(db, commerce.id, pointVente.id);
+  const { data: cartes } = scopedCarteIds.length
+    ? await db
+      .from('cartes')
+      .select('id, push_icon_bg_color, updated_at')
+      .in('id', scopedCarteIds)
+      .eq('commerce_id', commerce.id)
+      .order('updated_at', { ascending: false })
+    : { data: [] as Array<{ id: string; push_icon_bg_color?: string | null; updated_at?: string | null }> };
 
   const carte = (cartes ?? [])[0] ?? null;
 
@@ -346,6 +381,7 @@ notificationsRoutes.get('/push-icon-settings', async (c) => {
     data: {
       has_active_card: Boolean(carte),
       cards_count: (cartes ?? []).length,
+      scoped_cards_count: scopedCarteIds.length,
       point_vente_id: pointVente.id,
       push_icon_bg_color: (carte as { push_icon_bg_color?: string | null } | null)?.push_icon_bg_color ?? '#6366f1',
     },
@@ -375,13 +411,7 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
 
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
-  const { data: cartes } = await db
-    .from('cartes')
-    .select('id')
-    .eq('commerce_id', commerce.id)
-    .eq('point_vente_id', pointVente.id);
-
-  const carteIds = (cartes ?? []).map((row) => row.id).filter(Boolean);
+  const carteIds = await resolveScopedCarteIdsForPoint(db, commerce.id, pointVente.id);
   if (!carteIds.length) return c.json({ error: 'Aucune carte active sur ce point de vente.' }, 404);
 
   const { error } = await db
@@ -391,8 +421,7 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
       updated_at: new Date().toISOString(),
     })
     .in('id', carteIds)
-    .eq('commerce_id', commerce.id)
-    .eq('point_vente_id', pointVente.id);
+    .eq('commerce_id', commerce.id);
 
   if (error) return c.json({ error: 'Impossible de mettre à jour la couleur.' }, 500);
 
@@ -403,7 +432,6 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
     .select('id')
     .eq('commerce_id', commerce.id)
     .eq('point_vente_id', pointVente.id)
-    .in('carte_id', carteIds)
     .not('apple_pass_serial', 'is', null);
 
   if (appleClientsError) {

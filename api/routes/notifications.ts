@@ -333,17 +333,20 @@ notificationsRoutes.get('/push-icon-settings', async (c) => {
 
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
-  const { data: carte } = await db
+  const { data: cartes } = await db
     .from('cartes')
-    .select('id, push_icon_bg_color')
+    .select('id, push_icon_bg_color, updated_at')
     .eq('commerce_id', commerce.id)
     .eq('point_vente_id', pointVente.id)
     .eq('actif', true)
-    .maybeSingle();
+    .order('updated_at', { ascending: false });
+
+  const carte = (cartes ?? [])[0] ?? null;
 
   return c.json({
     data: {
       has_active_card: Boolean(carte),
+      active_cards_count: (cartes ?? []).length,
       push_icon_bg_color: (carte as { push_icon_bg_color?: string | null } | null)?.push_icon_bg_color ?? '#6366f1',
     },
   });
@@ -372,15 +375,16 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
 
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
-  const { data: carte } = await db
+  const { data: cartes } = await db
     .from('cartes')
     .select('id')
     .eq('commerce_id', commerce.id)
     .eq('point_vente_id', pointVente.id)
-    .eq('actif', true)
-    .maybeSingle();
+    .eq('actif', true);
 
-  if (!carte) return c.json({ error: 'Aucune carte active sur ce point de vente.' }, 404);
+  if (!(cartes ?? []).length) return c.json({ error: 'Aucune carte active sur ce point de vente.' }, 404);
+
+  const carteIds = (cartes ?? []).map((row) => row.id).filter(Boolean);
 
   const { error } = await db
     .from('cartes')
@@ -388,21 +392,20 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
       push_icon_bg_color: parsed.data.push_icon_bg_color,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', (carte as { id: string }).id)
+    .in('id', carteIds)
     .eq('commerce_id', commerce.id)
     .eq('point_vente_id', pointVente.id);
 
   if (error) return c.json({ error: 'Impossible de mettre à jour la couleur.' }, 500);
 
   let appleRefreshSent = 0;
-  const carteId = (carte as { id: string }).id;
 
   const { data: appleClients, error: appleClientsError } = await db
     .from('clients')
     .select('id')
     .eq('commerce_id', commerce.id)
     .eq('point_vente_id', pointVente.id)
-    .eq('carte_id', carteId)
+    .in('carte_id', carteIds)
     .not('apple_pass_serial', 'is', null);
 
   if (appleClientsError) {
@@ -441,6 +444,7 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
     ok: true,
     data: {
       push_icon_bg_color: parsed.data.push_icon_bg_color,
+      updated_cards_count: carteIds.length,
       apple_refresh_sent: appleRefreshSent,
     },
   });

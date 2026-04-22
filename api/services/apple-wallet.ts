@@ -126,7 +126,8 @@ async function resizeTo(buf: Buffer, w: number, h: number): Promise<Buffer> {
 }
 
 async function createPassIcon(buf: Buffer, size: number, backgroundHex: string): Promise<Buffer> {
-  const padding = Math.max(2, Math.round(size * 0.06));
+  // Keep a generous margin so notification background color remains clearly visible.
+  const padding = Math.max(4, Math.round(size * 0.2));
   const inner = Math.max(1, size - padding * 2);
   const trimmed = await sharp(buf)
     .trim()
@@ -343,9 +344,11 @@ export async function generateApplePass(
   const iconBgColor = isHexColor(carte.push_icon_bg_color)
     ? carte.push_icon_bg_color
     : (isHexColor(carte.couleur_accent) ? carte.couleur_accent : '#6366f1');
-  const icon1x = logoRaw ? await createPassIcon(logoRaw, 38, iconBgColor) : await resizeTo(readAsset('icon@3x.png'), 38, 38);
-  const icon2x = logoRaw ? await createPassIcon(logoRaw, 76, iconBgColor) : await resizeTo(readAsset('icon@3x.png'), 76, 76);
-  const icon3x = logoRaw ? await createPassIcon(logoRaw, 114, iconBgColor) : await resizeTo(readAsset('icon@3x.png'), 114, 114);
+  const fallbackIconRaw = readAsset('icon@3x.png');
+  const iconSource = logoRaw ?? fallbackIconRaw;
+  const icon1x = await createPassIcon(iconSource, 38, iconBgColor);
+  const icon2x = await createPassIcon(iconSource, 76, iconBgColor);
+  const icon3x = await createPassIcon(iconSource, 114, iconBgColor);
 
   // ── Dossier temporaire .pass ──────────────────────────────────────
   const tmpPassDir = resolve(tmpdir(), `fidelopass-${randomUUID()}.pass`);

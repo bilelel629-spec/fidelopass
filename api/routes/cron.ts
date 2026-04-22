@@ -175,7 +175,7 @@ async function sendScheduledReviewPushes(db: ReturnType<typeof createServiceClie
         ? carte.google_maps_url.trim()
         : `${PUBLIC_SITE_URL}/carte/${carte.id}`;
 
-      const messageTitle = `Votre avis compte pour ${commerce.nom}`;
+      const messageTitle = `Votre avis compte pour ${carte.nom}`;
       const messageBody = `Merci d'avoir ajouté votre carte ${carte.nom}. Donnez-nous votre avis Google en 30 secondes.`;
 
       const webPushClients = clients.filter((client) => client.push_enabled && client.fcm_token);

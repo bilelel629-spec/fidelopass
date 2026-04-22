@@ -701,7 +701,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
     ? (carte.review_reward_value ?? 1) === 1 ? '1 tampon offert' : `${carte.review_reward_value} tampons offerts`
     : (carte.review_reward_value ?? 1) === 1 ? '1 point offert' : `${carte.review_reward_value} points offerts`;
 
-  const titre = `⭐ Laissez un avis — ${unit} !`;
+  const titre = `⭐ ${carte.nom} — ${unit}`;
   const message = `Laissez un avis Google sur ${carte.nom} et recevez votre récompense immédiatement.`;
 
   let nbEnvoyes = 0;

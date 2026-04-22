@@ -161,11 +161,11 @@ transactionsRoutes.post('/', async (c) => {
         `Félicitations ! Vous pouvez maintenant bénéficier de votre récompense : ${desc}. Montrez votre carte au commerce.`,
       ).catch((err) => console.error('[push reward earned]', err));
     } else if (rewardJustUsed) {
-      const commerceNom = carteTyped.commerces?.nom ?? 'votre commerce';
+      const carteNom = (carte as { nom?: string | null }).nom ?? carteTyped.commerces?.nom ?? 'votre carte';
       sendPushNotification(
         [clientFcmToken],
         '✅ Récompense attribuée !',
-        `Votre récompense a été attribuée. Merci de votre fidélité chez ${commerceNom}.`,
+        `Votre récompense a été attribuée sur ${carteNom}. Merci de votre fidélité.`,
       ).catch((err) => console.error('[push reward used]', err));
     }
   }

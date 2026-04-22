@@ -182,17 +182,19 @@ export async function generateApplePass(
     .map((tier) => `${tier.nom} : ${tier.seuil} points${tier.avantage ? ` — ${tier.avantage}` : ''}`)
     .join('\n');
 
+  const walletDisplayName = String(carte.nom ?? '').trim() || String(carte.commerces.nom ?? '').trim() || 'Fidelopass';
+
   const passJson: Record<string, unknown> = {
     formatVersion: 1,
     passTypeIdentifier: process.env.APPLE_PASS_TYPE_ID,
     teamIdentifier: process.env.APPLE_TEAM_ID,
     serialNumber: client.id,
-    organizationName: carte.commerces.nom,
+    organizationName: walletDisplayName,
     description: carte.nom,
     foregroundColor: hexToRgb(carte.couleur_texte),
     backgroundColor: hexToRgb(carte.couleur_fond),
     labelColor: hexToRgb(carte.couleur_accent),
-    logoText: carte.nom,
+    logoText: walletDisplayName,
     authenticationToken: client.id,
     storeCard: {
       // headerFields : coin supérieur droit (solde)

@@ -21,25 +21,40 @@ async function resolveScopedCarteIdsForPoint(
   db: ReturnType<typeof createServiceClient>,
   commerceId: string,
   pointVenteId: string,
+  includeLegacyNullScope = false,
 ): Promise<string[]> {
   const ids = new Set<string>();
 
-  const { data: pointCards } = await db
+  const cardsQuery = db
     .from('cartes')
     .select('id')
-    .eq('commerce_id', commerceId)
-    .eq('point_vente_id', pointVenteId);
+    .eq('commerce_id', commerceId);
+
+  if (includeLegacyNullScope) {
+    cardsQuery.or(`point_vente_id.eq.${pointVenteId},point_vente_id.is.null`);
+  } else {
+    cardsQuery.eq('point_vente_id', pointVenteId);
+  }
+
+  const { data: pointCards } = await cardsQuery;
 
   for (const card of pointCards ?? []) {
     if (card?.id) ids.add(card.id);
   }
 
-  const { data: clientCards } = await db
+  const clientsQuery = db
     .from('clients')
     .select('carte_id')
     .eq('commerce_id', commerceId)
-    .eq('point_vente_id', pointVenteId)
     .not('carte_id', 'is', null);
+
+  if (includeLegacyNullScope) {
+    clientsQuery.or(`point_vente_id.eq.${pointVenteId},point_vente_id.is.null`);
+  } else {
+    clientsQuery.eq('point_vente_id', pointVenteId);
+  }
+
+  const { data: clientCards } = await clientsQuery;
 
   for (const row of clientCards ?? []) {
     const carteId = (row as { carte_id?: string | null })?.carte_id;
@@ -365,7 +380,12 @@ notificationsRoutes.get('/push-icon-settings', async (c) => {
 
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
-  const scopedCarteIds = await resolveScopedCarteIdsForPoint(db, commerce.id, pointVente.id);
+  const scopedCarteIds = await resolveScopedCarteIdsForPoint(
+    db,
+    commerce.id,
+    pointVente.id,
+    Boolean(pointVente.principal),
+  );
   const { data: cartes } = scopedCarteIds.length
     ? await db
       .from('cartes')
@@ -411,7 +431,12 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
 
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
-  const carteIds = await resolveScopedCarteIdsForPoint(db, commerce.id, pointVente.id);
+  const carteIds = await resolveScopedCarteIdsForPoint(
+    db,
+    commerce.id,
+    pointVente.id,
+    Boolean(pointVente.principal),
+  );
   if (!carteIds.length) return c.json({ error: 'Aucune carte active sur ce point de vente.' }, 404);
 
   const { error } = await db
@@ -431,7 +456,7 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
     .from('clients')
     .select('id')
     .eq('commerce_id', commerce.id)
-    .eq('point_vente_id', pointVente.id)
+    .in('carte_id', carteIds)
     .not('apple_pass_serial', 'is', null);
 
   if (appleClientsError) {
@@ -457,6 +482,17 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
         )),
       );
       appleRefreshSent = refreshResults.filter((result) => result.status === 'fulfilled').length;
+
+      // Second pass (best effort) to reduce perceived Wallet refresh latency on iOS.
+      if (uniqueRegistrations.length > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        await Promise.allSettled(
+          uniqueRegistrations.map((registration) => pushApplePassUpdate(
+            registration.push_token,
+            passTypeId || registration.pass_type_identifier,
+          )),
+        );
+      }
 
       for (const result of refreshResults) {
         if (result.status === 'rejected') {

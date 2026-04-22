@@ -73,6 +73,7 @@ const carteSchema = z.object({
   gradient_angle: z.number().int().min(0).max(360).default(135),
   pattern_type: z.enum(['none', 'dots', 'waves', 'grid', 'diagonal', 'confetti']).default('none'),
   tampon_emoji: z.string().max(8).nullable().optional(),
+  tampon_icon_scale: z.number().min(0.6).max(1.5).default(1),
   // Compatibilité ancienne migration : les Wallets gardent leur typographie native.
   police: z.enum(['system', 'inter', 'playfair', 'bebas', 'nunito', 'mono']).default('system'),
   police_taille: z.number().int().min(70).max(150).default(100),
@@ -216,6 +217,7 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   if (parsed.data.gradient_angle !== undefined) advFields.gradient_angle = parsed.data.gradient_angle;
   if (parsed.data.pattern_type !== undefined) advFields.pattern_type = parsed.data.pattern_type;
   if (parsed.data.tampon_emoji !== undefined) advFields.tampon_emoji = parsed.data.tampon_emoji;
+  if (parsed.data.tampon_icon_scale !== undefined) advFields.tampon_icon_scale = parsed.data.tampon_icon_scale;
 
   const typoFields: Record<string, unknown> = {};
   if (parsed.data.police !== undefined) typoFields.police = parsed.data.police;
@@ -323,7 +325,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
 
   const {
     logo_url, strip_url, strip_position, tampon_icon_url, barcode_type, label_client, push_icon_bg_color,
-    couleur_fond_2, gradient_angle, pattern_type, tampon_emoji,
+    couleur_fond_2, gradient_angle, pattern_type, tampon_emoji, tampon_icon_scale,
     police, police_taille, police_gras, texte_alignement, strip_plein_largeur, banner_overlay_opacity,
     welcome_message, success_message, rewards_config, rewards_multi_enabled, vip_tiers, strip_layout, branding_powered_by_enabled,
     birthday_auto_enabled, birthday_reward_value, birthday_push_title, birthday_push_message,
@@ -344,6 +346,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   if (gradient_angle !== undefined) advFields.gradient_angle = gradient_angle;
   if (pattern_type !== undefined) advFields.pattern_type = pattern_type;
   if (tampon_emoji !== undefined) advFields.tampon_emoji = tampon_emoji;
+  if (tampon_icon_scale !== undefined) advFields.tampon_icon_scale = tampon_icon_scale;
 
   const typoFields: Record<string, unknown> = {};
   if (police !== undefined) typoFields.police = police;

@@ -51,6 +51,7 @@ export interface Database {
           gradient_angle: number | null;
           pattern_type: string | null;
           tampon_emoji: string | null;
+          tampon_icon_scale: number | null;
           police: string | null;
           police_taille: number | null;
           police_gras: boolean | null;

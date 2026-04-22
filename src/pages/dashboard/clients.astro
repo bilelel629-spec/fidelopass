@@ -141,7 +141,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Points / Tampons</th>
               <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Récompenses dispo</th>
               <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Dernière visite</th>
-              <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Push</th>
             </tr>
           </thead>
           <tbody>
@@ -162,14 +161,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                 </td>
                 <td class="px-6 py-4 text-slate-600 text-sm">
                   ${c.derniere_visite ? new Date(c.derniere_visite).toLocaleDateString('fr-FR') : '—'}
-                </td>
-                <td class="px-6 py-4">
-                  ${c.push_enabled && c.fcm_token
-                    ? '<span class="badge badge-success">Prêt</span>'
-                    : c.push_enabled
-                      ? '<span class="badge badge-warning">Token manquant</span>'
-                      : '<span class="badge bg-slate-100 text-slate-500 border border-slate-200">Non</span>'
-                  }
                 </td>
               </tr>
             `).join('')}
@@ -331,7 +322,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   document.getElementById('export-csv-btn')!.addEventListener('click', () => {
     const rows = [
-      ['Nom', 'Email', 'Téléphone', 'Points ou tampons', 'Récompenses disponibles', 'Dernière visite', 'Push activé', 'Token push'],
+      ['Nom', 'Email', 'Téléphone', 'Points ou tampons', 'Récompenses disponibles', 'Dernière visite'],
       ...currentClients.map((client) => [
         client.nom ?? 'Anonyme',
         client.email ?? '',
@@ -339,8 +330,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         String(client.points_actuels || client.tampons_actuels || 0),
         String(client.recompenses_obtenues ?? 0),
         client.derniere_visite ? new Date(client.derniere_visite).toLocaleDateString('fr-FR') : '',
-        client.push_enabled ? 'Oui' : 'Non',
-        client.fcm_token ? 'Oui' : 'Non',
       ]),
     ];
     const csv = rows.map((row) =>

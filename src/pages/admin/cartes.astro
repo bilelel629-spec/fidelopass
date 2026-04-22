@@ -1,0 +1,388 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Assistance cartes — Admin Fidelopass" activeNav="cartes">
+  <div class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div>
+      <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Support opérationnel</p>
+      <h1 class="font-display mt-2 text-3xl font-bold text-slate-900">Assistance cartes commerçants</h1>
+      <p class="mt-2 text-sm text-slate-600">Intervenez directement sur la carte d’un commerce (support, assistance setup 20€, correction urgente).</p>
+    </div>
+    <a href="/admin/commerces" class="rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-50">
+      Retour à la liste des commerces
+    </a>
+  </div>
+
+  <div class="grid gap-6 xl:grid-cols-[320px_1fr]">
+    <section class="card p-5">
+      <h2 class="font-display text-xl font-bold text-slate-900">Sélection</h2>
+      <div class="mt-4 space-y-4">
+        <div>
+          <label class="label mb-2 block" for="admin-commerce-select">Commerce</label>
+          <select id="admin-commerce-select" class="input">
+            <option value="">Choisir un commerce</option>
+          </select>
+        </div>
+        <div>
+          <label class="label mb-2 block" for="admin-point-select">Point de vente</label>
+          <select id="admin-point-select" class="input" disabled>
+            <option value="">Choisir un point de vente</option>
+          </select>
+        </div>
+      </div>
+      <div id="admin-commerce-meta" class="mt-4 hidden rounded-2xl border border-sky-100 bg-sky-50/70 p-4 text-xs text-slate-600"></div>
+      <p id="admin-help-msg" class="mt-4 text-xs text-slate-500">Choisissez un commerce puis un point de vente pour éditer sa carte.</p>
+    </section>
+
+    <section class="card p-6">
+      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="font-display text-2xl font-bold text-slate-900">Personnalisation rapide</h2>
+          <p class="mt-1 text-sm text-slate-500">Les modifications sont enregistrées sur la carte du point de vente sélectionné.</p>
+        </div>
+        <button id="admin-save-card-btn" type="button" class="btn-primary px-5 py-2.5" disabled>Enregistrer la carte</button>
+      </div>
+
+      <div id="admin-error" class="hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+      <div id="admin-success" class="hidden mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
+
+      <div class="grid gap-4 lg:grid-cols-2">
+        <div>
+          <label class="label mb-2 block" for="admin-card-name">Nom de la carte *</label>
+          <input id="admin-card-name" type="text" class="input" placeholder="Carte fidélité commerce" />
+        </div>
+        <div>
+          <label class="label mb-2 block" for="admin-label-client">Label client</label>
+          <input id="admin-label-client" type="text" class="input" placeholder="Client" />
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <label class="label mb-2 block" for="admin-description">Description</label>
+        <input id="admin-description" type="text" class="input" placeholder="Cumulez et débloquez vos récompenses." />
+      </div>
+
+      <div class="mt-5 grid gap-4 lg:grid-cols-2">
+        <div class="rounded-2xl border border-sky-100 bg-sky-50/60 p-4">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700/75">Programme</p>
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            <label class="cursor-pointer rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+              <input id="admin-type-tampons" type="radio" name="admin-type" value="tampons" checked class="mr-2" />
+              Tampons
+            </label>
+            <label class="cursor-pointer rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+              <input id="admin-type-points" type="radio" name="admin-type" value="points" class="mr-2" />
+              Points
+            </label>
+          </div>
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            <div>
+              <label class="label mb-1 block" for="admin-tampons-total">Tampons</label>
+              <input id="admin-tampons-total" type="number" min="1" max="50" value="10" class="input" />
+            </div>
+            <div>
+              <label class="label mb-1 block" for="admin-points-target">Points cible</label>
+              <input id="admin-points-target" type="number" min="1" value="100" class="input" />
+            </div>
+          </div>
+          <div class="mt-3">
+            <label class="label mb-1 block" for="admin-reward">Récompense</label>
+            <input id="admin-reward" type="text" class="input" placeholder="Ex: -10% / 1 café offert" />
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 bg-white p-4">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Couleurs</p>
+          <div class="mt-3 grid grid-cols-3 gap-3">
+            <label class="text-xs text-slate-600">Fond
+              <input id="admin-color-bg" type="color" class="mt-1 h-10 w-full cursor-pointer rounded-xl border border-slate-200 bg-white p-1" value="#0f172a" />
+            </label>
+            <label class="text-xs text-slate-600">Texte
+              <input id="admin-color-text" type="color" class="mt-1 h-10 w-full cursor-pointer rounded-xl border border-slate-200 bg-white p-1" value="#ffffff" />
+            </label>
+            <label class="text-xs text-slate-600">Accent
+              <input id="admin-color-accent" type="color" class="mt-1 h-10 w-full cursor-pointer rounded-xl border border-slate-200 bg-white p-1" value="#60a5fa" />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-5 grid gap-4 lg:grid-cols-2">
+        <div>
+          <label class="label mb-2 block" for="admin-logo-url">URL logo</label>
+          <input id="admin-logo-url" type="url" class="input" placeholder="https://..." />
+        </div>
+        <div>
+          <label class="label mb-2 block" for="admin-strip-url">URL bannière</label>
+          <input id="admin-strip-url" type="url" class="input" placeholder="https://..." />
+        </div>
+      </div>
+
+      <div class="mt-4 grid gap-4 lg:grid-cols-2">
+        <div>
+          <label class="label mb-2 block" for="admin-stamp-url">URL logo tampon</label>
+          <input id="admin-stamp-url" type="url" class="input" placeholder="https://..." />
+        </div>
+        <div>
+          <label class="label mb-2 block" for="admin-stamp-scale">Taille logo tampon</label>
+          <input id="admin-stamp-scale" type="range" min="0.6" max="1.5" step="0.05" value="1" class="w-full accent-sky-600" />
+          <p class="mt-1 text-xs text-slate-500">Valeur: <span id="admin-stamp-scale-value">1.00</span></p>
+        </div>
+      </div>
+
+      <div class="mt-4 grid gap-4 lg:grid-cols-2">
+        <div>
+          <label class="label mb-2 block" for="admin-welcome-message">Message d’accueil</label>
+          <input id="admin-welcome-message" type="text" class="input" maxlength="180" />
+        </div>
+        <div>
+          <label class="label mb-2 block" for="admin-success-message">Message après ajout</label>
+          <input id="admin-success-message" type="text" class="input" maxlength="180" />
+        </div>
+      </div>
+    </section>
+  </div>
+</AdminLayout>
+
+<script>
+  type CommerceItem = {
+    id: string;
+    nom: string;
+    plan?: string | null;
+    plan_override?: string | null;
+    effective_plan?: string | null;
+    actif: boolean;
+  };
+
+  type PointVenteItem = {
+    id: string;
+    nom: string;
+    principal: boolean;
+    actif: boolean;
+  };
+
+  type CarteItem = Record<string, unknown> & { id: string; point_vente_id: string };
+
+  let commerces: CommerceItem[] = [];
+  let pointsVente: PointVenteItem[] = [];
+  let cartes: CarteItem[] = [];
+  let selectedCommerceId = '';
+  let selectedPointId = '';
+
+  const API_BASE = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
+  const commerceSelect = document.getElementById('admin-commerce-select') as HTMLSelectElement;
+  const pointSelect = document.getElementById('admin-point-select') as HTMLSelectElement;
+  const saveBtn = document.getElementById('admin-save-card-btn') as HTMLButtonElement;
+  const errorBox = document.getElementById('admin-error') as HTMLDivElement;
+  const successBox = document.getElementById('admin-success') as HTMLDivElement;
+  const stampScale = document.getElementById('admin-stamp-scale') as HTMLInputElement;
+  const stampScaleValue = document.getElementById('admin-stamp-scale-value') as HTMLSpanElement;
+  const commerceMeta = document.getElementById('admin-commerce-meta') as HTMLDivElement;
+
+  function setFeedback(type: 'error' | 'success', message: string) {
+    if (type === 'error') {
+      errorBox.textContent = message;
+      errorBox.classList.remove('hidden');
+      successBox.classList.add('hidden');
+      return;
+    }
+    successBox.textContent = message;
+    successBox.classList.remove('hidden');
+    errorBox.classList.add('hidden');
+  }
+
+  function clearFeedback() {
+    errorBox.classList.add('hidden');
+    successBox.classList.add('hidden');
+  }
+
+  async function authFetch(url: string, opts: RequestInit = {}) {
+    const { supabase } = await import('../../lib/supabase');
+    const { data: { session } } = await supabase.auth.getSession();
+    return fetch(url, {
+      ...opts,
+      headers: {
+        ...(opts.headers ?? {}),
+        Authorization: `Bearer ${session?.access_token ?? ''}`,
+        'Content-Type': 'application/json',
+      },
+    });
+  }
+
+  function setInput(id: string, value: string | number | null | undefined) {
+    const el = document.getElementById(id) as HTMLInputElement | null;
+    if (!el) return;
+    el.value = value == null ? '' : String(value);
+  }
+
+  function getInput(id: string) {
+    return (document.getElementById(id) as HTMLInputElement).value.trim();
+  }
+
+  function setCurrentCard(card: CarteItem | null) {
+    const isPoints = String(card?.type ?? 'tampons') === 'points';
+    (document.getElementById('admin-type-points') as HTMLInputElement).checked = isPoints;
+    (document.getElementById('admin-type-tampons') as HTMLInputElement).checked = !isPoints;
+    setInput('admin-card-name', String(card?.nom ?? ''));
+    setInput('admin-label-client', String(card?.label_client ?? 'Client'));
+    setInput('admin-description', String(card?.description ?? ''));
+    setInput('admin-tampons-total', Number(card?.tampons_total ?? 10));
+    setInput('admin-points-target', Number(card?.points_recompense ?? 100));
+    setInput('admin-reward', String(card?.recompense_description ?? ''));
+    setInput('admin-logo-url', String(card?.logo_url ?? ''));
+    setInput('admin-strip-url', String(card?.strip_url ?? ''));
+    setInput('admin-stamp-url', String(card?.tampon_icon_url ?? ''));
+    setInput('admin-welcome-message', String(card?.welcome_message ?? ''));
+    setInput('admin-success-message', String(card?.success_message ?? ''));
+    setInput('admin-color-bg', String(card?.couleur_fond ?? '#0f172a'));
+    setInput('admin-color-text', String(card?.couleur_texte ?? '#ffffff'));
+    setInput('admin-color-accent', String(card?.couleur_accent ?? '#60a5fa'));
+    const scale = Number(card?.tampon_icon_scale ?? 1);
+    stampScale.value = String(scale);
+    stampScaleValue.textContent = Number(scale).toFixed(2);
+  }
+
+  async function loadCommerces() {
+    const res = await authFetch(`${API_BASE}/api/admin/commerces`);
+    if (!res.ok) throw new Error('Impossible de charger les commerces.');
+    const { data } = await res.json();
+    commerces = (data ?? []) as CommerceItem[];
+    commerceSelect.innerHTML = '<option value="">Choisir un commerce</option>' + commerces.map((commerce) => (
+      `<option value="${commerce.id}">${commerce.nom}</option>`
+    )).join('');
+  }
+
+  async function loadCommerceAssistance(commerceId: string) {
+    const res = await authFetch(`${API_BASE}/api/admin/commerces/${commerceId}/card-assistance`);
+    if (!res.ok) throw new Error('Impossible de charger les cartes du commerce.');
+    const { data } = await res.json();
+    pointsVente = data?.points_vente ?? [];
+    cartes = data?.cartes ?? [];
+
+    const commerce = data?.commerce;
+    if (commerce) {
+      commerceMeta.classList.remove('hidden');
+      commerceMeta.innerHTML = `
+        <p><span class="font-semibold text-slate-800">${commerce.nom}</span></p>
+        <p class="mt-1">Plan effectif: <span class="font-semibold text-slate-700">${String(commerce.effective_plan ?? commerce.plan ?? 'starter')}</span></p>
+      `;
+    } else {
+      commerceMeta.classList.add('hidden');
+    }
+
+    pointSelect.disabled = pointsVente.length === 0;
+    pointSelect.innerHTML = '<option value="">Choisir un point de vente</option>' + pointsVente.map((point) => (
+      `<option value="${point.id}">${point.nom}${point.principal ? ' · principal' : ''}</option>`
+    )).join('');
+
+    if (pointsVente.length > 0) {
+      selectedPointId = pointsVente[0].id;
+      pointSelect.value = selectedPointId;
+      const existingCard = cartes.find((card) => card.point_vente_id === selectedPointId) ?? null;
+      setCurrentCard(existingCard);
+      saveBtn.disabled = false;
+    } else {
+      selectedPointId = '';
+      setCurrentCard(null);
+      saveBtn.disabled = true;
+    }
+  }
+
+  async function saveCardAssistance() {
+    if (!selectedCommerceId || !selectedPointId) return;
+    const payload = {
+      point_vente_id: selectedPointId,
+      nom: getInput('admin-card-name'),
+      label_client: getInput('admin-label-client') || 'Client',
+      description: getInput('admin-description') || null,
+      type: (document.querySelector('input[name="admin-type"]:checked') as HTMLInputElement)?.value ?? 'tampons',
+      tampons_total: Number(getInput('admin-tampons-total') || 10),
+      points_recompense: Number(getInput('admin-points-target') || 100),
+      points_par_euro: 1,
+      recompense_description: getInput('admin-reward') || null,
+      couleur_fond: getInput('admin-color-bg') || '#0f172a',
+      couleur_texte: getInput('admin-color-text') || '#ffffff',
+      couleur_accent: getInput('admin-color-accent') || '#60a5fa',
+      logo_url: getInput('admin-logo-url') || null,
+      strip_url: getInput('admin-strip-url') || null,
+      strip_position: '50:50',
+      tampon_icon_url: getInput('admin-stamp-url') || null,
+      tampon_icon_scale: Number(stampScale.value || '1'),
+      message_geo: null,
+      welcome_message: getInput('admin-welcome-message') || null,
+      success_message: getInput('admin-success-message') || null,
+    };
+
+    if (payload.nom.length < 2) {
+      setFeedback('error', 'Le nom de carte est obligatoire (2 caractères minimum).');
+      return;
+    }
+
+    clearFeedback();
+    const initial = saveBtn.textContent;
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Enregistrement...';
+    try {
+      const res = await authFetch(`${API_BASE}/api/admin/commerces/${selectedCommerceId}/card-assistance`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
+      const response = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(response?.error ?? 'Impossible de sauvegarder.');
+      setFeedback('success', 'Carte mise à jour avec succès depuis l’espace admin.');
+      await loadCommerceAssistance(selectedCommerceId);
+      if (selectedPointId) pointSelect.value = selectedPointId;
+    } catch (error) {
+      setFeedback('error', error instanceof Error ? error.message : 'Erreur inattendue.');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = initial ?? 'Enregistrer la carte';
+    }
+  }
+
+  commerceSelect.addEventListener('change', async () => {
+    selectedCommerceId = commerceSelect.value;
+    selectedPointId = '';
+    clearFeedback();
+    saveBtn.disabled = true;
+    pointSelect.disabled = true;
+    pointSelect.innerHTML = '<option value="">Choisir un point de vente</option>';
+    setCurrentCard(null);
+    if (!selectedCommerceId) return;
+    try {
+      await loadCommerceAssistance(selectedCommerceId);
+    } catch (error) {
+      setFeedback('error', error instanceof Error ? error.message : 'Erreur inattendue.');
+    }
+  });
+
+  pointSelect.addEventListener('change', () => {
+    selectedPointId = pointSelect.value;
+    const current = cartes.find((card) => card.point_vente_id === selectedPointId) ?? null;
+    setCurrentCard(current);
+    clearFeedback();
+    saveBtn.disabled = !selectedPointId;
+  });
+
+  stampScale.addEventListener('input', () => {
+    stampScaleValue.textContent = Number(stampScale.value || '1').toFixed(2);
+  });
+
+  saveBtn.addEventListener('click', saveCardAssistance);
+
+  (async () => {
+    try {
+      await loadCommerces();
+      const params = new URLSearchParams(window.location.search);
+      const preselectedCommerce = params.get('commerce');
+      if (preselectedCommerce && commerces.some((commerce) => commerce.id === preselectedCommerce)) {
+        commerceSelect.value = preselectedCommerce;
+        selectedCommerceId = preselectedCommerce;
+        await loadCommerceAssistance(selectedCommerceId);
+      }
+    } catch (error) {
+      setFeedback('error', error instanceof Error ? error.message : 'Impossible de charger l’espace assistance.');
+    }
+  })();
+</script>

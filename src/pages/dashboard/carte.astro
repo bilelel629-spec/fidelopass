@@ -159,12 +159,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           </label>
         </div>
 
-        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">
+          <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">
           <div>
             <h2 class="font-display font-bold text-slate-900">Modèles rapides</h2>
-            <p class="mt-1 text-sm leading-6 text-slate-500">Choisissez une base prête à l'emploi. Le modèle remplit les couleurs, le programme et le ton général, puis vous l'affinez à votre rythme.</p>
+            <p class="mt-1 text-sm leading-6 text-slate-500">Optionnel. Vous pouvez choisir une base prête à l’emploi, ou continuer sans modèle et tout personnaliser manuellement.</p>
           </div>
-          <span class="w-fit rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-700">Recommandé pour démarrer</span>
+          <span class="w-fit rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-700">Optionnel · Recommandé pour démarrer</span>
         </div>
         <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {[
@@ -218,7 +218,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
         <div id="step-error-2" class="step-error hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
         <div class="grid sm:grid-cols-2 gap-4 mb-5">
-          <div><label class="label" for="nom-carte">Nom de la carte *</label><input id="nom-carte" type="text" class="input" placeholder="Carte fidélité Ma Boutique" required /></div>
+          <div><label class="label" for="nom-carte">Nom de la carte *</label><input id="nom-carte" type="text" class="input" placeholder="Carte fidélité Ma Boutique" value="Carte fidélité" required /></div>
           <div><label class="label" for="label-client">Label membre</label><input id="label-client" type="text" class="input" placeholder="Client, Membre, VIP..." maxlength="30" /></div>
         </div>
         <div class="mb-5"><label class="label" for="description">Description</label><input id="description" type="text" class="input" placeholder="Cumulez des points à chaque achat !" /></div>
@@ -289,6 +289,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               <button type="button" id="tampon-btn" class="btn-secondary text-xs py-1.5 px-3 w-full">Choisir image</button>
               <input type="hidden" id="tampon-icon-url" />
               <p id="tampon-loading" class="hidden text-indigo-400 text-xs">Upload...</p>
+              <div class="w-full rounded-xl border border-sky-100 bg-sky-50/60 px-3 py-3">
+                <div class="flex items-center justify-between text-xs text-slate-600 mb-1.5">
+                  <span>Taille logo tampon</span>
+                  <span id="tampon-icon-scale-val" class="font-semibold text-slate-800">100%</span>
+                </div>
+                <input id="tampon-icon-scale" type="range" min="60" max="150" step="5" value="100" class="w-full accent-indigo-500" />
+              </div>
               <p class="text-slate-600 text-xs text-center leading-tight">PNG transparent — 64×64 px</p>
             </div>
           </div>
@@ -312,7 +319,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               <div><label class="label" for="points-recompense">Points pour la récompense</label><input id="points-recompense" type="number" class="input" min="1" value="100" /></div>
             </div>
           </div>
-          <div><label class="label" for="recompense">Récompense offerte *</label><input id="recompense" type="text" class="input" placeholder="Ex: 1 café offert, 5€ de réduction..." required /></div>
+          <div><label class="label" for="recompense">Récompense offerte *</label><input id="recompense" type="text" class="input" placeholder="Ex: 1 café offert, 5€ de réduction..." value="Récompense fidélité" required /></div>
           <div class="grid lg:grid-cols-2 gap-4">
             <div class="rounded-2xl border border-sky-100 bg-sky-50/60 p-4">
               <div class="flex items-center justify-between gap-3 mb-3">
@@ -916,6 +923,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   let carteId: string | null = null;
   let logoUrl = '', stripUrl = '', tamponIconUrl = '', tamponEmoji = '';
+  let tamponIconScale = 1;
   let logoScale = 1;
   let stripScale = 1;
   let stripFocusX = 50;
@@ -1011,7 +1019,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   const stepValidators: Record<WizardStep, () => string | null> = {
-    1: () => ((document.querySelector('input[name="type"]:checked') as HTMLInputElement | null)?.value ? null : 'Choisissez un type de programme.'),
+    1: () => null,
     2: () => ((document.getElementById('nom-carte') as HTMLInputElement).value.trim() ? null : 'Renseignez au minimum le nom de la carte.'),
     3: () => {
       const type = (document.querySelector('input[name="type"]:checked') as HTMLInputElement | null)?.value ?? 'tampons';
@@ -1574,6 +1582,27 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     return (0.2126*r+0.7152*g+0.0722*b)/255;
   }
 
+  const tamponIconScaleInput = document.getElementById('tampon-icon-scale') as HTMLInputElement;
+  const tamponIconScaleVal = document.getElementById('tampon-icon-scale-val') as HTMLSpanElement;
+
+  function setTamponIconScale(nextScale: number, syncInput = true) {
+    tamponIconScale = clamp(nextScale, 0.6, 1.5);
+    if (syncInput) tamponIconScaleInput.value = String(Math.round(tamponIconScale * 100));
+    tamponIconScaleVal.textContent = `${Math.round(tamponIconScale * 100)}%`;
+    const previewImg = document.getElementById('tampon-preview-img') as HTMLImageElement | null;
+    if (previewImg) {
+      previewImg.style.transformOrigin = 'center center';
+      previewImg.style.transform = `scale(${tamponIconScale})`;
+    }
+  }
+
+  tamponIconScaleInput.addEventListener('input', (event) => {
+    const value = parseInt((event.target as HTMLInputElement).value, 10);
+    setTamponIconScale(value / 100, false);
+    updatePreview();
+    markDirty();
+  });
+
   // Mode tampon
   document.querySelectorAll('input[name="tampon_mode"]').forEach(r=>r.addEventListener('change',()=>{
     const mode=(document.querySelector('input[name="tampon_mode"]:checked') as HTMLInputElement).value;
@@ -1603,6 +1632,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const img=document.getElementById('tampon-preview-img') as HTMLImageElement;
     if(url){img.src=url;img.classList.remove('hidden');document.getElementById('tampon-preview-icon')!.classList.add('hidden');}
     else{img.classList.add('hidden');document.getElementById('tampon-preview-icon')!.classList.remove('hidden');}
+    img.style.transformOrigin = 'center center';
+    img.style.transform = `scale(${tamponIconScale})`;
     (document.getElementById('tampon-icon-url') as HTMLInputElement).value=url;
   }
 
@@ -2031,12 +2062,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         if(filled){
           dot.style.background=accent;
           if(tamponEmoji){dot.style.fontSize=`${Math.round(dotSize*0.55)}px`;dot.style.lineHeight='1';dot.textContent=tamponEmoji;}
-          else if(tamponIconUrl){dot.innerHTML=`<img src="${tamponIconUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`;}
+          else if(tamponIconUrl){
+            const iconSize = Math.max(12, Math.round(dotSize * tamponIconScale));
+            dot.innerHTML=`<img src="${tamponIconUrl}" style="width:${iconSize}px;height:${iconSize}px;object-fit:contain;border-radius:50%;"/>`;
+          }
           else{const sw=Math.max(1.5,dotSize*0.07);dot.innerHTML=`<svg viewBox="0 0 12 12" style="width:${Math.round(dotSize*0.55)}px;height:${Math.round(dotSize*0.55)}px"><path d="M2 6l3 3 5-5" stroke="${texte}" stroke-width="${sw}" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;}
         }else{
           dot.style.border='2px solid rgba(255,255,255,0.25)';dot.style.background='rgba(255,255,255,0.05)';
           if(tamponEmoji){dot.style.fontSize=`${Math.round(dotSize*0.5)}px`;dot.style.opacity='0.3';dot.textContent=tamponEmoji;}
-          else if(tamponIconUrl){dot.innerHTML=`<img src="${tamponIconUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;opacity:0.3;"/>`;}
+          else if(tamponIconUrl){
+            const iconSize = Math.max(12, Math.round(dotSize * tamponIconScale));
+            dot.innerHTML=`<img src="${tamponIconUrl}" style="width:${iconSize}px;height:${iconSize}px;object-fit:contain;border-radius:50%;opacity:0.3;"/>`;
+          }
         }
         rowEl.appendChild(dot);
       });
@@ -2259,6 +2296,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         document.getElementById('tampon-custom-zone')!.classList.remove('hidden');
         ['default','emoji','custom'].forEach(v=>document.getElementById(`tampon-mode-${v}-label`)!.style.cssText=v==='custom'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff');
       }
+      setTamponIconScale(Number(data.tampon_icon_scale ?? 1));
       updatePreview();
       const pu=publicCardUrl(data.id);
       document.getElementById('public-link-banner')!.classList.remove('hidden');
@@ -2321,6 +2359,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       gradient_angle:isGradient?parseInt(getInput('gradient-angle')):135,
       pattern_type:getChecked('pattern_type')||'none',
       tampon_emoji:tamponEmoji||null,
+      tampon_icon_scale:tamponIconScale,
       police:'system',
       police_taille:100,
       police_gras:false,
@@ -2537,6 +2576,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   registerDirtyTracking();
   setAppearancePanel('theme');
   setLogoScale(1);
+  setTamponIconScale(1);
   setStripScale(1);
   setStripFocus(50, 50, { silent: true });
   setMultiRewardsEnabled(false, { silent: true });

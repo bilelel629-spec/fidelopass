@@ -15,6 +15,7 @@ interface StripOptions {
   stripImageUrl?: string | null;
   stripPosition?: string | null;
   tamponIconUrl?: string | null;
+  tamponIconScale?: number | null;
   // Avancé
   couleurFond2?: string | null;
   gradientAngle?: number | null;
@@ -461,7 +462,8 @@ function buildTamponCirclesSvg(W: number, H: number, accentHex: string, dots: St
 
 async function composeTamponGrid(base: Buffer, opts: StripOptions, W: number, H: number, layout: TamponLayout, useLightStyle: boolean): Promise<Buffer> {
   const { dots, radius } = computeStampGrid(opts.tamponsTotal, opts.tamponsActuels, W, H, layout);
-  const iconSize = Math.max(18, Math.round(radius * 1.42));
+  const normalizedScale = Math.max(0.6, Math.min(1.5, Number(opts.tamponIconScale ?? 1)));
+  const iconSize = Math.max(14, Math.round(radius * 1.42 * normalizedScale));
   const customIconBuffer = await prepareCircularTamponIcon(opts.tamponIconUrl, iconSize);
   const emojiIconBuffer = customIconBuffer ? null : await prepareCircularEmojiIcon(opts.tamponEmoji, iconSize);
   const iconBuffer = customIconBuffer ?? emojiIconBuffer;

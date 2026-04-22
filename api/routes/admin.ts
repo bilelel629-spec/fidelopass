@@ -12,7 +12,7 @@ adminRoutes.use('*', adminMiddleware);
 
 /** GET /api/admin/commerces — Liste tous les commerces */
 adminRoutes.get('/commerces', async (c) => {
-  const db = createServiceClient();
+const db = createServiceClient();
   const { data, error } = await db
     .from('commerces')
     .select('*, cartes(id, nom, updated_at), clients(id)')
@@ -118,4 +118,152 @@ adminRoutes.patch('/commerces/:id/plan', async (c) => {
       effective_plan: getEffectivePlanRaw(data),
     },
   });
+});
+
+const adminCardAssistanceSchema = z.object({
+  point_vente_id: z.string().uuid(),
+  nom: z.string().min(2).max(255),
+  description: z.string().max(500).nullable().optional(),
+  type: z.enum(['points', 'tampons']).default('tampons'),
+  tampons_total: z.number().int().min(1).max(50).default(10),
+  points_par_euro: z.number().min(0.1).max(100).default(1),
+  points_recompense: z.number().int().min(1).default(100),
+  recompense_description: z.string().max(255).nullable().optional(),
+  couleur_fond: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default('#0f172a'),
+  couleur_texte: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default('#ffffff'),
+  couleur_accent: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default('#60a5fa'),
+  couleur_fond_2: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable().optional(),
+  gradient_angle: z.number().int().min(0).max(360).default(135),
+  pattern_type: z.enum(['none', 'dots', 'waves', 'grid', 'diagonal', 'confetti']).default('none'),
+  logo_url: z.string().url().nullable().optional(),
+  strip_url: z.string().url().nullable().optional(),
+  strip_position: z.string().default('50:50'),
+  tampon_icon_url: z.string().url().nullable().optional(),
+  tampon_emoji: z.string().max(8).nullable().optional(),
+  tampon_icon_scale: z.number().min(0.6).max(1.5).default(1),
+  barcode_type: z.enum(['QR', 'PDF417', 'AZTEC', 'CODE128', 'NONE']).default('QR'),
+  label_client: z.string().max(50).default('Client'),
+  message_geo: z.string().max(255).nullable().optional(),
+  welcome_message: z.string().max(180).nullable().optional(),
+  success_message: z.string().max(180).nullable().optional(),
+});
+
+/** GET /api/admin/commerces/:id/card-assistance — Données d’édition carte (admin) */
+adminRoutes.get('/commerces/:id/card-assistance', async (c) => {
+  const commerceId = c.req.param('id');
+  const db = createServiceClient();
+
+  const [commerceRes, pointsRes, cartesRes] = await Promise.all([
+    db
+      .from('commerces')
+      .select('id, nom, plan, plan_override, actif')
+      .eq('id', commerceId)
+      .single(),
+    db
+      .from('points_vente')
+      .select('id, nom, principal, actif')
+      .eq('commerce_id', commerceId)
+      .order('principal', { ascending: false })
+      .order('created_at', { ascending: true }),
+    db
+      .from('cartes')
+      .select('*')
+      .eq('commerce_id', commerceId),
+  ]);
+
+  if (commerceRes.error || !commerceRes.data) {
+    return c.json({ error: 'Commerce introuvable.' }, 404);
+  }
+  if (pointsRes.error) return c.json({ error: 'Impossible de charger les points de vente.' }, 500);
+  if (cartesRes.error) return c.json({ error: 'Impossible de charger les cartes.' }, 500);
+
+  return c.json({
+    data: {
+      commerce: {
+        ...commerceRes.data,
+        effective_plan: getEffectivePlanRaw(commerceRes.data),
+      },
+      points_vente: pointsRes.data ?? [],
+      cartes: cartesRes.data ?? [],
+    },
+  });
+});
+
+/** PATCH /api/admin/commerces/:id/card-assistance — Édition carte depuis admin */
+adminRoutes.patch('/commerces/:id/card-assistance', async (c) => {
+  const commerceId = c.req.param('id');
+  const body = await c.req.json().catch(() => null);
+  const parsed = adminCardAssistanceSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides.' }, 400);
+  }
+
+  const db = createServiceClient();
+  const pointVenteId = parsed.data.point_vente_id;
+
+  const { data: pointVente, error: pointError } = await db
+    .from('points_vente')
+    .select('id, commerce_id')
+    .eq('id', pointVenteId)
+    .eq('commerce_id', commerceId)
+    .single();
+
+  if (pointError || !pointVente) {
+    return c.json({ error: 'Point de vente introuvable pour ce commerce.' }, 404);
+  }
+
+  const { data: existing } = await db
+    .from('cartes')
+    .select('id')
+    .eq('commerce_id', commerceId)
+    .eq('point_vente_id', pointVenteId)
+    .maybeSingle();
+
+  const payload = {
+    nom: parsed.data.nom,
+    description: parsed.data.description ?? null,
+    type: parsed.data.type,
+    tampons_total: parsed.data.tampons_total,
+    points_par_euro: parsed.data.points_par_euro,
+    points_recompense: parsed.data.points_recompense,
+    recompense_description: parsed.data.recompense_description ?? null,
+    couleur_fond: parsed.data.couleur_fond,
+    couleur_texte: parsed.data.couleur_texte,
+    couleur_accent: parsed.data.couleur_accent,
+    couleur_fond_2: parsed.data.couleur_fond_2 ?? null,
+    gradient_angle: parsed.data.gradient_angle,
+    pattern_type: parsed.data.pattern_type,
+    logo_url: parsed.data.logo_url ?? null,
+    strip_url: parsed.data.strip_url ?? null,
+    strip_position: parsed.data.strip_position,
+    tampon_icon_url: parsed.data.tampon_icon_url ?? null,
+    tampon_emoji: parsed.data.tampon_emoji ?? null,
+    tampon_icon_scale: parsed.data.tampon_icon_scale,
+    barcode_type: parsed.data.barcode_type,
+    label_client: parsed.data.label_client,
+    message_geo: parsed.data.message_geo ?? null,
+    welcome_message: parsed.data.welcome_message ?? null,
+    success_message: parsed.data.success_message ?? null,
+    pass_type_id: process.env.APPLE_PASS_TYPE_ID ?? null,
+    commerce_id: commerceId,
+    point_vente_id: pointVenteId,
+    updated_at: new Date().toISOString(),
+  };
+
+  let query = existing?.id
+    ? db.from('cartes').update(payload).eq('id', existing.id).eq('commerce_id', commerceId)
+    : db.from('cartes').insert(payload);
+
+  let result = await query.select().single();
+  if (result.error?.message?.includes('column')) {
+    const legacyPayload = { ...payload };
+    delete (legacyPayload as Record<string, unknown>).tampon_icon_scale;
+    query = existing?.id
+      ? db.from('cartes').update(legacyPayload).eq('id', existing.id).eq('commerce_id', commerceId)
+      : db.from('cartes').insert(legacyPayload);
+    result = await query.select().single();
+  }
+
+  if (result.error) return c.json({ error: result.error.message }, 500);
+  return c.json({ data: result.data });
 });

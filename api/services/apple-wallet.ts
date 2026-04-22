@@ -23,6 +23,7 @@ interface CarteData {
   strip_url?: string | null;
   strip_position?: string | null;
   tampon_icon_url?: string | null;
+  tampon_icon_scale?: number | null;
   barcode_type?: string | null;
   label_client?: string | null;
   couleur_fond_2?: string | null;
@@ -316,6 +317,7 @@ export async function generateApplePass(
     stripImageUrl: carte.strip_url,
     stripPosition: carte.strip_position ?? 'center',
     tamponIconUrl: carte.tampon_icon_url,
+    tamponIconScale: carte.tampon_icon_scale,
     couleurFond2: carte.couleur_fond_2,
     gradientAngle: carte.gradient_angle,
     patternType: carte.pattern_type,

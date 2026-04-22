@@ -217,6 +217,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const pushIconError = document.getElementById('push-icon-error') as HTMLDivElement;
   const pushIconSuccess = document.getElementById('push-icon-success') as HTMLDivElement;
   let cachedPlan: string = 'starter';
+  let pushIconSaveTimer: ReturnType<typeof setTimeout> | null = null;
+  let pushIconLastSavedColor = '#6366f1';
+  let pushIconIsSaving = false;
 
   function setReviewPlanLabel(planRaw: unknown) {
     const normalized = normalizePlan(planRaw);
@@ -456,6 +459,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage.');
       const color = String(payload?.data?.push_icon_bg_color ?? '#6366f1');
       pushIconColorInput.value = color;
+      pushIconLastSavedColor = color;
       updatePushIconPreview(color);
       pushIconStatus.textContent = payload?.data?.has_active_card
         ? 'Réglage actif pour la carte du point de vente sélectionné.'
@@ -470,13 +474,42 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   async function persistPushIconColor(color: string) {
-    const res = await authFetch('/api/notifications/push-icon-settings', {
-      method: 'PATCH',
-      body: JSON.stringify({ push_icon_bg_color: color }),
-    });
-    const payload = await res.json().catch(() => null);
-    if (!res.ok) throw new Error(payload?.error ?? 'Impossible de mettre à jour la couleur.');
-    return payload;
+    if (pushIconIsSaving) return null;
+    if (color === pushIconLastSavedColor) return null;
+    pushIconIsSaving = true;
+    try {
+      const res = await authFetch('/api/notifications/push-icon-settings', {
+        method: 'PATCH',
+        body: JSON.stringify({ push_icon_bg_color: color }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(payload?.error ?? 'Impossible de mettre à jour la couleur.');
+      }
+      pushIconLastSavedColor = color;
+      return payload;
+    } finally {
+      pushIconIsSaving = false;
+    }
+  }
+
+  async function savePushIconColorNow(color: string) {
+    if (pushIconColorInput.disabled) return;
+    pushIconError.classList.add('hidden');
+    pushIconSuccess.classList.add('hidden');
+    try {
+      const payload = await persistPushIconColor(color);
+      if (!payload) return;
+      const refreshed = Number(payload?.data?.apple_refresh_sent ?? 0);
+      pushIconSuccess.textContent = refreshed > 0
+        ? `Couleur appliquée. ${refreshed} carte(s) Apple Wallet mise(s) à jour.`
+        : 'Couleur de fond des notifications enregistrée.';
+      pushIconSuccess.classList.remove('hidden');
+      pushIconStatus.textContent = 'Réglage actif pour la carte du point de vente sélectionné.';
+    } catch (error: unknown) {
+      pushIconError.textContent = error instanceof Error ? error.message : 'Erreur réseau.';
+      pushIconError.classList.remove('hidden');
+    }
   }
 
   async function persistBirthdaySettings(nextEnabled: boolean) {
@@ -535,22 +568,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   });
 
   pushIconColorInput.addEventListener('input', () => {
-    updatePushIconPreview(pushIconColorInput.value);
+    const color = pushIconColorInput.value;
+    updatePushIconPreview(color);
+    if (pushIconSaveTimer) clearTimeout(pushIconSaveTimer);
+    pushIconSaveTimer = setTimeout(() => {
+      void savePushIconColorNow(color);
+    }, 220);
   });
 
   pushIconColorInput.addEventListener('change', async () => {
-    if (pushIconColorInput.disabled) return;
-    pushIconError.classList.add('hidden');
-    pushIconSuccess.classList.add('hidden');
-    try {
-      await persistPushIconColor(pushIconColorInput.value);
-      pushIconSuccess.textContent = 'Couleur de fond des notifications enregistrée.';
-      pushIconSuccess.classList.remove('hidden');
-      pushIconStatus.textContent = 'Réglage actif pour la carte du point de vente sélectionné.';
-    } catch (error: unknown) {
-      pushIconError.textContent = error instanceof Error ? error.message : 'Erreur réseau.';
-      pushIconError.classList.remove('hidden');
-    }
+    if (pushIconSaveTimer) clearTimeout(pushIconSaveTimer);
+    await savePushIconColorNow(pushIconColorInput.value);
   });
 
   setNotifTab('manual');

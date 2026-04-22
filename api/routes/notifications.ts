@@ -394,7 +394,56 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
 
   if (error) return c.json({ error: 'Impossible de mettre à jour la couleur.' }, 500);
 
-  return c.json({ ok: true, data: { push_icon_bg_color: parsed.data.push_icon_bg_color } });
+  let appleRefreshSent = 0;
+  const carteId = (carte as { id: string }).id;
+
+  const { data: appleClients, error: appleClientsError } = await db
+    .from('clients')
+    .select('id')
+    .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
+    .eq('carte_id', carteId)
+    .not('apple_pass_serial', 'is', null);
+
+  if (appleClientsError) {
+    console.error('[push-icon-settings clients]', appleClientsError);
+  } else if ((appleClients ?? []).length > 0) {
+    const clientIds = (appleClients ?? []).map((client) => client.id).filter(Boolean);
+    const { data: registrations, error: registrationsError } = await db
+      .from('apple_pass_registrations')
+      .select('client_id, push_token, pass_type_identifier')
+      .in('client_id', clientIds);
+
+    if (registrationsError) {
+      console.error('[push-icon-settings registrations]', registrationsError);
+    } else {
+      const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
+      const uniqueRegistrations = Array.from(
+        new Map((registrations ?? []).map((registration) => [registration.push_token, registration])).values(),
+      );
+      const refreshResults = await Promise.allSettled(
+        uniqueRegistrations.map((registration) => pushApplePassUpdate(
+          registration.push_token,
+          passTypeId || registration.pass_type_identifier,
+        )),
+      );
+      appleRefreshSent = refreshResults.filter((result) => result.status === 'fulfilled').length;
+
+      for (const result of refreshResults) {
+        if (result.status === 'rejected') {
+          console.error('[push-icon-settings apple refresh]', result.reason);
+        }
+      }
+    }
+  }
+
+  return c.json({
+    ok: true,
+    data: {
+      push_icon_bg_color: parsed.data.push_icon_bg_color,
+      apple_refresh_sent: appleRefreshSent,
+    },
+  });
 });
 
 /** GET /api/notifications/summary — Résumé des canaux réellement disponibles */

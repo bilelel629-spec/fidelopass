@@ -499,33 +499,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               </div>
               <a href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3NTAiIGhlaWdodD0iMjQ2Ij48cmVjdCB3aWR0aD0iNzUwIiBoZWlnaHQ9IjI0NiIgZmlsbD0iIzFlMjkzYiIvPjxyZWN0IHg9IjQwIiB5PSI0MCIgd2lkdGg9IjY3MCIgaGVpZ2h0PSIxNjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzYzNjZmMSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI4IDQiIHJ4PSI4Ii8+PHRleHQgeD0iMzc1IiB5PSIxMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2MzY2ZjEiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5ab25lIGJhbm5pZXJlIOKAlCA3NTAgw5cgMjQ2IHB4PC90ZXh0Pjx0ZXh0IHg9IjM3NSIgeT0iMTQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyI+TGVzIHRhbXBvbnMgc29udCBjZW50csOpcyBwYXItZGVzc3VzPC90ZXh0Pjwvc3ZnPg=="
                 download="template-banniere-fidelopass.svg" class="text-indigo-400 text-xs underline underline-offset-2 hover:text-indigo-300 text-center">⬇ Template SVG 750×246</a>
-              <button id="banner-advanced-toggle" type="button" class="flex w-full items-center justify-between rounded-xl border border-sky-100 bg-sky-50/60 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-sky-100">
-                <span>Placement avancé (optionnel)</span>
-                <span id="banner-advanced-arrow" class="text-slate-400 transition-transform">▼</span>
-              </button>
-              <div id="banner-advanced-panel" class="hidden space-y-3">
-                <div>
-                  <label class="text-slate-500 text-xs mb-1.5 block">Placement bannière / tampons</label>
-                  <div class="grid grid-cols-3 gap-1.5">
-                    {[
-                      { value: 'background', label: 'Fond' },
-                      { value: 'top', label: 'Haut' },
-                      { value: 'bottom', label: 'Bas' },
-                    ].map(({ value, label }) => (
-                      <label id={`strip-layout-${value}-label`} class="cursor-pointer rounded-lg border-2 py-1.5 text-center transition-all text-xs"
-                        style={value==='background'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff;color:#64748b'}>
-                        <input type="radio" name="strip_layout" value={value} class="hidden" checked={value==='background'} />
-                        {label}
-                      </label>
-                    ))}
-                  </div>
-                  <p class="text-slate-600 text-xs mt-1 leading-tight">"Bas" place la bannière sous les tampons dans l'image Wallet générée.</p>
-                </div>
-                <div id="strip-position-zone" class="hidden">
-                  <label class="text-slate-500 text-xs mb-1.5 block">Position de l'image</label>
-                  <p class="text-xs text-slate-500">Glissez l’image dans l’encadré ci-dessus pour définir le centrage exact.</p>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -1292,15 +1265,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
   });
 
-  // Options avancées bannière
-  document.getElementById('banner-advanced-toggle')!.addEventListener('click', () => {
-    const panel = document.getElementById('banner-advanced-panel')!;
-    const arrow = document.getElementById('banner-advanced-arrow')!;
-    const isOpen = !panel.classList.contains('hidden');
-    panel.classList.toggle('hidden', isOpen);
-    arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
-  });
-
   // Tabs Apparence
   function setAppearancePanel(target: string) {
     document.querySelectorAll('.appearance-tab').forEach((tab) => {
@@ -1473,14 +1437,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     sz.classList.remove('mx-3','mb-3','rounded-xl');
     sz.style.cssText='position:relative;overflow:hidden;min-height:120px;z-index:10;';
   }
-  document.querySelectorAll('input[name="strip_layout"]').forEach(r=>r.addEventListener('change',()=>{
-    const layout=(document.querySelector('input[name="strip_layout"]:checked') as HTMLInputElement).value;
-    ['background','top','bottom'].forEach(v=>{
-      const label=document.getElementById(`strip-layout-${v}-label`);
-      if(label) label.style.cssText=v===layout?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff;color:#64748b';
-    });
-    updatePreview();
-  }));
 
   // Logo
   const logoScaleInput = document.getElementById('logo-scale') as HTMLInputElement;
@@ -1866,7 +1822,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   function setStripPreview(url: string){
     const img=document.getElementById('strip-preview-img') as HTMLImageElement;
     document.getElementById('strip-clear')!.classList.toggle('hidden',!url);
-    document.getElementById('strip-position-zone')!.classList.toggle('hidden',!url);
     document.getElementById('strip-preview-icon')!.classList.toggle('hidden',!!url);
     stripDragArea.style.cursor = url ? 'grab' : 'default';
     if(url){img.src=url;img.classList.remove('hidden');}else img.classList.add('hidden');
@@ -1976,7 +1931,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     setInput('tampons-total', el.dataset.total ?? '10');
     setInput('points-par-euro', '1');
     setInput('points-recompense', el.dataset.type === 'points' ? '100' : '100');
-    setRadio('strip_layout', el.dataset.layout ?? 'background');
     setRadio('barcode_type', 'QR');
     selectEmojiStamp(el.dataset.stamp ?? '✓');
     renderRewardTiers(defaultRewardTiers());
@@ -2110,7 +2064,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     // Apple
     const apple=document.getElementById('apple-preview')!;
-    apple.style.background=bg; apple.style.color=texte;
+    apple.style.background=fond; apple.style.color=texte;
     const ag=document.getElementById('a-pattern-global')!;
     // Apple Wallet (storeCard) n'affiche pas le pattern sur toute la carte:
     // on reflète le rendu réel en preview => pattern uniquement dans la bannière.
@@ -2270,8 +2224,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       const pt=data.pattern_type??'none'; sr('pattern_type',pt); sl('pat-',['none','dots','grid','waves','diagonal','confetti'],pt);
       applyStripStyle();
-      const layout=data.strip_layout??'background'; sr('strip_layout',layout);
-      ['background','top','bottom'].forEach(v=>document.getElementById(`strip-layout-${v}-label`)!.style.cssText=v===layout?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff;color:#64748b');
       const tp=data.type??'tampons'; sr('type',tp); applyTypeUI(tp);
       savedProgramType = tp === 'points' ? 'points' : 'tampons';
       typeChangePendingRevalidation = false;
@@ -2375,7 +2327,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       texte_alignement:'left',
       strip_plein_largeur:true,
       banner_overlay_opacity:bannerOverlayOpacity,
-      strip_layout:getChecked('strip_layout')||'background',
+      strip_layout:'background',
       branding_powered_by_enabled:brandingEnabled,
       rewards_multi_enabled:multiRewardsEnabled,
       welcome_message:getInput('welcome-message')||null,

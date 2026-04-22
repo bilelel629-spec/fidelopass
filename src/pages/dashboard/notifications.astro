@@ -46,6 +46,23 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <div id="success-msg" class="hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
       <button type="submit" class="btn-primary py-3">Envoyer le message</button>
     </form>
+
+    <div class="mt-6 rounded-2xl border border-sky-100 bg-sky-50/35 p-4">
+      <div class="mb-3 flex items-start justify-between gap-3">
+        <div>
+          <h3 class="font-semibold text-slate-900">Fond du logo des notifications</h3>
+          <p class="mt-0.5 text-xs text-slate-500">Réglage identique à l’onglet Automatisations, appliqué au point de vente sélectionné.</p>
+        </div>
+        <div id="push-icon-preview-manual" class="h-10 w-10 rounded-xl border border-slate-200 shadow-inner"></div>
+      </div>
+      <div id="push-icon-error-manual" class="mb-2 hidden rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"></div>
+      <div id="push-icon-success-manual" class="mb-2 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"></div>
+      <div class="space-y-2">
+        <label class="label" for="push-icon-bg-color-manual">Couleur du fond</label>
+        <input id="push-icon-bg-color-manual" type="color" value="#6366f1" class="h-11 w-full cursor-pointer rounded-xl border border-slate-200 bg-white" />
+        <p id="push-icon-status-manual" class="text-xs text-slate-500">Chargement du réglage...</p>
+      </div>
+    </div>
   </section>
 
   <section id="tab-automation" class="notif-panel hidden space-y-5">
@@ -212,10 +229,20 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const birthdayTitle = document.getElementById('birthday-title') as HTMLInputElement;
   const birthdayMessage = document.getElementById('birthday-message') as HTMLTextAreaElement;
   const pushIconColorInput = document.getElementById('push-icon-bg-color') as HTMLInputElement;
+  const pushIconColorInputManual = document.getElementById('push-icon-bg-color-manual') as HTMLInputElement | null;
   const pushIconPreview = document.getElementById('push-icon-preview') as HTMLDivElement;
+  const pushIconPreviewManual = document.getElementById('push-icon-preview-manual') as HTMLDivElement | null;
   const pushIconStatus = document.getElementById('push-icon-status') as HTMLParagraphElement;
+  const pushIconStatusManual = document.getElementById('push-icon-status-manual') as HTMLParagraphElement | null;
   const pushIconError = document.getElementById('push-icon-error') as HTMLDivElement;
+  const pushIconErrorManual = document.getElementById('push-icon-error-manual') as HTMLDivElement | null;
   const pushIconSuccess = document.getElementById('push-icon-success') as HTMLDivElement;
+  const pushIconSuccessManual = document.getElementById('push-icon-success-manual') as HTMLDivElement | null;
+  const pushIconInputs = [pushIconColorInput, pushIconColorInputManual].filter(Boolean) as HTMLInputElement[];
+  const pushIconPreviews = [pushIconPreview, pushIconPreviewManual].filter(Boolean) as HTMLDivElement[];
+  const pushIconStatuses = [pushIconStatus, pushIconStatusManual].filter(Boolean) as HTMLParagraphElement[];
+  const pushIconErrors = [pushIconError, pushIconErrorManual].filter(Boolean) as HTMLDivElement[];
+  const pushIconSuccesses = [pushIconSuccess, pushIconSuccessManual].filter(Boolean) as HTMLDivElement[];
   let cachedPlan: string = 'starter';
   let pushIconSaveTimer: ReturnType<typeof setTimeout> | null = null;
   let pushIconLastSavedColor = '#6366f1';
@@ -276,8 +303,44 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     birthdayToggle.classList.toggle('cursor-not-allowed', disabled);
   }
 
+  function syncPushIconInputs(color: string, source?: HTMLInputElement) {
+    pushIconInputs.forEach((input) => {
+      if (source && input === source) return;
+      input.value = color;
+    });
+  }
+
   function updatePushIconPreview(color: string) {
-    pushIconPreview.style.background = color;
+    pushIconPreviews.forEach((preview) => {
+      preview.style.background = color;
+    });
+  }
+
+  function setPushIconStatusText(text: string) {
+    pushIconStatuses.forEach((status) => { status.textContent = text; });
+  }
+
+  function setPushIconInputsDisabled(disabled: boolean) {
+    pushIconInputs.forEach((input) => { input.disabled = disabled; });
+  }
+
+  function hidePushIconAlerts() {
+    pushIconErrors.forEach((el) => el.classList.add('hidden'));
+    pushIconSuccesses.forEach((el) => el.classList.add('hidden'));
+  }
+
+  function showPushIconError(text: string) {
+    pushIconErrors.forEach((el) => {
+      el.textContent = text;
+      el.classList.remove('hidden');
+    });
+  }
+
+  function showPushIconSuccess(text: string) {
+    pushIconSuccesses.forEach((el) => {
+      el.textContent = text;
+      el.classList.remove('hidden');
+    });
   }
 
   async function loadPlanFallback() {
@@ -349,6 +412,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     btn.textContent = 'Envoi en cours...';
 
     try {
+      if (pushIconSaveTimer) {
+        clearTimeout(pushIconSaveTimer);
+        pushIconSaveTimer = null;
+      }
+      await savePushIconColorNow(pushIconInputs[0]?.value ?? '#6366f1');
+
       const titre = (document.getElementById('titre') as HTMLInputElement).value.trim();
       const message = messageInput.value.trim();
       const res = await authFetch(withPointVente('/api/notifications'), {
@@ -463,25 +532,23 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   async function loadPushIconSettings() {
-    pushIconError.classList.add('hidden');
-    pushIconSuccess.classList.add('hidden');
+    hidePushIconAlerts();
     try {
       const res = await authFetch(withPointVente('/api/notifications/push-icon-settings'));
       const payload = await res.json().catch(() => null);
       if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage.');
       const color = String(payload?.data?.push_icon_bg_color ?? '#6366f1');
-      pushIconColorInput.value = color;
+      syncPushIconInputs(color);
       pushIconLastSavedColor = color;
       updatePushIconPreview(color);
-      pushIconStatus.textContent = payload?.data?.has_active_card
+      setPushIconStatusText(payload?.data?.has_active_card
         ? 'Réglage actif pour la carte du point de vente sélectionné.'
-        : 'Aucune carte active sur ce point de vente.';
-      pushIconColorInput.disabled = !payload?.data?.has_active_card;
+        : 'Aucune carte active sur ce point de vente.');
+      setPushIconInputsDisabled(!payload?.data?.has_active_card);
     } catch (error: unknown) {
-      pushIconStatus.textContent = 'Impossible de charger le réglage.';
-      pushIconColorInput.disabled = true;
-      pushIconError.textContent = error instanceof Error ? error.message : 'Erreur réseau.';
-      pushIconError.classList.remove('hidden');
+      setPushIconStatusText('Impossible de charger le réglage.');
+      setPushIconInputsDisabled(true);
+      showPushIconError(error instanceof Error ? error.message : 'Erreur réseau.');
     }
   }
 
@@ -506,21 +573,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   async function savePushIconColorNow(color: string) {
-    if (pushIconColorInput.disabled) return;
-    pushIconError.classList.add('hidden');
-    pushIconSuccess.classList.add('hidden');
+    if (pushIconInputs.every((input) => input.disabled)) return;
+    hidePushIconAlerts();
     try {
       const payload = await persistPushIconColor(color);
       if (!payload) return;
       const refreshed = Number(payload?.data?.apple_refresh_sent ?? 0);
-      pushIconSuccess.textContent = refreshed > 0
+      showPushIconSuccess(refreshed > 0
         ? `Couleur appliquée. ${refreshed} carte(s) Apple Wallet mise(s) à jour.`
-        : 'Couleur de fond des notifications enregistrée.';
-      pushIconSuccess.classList.remove('hidden');
-      pushIconStatus.textContent = 'Réglage actif pour la carte du point de vente sélectionné.';
+        : 'Couleur de fond des notifications enregistrée.');
+      setPushIconStatusText('Réglage actif pour la carte du point de vente sélectionné.');
     } catch (error: unknown) {
-      pushIconError.textContent = error instanceof Error ? error.message : 'Erreur réseau.';
-      pushIconError.classList.remove('hidden');
+      showPushIconError(error instanceof Error ? error.message : 'Erreur réseau.');
     }
   }
 
@@ -579,19 +643,26 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     });
   });
 
-  pushIconColorInput.addEventListener('input', () => {
-    const color = pushIconColorInput.value;
-    updatePushIconPreview(color);
-    if (pushIconSaveTimer) clearTimeout(pushIconSaveTimer);
-    pushIconSaveTimer = setTimeout(() => {
-      void savePushIconColorNow(color);
-    }, 220);
-  });
+  function bindPushIconInput(input: HTMLInputElement) {
+    input.addEventListener('input', () => {
+      const color = input.value;
+      syncPushIconInputs(color, input);
+      updatePushIconPreview(color);
+      if (pushIconSaveTimer) clearTimeout(pushIconSaveTimer);
+      pushIconSaveTimer = setTimeout(() => {
+        void savePushIconColorNow(color);
+      }, 220);
+    });
 
-  pushIconColorInput.addEventListener('change', async () => {
-    if (pushIconSaveTimer) clearTimeout(pushIconSaveTimer);
-    await savePushIconColorNow(pushIconColorInput.value);
-  });
+    input.addEventListener('change', async () => {
+      if (pushIconSaveTimer) clearTimeout(pushIconSaveTimer);
+      syncPushIconInputs(input.value, input);
+      updatePushIconPreview(input.value);
+      await savePushIconColorNow(input.value);
+    });
+  }
+
+  pushIconInputs.forEach(bindPushIconInput);
 
   setNotifTab('manual');
   loadSummary();

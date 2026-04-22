@@ -277,12 +277,18 @@ clientsRoutes.post('/', async (c) => {
 
   // SMS bienvenue planifié 60 min après l'inscription
   if (commerce && commerce.sms_welcome_enabled && (commerce.sms_credits ?? 0) > 0 && data.telephone) {
+    const { data: pointVenteData } = await db
+      .from('points_vente')
+      .select('nom')
+      .eq('id', carte.point_vente_id)
+      .maybeSingle();
+    const commerceDisplayName = pointVenteData?.nom ?? (commerce.nom as string | null) ?? '';
     const defaultMsg = 'Bonjour {prenom} ! Bienvenue chez {commerce}. Retrouvez votre carte de fidélité ici : {lien_carte}';
     const msg = personnaliserMessage(
       (commerce.sms_welcome_message as string | null) ?? defaultMsg,
       {
         prenom: data.nom ?? '',
-        commerce: (commerce.nom as string | null) ?? '',
+        commerce: commerceDisplayName,
         lien_carte: `${PUBLIC_SITE_URL}/carte/${data.id}`,
       },
     );

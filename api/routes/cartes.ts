@@ -11,9 +11,18 @@ import { getEffectivePlanRaw } from '../utils/effective-plan';
 
 export const cartesRoutes = new Hono();
 
-function withEffectiveCommerceLogo<T extends { logo_url?: string | null; commerces?: { logo_url?: string | null } | null }>(carte: T): T {
+function withEffectiveCommerceLogo<
+  T extends {
+    logo_url?: string | null;
+    commerces?: { logo_url?: string | null; nom?: string | null } | null;
+    points_vente?: { nom?: string | null } | null;
+  },
+>(carte: T): T {
   if (carte?.commerces) {
     carte.commerces.logo_url = carte.logo_url ?? carte.commerces.logo_url ?? null;
+    if (carte.points_vente?.nom) {
+      carte.commerces.nom = carte.points_vente.nom;
+    }
   }
   return carte;
 }
@@ -143,7 +152,10 @@ cartesRoutes.get('/:id/public', async (c) => {
   return c.json({
     data: {
       carte: carteData,
-      commerce: commerces,
+      commerce: {
+        ...commerces,
+        nom: pointVente?.nom ?? commerces.nom,
+      },
       point_vente: pointVente ?? null,
     },
   });
@@ -445,14 +457,14 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
 
     const { data: pointVenteData } = await db
       .from('points_vente')
-      .select('latitude, longitude, rayon_geo')
+      .select('nom, latitude, longitude, rayon_geo')
       .eq('id', (updatedCarte as { point_vente_id?: string | null }).point_vente_id ?? '')
       .maybeSingle();
 
     const carteForWallet = {
       ...(updatedCarte as Record<string, unknown>),
       commerces: {
-        nom: commerceData.nom ?? '',
+        nom: pointVenteData?.nom ?? commerceData.nom ?? '',
         logo_url: commerceData.logo_url ?? null,
         latitude: pointVenteData?.latitude ?? null,
         longitude: pointVenteData?.longitude ?? null,

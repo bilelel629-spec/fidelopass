@@ -40,6 +40,7 @@ type CronCarteRow = {
     plan: string | null;
   } | null;
   points_vente: {
+    nom?: string | null;
     latitude: number | null;
     longitude: number | null;
     rayon_geo: number | null;
@@ -328,7 +329,7 @@ async function sendScheduledBirthdayPushes(db: ReturnType<typeof createServiceCl
           rewards_config, vip_tiers, branding_powered_by_enabled,
           birthday_reward_value, birthday_push_title, birthday_push_message, point_vente_id,
           commerces(nom, logo_url, plan),
-          points_vente(latitude, longitude, rayon_geo)
+          points_vente(nom, latitude, longitude, rayon_geo)
         `)
         .eq('commerce_id', commerce.id)
         .eq('actif', true)
@@ -475,7 +476,7 @@ async function sendScheduledBirthdayPushes(db: ReturnType<typeof createServiceCl
         const carteForWallet = {
           ...carte,
           commerces: {
-            nom: commerceRef?.nom ?? commerce.nom ?? '',
+            nom: pointVenteRef?.nom ?? commerceRef?.nom ?? commerce.nom ?? '',
             logo_url: commerceRef?.logo_url ?? null,
             latitude: pointVenteRef?.latitude ?? null,
             longitude: pointVenteRef?.longitude ?? null,

@@ -917,7 +917,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
         'Bonjour {prenom} ! Laissez un avis Google sur {commerce} et recevez votre récompense : {lien_avis}',
         {
           prenom: (cl as { nom?: string | null }).nom ?? '',
-          commerce: (commerce.nom as string | null) ?? '',
+          commerce: (pointVente.nom as string | null) ?? (commerce.nom as string | null) ?? '',
           lien_avis: lienAvis,
           lien_carte: `${PUBLIC_SITE_URL_NOTIF}/carte/${carte.id}`,
         },

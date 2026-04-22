@@ -31,7 +31,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
       <div class="flex flex-wrap gap-2">
         <a href="/app/scan" class="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-sky-700">Scanner en caisse</a>
-        <a id="dashboard-client-qr-btn" href="/dashboard/carte" class="rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-50">Afficher le QR client</a>
+        <a id="dashboard-client-qr-btn" href="#" class="rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-50">Afficher le QR client</a>
         <a href="/dashboard/notifications" class="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50">Envoyer une notification</a>
       </div>
     </div>
@@ -251,16 +251,53 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   }
 
+  async function resolveClientQrUrl(): Promise<string | null> {
+    const res = await authFetch('/api/cartes');
+    if (!res.ok) return null;
+    const { data } = await res.json().catch(() => ({ data: null }));
+    if (!data?.id) return null;
+    return `/poster/${data.id}?template=signature`;
+  }
+
   async function loadCardShortcuts() {
     try {
-      const res = await authFetch('/api/cartes');
-      if (!res.ok) return;
-      const { data } = await res.json();
-      if (!data?.id) return;
+      const qrUrl = await resolveClientQrUrl();
       const qrBtn = document.getElementById('dashboard-client-qr-btn') as HTMLAnchorElement;
-      qrBtn.href = `/poster/${data.id}?template=signature`;
+      if (qrUrl) {
+        qrBtn.href = qrUrl;
+        qrBtn.dataset.posterUrl = qrUrl;
+      } else {
+        qrBtn.href = '/dashboard/carte';
+        qrBtn.removeAttribute('data-poster-url');
+      }
     } catch {
       // best effort
+    }
+  }
+
+  async function handleClientQrClick(event: MouseEvent) {
+    event.preventDefault();
+    const qrBtn = document.getElementById('dashboard-client-qr-btn') as HTMLAnchorElement | null;
+    if (!qrBtn) return;
+
+    const originalText = qrBtn.textContent;
+    qrBtn.textContent = 'Chargement...';
+    qrBtn.classList.add('pointer-events-none', 'opacity-70');
+    try {
+      const qrUrl = await resolveClientQrUrl();
+      if (qrUrl) {
+        qrBtn.href = qrUrl;
+        window.location.href = qrUrl;
+        return;
+      }
+      qrBtn.href = '/dashboard/carte';
+      window.location.href = '/dashboard/carte';
+    } catch {
+      qrBtn.href = '/dashboard/carte';
+      window.location.href = '/dashboard/carte';
+    } finally {
+      qrBtn.textContent = originalText;
+      qrBtn.classList.remove('pointer-events-none', 'opacity-70');
     }
   }
 
@@ -317,6 +354,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   document.getElementById('refresh-btn')!.addEventListener('click', refreshAll);
+  document.getElementById('dashboard-client-qr-btn')?.addEventListener('click', handleClientQrClick);
 
   const style = document.createElement('style');
   style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';

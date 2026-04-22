@@ -26,8 +26,8 @@ const apiBase = (
       </div>
 
       <div class="poster-ui flex flex-wrap gap-3 mb-6">
-        <button type="button" class="poster-template-btn btn-secondary text-sm px-4 py-2.5" data-template="essential">Essentiel</button>
-        <button type="button" class="poster-template-btn btn-secondary text-sm px-4 py-2.5" data-template="signature">Signature</button>
+        <button type="button" class="poster-template-btn btn-secondary text-sm px-4 py-2.5" data-template="essential">Premium clair</button>
+        <button type="button" class="poster-template-btn btn-secondary text-sm px-4 py-2.5" data-template="signature">Premium sombre</button>
       </div>
 
       <div class="poster-ui card mb-6 border border-white/10 bg-slate-900/55 p-5">
@@ -72,78 +72,145 @@ const apiBase = (
         <div id="poster-sheet" class="poster-sheet mx-auto bg-white text-slate-900 overflow-hidden shadow-2xl border border-white/10">
           <div id="poster-essential" class="poster-variant hidden h-full">
             <div class="poster-safe-zone h-full flex flex-col">
-              <div class="flex items-center justify-between gap-6">
-                <div class="flex items-center gap-4">
-                  <img id="poster-essential-logo" src="" alt="" class="hidden w-16 h-16 rounded-2xl object-cover" />
-                  <div>
-                    <p class="text-[10px] uppercase tracking-[0.34em] text-slate-500">Fidelopass</p>
-                    <h2 id="poster-essential-commerce" class="font-display text-[2.05rem] leading-tight font-bold mt-2">Votre commerce</h2>
+              <div id="poster-essential-hero" class="rounded-[1.2rem] border border-slate-200 bg-gradient-to-br from-slate-900 to-slate-700 text-white p-6">
+                <div class="flex items-center justify-between gap-6">
+                  <div class="flex items-center gap-4">
+                    <img id="poster-essential-logo" src="" alt="" class="hidden w-16 h-16 rounded-2xl object-cover border border-white/30" />
+                    <div>
+                      <p class="text-[10px] uppercase tracking-[0.34em] text-white/70">Programme fidélité</p>
+                      <h2 id="poster-essential-commerce" class="font-display text-[2rem] leading-tight font-bold mt-2">Votre commerce</h2>
+                    </div>
+                  </div>
+                  <div id="poster-essential-badge" class="px-4 py-2 rounded-full text-sm font-semibold border border-white/25 bg-white/10">Wallet instantané</div>
+                </div>
+
+                <div class="mt-5">
+                  <h3 id="poster-essential-title" class="font-display text-[2.3rem] leading-[1.03] font-bold max-w-[13cm]">
+                    VOS ACHATS D’ICI RÉCOMPENSÉS !
+                  </h3>
+                  <p id="poster-essential-subtitle" class="text-[1rem] text-white/90 mt-3.5 max-w-[13.2cm]">
+                    Installez votre carte de fidélité dans le wallet en 10 secondes, puis cumulez vos avantages à chaque passage.
+                  </p>
+                </div>
+              </div>
+
+              <div class="mt-5 grid grid-cols-[1fr_86mm_1fr] gap-4 items-center">
+                <div class="rounded-[1rem] border border-slate-200 bg-slate-50 p-4 h-[112px] flex flex-col justify-center">
+                  <p class="text-[11px] uppercase tracking-[0.24em] text-slate-500">1. Installez</p>
+                  <p class="text-sm font-semibold mt-2 leading-snug">Ajoutez votre carte en un scan, sans application.</p>
+                </div>
+
+                <div class="rounded-[1.1rem] border border-slate-300 bg-white p-4 text-center shadow-sm">
+                  <p class="inline-flex rounded-full px-3 py-1 text-xs font-semibold text-white mb-2" id="poster-essential-scan-pill" style="background:#0f172a">Scannez-moi</p>
+                  <img id="poster-essential-qr" src="" alt="QR code Fidelopass" class="w-[72mm] h-[72mm] mx-auto rounded-xl border border-slate-200" />
+                </div>
+
+                <div class="rounded-[1rem] border border-slate-200 bg-slate-50 p-4 h-[112px] flex flex-col justify-center">
+                  <p class="text-[11px] uppercase tracking-[0.24em] text-slate-500">2. Présentez</p>
+                  <p class="text-sm font-semibold mt-2 leading-snug">Montrez la carte en caisse pour valider points/tampons.</p>
+                </div>
+              </div>
+
+              <div class="mt-4 rounded-[1rem] border border-slate-200 bg-white p-4">
+                <p class="text-center text-sm font-semibold tracking-[0.16em] text-slate-700 uppercase">C’est simple</p>
+                <div class="mt-3 grid grid-cols-3 gap-3 text-center">
+                  <div class="rounded-xl border border-slate-200 p-3">
+                    <p class="mx-auto mb-2 w-6 h-6 rounded-full text-xs font-bold text-white leading-6" id="poster-essential-step-dot-1" style="background:#0f172a">1</p>
+                    <p class="text-[11px] uppercase tracking-[0.14em] text-slate-500">Téléchargez</p>
+                    <p class="text-xs text-slate-700 mt-1">Votre carte wallet en 10 sec</p>
+                  </div>
+                  <div class="rounded-xl border border-slate-200 p-3">
+                    <p class="mx-auto mb-2 w-6 h-6 rounded-full text-xs font-bold text-white leading-6" id="poster-essential-step-dot-2" style="background:#0f172a">2</p>
+                    <p class="text-[11px] uppercase tracking-[0.14em] text-slate-500">Scannez</p>
+                    <p class="text-xs text-slate-700 mt-1">En caisse à chaque achat</p>
+                  </div>
+                  <div class="rounded-xl border border-slate-200 p-3">
+                    <p class="mx-auto mb-2 w-6 h-6 rounded-full text-xs font-bold text-white leading-6" id="poster-essential-step-dot-3" style="background:#0f172a">3</p>
+                    <p class="text-[11px] uppercase tracking-[0.14em] text-slate-500">Cumulez</p>
+                    <p id="poster-essential-reward" class="text-xs text-slate-700 mt-1 font-semibold">Vos récompenses fidélité</p>
                   </div>
                 </div>
-                <div id="poster-essential-badge" class="px-4 py-2 rounded-full text-sm font-semibold border border-slate-200 bg-slate-50">Carte fidélité</div>
               </div>
 
-              <div class="mt-7">
-                <h3 id="poster-essential-title" class="font-display text-[2.65rem] leading-[1.03] font-bold max-w-[11.5cm]">
-                  Scannez et ajoutez votre carte fidélité
-                </h3>
-                <p id="poster-essential-subtitle" class="text-[1rem] text-slate-600 mt-3.5 max-w-[12.5cm]">
-                  Bienvenue, créez votre carte fidélité en 10 secondes.
-                </p>
+              <div class="mt-auto rounded-[1rem] border border-dashed border-slate-300 bg-slate-50 p-4 flex items-center justify-between gap-4">
+                <div>
+                  <p class="text-[10px] uppercase tracking-[0.28em] text-slate-500">Votre commerce personnalisable</p>
+                  <p class="text-sm font-semibold text-slate-900 mt-1">Ajoutez logo, message et récompense</p>
+                  <p id="poster-essential-subtitle-mini" class="text-xs text-slate-600 mt-1">Le client scanne et rejoint votre programme en quelques secondes.</p>
+                </div>
+                <div class="rounded-xl border border-slate-300 bg-white px-5 py-3 text-xs font-semibold text-slate-500 text-center min-w-[145px]">
+                  VOTRE LOGO ICI
+                </div>
               </div>
 
-              <div class="mt-auto grid grid-cols-[1fr_88mm] gap-6 items-end">
-                <div id="poster-essential-program" class="rounded-[1.1rem] p-6 text-white">
-                  <p class="text-[11px] uppercase tracking-[0.28em] opacity-85">Programme fidélité</p>
-                  <p id="poster-essential-reward" class="font-display text-[1.8rem] leading-tight font-bold mt-2.5">10 achats = 1 récompense</p>
-                  <p class="text-sm opacity-90 mt-3">Montrez cette carte à chaque passage pour cumuler vos avantages.</p>
-                </div>
-                <div class="rounded-[1.1rem] border border-slate-200 bg-slate-50 p-4 text-center">
-                  <img id="poster-essential-qr" src="" alt="QR code Fidelopass" class="w-[74mm] h-[74mm] mx-auto rounded-xl" />
-                  <p class="text-sm font-semibold mt-2.5">Scannez ici</p>
-                  <p class="text-xs text-slate-500 mt-1">Ajout direct dans Apple Wallet & Google Wallet.</p>
-                </div>
-              </div>
+              <p class="mt-3 text-center text-sm text-slate-600 font-medium">
+                Merci de soutenir le commerce local
+              </p>
             </div>
           </div>
 
           <div id="poster-signature" class="poster-variant hidden h-full">
-            <div class="h-full relative overflow-hidden">
-              <div id="poster-signature-banner" class="absolute inset-x-0 top-0 h-[32%] bg-slate-900"></div>
-              <div class="absolute inset-0 bg-gradient-to-br from-black/35 via-transparent to-black/40"></div>
+            <div class="h-full relative overflow-hidden bg-[#f3efe7]">
+              <div id="poster-signature-banner" class="absolute inset-x-0 top-0 h-[34%] bg-slate-900"></div>
+              <div class="absolute inset-x-0 top-0 h-[34%] bg-gradient-to-br from-black/45 via-black/20 to-black/40"></div>
 
               <div class="poster-safe-zone relative z-10 h-full flex flex-col">
                 <div class="flex items-start justify-between gap-5">
-                  <div class="max-w-[12.6cm] text-white">
-                    <p class="text-[10px] uppercase tracking-[0.34em] text-white/70">Carte fidélité digitale</p>
-                    <h2 id="poster-signature-commerce" class="font-display text-[2.25rem] leading-tight font-bold mt-2.5">Votre commerce</h2>
+                  <div class="max-w-[12.8cm] text-white">
+                    <p class="text-[10px] uppercase tracking-[0.34em] text-white/70">Programme fidélité Wallet</p>
+                    <h2 id="poster-signature-commerce" class="font-display text-[2.2rem] leading-tight font-bold mt-2.5">Votre commerce</h2>
+                    <h3 id="poster-signature-title" class="font-display text-[1.9rem] leading-tight font-bold mt-3">
+                      VOS ACHATS D’ICI RÉCOMPENSÉS !
+                    </h3>
                     <p id="poster-signature-copy" class="text-[1rem] text-white/90 mt-3.5 leading-relaxed">
-                      Scannez, ajoutez votre carte et profitez de vos avantages à chaque passage.
+                      Cumulez vos avantages à chaque passage. Ajout en 10 secondes dans Apple Wallet ou Google Wallet.
                     </p>
                   </div>
                   <img id="poster-signature-logo" src="" alt="" class="hidden w-16 h-16 rounded-2xl object-cover border border-white/25" />
                 </div>
 
-                <div class="mt-auto grid grid-cols-[92mm_1fr] gap-6 items-end">
-                  <div class="rounded-[1.2rem] bg-white p-4 text-center shadow-xl">
-                    <img id="poster-signature-qr" src="" alt="QR code Fidelopass" class="w-[78mm] h-[78mm] mx-auto rounded-xl" />
-                    <p class="text-sm font-semibold mt-3">Scannez pour créer votre carte</p>
-                    <p class="text-xs text-slate-500 mt-1">Aucune app à télécharger.</p>
+                <div class="mt-5 grid grid-cols-[1fr_90mm_1fr] gap-4 items-center">
+                  <div class="rounded-[1rem] bg-white/90 border border-slate-300 p-4 text-slate-900 h-[112px] flex flex-col justify-center">
+                    <p class="text-[11px] uppercase tracking-[0.24em] text-slate-500">Plus vous venez</p>
+                    <p class="text-sm font-semibold mt-2">Plus vous gagnez d’avantages et de récompenses.</p>
                   </div>
-                  <div class="rounded-[1.2rem] bg-white/12 backdrop-blur-md border border-white/15 p-5 text-white">
-                    <p class="text-[11px] uppercase tracking-[0.24em] text-white/70">Récompense</p>
-                    <p id="poster-signature-reward" class="font-display text-[1.9rem] leading-tight font-bold mt-2.5">Récompense fidélité</p>
-                    <div class="grid grid-cols-2 gap-3 mt-4">
-                      <div class="rounded-xl bg-white/10 p-3">
-                        <p class="text-[10px] uppercase tracking-[0.2em] text-white/70">Ajout</p>
-                        <p class="text-sm font-semibold mt-1">10 secondes</p>
-                      </div>
-                      <div class="rounded-xl bg-white/10 p-3">
-                        <p class="text-[10px] uppercase tracking-[0.2em] text-white/70">Compatibilité</p>
-                        <p class="text-sm font-semibold mt-1">iPhone & Android</p>
-                      </div>
+
+                  <div class="rounded-[1.1rem] bg-white p-4 text-center border border-slate-300 shadow-xl">
+                    <p id="poster-signature-scan-pill" class="inline-flex rounded-full px-3 py-1 text-xs font-semibold text-white mb-2" style="background:#0f172a">Scannez-moi</p>
+                    <img id="poster-signature-qr" src="" alt="QR code Fidelopass" class="w-[74mm] h-[74mm] mx-auto rounded-xl border border-slate-200" />
+                  </div>
+
+                  <div class="rounded-[1rem] bg-white/90 border border-slate-300 p-4 text-slate-900 h-[112px] flex flex-col justify-center">
+                    <p class="text-[11px] uppercase tracking-[0.24em] text-slate-500">Récompense</p>
+                    <p id="poster-signature-reward" class="text-sm font-semibold mt-2">Votre récompense fidélité</p>
+                  </div>
+                </div>
+
+                <div class="mt-4 rounded-[1rem] border border-slate-300 bg-white p-4">
+                  <p class="text-center text-sm font-semibold tracking-[0.16em] text-slate-700 uppercase">C’est simple</p>
+                  <div class="mt-3 grid grid-cols-3 gap-3 text-center">
+                    <div class="rounded-xl border border-slate-200 p-3">
+                      <p class="mx-auto mb-2 w-6 h-6 rounded-full text-xs font-bold text-white leading-6" id="poster-signature-step-dot-1" style="background:#0f172a">1</p>
+                      <p class="text-[11px] uppercase tracking-[0.14em] text-slate-500">Téléchargez</p>
+                      <p class="text-xs text-slate-700 mt-1">La carte sur votre téléphone</p>
+                    </div>
+                    <div class="rounded-xl border border-slate-200 p-3">
+                      <p class="mx-auto mb-2 w-6 h-6 rounded-full text-xs font-bold text-white leading-6" id="poster-signature-step-dot-2" style="background:#0f172a">2</p>
+                      <p class="text-[11px] uppercase tracking-[0.14em] text-slate-500">Scannez</p>
+                      <p class="text-xs text-slate-700 mt-1">En caisse à chaque achat</p>
+                    </div>
+                    <div class="rounded-xl border border-slate-200 p-3">
+                      <p class="mx-auto mb-2 w-6 h-6 rounded-full text-xs font-bold text-white leading-6" id="poster-signature-step-dot-3" style="background:#0f172a">3</p>
+                      <p class="text-[11px] uppercase tracking-[0.14em] text-slate-500">Cumulez</p>
+                      <p class="text-xs text-slate-700 mt-1">Des avantages fidélité</p>
                     </div>
                   </div>
+                </div>
+
+                <div class="mt-auto rounded-[1rem] border border-dashed border-slate-400 bg-white/95 p-4">
+                  <p class="text-[10px] uppercase tracking-[0.28em] text-slate-500">Votre commerce personnalisable</p>
+                  <p class="text-sm font-semibold text-slate-900 mt-1">Adresse · Téléphone · Réseaux sociaux</p>
+                  <p class="text-xs text-slate-600 mt-1">Personnalisez cette affiche pour votre point de vente.</p>
                 </div>
               </div>
             </div>
@@ -269,6 +336,11 @@ const apiBase = (
     img.classList.remove('hidden');
   }
 
+  function setText(id, value) {
+    const node = document.getElementById(id);
+    if (node) node.textContent = value;
+  }
+
   function applyCustomizations() {
     if (!posterBase) return;
 
@@ -278,16 +350,37 @@ const apiBase = (
     const accent = (customAccentInput?.value || posterBase.defaultAccent || '#6366f1').trim();
     const background = (customBgInput?.value || posterBase.defaultBackground || '#0f172a').trim();
 
-    document.getElementById('poster-essential-title').textContent = title;
-    document.getElementById('poster-essential-subtitle').textContent = subtitle;
-    document.getElementById('poster-essential-reward').textContent = reward;
-    document.getElementById('poster-essential-badge').style.background = `${accent}1f`;
-    document.getElementById('poster-essential-badge').style.color = accent;
-    document.getElementById('poster-essential-program').style.background = `linear-gradient(135deg, ${background}, ${accent})`;
+    setText('poster-essential-title', title);
+    setText('poster-essential-subtitle', subtitle);
+    setText('poster-essential-subtitle-mini', subtitle);
+    setText('poster-essential-reward', reward);
+    setText('poster-signature-title', title);
+    setText('poster-signature-copy', subtitle);
+    setText('poster-signature-reward', reward);
 
-    document.getElementById('poster-signature-copy').textContent = subtitle;
-    document.getElementById('poster-signature-reward').textContent = reward;
-    document.getElementById('poster-signature-banner').style.background = posterBase.stripUrl
+    const essentialHero = document.getElementById('poster-essential-hero');
+    if (essentialHero) essentialHero.style.background = `linear-gradient(135deg, ${background}, ${accent})`;
+
+    const essentialBadge = document.getElementById('poster-essential-badge');
+    if (essentialBadge) {
+      essentialBadge.style.background = `${accent}26`;
+      essentialBadge.style.borderColor = `${accent}55`;
+      essentialBadge.style.color = '#ffffff';
+    }
+
+    const essentialScanPill = document.getElementById('poster-essential-scan-pill');
+    if (essentialScanPill) essentialScanPill.style.background = accent;
+    const signatureScanPill = document.getElementById('poster-signature-scan-pill');
+    if (signatureScanPill) signatureScanPill.style.background = accent;
+
+    ['poster-essential-step-dot-1', 'poster-essential-step-dot-2', 'poster-essential-step-dot-3',
+      'poster-signature-step-dot-1', 'poster-signature-step-dot-2', 'poster-signature-step-dot-3'].forEach((id) => {
+      const dot = document.getElementById(id);
+      if (dot) dot.style.background = accent;
+    });
+
+    const signatureBanner = document.getElementById('poster-signature-banner');
+    if (signatureBanner) signatureBanner.style.background = posterBase.stripUrl
       ? `linear-gradient(rgba(15,23,42,0.34), rgba(15,23,42,0.55)), url("${posterBase.stripUrl}") center/cover`
       : `linear-gradient(135deg, ${background}, ${accent})`;
   }
@@ -335,23 +428,43 @@ const apiBase = (
       const accent = data.carte.couleur_accent ?? '#6366f1';
       const fond = data.carte.couleur_fond ?? '#0f172a';
       const fond2 = data.carte.couleur_fond_2 ?? accent;
-      const defaultTitle = `Scannez pour rejoindre ${commerceName}`;
+      const defaultTitle = 'VOS ACHATS D’ICI RÉCOMPENSÉS !';
 
-      document.getElementById('poster-essential-commerce').textContent = commerceName;
-      document.getElementById('poster-essential-title').textContent = defaultTitle;
-      document.getElementById('poster-essential-subtitle').textContent = message;
-      document.getElementById('poster-essential-reward').textContent = reward;
-      document.getElementById('poster-essential-badge').textContent = typeLabel;
-      document.getElementById('poster-essential-badge').style.background = `${accent}1f`;
-      document.getElementById('poster-essential-badge').style.color = accent;
-      document.getElementById('poster-essential-program').style.background = `linear-gradient(135deg, ${fond}, ${fond2})`;
+      setText('poster-essential-commerce', commerceName);
+      setText('poster-essential-title', defaultTitle);
+      setText('poster-essential-subtitle', message);
+      setText('poster-essential-subtitle-mini', message);
+      setText('poster-essential-reward', reward);
+      setText('poster-signature-commerce', commerceName);
+      setText('poster-signature-title', defaultTitle);
+      setText('poster-signature-copy', message);
+      setText('poster-signature-reward', reward);
 
-      document.getElementById('poster-signature-commerce').textContent = commerceName;
-      document.getElementById('poster-signature-copy').textContent = message;
-      document.getElementById('poster-signature-reward').textContent = reward;
-      document.getElementById('poster-signature-banner').style.background = data.carte.strip_url
+      const essentialBadge = document.getElementById('poster-essential-badge');
+      if (essentialBadge) {
+        essentialBadge.textContent = typeLabel;
+        essentialBadge.style.background = `${accent}26`;
+        essentialBadge.style.borderColor = `${accent}55`;
+        essentialBadge.style.color = '#ffffff';
+      }
+
+      const essentialHero = document.getElementById('poster-essential-hero');
+      if (essentialHero) essentialHero.style.background = `linear-gradient(135deg, ${fond}, ${fond2})`;
+
+      const signatureBanner = document.getElementById('poster-signature-banner');
+      if (signatureBanner) signatureBanner.style.background = data.carte.strip_url
         ? `linear-gradient(rgba(15,23,42,0.3), rgba(15,23,42,0.45)), url("${data.carte.strip_url}") center/cover`
         : `linear-gradient(135deg, ${fond}, ${fond2})`;
+
+      const essentialScanPill = document.getElementById('poster-essential-scan-pill');
+      if (essentialScanPill) essentialScanPill.style.background = accent;
+      const signatureScanPill = document.getElementById('poster-signature-scan-pill');
+      if (signatureScanPill) signatureScanPill.style.background = accent;
+      ['poster-essential-step-dot-1', 'poster-essential-step-dot-2', 'poster-essential-step-dot-3',
+        'poster-signature-step-dot-1', 'poster-signature-step-dot-2', 'poster-signature-step-dot-3'].forEach((id) => {
+        const dot = document.getElementById(id);
+        if (dot) dot.style.background = accent;
+      });
 
       ['poster-essential-qr', 'poster-signature-qr'].forEach((elementId) => {
         document.getElementById(elementId).src = qr;

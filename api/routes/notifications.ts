@@ -4,7 +4,7 @@ import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
 import { getPlanLimits, normalizePlan } from './commerces';
-import { sendPushNotification, sendPersonalizedPushNotifications } from '../services/push';
+import { sendPushNotificationDetailed, sendPersonalizedPushNotifications } from '../services/push';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { sendGoogleWalletMessage } from '../services/google-wallet';
 import { sendSMS, personnaliserMessage } from '../../src/lib/brevo-sms';
@@ -654,7 +654,16 @@ notificationsRoutes.post('/', async (c) => {
 
   if (tokens.length > 0) {
     try {
-      nbDelivreesWeb = await sendPushNotification(tokens, parsed.data.titre, parsed.data.message);
+      const tokenToClientId = new Map<string, string>();
+      for (const client of webPushClients) {
+        if (client.fcm_token) tokenToClientId.set(client.fcm_token, client.id);
+      }
+      const pushResult = await sendPushNotificationDetailed(tokens, parsed.data.titre, parsed.data.message);
+      nbDelivreesWeb = pushResult.successCount;
+      for (const token of pushResult.successTokens) {
+        const clientId = tokenToClientId.get(token);
+        if (clientId) walletDeliveredClientIds.add(clientId);
+      }
     } catch (err) {
       console.error('[notifications push]', err);
     }
@@ -709,14 +718,8 @@ notificationsRoutes.post('/', async (c) => {
     }
   }
 
-  const deliveredClientIds = new Set<string>();
-  if (nbDelivreesWeb > 0) {
-    webPushClients.slice(0, nbDelivreesWeb).forEach((client) => deliveredClientIds.add(client.id));
-  }
-  walletDeliveredClientIds.forEach((id) => deliveredClientIds.add(id));
-
   const nbDestinataires = targetedClientIds.size;
-  const nbDelivrees = deliveredClientIds.size;
+  const nbDelivrees = walletDeliveredClientIds.size;
 
   const { data: updatedNotif } = await db
     .from('notifications')

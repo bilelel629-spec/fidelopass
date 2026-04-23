@@ -2,6 +2,13 @@ import * as admin from 'firebase-admin';
 
 let firebaseApp: admin.app.App | null = null;
 
+export type PushDeliveryResult = {
+  successCount: number;
+  failedCount: number;
+  successTokens: string[];
+  failedTokens: string[];
+};
+
 function getFirebaseApp(): admin.app.App {
   if (firebaseApp) return firebaseApp;
 
@@ -25,21 +32,24 @@ function getFirebaseApp(): admin.app.App {
 
 /**
  * Envoie une notification push à une liste de tokens FCM.
- * Retourne le nombre de notifications délivrées avec succès.
+ * Retourne le détail des notifications délivrées avec succès/échec.
  */
-export async function sendPushNotification(
+export async function sendPushNotificationDetailed(
   tokens: string[],
   title: string,
   body: string,
   clickUrl = '/',
-): Promise<number> {
-  if (tokens.length === 0) return 0;
+): Promise<PushDeliveryResult> {
+  if (tokens.length === 0) {
+    return { successCount: 0, failedCount: 0, successTokens: [], failedTokens: [] };
+  }
 
   const app = getFirebaseApp();
   const messaging = admin.messaging(app);
 
   const BATCH_SIZE = 500;
-  let successCount = 0;
+  const successTokens: string[] = [];
+  const failedTokens: string[] = [];
 
   for (let i = 0; i < tokens.length; i += BATCH_SIZE) {
     const batch = tokens.slice(i, i + BATCH_SIZE);
@@ -54,13 +64,38 @@ export async function sendPushNotification(
           fcmOptions: { link: clickUrl },
         },
       });
-      successCount += response.successCount;
+      response.responses.forEach((item, index) => {
+        const token = batch[index];
+        if (!token) return;
+        if (item.success) successTokens.push(token);
+        else failedTokens.push(token);
+      });
     } catch (err) {
       console.error('[FCM] Erreur envoi batch:', err);
+      failedTokens.push(...batch);
     }
   }
 
-  return successCount;
+  return {
+    successCount: successTokens.length,
+    failedCount: failedTokens.length,
+    successTokens,
+    failedTokens,
+  };
+}
+
+/**
+ * Envoie une notification push à une liste de tokens FCM.
+ * Retourne le nombre de notifications délivrées avec succès.
+ */
+export async function sendPushNotification(
+  tokens: string[],
+  title: string,
+  body: string,
+  clickUrl = '/',
+): Promise<number> {
+  const result = await sendPushNotificationDetailed(tokens, title, body, clickUrl);
+  return result.successCount;
 }
 
 /**

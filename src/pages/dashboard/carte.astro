@@ -3,7 +3,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 ---
 
 <DashboardLayout title="Ma carte — Fidelopass" activeNav="carte">
-  <div id="wizard-top-anchor" class="mb-4 rounded-[1.6rem] border border-sky-100 bg-white/90 px-5 py-4 shadow-[0_24px_50px_-38px_rgba(59,130,246,0.35)] sm:mb-5 sm:py-5">
+  <div id="wizard-top-anchor" class="mb-5 rounded-[1.4rem] border border-slate-200/70 bg-white/95 px-6 py-5 shadow-[0_16px_32px_-24px_rgba(15,23,42,0.2)] sm:mb-6">
     <p class="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-sky-600/70">Éditeur de carte</p>
     <div class="mt-2 flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
       <div>
@@ -12,7 +12,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
     </div>
   </div>
-  <div id="active-point-banner" class="mb-4 rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3 sm:mb-5">
+  <div id="active-point-banner" class="mb-5 rounded-[1.2rem] border border-slate-200/70 bg-white/90 px-4 py-3 shadow-[0_12px_24px_-20px_rgba(59,130,246,0.24)] sm:mb-6">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div class="text-sm text-sky-800">
         <p class="font-medium">Point de vente actif: <span id="active-point-name" class="font-semibold">Chargement...</span></p>
@@ -39,7 +39,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </div>
   </div>
 
-  <div class="mb-6 hidden rounded-[1.6rem] border border-sky-100 bg-white/95 shadow-[0_18px_48px_-36px_rgba(59,130,246,0.4)] lg:sticky lg:top-4 lg:block z-20">
+  <div class="mb-7 hidden rounded-[1.4rem] border border-slate-200/70 bg-white/95 shadow-[0_18px_38px_-28px_rgba(15,23,42,0.2)] lg:sticky lg:top-5 lg:block z-20">
     <div class="flex items-center justify-between px-4 py-3 border-b border-sky-50">
       <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-600/70">Parcours guidé</p>
       <div class="flex items-center gap-2">
@@ -703,7 +703,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     <div class="lg:sticky lg:top-8 space-y-5">
       <button id="preview-toggle-btn" type="button" class="btn-secondary w-full py-3 text-sm lg:hidden">Voir l’aperçu</button>
       <div id="preview-mobile-backdrop" class="fixed inset-0 z-[72] hidden bg-slate-900/50 backdrop-blur-[1px] lg:hidden"></div>
-      <div id="preview-panel" class="card p-4 hidden lg:block">
+      <div id="preview-panel" class="card hidden p-5 ring-1 ring-indigo-100/70 shadow-[0_28px_54px_-32px_rgba(79,70,229,0.3)] lg:block">
         <div class="flex items-start justify-between gap-3 mb-3">
           <div>
             <p class="label mb-1">Aperçu temps réel</p>
@@ -723,7 +723,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
 
         <!-- Apple preview -->
-        <div id="apple-preview" class="rounded-[1.6rem] overflow-hidden shadow-[0_28px_60px_-38px_rgba(15,23,42,0.45)] transition-all duration-300 relative" style="background:#0f172a;color:#ffffff;min-height:280px">
+        <div id="apple-preview" class="relative overflow-hidden rounded-[1.7rem] ring-1 ring-white/30 shadow-[0_32px_70px_-34px_rgba(15,23,42,0.58)] transition-all duration-300 hover:scale-[1.01]" style="background:#0f172a;color:#ffffff;min-height:280px">
           <div id="a-pattern-global" class="absolute inset-0 pointer-events-none z-0"></div>
           <div class="relative z-10 flex items-center justify-between px-4 pt-4 pb-2">
             <div class="flex items-center gap-2">
@@ -764,7 +764,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
 
         <!-- Google preview -->
-        <div id="google-preview" class="hidden rounded-[1.6rem] overflow-hidden shadow-[0_28px_60px_-38px_rgba(15,23,42,0.35)]">
+        <div id="google-preview" class="hidden overflow-hidden rounded-[1.7rem] ring-1 ring-slate-200/70 shadow-[0_30px_60px_-36px_rgba(15,23,42,0.4)] transition-all duration-300 hover:scale-[1.01]">
           <div class="relative h-32 overflow-hidden">
             <img id="g-strip-img" src="" alt="" class="hidden w-full h-full object-cover" />
             <div id="g-strip-bg" class="absolute inset-0" style="background:#0f172a"></div>
@@ -815,15 +815,22 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 </DashboardLayout>
 
 <style>
+  .wizard-tab {
+    border-radius: 14px;
+    transition: all 0.25s ease;
+  }
+
   .wizard-tab[data-state='active'] {
     border-color: #93c5fd;
-    background: #eff6ff;
-    box-shadow: 0 18px 30px -28px rgba(59, 130, 246, 0.8);
+    background: linear-gradient(135deg, rgba(219, 234, 254, 0.9), rgba(224, 231, 255, 0.9));
+    box-shadow:
+      0 0 0 1px rgba(96, 165, 250, 0.26),
+      0 16px 28px -24px rgba(37, 99, 235, 0.75);
   }
 
   .wizard-tab[data-state='done'] {
     border-color: #bbf7d0;
-    background: #f0fdf4;
+    background: linear-gradient(180deg, #f7fff7 0%, #effcf2 100%);
   }
 
   .wizard-step-status[data-state='done'] {
@@ -848,7 +855,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   .mobile-step-item[data-state='active'] {
     border-color: #93c5fd;
-    background: #eff6ff;
+    background: linear-gradient(135deg, rgba(219, 234, 254, 0.9), rgba(224, 231, 255, 0.9));
+    box-shadow: 0 12px 26px -20px rgba(37, 99, 235, 0.6);
   }
 
   .mobile-step-item[data-state='done'] {
@@ -857,10 +865,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   .appearance-tab[data-active='true'] {
-    background: #ffffff;
+    background: linear-gradient(135deg, #ffffff 0%, #eef2ff 100%);
     color: #0f172a;
-    border: 1px solid #93c5fd;
-    box-shadow: 0 12px 24px -20px rgba(59, 130, 246, 0.8);
+    border: 1px solid rgba(96, 165, 250, 0.65);
+    box-shadow:
+      0 0 0 1px rgba(96, 165, 250, 0.18),
+      0 14px 28px -24px rgba(59, 130, 246, 0.9);
   }
 </style>
 

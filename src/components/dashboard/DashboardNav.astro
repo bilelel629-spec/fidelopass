@@ -8,13 +8,13 @@ const { activeNav = '' } = Astro.props;
 const navItems = DASHBOARD_NAV_ITEMS;
 ---
 
-<aside class="hidden lg:flex w-72 shrink-0 h-full min-h-0 flex-col border-r border-sky-100/90 bg-white/82 backdrop-blur-2xl shadow-[0_18px_50px_-30px_rgba(37,99,235,0.25)]">
-  <div class="px-6 py-6 border-b border-sky-100/90">
+<aside class="hidden lg:flex w-[18.75rem] shrink-0 h-full min-h-0 flex-col border-r border-slate-200/60 bg-white/88 backdrop-blur-2xl shadow-[0_18px_42px_-30px_rgba(15,23,42,0.28)]">
+  <div class="px-6 py-6 border-b border-slate-200/65">
     <a href="/dashboard" class="flex flex-col gap-2">
-      <img src="/logo-premium.png" alt="Fidelopass" class="h-14 w-48 object-cover object-center" />
-      <span class="text-xs font-medium tracking-[0.24em] uppercase text-sky-700/70">Espace commerçant</span>
+      <img src="/logo-premium.png" alt="Fidelopass" class="h-16 w-52 object-cover object-center" />
+      <span class="text-[0.68rem] font-semibold tracking-[0.23em] uppercase text-sky-700/75">Espace commerçant</span>
     </a>
-    <div class="mt-4 rounded-2xl border border-sky-100/90 bg-sky-50/50 px-3 py-2">
+    <div class="mt-4 rounded-2xl border border-slate-200/60 bg-white/90 px-3 py-2.5 shadow-[0_8px_20px_-20px_rgba(37,99,235,0.45)]">
       <p class="text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-slate-500">Plan actif</p>
       <span
         id="dashboard-plan-badge"
@@ -23,29 +23,29 @@ const navItems = DASHBOARD_NAV_ITEMS;
         Chargement...
       </span>
     </div>
-    <div class="mt-3 rounded-2xl border border-sky-100/90 bg-white px-3 py-2.5">
+    <div class="mt-3 rounded-2xl border border-slate-200/60 bg-white px-3 py-2.5 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.25)]">
       <p class="text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-slate-500">Point de vente</p>
-      <select id="dashboard-point-vente-select" class="mt-1.5 w-full rounded-xl border border-sky-100 bg-white px-2.5 py-2 text-xs font-medium text-slate-700 focus:border-sky-300 focus:outline-none">
+      <select id="dashboard-point-vente-select" class="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium text-slate-700 focus:border-sky-300 focus:outline-none">
         <option>Chargement...</option>
       </select>
       <p id="dashboard-point-vente-usage" class="mt-1.5 text-[0.68rem] text-slate-500"></p>
     </div>
   </div>
 
-  <nav class="flex-1 min-h-0 overflow-y-auto px-4 py-5 flex flex-col gap-1.5">
+  <nav class="flex-1 min-h-0 overflow-y-auto px-4 py-5 flex flex-col gap-2">
     {navItems.map(({ href, id, label, paths }) => (
       <a
         href={href}
-        class={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-all duration-200
+        class={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-all duration-300
           ${activeNav === id
-            ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-[0_18px_30px_-24px_rgba(37,99,235,0.9)]'
-            : 'text-slate-600 hover:bg-sky-50 hover:text-slate-900'
+            ? 'bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500 text-white shadow-[0_18px_34px_-24px_rgba(37,99,235,0.9)] ring-1 ring-white/35'
+            : 'text-slate-600 hover:bg-white hover:text-slate-900 hover:shadow-[0_12px_28px_-24px_rgba(15,23,42,0.4)]'
           }`}
       >
         <span class={`flex h-10 w-10 items-center justify-center rounded-2xl border transition-all
           ${activeNav === id
-            ? 'border-white/20 bg-white/12'
-            : 'border-sky-100 bg-white text-sky-600 group-hover:border-sky-200 group-hover:bg-sky-100/70'
+            ? 'border-white/20 bg-white/15 shadow-inner'
+            : 'border-slate-200 bg-slate-50 text-sky-600 group-hover:border-sky-200 group-hover:bg-sky-50'
           }`}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
@@ -57,8 +57,8 @@ const navItems = DASHBOARD_NAV_ITEMS;
     ))}
   </nav>
 
-  <div class="px-4 pb-4 space-y-2 border-t border-sky-100/90 pt-4">
-    <a href="/app" class="flex items-center justify-between rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-medium text-sky-800 transition hover:border-sky-300 hover:bg-sky-100">
+  <div class="px-4 pb-4 space-y-2 border-t border-slate-200/65 pt-4">
+    <a href="/app" class="flex items-center justify-between rounded-2xl border border-sky-200 bg-gradient-to-r from-sky-50 to-blue-50 px-4 py-3 text-sm font-semibold text-sky-800 transition hover:border-sky-300 hover:shadow-[0_16px_30px_-25px_rgba(37,99,235,0.5)]">
       <span>Ouvrir le scanner</span>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
         <path d="M7 3H5a2 2 0 0 0-2 2v2"></path>
@@ -68,18 +68,18 @@ const navItems = DASHBOARD_NAV_ITEMS;
         <path d="M8 12h8"></path>
       </svg>
     </a>
-    <button id="logout-btn" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600">
+    <button id="logout-btn" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 hover:shadow-[0_14px_26px_-24px_rgba(220,38,38,0.6)]">
       Se déconnecter
     </button>
   </div>
 </aside>
 
-<header class="lg:hidden fixed top-0 inset-x-0 z-40 border-b border-sky-100/90 bg-white/90 backdrop-blur-2xl px-4 py-3 flex items-center justify-between">
+<header class="lg:hidden fixed top-0 inset-x-0 z-40 border-b border-slate-200/70 bg-white/92 backdrop-blur-2xl px-4 py-3 flex items-center justify-between shadow-[0_12px_28px_-26px_rgba(15,23,42,0.5)]">
   <a href="/dashboard" class="flex items-center gap-3 min-w-0">
     <img src="/logo-premium.png" alt="Fidelopass" class="h-10 w-36 object-cover object-center" />
   </a>
   <div class="flex items-center gap-2">
-    <a href="/dashboard/points-vente" class="rounded-full border border-sky-200 bg-white px-2.5 py-1.5 text-[0.62rem] font-semibold text-sky-700">
+    <a href="/dashboard/points-vente" class="rounded-full border border-sky-200 bg-white px-2.5 py-1.5 text-[0.62rem] font-semibold text-sky-700 shadow-[0_8px_16px_-14px_rgba(37,99,235,0.45)]">
       Points de vente
     </a>
     <span
@@ -88,20 +88,20 @@ const navItems = DASHBOARD_NAV_ITEMS;
     >
       ...
     </span>
-    <a href="/app" class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700">
+    <a href="/app" class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 shadow-[0_8px_16px_-14px_rgba(37,99,235,0.45)]">
       Scanner
     </a>
   </div>
 </header>
 
-<nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-sky-100/90 bg-white/92 backdrop-blur-2xl px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.55rem)]">
+<nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-slate-200/70 bg-white/94 backdrop-blur-2xl px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.55rem)] shadow-[0_-12px_26px_-22px_rgba(15,23,42,0.5)]">
   <div class="grid grid-cols-5 gap-1">
     {navItems.filter((item) => item.id !== 'points-vente').slice(0, 5).map(({ href, id, label, paths }) => (
       <a
         href={href}
         class={`min-w-0 flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[0.68rem] transition-all
           ${activeNav === id
-            ? 'bg-sky-100 text-sky-700 font-semibold'
+            ? 'bg-gradient-to-r from-blue-600 to-indigo-500 text-white font-semibold shadow-[0_10px_18px_-16px_rgba(37,99,235,0.7)]'
             : 'text-slate-500 hover:text-slate-800'
           }`}
       >

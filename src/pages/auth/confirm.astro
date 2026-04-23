@@ -40,13 +40,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   const message = document.getElementById('confirm-message') as HTMLParagraphElement;
   const errorBox = document.getElementById('confirm-error') as HTMLDivElement;
   const loginLink = document.getElementById('confirm-login-link') as HTMLAnchorElement;
-  const BILLING_CHECK_TIMEOUT_MS = Number(import.meta.env.PUBLIC_BILLING_CHECK_TIMEOUT_MS ?? 2200);
   let redirectInFlight = false;
-
-  function apiUrl(path: string) {
-    const API = (import.meta.env.PUBLIC_API_URL ?? '').trim();
-    return `${API}${path}`;
-  }
 
   async function redirectAfterAuth() {
     if (redirectInFlight) return;
@@ -60,45 +54,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       }
 
       setSessionCookie(session.access_token);
-
-      const controller = new AbortController();
-      const timeoutId = window.setTimeout(() => controller.abort(), BILLING_CHECK_TIMEOUT_MS);
-      const billingResponse = await fetch(apiUrl('/api/billing/status'), {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        signal: controller.signal,
-      }).catch(() => null).finally(() => window.clearTimeout(timeoutId));
-
-      if (!billingResponse) {
-        message.textContent = 'Impossible de vérifier votre abonnement pour le moment.';
-        loginLink.classList.remove('hidden');
-        return;
-      }
-
-      const billingPayload = await billingResponse.json().catch(() => null);
-      const billing = billingPayload?.data;
-
-      if (billingResponse.status === 401) {
-        clearSessionCookie();
-        await supabase.auth.signOut().catch(() => undefined);
-        window.location.href = '/login';
-        return;
-      }
-
-      if (!billingResponse.ok) {
-        message.textContent = billingPayload?.error ?? 'Impossible de vérifier votre abonnement.';
-        loginLink.classList.remove('hidden');
-        return;
-      }
-
-      if (!billing?.has_access) {
-        window.location.href = '/abonnement/choix';
-        return;
-      }
-
-      window.location.href = billing?.onboarding_completed ? '/dashboard' : '/onboarding';
+      window.location.replace('/dashboard');
     } finally {
       redirectInFlight = false;
     }

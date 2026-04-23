@@ -18,6 +18,9 @@ Stabiliser la production Fidelopass sur trois axes:
 - Timeout billing côté login/register/confirm:
   - variable: `PUBLIC_BILLING_CHECK_TIMEOUT_MS` (défaut `2200`)
   - redirections plus réactives.
+- Timeout de sonde session Supabase côté login/register/confirm:
+  - variable: `PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS` (défaut `900`)
+  - évite les attentes longues avant redirection quand Supabase répond lentement.
 - Dédup des redirections auth (`redirectInFlight`) pour empêcher les doubles appels concurrents.
 
 ### 2) Observabilité & santé dépendances

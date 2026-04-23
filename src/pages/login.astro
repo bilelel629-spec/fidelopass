@@ -117,6 +117,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   const forgotBtn = document.getElementById('forgot-btn') as HTMLButtonElement;
   let statusMessageEl = document.getElementById('auth-progress') as HTMLDivElement | null;
   let redirectInFlight = false;
+  const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
 
   function ensureStatusMessageEl() {
     if (statusMessageEl) return statusMessageEl;
@@ -139,10 +140,20 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   async function getValidSession() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const sessionResult = await Promise.race([
+      supabase.auth.getSession(),
+      new Promise<null>((resolve) => window.setTimeout(() => resolve(null), SESSION_PROBE_TIMEOUT_MS)),
+    ]);
+    if (!sessionResult) return null;
+    const { data: { session } } = sessionResult;
     if (session?.access_token) return session;
 
-    const { data, error } = await supabase.auth.refreshSession();
+    const refreshResult = await Promise.race([
+      supabase.auth.refreshSession(),
+      new Promise<null>((resolve) => window.setTimeout(() => resolve(null), SESSION_PROBE_TIMEOUT_MS)),
+    ]);
+    if (!refreshResult) return null;
+    const { data, error } = refreshResult;
     if (!error && data.session?.access_token) return data.session;
     return null;
   }
@@ -172,7 +183,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     }
   }
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const bootSessionResult = await Promise.race([
+    supabase.auth.getSession(),
+    new Promise<null>((resolve) => window.setTimeout(() => resolve(null), SESSION_PROBE_TIMEOUT_MS)),
+  ]);
+  const session = bootSessionResult?.data?.session ?? null;
   if (session) {
     await redirectAfterAuth(session);
   }

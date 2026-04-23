@@ -41,11 +41,16 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   const errorBox = document.getElementById('confirm-error') as HTMLDivElement;
   const loginLink = document.getElementById('confirm-login-link') as HTMLAnchorElement;
   let redirectInFlight = false;
+  const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
 
   async function redirectAfterAuth() {
     if (redirectInFlight) return;
     redirectInFlight = true;
-    const { data: { session } } = await supabase.auth.getSession();
+    const sessionResult = await Promise.race([
+      supabase.auth.getSession(),
+      new Promise<null>((resolve) => window.setTimeout(() => resolve(null), SESSION_PROBE_TIMEOUT_MS)),
+    ]);
+    const session = sessionResult?.data?.session ?? null;
     try {
       if (!session) {
         clearSessionCookie();
@@ -91,7 +96,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   // Le SDK Supabase échange automatiquement le fragment #access_token au premier getSession().
   // Ce cas couvre les callbacks OAuth (Apple, Google) qui redirigent ici.
-  const { data: { session: oauthSession } } = await supabase.auth.getSession();
+  const oauthSessionResult = await Promise.race([
+    supabase.auth.getSession(),
+    new Promise<null>((resolve) => window.setTimeout(() => resolve(null), SESSION_PROBE_TIMEOUT_MS)),
+  ]);
+  const oauthSession = oauthSessionResult?.data?.session ?? null;
   if (oauthSession) {
     message.textContent = 'Connexion réussie. Redirection...';
     await redirectAfterAuth();

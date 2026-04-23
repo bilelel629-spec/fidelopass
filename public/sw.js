@@ -1,10 +1,25 @@
-const CACHE_NAME = 'fidelopass-v9';
+const CACHE_NAME = 'fidelopass-v10';
 const APP_SHELL = [
   '/app',
   '/app/scan',
+  '/app/install',
   '/favicon.png',
   '/manifest.json',
 ];
+
+const STATIC_ASSET_REGEX = /\.(?:js|mjs|css|png|jpg|jpeg|svg|webp|gif|ico|woff2?|ttf)$/i;
+
+function isDashboardLikePath(pathname) {
+  return (
+    pathname.startsWith('/dashboard')
+    || pathname.startsWith('/carte/')
+    || pathname.startsWith('/login')
+    || pathname.startsWith('/register')
+    || pathname.startsWith('/abonnement')
+    || pathname.startsWith('/onboarding')
+    || pathname.startsWith('/admin')
+  );
+}
 
 // ── Installation : mise en cache de l'app shell ──────────────────────────────
 self.addEventListener('install', (event) => {
@@ -24,26 +39,66 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// ── Fetch : network-first pour éviter de garder une vieille version après deploy ──
+// ── Fetch : évite le cache agressif des pages dynamiques, garde le cache pour assets ──
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
+
+  if (request.method !== 'GET') return;
+  if (url.origin !== self.location.origin) return;
 
   // Les appels API ne sont jamais mis en cache
   if (url.pathname.startsWith('/api/')) {
     return; // laisse passer sans interception
   }
 
+  if (request.mode === 'navigate') {
+    // Pour les pages dynamiques, toujours préférer le réseau (évite les pages obsolètes).
+    if (isDashboardLikePath(url.pathname)) {
+      event.respondWith(fetch(request));
+      return;
+    }
+
+    // Pour l'app scanner, fallback offline basique si réseau indisponible.
+    if (url.pathname.startsWith('/app')) {
+      event.respondWith(
+        fetch(request)
+          .then((response) => {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+            return response;
+          })
+          .catch(async () => {
+            const cached = await caches.match(request);
+            if (cached) return cached;
+            return caches.match('/app');
+          })
+      );
+      return;
+    }
+
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  if (!STATIC_ASSET_REGEX.test(url.pathname)) {
+    return;
+  }
+
   event.respondWith(
-    fetch(request).then((response) => {
-      if (request.method === 'GET' && url.origin === self.location.origin) {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-      }
-      return response;
-    }).catch(() =>
-      caches.match(request).then((cached) => cached ?? new Response('Offline', { status: 503 }))
-    )
+    caches.match(request).then((cached) => {
+      const networkPromise = fetch(request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => cached ?? new Response('Offline', { status: 503 }));
+
+      return cached ?? networkPromise;
+    }),
   );
 });
 

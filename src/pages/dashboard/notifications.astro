@@ -198,6 +198,34 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const birthdayMessage = document.getElementById('birthday-message') as HTMLTextAreaElement;
   let cachedPlan: string = 'starter';
 
+  function getStoredPointVenteId(): string | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const value = window.localStorage.getItem(ACTIVE_POINT_VENTE_STORAGE_KEY)?.trim() ?? '';
+      return value.length > 0 ? value : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function clearStoredPointVenteId() {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.removeItem(ACTIVE_POINT_VENTE_STORAGE_KEY);
+    } catch {
+      // best effort
+    }
+  }
+
+  async function pointAwareFetch(path: string, init?: RequestInit): Promise<Response> {
+    const url = withPointVente(path);
+    const response = await authFetch(url, init);
+    if (response.status !== 403 && response.status !== 404) return response;
+    if (!getStoredPointVenteId()) return response;
+    clearStoredPointVenteId();
+    return authFetch(path, init);
+  }
+
   function withPointVente(path: string): string {
     if (typeof window === 'undefined') return path;
     try {
@@ -255,7 +283,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   async function loadPlanFallback() {
     try {
-      const res = await authFetch(withPointVente('/api/dashboard/plan'));
+      const res = await pointAwareFetch('/api/dashboard/plan');
       const payload = await res.json().catch(() => null);
       if (!res.ok) return;
       cachedPlan = String(payload?.data?.plan ?? payload?.data?.raw_plan ?? 'starter');
@@ -267,8 +295,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   async function loadSummary() {
     try {
       const [summaryRes, historyRes] = await Promise.all([
-        authFetch(withPointVente('/api/notifications/summary')),
-        authFetch(withPointVente('/api/notifications?limit=50')),
+        pointAwareFetch('/api/notifications/summary'),
+        pointAwareFetch('/api/notifications?limit=50'),
       ]);
       const summaryPayload = await summaryRes.json().catch(() => null);
       const historyPayload = await historyRes.json().catch(() => null);
@@ -287,7 +315,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   async function loadHistory() {
     const container = document.getElementById('notif-history')!;
     try {
-      const res = await authFetch(withPointVente('/api/notifications?limit=20'));
+      const res = await pointAwareFetch('/api/notifications?limit=20');
       if (!res.ok) throw new Error();
       const { data } = await res.json();
 
@@ -324,7 +352,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     try {
       const titre = (document.getElementById('titre') as HTMLInputElement).value.trim();
       const message = messageInput.value.trim();
-      const res = await authFetch(withPointVente('/api/notifications'), {
+      const res = await pointAwareFetch('/api/notifications', {
         method: 'POST',
         body: JSON.stringify({ titre, message }),
       });
@@ -349,12 +377,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   async function loadReviewAutoSettings() {
     try {
-      const res = await authFetch(withPointVente('/api/notifications/review-reminder-settings'));
+      const res = await pointAwareFetch('/api/notifications/review-reminder-settings');
       const payload = await res.json().catch(() => null);
       if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage.');
 
       reviewAutoIsPro = Boolean(payload?.data?.is_pro) || isProPlan(payload?.data?.plan ?? payload?.data?.raw_plan);
-      setReviewPlanLabel(payload?.data?.plan);
+      setReviewPlanLabel(payload?.data?.plan ?? payload?.data?.raw_plan ?? cachedPlan);
       setReviewToggle(Boolean(payload?.data?.enabled));
 
       if (!reviewAutoIsPro) {
@@ -367,10 +395,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         reviewAutoToggle.classList.remove('opacity-40', 'cursor-not-allowed');
       }
     } catch {
-      setReviewPlanLabel('starter');
+      reviewAutoIsPro = isProPlan(cachedPlan);
+      setReviewPlanLabel(cachedPlan);
       setReviewToggle(false);
-      reviewAutoToggle.disabled = true;
-      reviewAutoLocked.classList.remove('hidden');
+      reviewAutoToggle.disabled = !reviewAutoIsPro;
+      reviewAutoLocked.classList.toggle('hidden', reviewAutoIsPro);
+      reviewAutoToggle.classList.toggle('opacity-40', !reviewAutoIsPro);
+      reviewAutoToggle.classList.toggle('cursor-not-allowed', !reviewAutoIsPro);
       reviewAutoStatus.textContent = 'Impossible de charger le statut pour le moment.';
     }
   }
@@ -383,7 +414,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     try {
       const nextValue = !reviewAutoEnabled;
-      const res = await authFetch(withPointVente('/api/notifications/review-reminder-settings'), {
+      const res = await pointAwareFetch('/api/notifications/review-reminder-settings', {
         method: 'PATCH',
         body: JSON.stringify({ enabled: nextValue }),
       });
@@ -402,12 +433,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   async function loadBirthdaySettings() {
     try {
-      const res = await authFetch(withPointVente('/api/notifications/birthday-settings'));
+      const res = await pointAwareFetch('/api/notifications/birthday-settings');
       const payload = await res.json().catch(() => null);
       if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage anniversaire.');
 
       birthdayIsPro = Boolean(payload?.data?.is_pro) || isProPlan(payload?.data?.plan ?? payload?.data?.raw_plan);
-      setBirthdayPlanLabel(payload?.data?.plan);
+      setBirthdayPlanLabel(payload?.data?.plan ?? payload?.data?.raw_plan ?? cachedPlan);
       setBirthdayToggle(Boolean(payload?.data?.enabled));
       birthdayRewardValue.value = String(payload?.data?.reward_value ?? 1);
       birthdayTitle.value = String(payload?.data?.push_title ?? '');
@@ -427,10 +458,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         setBirthdayFormDisabled(false);
       }
     } catch {
+      birthdayIsPro = isProPlan(cachedPlan);
       setBirthdayPlanLabel(cachedPlan);
       setBirthdayToggle(false);
-      birthdayLocked.classList.remove('hidden');
-      setBirthdayFormDisabled(true);
+      birthdayLocked.classList.toggle('hidden', birthdayIsPro);
+      setBirthdayFormDisabled(!birthdayIsPro);
       birthdayStatus.textContent = 'Impossible de charger le statut pour le moment.';
     }
   }
@@ -440,7 +472,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     if (!Number.isFinite(rewardValue) || rewardValue < 1 || rewardValue > 50) {
       throw new Error('Le bonus anniversaire doit être compris entre 1 et 50.');
     }
-    const res = await authFetch(withPointVente('/api/notifications/birthday-settings'), {
+    const res = await pointAwareFetch('/api/notifications/birthday-settings', {
       method: 'PATCH',
       body: JSON.stringify({
         enabled: nextEnabled,
@@ -488,6 +520,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         birthdayError.classList.remove('hidden');
       }
     });
+  });
+
+  window.addEventListener('fidelopass:point-vente-ready', () => {
+    void loadPlanFallback().then(() => Promise.all([
+      loadSummary(),
+      loadHistory(),
+      loadReviewAutoSettings(),
+      loadBirthdaySettings(),
+    ]));
   });
 
   setNotifTab('manual');

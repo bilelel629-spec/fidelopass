@@ -67,7 +67,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-3 rounded-sm bg-emerald-400"></span>Récompenses</span>
         </div>
       </div>
-      <div id="chart-container" class="flex h-56 items-end gap-2 pb-1">
+      <div id="chart-container" class="flex min-h-[12.5rem] items-end gap-2 pb-1">
         <p class="m-auto text-sm text-slate-400">Chargement...</p>
       </div>
     </div>
@@ -116,7 +116,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 </DashboardLayout>
 
 <script>
-  import { authFetch } from '../../lib/api';
+  import { ACTIVE_POINT_VENTE_STORAGE_KEY, authFetch } from '../../lib/api';
   import { supabase } from '../../lib/supabase';
   import { isProPlan, planLabel } from '../../lib/dashboard-config';
 
@@ -130,9 +130,35 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }[char] ?? char));
   }
 
+  function getStoredPointVenteId(): string | null {
+    try {
+      const value = window.localStorage.getItem(ACTIVE_POINT_VENTE_STORAGE_KEY)?.trim() ?? '';
+      return value.length > 0 ? value : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function clearStoredPointVenteId() {
+    try {
+      window.localStorage.removeItem(ACTIVE_POINT_VENTE_STORAGE_KEY);
+    } catch {
+      // best effort
+    }
+  }
+
+  async function pointAwareFetch(path: string, init?: RequestInit): Promise<Response> {
+    const response = await authFetch(path, init);
+    if (response.status !== 403 && response.status !== 404) return response;
+    const pointVenteId = getStoredPointVenteId();
+    if (!pointVenteId) return response;
+    clearStoredPointVenteId();
+    return authFetch(path, init);
+  }
+
   async function loadStats() {
     try {
-      const res = await authFetch('/api/dashboard/stats');
+      const res = await pointAwareFetch('/api/dashboard/stats');
       if (!res.ok) return;
       const data = await res.json();
       document.getElementById('stat-clients')!.textContent = String(data.totalClients ?? 0);
@@ -146,7 +172,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   async function loadChart() {
     const container = document.getElementById('chart-container')!;
     try {
-      const res = await authFetch('/api/dashboard/weekly-scans');
+      const res = await pointAwareFetch('/api/dashboard/weekly-scans');
       if (!res.ok) throw new Error();
       const { data } = await res.json();
 
@@ -156,7 +182,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       }
 
       const maxVal = Math.max(...data.map((d: { scans: number; recompenses: number }) => d.scans + d.recompenses), 1);
-      const chartHeight = 126;
+      const chartHeight = 148;
 
       container.innerHTML = data.map((d: { date: string; scans: number; recompenses: number }) => {
         const scansH = Math.round((d.scans / maxVal) * chartHeight);
@@ -164,7 +190,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         const label = new Date(d.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
         return `
           <div class="flex-1 flex flex-col items-center gap-2 min-w-0">
-            <div class="w-full max-w-[58px] flex flex-col-reverse items-center gap-0.5 rounded-xl bg-slate-100/70 p-1.5" style="height:${chartHeight + 14}px">
+            <div class="w-full max-w-[58px] flex flex-col-reverse items-center gap-0.5 rounded-xl bg-slate-100/70 p-1.5" style="height:${chartHeight + 16}px">
               <div class="w-full rounded-md bg-sky-500 transition-all" style="height:${scansH}px" title="${d.scans} scan(s)"></div>
               ${recH > 0 ? `<div class="w-full rounded-t-lg bg-emerald-400 transition-all" style="height:${recH}px" title="${d.recompenses} récompense(s)"></div>` : ''}
             </div>
@@ -179,7 +205,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   async function loadRecentTransactions() {
     try {
-      const res = await authFetch('/api/transactions?limit=5');
+      const res = await pointAwareFetch('/api/transactions?limit=5');
       if (!res.ok) return;
       const { data } = await res.json();
       const container = document.getElementById('recent-transactions')!;
@@ -212,7 +238,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     if (!rate || !chart) return;
 
     try {
-      const res = await authFetch('/api/dashboard/retention');
+      const res = await pointAwareFetch('/api/dashboard/retention');
       if (!res.ok) throw new Error();
       const payload = await res.json().catch(() => null);
       const summary = payload?.summary ?? {};
@@ -246,7 +272,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   async function resolveClientQrUrl(): Promise<string | null> {
-    const res = await authFetch('/api/cartes');
+    const res = await pointAwareFetch('/api/cartes/active');
     if (!res.ok) return null;
     const { data } = await res.json().catch(() => ({ data: null }));
     if (!data?.id) return null;
@@ -260,9 +286,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (qrUrl) {
         qrBtn.href = qrUrl;
         qrBtn.dataset.posterUrl = qrUrl;
+        qrBtn.classList.remove('opacity-60', 'pointer-events-none');
+        qrBtn.textContent = 'Afficher le QR client';
       } else {
         qrBtn.href = '/dashboard/carte';
-        qrBtn.removeAttribute('data-poster-url');
+        qrBtn.dataset.posterUrl = '';
+        qrBtn.textContent = 'Configurer la carte';
+        qrBtn.classList.remove('opacity-60', 'pointer-events-none');
       }
     } catch {
       // best effort
@@ -301,7 +331,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     if (!activeName || !usage) return;
 
     try {
-      const res = await authFetch('/api/commerces/points-vente');
+      const res = await pointAwareFetch('/api/commerces/points-vente');
       if (!res.ok) throw new Error();
       const payload = await res.json().catch(() => null);
       const points = Array.isArray(payload?.data) ? payload.data : [];
@@ -349,6 +379,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   document.getElementById('refresh-btn')!.addEventListener('click', refreshAll);
   document.getElementById('dashboard-client-qr-btn')?.addEventListener('click', handleClientQrClick);
+  window.addEventListener('fidelopass:point-vente-ready', () => {
+    void Promise.all([loadCardShortcuts(), loadStats(), loadChart(), loadRecentTransactions(), loadRetention(), loadPointVenteContext()]);
+  });
 
   const style = document.createElement('style');
   style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';

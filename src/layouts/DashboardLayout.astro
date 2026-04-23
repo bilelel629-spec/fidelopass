@@ -179,22 +179,6 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
 
     setSessionCookie(session.access_token);
 
-    const billing = await fetch(`${API}/api/billing/status`, {
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json',
-      },
-    }).then((r) => r.json()).catch(() => ({}));
-
-    if (!billing?.data?.has_access) {
-      window.location.replace('/abonnement/choix');
-      return;
-    }
-    if (!billing?.data?.onboarding_completed) {
-      window.location.replace('/onboarding');
-      return;
-    }
-
     maybeShowTour(session as SessionLike);
   }
 

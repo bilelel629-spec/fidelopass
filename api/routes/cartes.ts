@@ -120,7 +120,38 @@ cartesRoutes.get('/', authMiddleware, paidMiddleware, async (c) => {
     .select('*')
     .eq('commerce_id', commerce.id)
     .eq('point_vente_id', pointVente.id)
-    .single();
+    .eq('actif', true)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return c.json({ data: data ?? null });
+});
+
+/** GET /api/cartes/active — carte active du point de vente courant */
+cartesRoutes.get('/active', authMiddleware, paidMiddleware, async (c) => {
+  const userId = c.get('userId') as string;
+  const db = createServiceClient();
+  const requestedPointVenteId = readRequestedPointVenteId(c);
+
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, plan',
+  );
+
+  if (!commerce || !pointVente) return c.json({ data: null });
+
+  const { data } = await db
+    .from('cartes')
+    .select('id, nom, point_vente_id, updated_at, actif')
+    .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
+    .eq('actif', true)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   return c.json({ data: data ?? null });
 });

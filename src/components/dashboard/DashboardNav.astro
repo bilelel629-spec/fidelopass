@@ -130,6 +130,12 @@ const navItems = DASHBOARD_NAV_ITEMS;
   const pointVenteSelect = document.getElementById('dashboard-point-vente-select') as HTMLSelectElement | null;
   const pointVenteUsage = document.getElementById('dashboard-point-vente-usage');
 
+  function emitPointVenteReady(pointVenteId: string | null) {
+    window.dispatchEvent(new CustomEvent('fidelopass:point-vente-ready', {
+      detail: { pointVenteId: pointVenteId ?? null },
+    }));
+  }
+
   function setPlanBadge(planRaw: unknown) {
     const label = planLabel(planRaw);
     const classes = planBadgeClass(planRaw);
@@ -184,6 +190,7 @@ const navItems = DASHBOARD_NAV_ITEMS;
       pointVenteSelect.innerHTML = '<option value="">Ajoutez un point de vente</option>';
       if (pointVenteUsage) pointVenteUsage.textContent = '0 point de vente actif';
       setStoredPointVenteId(null);
+      emitPointVenteReady(null);
       return;
     }
 
@@ -194,6 +201,11 @@ const navItems = DASHBOARD_NAV_ITEMS;
     if (selectedId && points.some((point: { id: string }) => point.id === selectedId)) {
       pointVenteSelect.value = selectedId;
       setStoredPointVenteId(selectedId);
+      emitPointVenteReady(selectedId);
+    } else {
+      const fallbackPointId = pointVenteSelect.value || points[0]?.id || null;
+      setStoredPointVenteId(fallbackPointId);
+      emitPointVenteReady(fallbackPointId);
     }
 
     if (pointVenteUsage && usage) {

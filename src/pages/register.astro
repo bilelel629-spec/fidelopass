@@ -311,7 +311,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   // Init
   const { data: { session } } = await supabase.auth.getSession();
-  if (session) { await redirectAfterAuth(session, { redirectToPricingWhenNoAccess: false }); }
+  if (session) { await redirectAfterAuth(session, { redirectToPricingWhenNoAccess: true }); }
 
   const oauthErr = new URLSearchParams(window.location.search).get('error_description')
     ?? new URLSearchParams(window.location.hash.replace(/^#/, '')).get('error_description');

@@ -177,8 +177,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   const { data: { session } } = await supabase.auth.getSession();
   if (session) {
-    await redirectAfterAuth(session, { redirectToPricingWhenNoAccess: false });
+    await redirectAfterAuth(session, { redirectToPricingWhenNoAccess: true });
   }
+
+  supabase.auth.onAuthStateChange((event, s) => {
+    if (!s) return;
+    if (event === 'SIGNED_IN') {
+      void redirectAfterAuth(s, { redirectToPricingWhenNoAccess: true });
+    }
+  });
 
   async function startGoogleOAuth() {
     const { data, error } = await supabase.auth.signInWithOAuth({

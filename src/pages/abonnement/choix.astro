@@ -159,6 +159,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   const API = (import.meta.env.PUBLIC_API_URL || 'https://api.fidelopass.com').replace(/\/$/, '');
   const STORAGE_KEY = 'fidelopass.checkout.selection';
+  const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
+  const BILLING_CHECK_TIMEOUT_MS = Number(import.meta.env.PUBLIC_BILLING_CHECK_TIMEOUT_MS ?? 2200);
   const monthlyBtn = document.getElementById('toggle-monthly') as HTMLButtonElement;
   const annualBtn = document.getElementById('toggle-annual') as HTMLButtonElement;
   const annualPaymentMode = document.getElementById('annual-payment-mode') as HTMLDivElement;
@@ -170,6 +172,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   let activeSession: SessionLike | null = null;
   let currentMode: 'monthly' | 'annual' = 'annual';
   let annualPaymentType: 'subscription' | 'payment' = 'subscription';
+
+  function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
+    ]);
+  }
 
   function setMode(mode: 'monthly' | 'annual') {
     currentMode = mode;
@@ -229,18 +238,19 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   }
 
   async function requireSessionAndBilling() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const sessionResult = await withTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
+    const session = sessionResult?.data?.session ?? null;
     if (!session) {
       window.location.replace('/register');
       return null;
     }
 
-    const billing = await fetch(`${API}/api/billing/status`, {
+    const billing = await withTimeout(fetch(`${API}/api/billing/status`, {
       headers: {
         Authorization: `Bearer ${session.access_token}`,
         'Content-Type': 'application/json',
       },
-    }).then((r) => r.json()).catch(() => ({}));
+    }).then((r) => r.json()).catch(() => ({})), BILLING_CHECK_TIMEOUT_MS).catch(() => ({}));
 
     if (billing?.data?.has_access) {
       window.location.replace(billing?.data?.onboarding_completed ? '/dashboard' : '/onboarding');

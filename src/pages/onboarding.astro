@@ -78,9 +78,20 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   );
 
   const API = (import.meta.env.PUBLIC_API_URL || 'https://api.fidelopass.com').replace(/\/$/, '');
+  const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
+  const BILLING_CHECK_TIMEOUT_MS = Number(import.meta.env.PUBLIC_BILLING_CHECK_TIMEOUT_MS ?? 2200);
+  const API_FETCH_TIMEOUT_MS = Number(import.meta.env.PUBLIC_API_FETCH_TIMEOUT_MS ?? 3500);
+
+  function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
+    ]);
+  }
 
   async function getToken(): Promise<string> {
-    const { data: { session } } = await supabase.auth.getSession();
+    const sessionResult = await withTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
+    const session = sessionResult?.data?.session ?? null;
     if (!session) {
       window.location.replace('/login');
       return '';
@@ -88,16 +99,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     return session.access_token;
   }
 
-  async function api(path: string, opts: RequestInit = {}) {
+  async function api(path: string, opts: RequestInit = {}, timeoutMs = API_FETCH_TIMEOUT_MS) {
     const token = await getToken();
-    const response = await fetch(`${API}${path}`, {
+    const response = await withTimeout(fetch(`${API}${path}`, {
       ...opts,
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
         ...(opts.headers ?? {}),
       },
-    });
+    }), timeoutMs);
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       throw new Error(data.error ?? 'Erreur API. Réessayez dans quelques instants.');
@@ -116,7 +127,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   try {
-    const billing = await api('/api/billing/status');
+    const billing = await api('/api/billing/status', {}, BILLING_CHECK_TIMEOUT_MS);
     if (!billing?.data?.has_access) {
       window.location.replace('/abonnement/choix');
     } else if (billing?.data?.onboarding_completed) {

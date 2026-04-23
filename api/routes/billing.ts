@@ -10,5 +10,9 @@ billingRoutes.use('*', authMiddleware);
 billingRoutes.get('/status', async (c) => {
   const userId = c.get('userId') as string;
   const data = await getBillingStatusForUser(userId);
-  return c.json({ data });
+  const response = c.json({ data });
+  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  response.headers.set('Pragma', 'no-cache');
+  response.headers.set('Expires', '0');
+  return response;
 });

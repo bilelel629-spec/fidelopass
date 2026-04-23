@@ -754,7 +754,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             <div class="grid grid-cols-3 gap-2 rounded-xl border border-white/10 bg-black/12 px-3 py-2.5">
               <div>
                 <p id="preview-label-client" class="text-[0.62rem] uppercase tracking-[0.14em] opacity-60">Client</p>
-                <p id="preview-client-name" class="text-sm font-medium leading-tight">Bilel</p>
+                <p id="preview-client-name" class="text-sm font-medium leading-tight">—</p>
               </div>
               <div>
                 <p class="text-[0.62rem] uppercase tracking-[0.14em] opacity-60">Récompense</p>
@@ -798,7 +798,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             <div class="mb-3 grid grid-cols-3 gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
               <div>
                 <p id="g-label-client" class="text-[0.62rem] uppercase tracking-[0.14em] text-slate-500">Client</p>
-                <p id="g-client-name" class="text-slate-900 font-medium text-sm leading-tight">Bilel</p>
+                <p id="g-client-name" class="text-slate-900 font-medium text-sm leading-tight">—</p>
               </div>
               <div>
                 <p class="text-[0.62rem] uppercase tracking-[0.14em] text-slate-500">Récompense</p>
@@ -2128,7 +2128,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const pt=(document.querySelector('input[name="pattern_type"]:checked') as HTMLInputElement)?.value??'none';
     const rewardTiers = multiRewardsEnabled ? collectRewardTiers() : [];
     const rewardSummary=rewardTiers.length?rewardTiers.map(t=>`${t.seuil} ${getProgramUnit()} : ${t.recompense}`).join(' • '):recompense;
-    const previewClientName = 'Bilel';
     const previewTampons = Math.max(0, Math.min(total, Math.round(total * 0.5)));
     const previewPoints = Math.max(0, Math.round(ptsCible * 0.45));
     const previewRewardsCount = rewardTiers.length
@@ -2154,7 +2153,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     document.getElementById('preview-card-name')!.textContent=nom;
     document.getElementById('preview-recompense')!.textContent=rewardSummary;
     document.getElementById('preview-label-client')!.textContent=labelClient.toUpperCase();
-    document.getElementById('preview-client-name')!.textContent=previewClientName;
+    document.getElementById('preview-client-name')!.textContent='—';
     document.getElementById('preview-rewards-count')!.textContent=String(previewRewardsCount);
     document.getElementById('preview-type-label')!.textContent=type==='tampons'?'Tampons':'Points';
     document.getElementById('preview-branding')!.classList.toggle('hidden', !brandingEnabled);
@@ -2182,7 +2181,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     document.getElementById('g-card-name')!.textContent=nom;
     document.getElementById('g-recompense')!.textContent=rewardSummary;
     document.getElementById('g-label-client')!.textContent=labelClient.toUpperCase();
-    document.getElementById('g-client-name')!.textContent=previewClientName;
+    document.getElementById('g-client-name')!.textContent='—';
     document.getElementById('g-rewards-count')!.textContent=String(previewRewardsCount);
     document.getElementById('g-type-lbl')!.textContent=type==='tampons'?'Tampons':'Points';
     document.getElementById('g-branding')!.classList.toggle('hidden', !brandingEnabled);

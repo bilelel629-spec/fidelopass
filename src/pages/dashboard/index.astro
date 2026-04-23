@@ -31,7 +31,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
       <div class="flex flex-wrap gap-2">
         <a href="/app/scan" class="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-sky-700">Scanner en caisse</a>
-        <a id="dashboard-client-qr-btn" href="#" class="rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-50">Afficher le QR client</a>
+        <a id="dashboard-client-qr-btn" href="/dashboard/qr-client" class="rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-50">Afficher le QR client</a>
         <a href="/dashboard/notifications" class="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50">Envoyer une notification</a>
       </div>
     </div>
@@ -271,60 +271,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   }
 
-  async function resolveClientQrUrl(): Promise<string | null> {
-    const res = await pointAwareFetch('/api/cartes/active');
-    if (!res.ok) return null;
-    const { data } = await res.json().catch(() => ({ data: null }));
-    if (!data?.id) return null;
-    return `/poster/${data.id}?template=signature`;
-  }
-
-  async function loadCardShortcuts() {
-    try {
-      const qrUrl = await resolveClientQrUrl();
-      const qrBtn = document.getElementById('dashboard-client-qr-btn') as HTMLAnchorElement;
-      if (qrUrl) {
-        qrBtn.href = qrUrl;
-        qrBtn.dataset.posterUrl = qrUrl;
-        qrBtn.classList.remove('opacity-60', 'pointer-events-none');
-        qrBtn.textContent = 'Afficher le QR client';
-      } else {
-        qrBtn.href = '/dashboard/carte';
-        qrBtn.dataset.posterUrl = '';
-        qrBtn.textContent = 'Configurer la carte';
-        qrBtn.classList.remove('opacity-60', 'pointer-events-none');
-      }
-    } catch {
-      // best effort
-    }
-  }
-
-  async function handleClientQrClick(event: MouseEvent) {
-    event.preventDefault();
-    const qrBtn = document.getElementById('dashboard-client-qr-btn') as HTMLAnchorElement | null;
-    if (!qrBtn) return;
-
-    const originalText = qrBtn.textContent;
-    qrBtn.textContent = 'Chargement...';
-    qrBtn.classList.add('pointer-events-none', 'opacity-70');
-    try {
-      const qrUrl = await resolveClientQrUrl();
-      if (qrUrl) {
-        qrBtn.href = qrUrl;
-        window.location.href = qrUrl;
-        return;
-      }
-      qrBtn.href = '/dashboard/carte';
-      window.location.href = '/dashboard/carte';
-    } catch {
-      qrBtn.href = '/dashboard/carte';
-      window.location.href = '/dashboard/carte';
-    } finally {
-      qrBtn.textContent = originalText;
-      qrBtn.classList.remove('pointer-events-none', 'opacity-70');
-    }
-  }
-
   async function loadPointVenteContext() {
     const activeName = document.getElementById('active-point-name');
     const usage = document.getElementById('points-vente-usage');
@@ -370,7 +316,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       loadChart(),
       loadRecentTransactions(),
       loadRetention(),
-      loadCardShortcuts(),
       loadPointVenteContext(),
     ]);
     icon.style.animation = '';
@@ -378,9 +323,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   document.getElementById('refresh-btn')!.addEventListener('click', refreshAll);
-  document.getElementById('dashboard-client-qr-btn')?.addEventListener('click', handleClientQrClick);
   window.addEventListener('fidelopass:point-vente-ready', () => {
-    void Promise.all([loadCardShortcuts(), loadStats(), loadChart(), loadRecentTransactions(), loadRetention(), loadPointVenteContext()]);
+    void Promise.all([loadStats(), loadChart(), loadRecentTransactions(), loadRetention(), loadPointVenteContext()]);
   });
 
   const style = document.createElement('style');
@@ -391,7 +335,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   loadChart();
   loadRecentTransactions();
   loadRetention();
-  loadCardShortcuts();
   loadPointVenteContext();
   loadAdminShortcut();
 </script>

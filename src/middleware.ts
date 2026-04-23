@@ -53,13 +53,17 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   try {
+    const timeoutMs = Number(import.meta.env.BILLING_GUARD_TIMEOUT_MS ?? process.env.BILLING_GUARD_TIMEOUT_MS ?? 1800);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     const billingResponse = await fetch(`${apiBase}/api/billing/status`, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       cache: 'no-store',
-    });
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeoutId));
 
     if (billingResponse.status === 401) {
       return withSecurityHeaders(redirectWithCookieClear(new URL('/login', context.url), context.url));

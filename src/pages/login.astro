@@ -116,6 +116,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   const appleLoginBtn = document.getElementById('apple-login-btn') as HTMLButtonElement;
   const forgotBtn = document.getElementById('forgot-btn') as HTMLButtonElement;
   let statusMessageEl = document.getElementById('auth-progress') as HTMLDivElement | null;
+  let redirectInFlight = false;
+  const BILLING_CHECK_TIMEOUT_MS = Number(import.meta.env.PUBLIC_BILLING_CHECK_TIMEOUT_MS ?? 2200);
 
   function apiUrl(path: string) {
     const API = (import.meta.env.PUBLIC_API_URL ?? '').trim();
@@ -155,60 +157,67 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     sessionFromFlow: { access_token: string } | null = null,
     options: { redirectToPricingWhenNoAccess?: boolean } = {},
   ) {
+    if (redirectInFlight) return;
+    redirectInFlight = true;
+
     const { redirectToPricingWhenNoAccess = true } = options;
-    const activeSession = sessionFromFlow?.access_token ? sessionFromFlow : await getValidSession();
+    try {
+      const activeSession = sessionFromFlow?.access_token ? sessionFromFlow : await getValidSession();
 
-    if (!activeSession?.access_token) {
-      clearSessionCookie();
-      await supabase.auth.signOut().catch(() => undefined);
-      errorMsg.textContent = 'Votre session a expiré. Merci de vous reconnecter.';
-      errorMsg.classList.remove('hidden');
-      hideProgress();
-      return;
-    }
-
-    setSessionCookie(activeSession.access_token);
-    showProgress('Vérification de votre abonnement...');
-
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 3500);
-
-    const billingResponse = await fetch(apiUrl('/api/billing/status'), {
-      headers: { Authorization: `Bearer ${activeSession.access_token}`, 'Content-Type': 'application/json' },
-      signal: controller.signal,
-    }).catch(() => null).finally(() => window.clearTimeout(timeoutId));
-
-    if (!billingResponse) {
-      errorMsg.textContent = 'Impossible de vérifier votre abonnement pour le moment.';
-      errorMsg.classList.remove('hidden');
-      hideProgress();
-      return;
-    }
-
-    const billing = await billingResponse.json().catch(() => ({}));
-    if (!billingResponse.ok) {
-      if (billingResponse.status === 401) {
+      if (!activeSession?.access_token) {
         clearSessionCookie();
         await supabase.auth.signOut().catch(() => undefined);
-        errorMsg.textContent = 'Session invalide ou expirée. Merci de vous reconnecter.';
-      } else {
-        errorMsg.textContent = billing?.error ?? 'Erreur lors de la vérification de votre abonnement.';
+        errorMsg.textContent = 'Votre session a expiré. Merci de vous reconnecter.';
+        errorMsg.classList.remove('hidden');
+        hideProgress();
+        return;
       }
-      errorMsg.classList.remove('hidden');
-      hideProgress();
-      return;
-    }
 
-    if (!billing?.data?.has_access) {
-      if (redirectToPricingWhenNoAccess) {
-        showProgress('Redirection vers le choix de votre abonnement...');
-        window.location.href = '/abonnement/choix';
+      setSessionCookie(activeSession.access_token);
+      showProgress('Vérification de votre abonnement...');
+
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), BILLING_CHECK_TIMEOUT_MS);
+
+      const billingResponse = await fetch(apiUrl('/api/billing/status'), {
+        headers: { Authorization: `Bearer ${activeSession.access_token}`, 'Content-Type': 'application/json' },
+        signal: controller.signal,
+      }).catch(() => null).finally(() => window.clearTimeout(timeoutId));
+
+      if (!billingResponse) {
+        errorMsg.textContent = 'Impossible de vérifier votre abonnement pour le moment.';
+        errorMsg.classList.remove('hidden');
+        hideProgress();
+        return;
       }
-      return;
-    }
 
-    showProgress('Connexion validée, ouverture de votre espace...');
-    window.location.href = billing?.data?.onboarding_completed ? '/dashboard' : '/onboarding';
+      const billing = await billingResponse.json().catch(() => ({}));
+      if (!billingResponse.ok) {
+        if (billingResponse.status === 401) {
+          clearSessionCookie();
+          await supabase.auth.signOut().catch(() => undefined);
+          errorMsg.textContent = 'Session invalide ou expirée. Merci de vous reconnecter.';
+        } else {
+          errorMsg.textContent = billing?.error ?? 'Erreur lors de la vérification de votre abonnement.';
+        }
+        errorMsg.classList.remove('hidden');
+        hideProgress();
+        return;
+      }
+
+      if (!billing?.data?.has_access) {
+        if (redirectToPricingWhenNoAccess) {
+          showProgress('Redirection vers le choix de votre abonnement...');
+          window.location.href = '/abonnement/choix';
+        }
+        return;
+      }
+
+      showProgress('Connexion validée, ouverture de votre espace...');
+      window.location.href = billing?.data?.onboarding_completed ? '/dashboard' : '/onboarding';
+    } finally {
+      redirectInFlight = false;
+    }
   }
 
   const { data: { session } } = await supabase.auth.getSession();

@@ -12,6 +12,8 @@ type RateLimitEntry = {
 };
 
 const entries = new Map<string, RateLimitEntry>();
+const MAX_ENTRIES = Number(process.env.RATE_LIMIT_MAX_ENTRIES ?? 50_000);
+let requestsSinceLastPrune = 0;
 
 function getClientIp(c: Context) {
   const forwardedFor = c.req.header('x-forwarded-for');
@@ -25,6 +27,30 @@ function setRateHeaders(c: Context, limit: number, remaining: number, resetAt: n
   c.header('X-RateLimit-Reset', String(Math.ceil(resetAt / 1000)));
 }
 
+function pruneExpiredEntries(now: number) {
+  for (const [key, value] of entries.entries()) {
+    if (value.resetAt <= now) entries.delete(key);
+  }
+}
+
+function enforceMaxEntries() {
+  if (entries.size <= MAX_ENTRIES) return;
+  const targetSize = Math.floor(MAX_ENTRIES * 0.95);
+  const keys = entries.keys();
+  while (entries.size > targetSize) {
+    const next = keys.next();
+    if (next.done) break;
+    entries.delete(next.value);
+  }
+}
+
+function maybePrune(now: number) {
+  requestsSinceLastPrune += 1;
+  if (requestsSinceLastPrune % 100 !== 0 && entries.size <= MAX_ENTRIES) return;
+  pruneExpiredEntries(now);
+  enforceMaxEntries();
+}
+
 export function createRateLimitMiddleware(options: RateLimitOptions) {
   const { keyPrefix, limit, windowMs } = options;
 
@@ -35,6 +61,7 @@ export function createRateLimitMiddleware(options: RateLimitOptions) {
     }
 
     const now = Date.now();
+    maybePrune(now);
     const key = `${keyPrefix}:${getClientIp(c)}`;
     const current = entries.get(key);
 

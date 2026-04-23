@@ -191,6 +191,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   const progress1 = document.getElementById('progress-1') as HTMLDivElement;
   const progress2 = document.getElementById('progress-2') as HTMLDivElement;
   let statusMessageEl = document.getElementById('auth-progress') as HTMLDivElement | null;
+  let redirectInFlight = false;
+  const BILLING_CHECK_TIMEOUT_MS = Number(import.meta.env.PUBLIC_BILLING_CHECK_TIMEOUT_MS ?? 2200);
 
   const apiUrl = (path: string) => `${API}${path}`;
   const setProgress = (step: 1 | 2) => {
@@ -292,56 +294,62 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     sessionFromFlow: { access_token: string } | null = null,
     options: { redirectToPricingWhenNoAccess?: boolean } = {},
   ) {
-    const { redirectToPricingWhenNoAccess = true } = options;
-    const activeSession = sessionFromFlow?.access_token ? sessionFromFlow : await getValidSession();
-    if (!activeSession?.access_token) {
-      clearSessionCookie();
-      await supabase.auth.signOut().catch(() => undefined);
-      window.location.href = '/login';
-      return;
-    }
-
-    setSessionCookie(activeSession.access_token);
-    showProgress('Vérification de votre abonnement...');
-
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 3500);
-    const billingResponse = await fetch(apiUrl('/api/billing/status'), {
-      headers: { Authorization: `Bearer ${activeSession.access_token}`, 'Content-Type': 'application/json' },
-      signal: controller.signal,
-    }).catch(() => null).finally(() => window.clearTimeout(timeoutId));
-
-    if (!billingResponse) {
-      setStep('method');
-      show(methodErrorMsg, 'Impossible de vérifier votre abonnement pour le moment.');
-      hideProgress();
-      return;
-    }
-
-    const billing = await billingResponse.json().catch(() => ({}));
-    if (!billingResponse.ok) {
-      if (billingResponse.status === 401) {
+    if (redirectInFlight) return;
+    redirectInFlight = true;
+    try {
+      const { redirectToPricingWhenNoAccess = true } = options;
+      const activeSession = sessionFromFlow?.access_token ? sessionFromFlow : await getValidSession();
+      if (!activeSession?.access_token) {
         clearSessionCookie();
         await supabase.auth.signOut().catch(() => undefined);
         window.location.href = '/login';
         return;
       }
-      setStep('method');
-      show(methodErrorMsg, billing?.error ?? 'Erreur lors de la vérification de votre abonnement.');
-      hideProgress();
-      return;
-    }
 
-    if (!billing?.data?.has_access) {
-      if (redirectToPricingWhenNoAccess) {
-        showProgress('Redirection vers le choix de votre abonnement...');
-        window.location.href = '/abonnement/choix';
+      setSessionCookie(activeSession.access_token);
+      showProgress('Vérification de votre abonnement...');
+
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), BILLING_CHECK_TIMEOUT_MS);
+      const billingResponse = await fetch(apiUrl('/api/billing/status'), {
+        headers: { Authorization: `Bearer ${activeSession.access_token}`, 'Content-Type': 'application/json' },
+        signal: controller.signal,
+      }).catch(() => null).finally(() => window.clearTimeout(timeoutId));
+
+      if (!billingResponse) {
+        setStep('method');
+        show(methodErrorMsg, 'Impossible de vérifier votre abonnement pour le moment.');
+        hideProgress();
+        return;
       }
-      return;
-    }
 
-    showProgress('Compte prêt, ouverture de votre espace...');
-    window.location.href = billing?.data?.onboarding_completed ? '/dashboard' : '/onboarding';
+      const billing = await billingResponse.json().catch(() => ({}));
+      if (!billingResponse.ok) {
+        if (billingResponse.status === 401) {
+          clearSessionCookie();
+          await supabase.auth.signOut().catch(() => undefined);
+          window.location.href = '/login';
+          return;
+        }
+        setStep('method');
+        show(methodErrorMsg, billing?.error ?? 'Erreur lors de la vérification de votre abonnement.');
+        hideProgress();
+        return;
+      }
+
+      if (!billing?.data?.has_access) {
+        if (redirectToPricingWhenNoAccess) {
+          showProgress('Redirection vers le choix de votre abonnement...');
+          window.location.href = '/abonnement/choix';
+        }
+        return;
+      }
+
+      showProgress('Compte prêt, ouverture de votre espace...');
+      window.location.href = billing?.data?.onboarding_completed ? '/dashboard' : '/onboarding';
+    } finally {
+      redirectInFlight = false;
+    }
   }
 
   // Init

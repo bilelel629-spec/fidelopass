@@ -20,15 +20,63 @@ import { smsRoutes } from './routes/sms';
 import { cronRoutes } from './routes/cron';
 import { billingRoutes } from './routes/billing';
 import { scannersRoutes } from './routes/scanners';
+import { createRateLimitMiddleware } from './middleware/rate-limit';
 
 const app = new Hono();
 
+const DEFAULT_ALLOWED_ORIGINS = [
+  'https://fidelopass.com',
+  'https://www.fidelopass.com',
+  'http://localhost:3000',
+  'http://localhost:4321',
+  'http://localhost:5173',
+];
+
+const allowedOrigins = Array.from(
+  new Set(
+    (process.env.CORS_ALLOWED_ORIGINS ?? '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .concat(DEFAULT_ALLOWED_ORIGINS),
+  ),
+);
+
+const globalRateLimit = createRateLimitMiddleware({
+  keyPrefix: 'global',
+  limit: Number(process.env.RATE_LIMIT_GLOBAL ?? 240),
+  windowMs: Number(process.env.RATE_LIMIT_GLOBAL_WINDOW_MS ?? 60_000),
+});
+
+const authRateLimit = createRateLimitMiddleware({
+  keyPrefix: 'auth',
+  limit: Number(process.env.RATE_LIMIT_AUTH ?? 20),
+  windowMs: Number(process.env.RATE_LIMIT_AUTH_WINDOW_MS ?? 300_000),
+});
+
 app.use('*', logger());
+app.use('*', async (c, next) => {
+  c.header('X-Content-Type-Options', 'nosniff');
+  c.header('X-Frame-Options', 'DENY');
+  c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+  c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  if (c.req.url.startsWith('https://')) {
+    c.header('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+  }
+  await next();
+});
 app.use('*', cors({
-  origin: '*',
+  origin: (origin) => {
+    if (!origin) return origin;
+    if (allowedOrigins.includes(origin)) return origin;
+    return '';
+  },
   allowHeaders: ['Content-Type', 'Authorization', 'X-Point-Vente-Id'],
   allowMethods: ['GET', 'HEAD', 'PUT', 'POST', 'DELETE', 'PATCH', 'OPTIONS'],
+  credentials: true,
 }));
+app.use('/api/*', globalRateLimit);
+app.use('/api/auth/*', authRateLimit);
 
 app.route('/api/auth', authRoutes);
 app.route('/api/commerces', commercesRoutes);

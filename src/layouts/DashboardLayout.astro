@@ -41,6 +41,7 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
 
 <script>
   import { createClient } from '@supabase/supabase-js';
+  import { clearSessionCookie, setSessionCookie } from '../lib/session-cookie';
 
   const supabase = createClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
@@ -171,9 +172,12 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
   async function initDashboardGuard() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
+      clearSessionCookie();
       window.location.replace('/login');
       return;
     }
+
+    setSessionCookie(session.access_token);
 
     const billing = await fetch(`${API}/api/billing/status`, {
       headers: {

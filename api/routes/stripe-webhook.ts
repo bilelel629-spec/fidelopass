@@ -86,11 +86,95 @@ async function getCommerceIdFromMetadata(metadata: Stripe.Metadata | null): Prom
 async function getCommerceIdFromEmail(email: string | null): Promise<string | null> {
   if (!email) return null;
   const db = createServiceClient();
-  const { data: { users } } = await db.auth.admin.listUsers();
-  const user = users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
-  if (!user) return null;
+  let page = 1;
+  let user: { id: string; email?: string | null } | null = null;
+
+  while (true) {
+    const { data, error } = await db.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) break;
+    user = data.users.find((u) => u.email?.toLowerCase() === email.toLowerCase()) ?? null;
+    if (user) break;
+    if (data.users.length < 1000) break;
+    page += 1;
+  }
+
+  if (!user?.id) return null;
   const { data: commerce } = await db.from('commerces').select('id').eq('user_id', user.id).single();
   return commerce?.id ?? null;
+}
+
+async function claimWebhookEvent(db: ReturnType<typeof createServiceClient>, event: Stripe.Event) {
+  const { data: existing } = await db
+    .from('stripe_webhook_events')
+    .select('event_id, status')
+    .eq('event_id', event.id)
+    .maybeSingle();
+
+  if (existing?.status === 'processed') return { shouldSkip: true };
+
+  if (existing) {
+    await db
+      .from('stripe_webhook_events')
+      .update({
+        event_type: event.type,
+        status: 'processing',
+        last_error: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('event_id', event.id);
+    return { shouldSkip: false };
+  }
+
+  const { error: insertError } = await db.from('stripe_webhook_events').insert({
+    event_id: event.id,
+    event_type: event.type,
+    status: 'processing',
+  });
+
+  if (!insertError) return { shouldSkip: false };
+
+  if (insertError.code === '23505') {
+    const { data: duplicate } = await db
+      .from('stripe_webhook_events')
+      .select('status')
+      .eq('event_id', event.id)
+      .maybeSingle();
+    return { shouldSkip: duplicate?.status === 'processed' };
+  }
+
+  if (insertError.code === '42P01') {
+    console.warn('[stripe-webhook] Table stripe_webhook_events absente, idempotence désactivée');
+    return { shouldSkip: false };
+  }
+
+  throw insertError;
+}
+
+async function markWebhookEventProcessed(db: ReturnType<typeof createServiceClient>, event: Stripe.Event) {
+  const { error } = await db
+    .from('stripe_webhook_events')
+    .update({
+      status: 'processed',
+      processed_at: new Date().toISOString(),
+      last_error: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('event_id', event.id);
+
+  if (error && error.code !== '42P01') throw error;
+}
+
+async function markWebhookEventFailed(db: ReturnType<typeof createServiceClient>, event: Stripe.Event, error: string) {
+  const { error: updateError } = await db
+    .from('stripe_webhook_events')
+    .update({
+      status: 'failed',
+      last_error: error.slice(0, 500),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('event_id', event.id);
+
+  if (updateError && updateError.code !== '42P01') throw updateError;
 }
 
 /** POST /api/stripe-webhook */
@@ -121,6 +205,12 @@ stripeWebhookRoutes.post('/', async (c) => {
   console.log('[stripe-webhook] Event :', event.type);
 
   try {
+    const claim = await claimWebhookEvent(db, event);
+    if (claim.shouldSkip) {
+      console.log('[stripe-webhook] Event déjà traité, ignoré :', event.id);
+      return c.json({ received: true, duplicate: true });
+    }
+
     switch (event.type) {
 
       case 'checkout.session.completed': {
@@ -289,8 +379,12 @@ stripeWebhookRoutes.post('/', async (c) => {
       default:
         console.log('[stripe-webhook] Event ignoré :', event.type);
     }
+
+    await markWebhookEventProcessed(db, event);
   } catch (err) {
-    console.error('[stripe-webhook] Erreur traitement :', (err as Error).message);
+    const message = (err as Error).message;
+    await markWebhookEventFailed(db, event, message).catch(() => undefined);
+    console.error('[stripe-webhook] Erreur traitement :', message);
     return c.json({ error: 'Erreur interne' }, 500);
   }
 

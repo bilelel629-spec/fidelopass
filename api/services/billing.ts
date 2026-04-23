@@ -23,7 +23,6 @@ export type BillingStatusPayload = {
 };
 
 const ACTIVE_BILLING_STATUSES = new Set(['active', 'trialing']);
-const PAID_PLANS = new Set(['starter', 'pro', 'sur-mesure']);
 
 function normalizeBillingStatus(status: string | null | undefined) {
   return (status ?? 'unpaid').toLowerCase();
@@ -54,8 +53,7 @@ export function buildBillingStatusPayload(record: BillingRecord | null): Billing
 
   const billingStatus = normalizeBillingStatus(record.billing_status);
   const trialActive = isTrialActive(record.trial_ends_at);
-  const paidByFallback = Boolean(record.stripe_subscription_id) && PAID_PLANS.has((record.plan ?? '').toLowerCase());
-  const hasAccess = ACTIVE_BILLING_STATUSES.has(billingStatus) || trialActive || paidByFallback;
+  const hasAccess = ACTIVE_BILLING_STATUSES.has(billingStatus) || trialActive;
 
   return {
     has_commerce: true,

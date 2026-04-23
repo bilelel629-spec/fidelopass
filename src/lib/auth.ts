@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { clearSessionCookie, setSessionCookie } from './session-cookie';
 
 export async function getSession() {
   const { data: { session }, error } = await supabase.auth.getSession();
@@ -13,14 +14,21 @@ export async function getUser() {
 }
 
 export async function signIn(email: string, password: string) {
-  return supabase.auth.signInWithPassword({ email, password });
+  const result = await supabase.auth.signInWithPassword({ email, password });
+  const token = result.data.session?.access_token;
+  if (token) setSessionCookie(token);
+  return result;
 }
 
 export async function signUp(email: string, password: string) {
-  return supabase.auth.signUp({ email, password });
+  const result = await supabase.auth.signUp({ email, password });
+  const token = result.data.session?.access_token;
+  if (token) setSessionCookie(token);
+  return result;
 }
 
 export async function signOut() {
+  clearSessionCookie();
   return supabase.auth.signOut();
 }
 

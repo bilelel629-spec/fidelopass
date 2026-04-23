@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
+import { deleteCookie, setCookie } from 'hono/cookie';
 
 export const authRoutes = new Hono();
 
@@ -145,6 +146,17 @@ authRoutes.post('/login', async (c) => {
 
   if (error) return c.json({ error: error.message ?? 'Email ou mot de passe incorrect' }, 401);
 
+  const token = data.session?.access_token;
+  if (token) {
+    setCookie(c, 'fp_session', token, {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7,
+      sameSite: 'Lax',
+      secure: c.req.url.startsWith('https://'),
+      httpOnly: false,
+    });
+  }
+
   return c.json({ session: data.session, user: data.user });
 });
 
@@ -167,6 +179,7 @@ authRoutes.post('/register', async (c) => {
 });
 
 authRoutes.post('/logout', async (c) => {
+  deleteCookie(c, 'fp_session', { path: '/' });
   await supabase.auth.signOut();
   return c.json({ ok: true });
 });

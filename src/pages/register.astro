@@ -154,6 +154,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 <script>
   import { createClient } from '@supabase/supabase-js';
+  import { clearSessionCookie, setSessionCookie } from '../lib/session-cookie';
 
   type PendingRegistration = { email: string; password: string };
   type RegistrationResponse = { message?: string; requires_email_verification?: boolean };
@@ -189,6 +190,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   const codeInput = document.getElementById('verification-code') as HTMLInputElement;
   const progress1 = document.getElementById('progress-1') as HTMLDivElement;
   const progress2 = document.getElementById('progress-2') as HTMLDivElement;
+  let statusMessageEl = document.getElementById('auth-progress') as HTMLDivElement | null;
 
   const apiUrl = (path: string) => `${API}${path}`;
   const setProgress = (step: 1 | 2) => {
@@ -201,6 +203,26 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   const hideAll = () => [methodErrorMsg, errorMsg, verifyErrorMsg, verifySuccessMsg].forEach((el) => el.classList.add('hidden'));
   const show = (el: HTMLDivElement, msg: string) => { el.textContent = msg; el.classList.remove('hidden'); };
   const normalize = (s: string) => s.trim().toLowerCase();
+
+  function ensureStatusMessageEl() {
+    if (statusMessageEl) return statusMessageEl;
+    statusMessageEl = document.createElement('div');
+    statusMessageEl.id = 'auth-progress';
+    statusMessageEl.className = 'hidden text-sky-700 text-sm bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 mt-4';
+    methodStep.appendChild(statusMessageEl);
+    return statusMessageEl;
+  }
+
+  function showProgress(message: string) {
+    const el = ensureStatusMessageEl();
+    el.textContent = message;
+    el.classList.remove('hidden');
+  }
+
+  function hideProgress() {
+    const el = ensureStatusMessageEl();
+    el.classList.add('hidden');
+  }
 
   const getError = (err: unknown, fallback: string, context: 'register' | 'verify' | 'oauth' = 'register') => {
     if (!(err instanceof Error)) return fallback;
@@ -225,6 +247,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   const setStep = (step: 'method' | 'email' | 'verify', email?: string) => {
     hideAll();
+    hideProgress();
     methodStep.classList.toggle('hidden', step !== 'method');
     emailStep.classList.toggle('hidden', step !== 'email');
     verifyStep.classList.toggle('hidden', step !== 'verify');
@@ -272,40 +295,52 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     const { redirectToPricingWhenNoAccess = true } = options;
     const activeSession = sessionFromFlow?.access_token ? sessionFromFlow : await getValidSession();
     if (!activeSession?.access_token) {
+      clearSessionCookie();
       await supabase.auth.signOut().catch(() => undefined);
       window.location.href = '/login';
       return;
     }
 
+    setSessionCookie(activeSession.access_token);
+    showProgress('Vérification de votre abonnement...');
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 7000);
     const billingResponse = await fetch(apiUrl('/api/billing/status'), {
       headers: { Authorization: `Bearer ${activeSession.access_token}`, 'Content-Type': 'application/json' },
-    }).catch(() => null);
+      signal: controller.signal,
+    }).catch(() => null).finally(() => window.clearTimeout(timeoutId));
 
     if (!billingResponse) {
       setStep('method');
       show(methodErrorMsg, 'Impossible de vérifier votre abonnement pour le moment.');
+      hideProgress();
       return;
     }
 
     const billing = await billingResponse.json().catch(() => ({}));
     if (!billingResponse.ok) {
       if (billingResponse.status === 401) {
+        clearSessionCookie();
         await supabase.auth.signOut().catch(() => undefined);
         window.location.href = '/login';
         return;
       }
       setStep('method');
       show(methodErrorMsg, billing?.error ?? 'Erreur lors de la vérification de votre abonnement.');
+      hideProgress();
       return;
     }
 
     if (!billing?.data?.has_access) {
       if (redirectToPricingWhenNoAccess) {
+        showProgress('Redirection vers le choix de votre abonnement...');
         window.location.href = '/abonnement/choix';
       }
       return;
     }
 
+    showProgress('Compte prêt, ouverture de votre espace...');
     window.location.href = billing?.data?.onboarding_completed ? '/dashboard' : '/onboarding';
   }
 
@@ -318,9 +353,13 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   if (oauthErr) { setStep('method'); show(methodErrorMsg, getError(new Error(oauthErr), oauthErr)); }
 
   supabase.auth.onAuthStateChange((event, s) => {
-    if (!s) return;
+    if (!s) {
+      clearSessionCookie();
+      return;
+    }
     if (event === 'SIGNED_IN') {
       clearPending();
+      setSessionCookie(s.access_token);
       void redirectAfterAuth(s, { redirectToPricingWhenNoAccess: true });
     }
   });
@@ -334,6 +373,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   chooseAppleBtn.addEventListener('click', async () => {
     hideAll();
+    hideProgress();
     chooseAppleBtn.disabled = true;
     chooseAppleBtn.textContent = 'Redirection vers Apple...';
     try {
@@ -354,6 +394,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   chooseGoogleBtn.addEventListener('click', async () => {
     hideAll();
+    hideProgress();
     chooseGoogleBtn.disabled = true;
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -372,7 +413,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   emailBackBtn.addEventListener('click', () => setStep('method'));
 
   registerForm.addEventListener('submit', async (e) => {
-    e.preventDefault(); hideAll();
+    e.preventDefault(); hideAll(); hideProgress();
     const email = normalize((document.getElementById('email') as HTMLInputElement).value);
     const password = (document.getElementById('password') as HTMLInputElement).value;
     const confirm = (document.getElementById('confirm') as HTMLInputElement).value;
@@ -382,6 +423,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       const data = await requestCode(email, password, 'request');
       if (data.requires_email_verification === false) {
         const { data: signInData } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInData.session?.access_token) {
+          setSessionCookie(signInData.session.access_token);
+        }
         clearPending(); await redirectAfterAuth(signInData.session ?? null); return;
       }
       savePending({ email, password });
@@ -392,7 +436,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   });
 
   verifyForm.addEventListener('submit', async (e) => {
-    e.preventDefault(); hideAll();
+    e.preventDefault(); hideAll(); hideProgress();
     const pending = loadPending();
     if (!pending) { setStep('method'); show(methodErrorMsg, 'Session expirée. Recommencez.'); return; }
     const token = codeInput.value.replace(/\D+/g, '').trim();
@@ -407,7 +451,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   });
 
   resendBtn.addEventListener('click', async () => {
-    hideAll(); const pending = loadPending();
+    hideAll(); hideProgress(); const pending = loadPending();
     if (!pending) { setStep('method'); return; }
     resendBtn.disabled = true; resendBtn.textContent = 'Renvoi...';
     try {
@@ -419,6 +463,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   changeEmailBtn.addEventListener('click', async () => {
     clearPending(); codeInput.value = ''; setStep('email');
+    clearSessionCookie();
     await supabase.auth.signOut().catch(() => undefined);
   });
 </script>

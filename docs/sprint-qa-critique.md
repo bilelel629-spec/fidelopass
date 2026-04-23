@@ -25,6 +25,7 @@ Valider rapidement les parcours métier les plus sensibles avant chaque release.
 
 ## Couverture actuelle (critique)
 - Pages publiques: home, pricing, comment ça fonctionne, contact.
+- Pages auth publiques: login/register restent stables sans session (pas de redirection tardive).
 - Gating accès: `/dashboard`, `/onboarding`, `/app/scan` redirigent vers login sans session.
 - Carte publique: pas de chargement infini (si `E2E_PUBLIC_CARD_URL` fourni).
 - Santé API: `/api/health`.

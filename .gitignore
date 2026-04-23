@@ -43,6 +43,9 @@ logs/
 # Cache
 .cache/
 .parcel-cache/
+playwright-report/
+test-results/
+.playwright/
 
 # Local assistant config
 .CLAUDE/

@@ -11,7 +11,10 @@
     "preview": "astro preview",
     "api:dev": "tsx watch api/index.ts",
     "api:start": "node --loader tsx/esm api/index.ts",
-    "typecheck": "astro check && tsc --noEmit"
+    "typecheck": "astro check && tsc --noEmit",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:install": "playwright install chromium"
   },
   "dependencies": {
     "@astrojs/node": "^9.5.5",
@@ -38,6 +41,7 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",

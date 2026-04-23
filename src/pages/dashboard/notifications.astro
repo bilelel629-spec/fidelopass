@@ -177,6 +177,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   let reviewAutoIsPro = false;
   let birthdayEnabled = false;
   let birthdayIsPro = false;
+  const SETTINGS_FETCH_RETRIES = 3;
 
   const reviewAutoToggle = document.getElementById('review-auto-toggle') as HTMLButtonElement;
   const reviewAutoKnob = document.getElementById('review-auto-knob') as HTMLSpanElement;
@@ -196,7 +197,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const birthdayRewardValue = document.getElementById('birthday-reward-value') as HTMLInputElement;
   const birthdayTitle = document.getElementById('birthday-title') as HTMLInputElement;
   const birthdayMessage = document.getElementById('birthday-message') as HTMLTextAreaElement;
-  let cachedPlan: string = 'starter';
+  let cachedPlan: string | null = null;
 
   function getStoredPointVenteId(): string | null {
     if (typeof window === 'undefined') return null;
@@ -215,6 +216,23 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     } catch {
       // best effort
     }
+  }
+
+  function sleep(ms: number) {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
+  }
+
+  function readPlanFromBadge(): string | null {
+    const planText = (
+      document.getElementById('dashboard-plan-badge')?.textContent
+      ?? document.getElementById('dashboard-plan-badge-mobile')?.textContent
+      ?? ''
+    ).trim().toLowerCase();
+    if (!planText || planText === 'chargement...' || planText === '...') return null;
+    if (planText.includes('sur') || planText.includes('mesure') || planText.includes('custom')) return 'sur-mesure';
+    if (planText.includes('pro')) return 'pro';
+    if (planText.includes('starter')) return 'starter';
+    return null;
   }
 
   async function pointAwareFetch(path: string, init?: RequestInit): Promise<Response> {
@@ -239,7 +257,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   function setReviewPlanLabel(planRaw: unknown) {
-    const normalized = normalizePlan(planRaw);
+    const raw = String(planRaw ?? '').trim();
+    if (!raw || /chargement|indisponible/i.test(raw)) {
+      reviewAutoPlanValue.textContent = 'Indisponible';
+      return;
+    }
+    const normalized = normalizePlan(raw);
     if (normalized.includes('sur-mesure') || normalized.includes('surmesure') || normalized.includes('custom') || normalized.includes('enterprise')) {
       reviewAutoPlanValue.textContent = 'Sur mesure';
       return;
@@ -256,7 +279,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   function setBirthdayPlanLabel(planRaw: unknown) {
-    const normalized = normalizePlan(planRaw);
+    const raw = String(planRaw ?? '').trim();
+    if (!raw || /chargement|indisponible/i.test(raw)) {
+      birthdayPlanValue.textContent = 'Indisponible';
+      return;
+    }
+    const normalized = normalizePlan(raw);
     if (normalized.includes('sur-mesure') || normalized.includes('surmesure') || normalized.includes('custom') || normalized.includes('enterprise')) {
       birthdayPlanValue.textContent = 'Sur mesure';
       return;
@@ -282,13 +310,41 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   async function loadPlanFallback() {
-    try {
-      const res = await pointAwareFetch('/api/dashboard/plan');
-      const payload = await res.json().catch(() => null);
-      if (!res.ok) return;
-      cachedPlan = String(payload?.data?.plan ?? payload?.data?.raw_plan ?? 'starter');
-    } catch {
-      cachedPlan = 'starter';
+    const badgePlan = readPlanFromBadge();
+    if (badgePlan) cachedPlan = badgePlan;
+
+    for (let attempt = 0; attempt < SETTINGS_FETCH_RETRIES; attempt += 1) {
+      try {
+        const res = await pointAwareFetch('/api/dashboard/plan');
+        const payload = await res.json().catch(() => null);
+        if (res.ok) {
+          const nextPlan = String(payload?.data?.plan ?? payload?.data?.raw_plan ?? '').trim();
+          if (nextPlan) {
+            cachedPlan = nextPlan;
+            return;
+          }
+        }
+      } catch {
+        // retry
+      }
+      await sleep((attempt + 1) * 250);
+    }
+
+    for (let attempt = 0; attempt < SETTINGS_FETCH_RETRIES; attempt += 1) {
+      try {
+        const res = await pointAwareFetch('/api/commerces/me');
+        const payload = await res.json().catch(() => null);
+        if (res.ok) {
+          const nextPlan = String(payload?.data?.plan_override ?? payload?.data?.plan ?? '').trim();
+          if (nextPlan) {
+            cachedPlan = nextPlan;
+            return;
+          }
+        }
+      } catch {
+        // retry
+      }
+      await sleep((attempt + 1) * 250);
     }
   }
 
@@ -376,34 +432,44 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   });
 
   async function loadReviewAutoSettings() {
-    try {
-      const res = await pointAwareFetch('/api/notifications/review-reminder-settings');
-      const payload = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage.');
+    for (let attempt = 0; attempt < SETTINGS_FETCH_RETRIES; attempt += 1) {
+      try {
+        const res = await pointAwareFetch('/api/notifications/review-reminder-settings');
+        const payload = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage.');
 
-      reviewAutoIsPro = Boolean(payload?.data?.is_pro) || isProPlan(payload?.data?.plan ?? payload?.data?.raw_plan);
-      setReviewPlanLabel(payload?.data?.plan ?? payload?.data?.raw_plan ?? cachedPlan);
-      setReviewToggle(Boolean(payload?.data?.enabled));
+        reviewAutoIsPro = Boolean(payload?.data?.is_pro) || isProPlan(payload?.data?.plan ?? payload?.data?.raw_plan);
+        setReviewPlanLabel(payload?.data?.plan ?? payload?.data?.raw_plan ?? cachedPlan);
+        setReviewToggle(Boolean(payload?.data?.enabled));
 
-      if (!reviewAutoIsPro) {
-        reviewAutoLocked.classList.remove('hidden');
-        reviewAutoToggle.disabled = true;
-        reviewAutoToggle.classList.add('opacity-40', 'cursor-not-allowed');
-      } else {
-        reviewAutoLocked.classList.add('hidden');
-        reviewAutoToggle.disabled = false;
-        reviewAutoToggle.classList.remove('opacity-40', 'cursor-not-allowed');
+        if (!reviewAutoIsPro) {
+          reviewAutoLocked.classList.remove('hidden');
+          reviewAutoToggle.disabled = true;
+          reviewAutoToggle.classList.add('opacity-40', 'cursor-not-allowed');
+        } else {
+          reviewAutoLocked.classList.add('hidden');
+          reviewAutoToggle.disabled = false;
+          reviewAutoToggle.classList.remove('opacity-40', 'cursor-not-allowed');
+        }
+        return;
+      } catch {
+        if (attempt < SETTINGS_FETCH_RETRIES - 1) {
+          await sleep((attempt + 1) * 300);
+          continue;
+        }
       }
-    } catch {
-      reviewAutoIsPro = isProPlan(cachedPlan);
-      setReviewPlanLabel(cachedPlan);
-      setReviewToggle(false);
-      reviewAutoToggle.disabled = !reviewAutoIsPro;
-      reviewAutoLocked.classList.toggle('hidden', reviewAutoIsPro);
-      reviewAutoToggle.classList.toggle('opacity-40', !reviewAutoIsPro);
-      reviewAutoToggle.classList.toggle('cursor-not-allowed', !reviewAutoIsPro);
-      reviewAutoStatus.textContent = 'Impossible de charger le statut pour le moment.';
     }
+
+    const fallbackPlan = cachedPlan ?? readPlanFromBadge();
+    const hasProSignal = isProPlan(fallbackPlan ?? '') || isProPlan(readPlanFromBadge() ?? '');
+    reviewAutoIsPro = hasProSignal;
+    setReviewPlanLabel(fallbackPlan ?? 'indisponible');
+    setReviewToggle(false);
+    reviewAutoToggle.disabled = !reviewAutoIsPro;
+    reviewAutoLocked.classList.toggle('hidden', reviewAutoIsPro);
+    reviewAutoToggle.classList.toggle('opacity-40', !reviewAutoIsPro);
+    reviewAutoToggle.classList.toggle('cursor-not-allowed', !reviewAutoIsPro);
+    reviewAutoStatus.textContent = 'Impossible de charger le statut pour le moment.';
   }
 
   reviewAutoToggle.addEventListener('click', async () => {
@@ -432,39 +498,48 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   });
 
   async function loadBirthdaySettings() {
-    try {
-      const res = await pointAwareFetch('/api/notifications/birthday-settings');
-      const payload = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage anniversaire.');
+    for (let attempt = 0; attempt < SETTINGS_FETCH_RETRIES; attempt += 1) {
+      try {
+        const res = await pointAwareFetch('/api/notifications/birthday-settings');
+        const payload = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage anniversaire.');
 
-      birthdayIsPro = Boolean(payload?.data?.is_pro) || isProPlan(payload?.data?.plan ?? payload?.data?.raw_plan);
-      setBirthdayPlanLabel(payload?.data?.plan ?? payload?.data?.raw_plan ?? cachedPlan);
-      setBirthdayToggle(Boolean(payload?.data?.enabled));
-      birthdayRewardValue.value = String(payload?.data?.reward_value ?? 1);
-      birthdayTitle.value = String(payload?.data?.push_title ?? '');
-      birthdayMessage.value = String(payload?.data?.push_message ?? '');
+        birthdayIsPro = Boolean(payload?.data?.is_pro) || isProPlan(payload?.data?.plan ?? payload?.data?.raw_plan);
+        setBirthdayPlanLabel(payload?.data?.plan ?? payload?.data?.raw_plan ?? cachedPlan);
+        setBirthdayToggle(Boolean(payload?.data?.enabled));
+        birthdayRewardValue.value = String(payload?.data?.reward_value ?? 1);
+        birthdayTitle.value = String(payload?.data?.push_title ?? '');
+        birthdayMessage.value = String(payload?.data?.push_message ?? '');
 
-      if (!payload?.data?.has_active_card) {
-        setBirthdayFormDisabled(true);
-        birthdayStatus.textContent = 'Aucune carte active sur ce point de vente.';
+        if (!payload?.data?.has_active_card) {
+          setBirthdayFormDisabled(true);
+          birthdayStatus.textContent = 'Aucune carte active sur ce point de vente.';
+          return;
+        }
+
+        if (!birthdayIsPro) {
+          birthdayLocked.classList.remove('hidden');
+          setBirthdayFormDisabled(true);
+        } else {
+          birthdayLocked.classList.add('hidden');
+          setBirthdayFormDisabled(false);
+        }
         return;
+      } catch {
+        if (attempt < SETTINGS_FETCH_RETRIES - 1) {
+          await sleep((attempt + 1) * 300);
+          continue;
+        }
       }
-
-      if (!birthdayIsPro) {
-        birthdayLocked.classList.remove('hidden');
-        setBirthdayFormDisabled(true);
-      } else {
-        birthdayLocked.classList.add('hidden');
-        setBirthdayFormDisabled(false);
-      }
-    } catch {
-      birthdayIsPro = isProPlan(cachedPlan);
-      setBirthdayPlanLabel(cachedPlan);
-      setBirthdayToggle(false);
-      birthdayLocked.classList.toggle('hidden', birthdayIsPro);
-      setBirthdayFormDisabled(!birthdayIsPro);
-      birthdayStatus.textContent = 'Impossible de charger le statut pour le moment.';
     }
+
+    const fallbackPlan = cachedPlan ?? readPlanFromBadge();
+    birthdayIsPro = isProPlan(fallbackPlan ?? '') || isProPlan(readPlanFromBadge() ?? '');
+    setBirthdayPlanLabel(fallbackPlan ?? 'indisponible');
+    setBirthdayToggle(false);
+    birthdayLocked.classList.toggle('hidden', birthdayIsPro);
+    setBirthdayFormDisabled(!birthdayIsPro);
+    birthdayStatus.textContent = 'Impossible de charger le statut pour le moment.';
   }
 
   async function persistBirthdaySettings(nextEnabled: boolean) {
@@ -522,20 +597,20 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     });
   });
 
-  window.addEventListener('fidelopass:point-vente-ready', () => {
-    void loadPlanFallback().then(() => Promise.all([
+  async function bootstrapNotifications() {
+    await loadPlanFallback();
+    await Promise.all([
       loadSummary(),
       loadHistory(),
       loadReviewAutoSettings(),
       loadBirthdaySettings(),
-    ]));
+    ]);
+  }
+
+  window.addEventListener('fidelopass:point-vente-ready', () => {
+    void bootstrapNotifications();
   });
 
   setNotifTab('manual');
-  loadSummary();
-  loadHistory();
-  loadPlanFallback().then(() => Promise.all([
-    loadReviewAutoSettings(),
-    loadBirthdaySettings(),
-  ]));
+  void bootstrapNotifications();
 </script>

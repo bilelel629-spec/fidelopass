@@ -87,6 +87,12 @@ type BirthdaySettingsRow = {
   birthday_push_message?: string | null;
 };
 
+type CommercePlanRow = {
+  id: string;
+  plan: string | null;
+  plan_override?: string | null;
+};
+
 function getReviewAutoEnabled(flags: CommerceFlags | null): boolean {
   if (!flags) return false;
   return Boolean(flags.review_auto_enabled ?? flags.sms_review_enabled ?? false);
@@ -136,6 +142,40 @@ async function persistReviewAutoEnabled(
   return { ok: false, message: lastErrorMessage };
 }
 
+async function resolveCommercePlanForUser(
+  db: ReturnType<typeof createServiceClient>,
+  userId: string,
+): Promise<CommercePlanRow | null> {
+  const { data, error } = await db
+    .from('commerces')
+    .select('id, plan, plan_override')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (!error) {
+    return (data as CommercePlanRow | null) ?? null;
+  }
+
+  const isMissingPlanOverrideColumn = /plan_override/i.test(error.message ?? '')
+    && (/does not exist/i.test(error.message ?? '') || /schema cache/i.test(error.message ?? ''));
+
+  if (!isMissingPlanOverrideColumn) {
+    throw error;
+  }
+
+  const fallback = await db
+    .from('commerces')
+    .select('id, plan')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (fallback.error) throw fallback.error;
+
+  return ((fallback.data as { id: string; plan: string | null } | null)
+    ? { ...fallback.data, plan_override: null }
+    : null) as CommercePlanRow | null;
+}
+
 function getBirthdayDefaultMessage(carteName?: string | null): string {
   if (!carteName) return DEFAULT_BIRTHDAY_PUSH_MESSAGE;
   return `Votre bonus anniversaire est disponible sur ${carteName}.`;
@@ -145,30 +185,29 @@ function getBirthdayDefaultMessage(carteName?: string | null): string {
 notificationsRoutes.get('/review-reminder-settings', async (c) => {
   const userId = c.get('userId') as string;
   const db = createServiceClient();
-  const requestedPointVenteId = readRequestedPointVenteId(c);
-  const { commerce } = await resolveCommerceAndPointVente(
-    db,
-    userId,
-    requestedPointVenteId,
-    'id, plan, plan_override',
-  );
+  try {
+    const commerce = await resolveCommercePlanForUser(db, userId);
+    if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
 
-  if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
+    const flags = await loadCommerceFlags(db, commerce.id);
+    const effectivePlan = getEffectivePlanRaw(commerce);
+    const planLimits = getPlanLimits(effectivePlan);
+    const normalizedPlan = normalizePlan(effectivePlan);
 
-  const flags = await loadCommerceFlags(db, commerce.id);
-  const effectivePlan = getEffectivePlanRaw(commerce);
-  const planLimits = getPlanLimits(effectivePlan);
-  const normalizedPlan = normalizePlan(effectivePlan);
-  return c.json({
-    data: {
-      enabled: getReviewAutoEnabled(flags),
-      plan: normalizedPlan,
-      raw_plan: commerce.plan ?? 'starter',
-      plan_override: commerce.plan_override ?? null,
-      is_pro: Boolean(planLimits.avisGoogle),
-      delay_minutes: 60,
-    },
-  });
+    return c.json({
+      data: {
+        enabled: getReviewAutoEnabled(flags),
+        plan: normalizedPlan,
+        raw_plan: commerce.plan ?? 'starter',
+        plan_override: commerce.plan_override ?? null,
+        is_pro: Boolean(planLimits.avisGoogle),
+        delay_minutes: 60,
+      },
+    });
+  } catch (error) {
+    console.error('[notifications review-reminder-settings GET]', error);
+    return c.json({ error: 'Impossible de charger le réglage pour le moment.' }, 500);
+  }
 });
 
 /** PATCH /api/notifications/review-reminder-settings — Active/désactive le push auto avis Google (+1h) */
@@ -176,30 +215,33 @@ notificationsRoutes.patch('/review-reminder-settings', async (c) => {
   const userId = c.get('userId') as string;
   const body = await c.req.json().catch(() => null);
   const parsed = z.object({ enabled: z.boolean() }).safeParse(body);
-  const requestedPointVenteId = readRequestedPointVenteId(c);
 
   if (!parsed.success) {
     return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides' }, 400);
   }
 
   const db = createServiceClient();
-  const { commerce } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id, plan, plan_override');
+  try {
+    const commerce = await resolveCommercePlanForUser(db, userId);
+    if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
 
-  if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
+    const planLimits = getPlanLimits(getEffectivePlanRaw(commerce));
+    if (!planLimits.avisGoogle) {
+      return c.json({ error: 'Cette automatisation est réservée au plan Pro.' }, 403);
+    }
 
-  const planLimits = getPlanLimits(getEffectivePlanRaw(commerce));
-  if (!planLimits.avisGoogle) {
-    return c.json({ error: 'Cette automatisation est réservée au plan Pro.' }, 403);
+    const writeResult = await persistReviewAutoEnabled(db, commerce.id, parsed.data.enabled);
+    if (!writeResult.ok) {
+      return c.json({
+        error: `Impossible de mettre à jour le réglage (${writeResult.message}). Vérifiez que les migrations Supabase sont bien à jour.`,
+      }, 500);
+    }
+
+    return c.json({ ok: true, data: { enabled: parsed.data.enabled, delay_minutes: 60 } });
+  } catch (error) {
+    console.error('[notifications review-reminder-settings PATCH]', error);
+    return c.json({ error: 'Impossible de mettre à jour le réglage pour le moment.' }, 500);
   }
-
-  const writeResult = await persistReviewAutoEnabled(db, commerce.id, parsed.data.enabled);
-  if (!writeResult.ok) {
-    return c.json({
-      error: `Impossible de mettre à jour le réglage (${writeResult.message}). Vérifiez que les migrations Supabase sont bien à jour.`,
-    }, 500);
-  }
-
-  return c.json({ ok: true, data: { enabled: parsed.data.enabled, delay_minutes: 60 } });
 });
 
 /** GET /api/notifications/birthday-settings — Réglage auto anniversaire (jour J à 10h) */

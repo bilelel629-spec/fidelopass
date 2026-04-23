@@ -157,7 +157,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
   let currentClientRecompenses = 0;
   let scannerPaused = false;
   let audioContext: AudioContext | null = null;
-  let confettiPromise: Promise<typeof import('canvas-confetti')> | null = null;
+  let confettiPromise: Promise<any> | null = null;
   let toastTimeout: ReturnType<typeof setTimeout> | null = null;
 
   const scannerStatus = document.getElementById('scanner-status')!;
@@ -183,7 +183,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
   }
 
   function getAudioContext() {
-    const AudioContextClass = window.AudioContext ?? window.webkitAudioContext;
+    const AudioContextClass =
+      window.AudioContext ?? (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return null;
     audioContext ??= new AudioContextClass();
     return audioContext;
@@ -514,7 +515,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
     const frame = () => {
       confettiPromise?.then((module) => {
-        const confetti = module.default;
+        const confetti = module?.default ?? module;
         confetti({
           particleCount: 4,
           angle: 60,

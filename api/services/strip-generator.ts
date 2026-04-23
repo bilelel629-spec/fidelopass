@@ -489,7 +489,6 @@ async function composeTamponGrid(base: Buffer, opts: StripOptions, W: number, H:
         left: Math.round(dot.cx - iconSize / 2),
         top: Math.round(dot.cy - iconSize / 2),
         blend: 'over',
-        opacity: dot.filled ? 1 : 0.34,
       });
     }
   }

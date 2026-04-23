@@ -56,7 +56,7 @@ export async function resolveCommerceAndPointVente<T extends CommerceRow = Comme
     .single();
 
   if (!commerceWithOverrideError) {
-    commerce = (commerceWithOverride as T | null) ?? null;
+    commerce = (commerceWithOverride as unknown as T | null) ?? null;
   } else {
     commerceErrorMessage = commerceWithOverrideError.message ?? '';
     const missingOverrideColumn = /plan_override/i.test(commerceErrorMessage)
@@ -81,7 +81,7 @@ export async function resolveCommerceAndPointVente<T extends CommerceRow = Comme
       .single();
 
     if (fallbackError) throw fallbackError;
-    commerce = (fallbackCommerce as T | null) ?? null;
+    commerce = (fallbackCommerce as unknown as T | null) ?? null;
   }
 
   if (!commerce) {

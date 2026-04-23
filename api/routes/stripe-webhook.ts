@@ -260,13 +260,14 @@ stripeWebhookRoutes.post('/', async (c) => {
             .eq('id', commerceId);
           console.log('[stripe-webhook] → plan =', matchedPlan);
         } else if (priceMatchesSlot(firstPriceId, 'scanner', priceIds)) {
-          await db.rpc('increment_scanners_count', { commerce_id_input: commerceId }).catch(() => {
-            return db.from('commerces')
-              .select('scanners_count')
-              .eq('id', commerceId)
-              .single()
-              .then(({ data }) => db.from('commerces').update({ scanners_count: (data?.scanners_count ?? 1) + 1 }).eq('id', commerceId));
-          });
+          const rpcResult = await db.rpc('increment_scanners_count', { commerce_id_input: commerceId });
+          if (rpcResult.error) {
+            const { data } = await db.from('commerces').select('scanners_count').eq('id', commerceId).single();
+            await db
+              .from('commerces')
+              .update({ scanners_count: (data?.scanners_count ?? 0) + 1 })
+              .eq('id', commerceId);
+          }
           console.log('[stripe-webhook] → scanners_count + 1');
         } else if (priceMatchesSlot(firstPriceId, 'sms_100', priceIds)) {
           const { data } = await db.from('commerces').select('sms_credits').eq('id', commerceId).single();
@@ -348,7 +349,8 @@ stripeWebhookRoutes.post('/', async (c) => {
 
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
-        const sub = typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;
+        const subscriptionValue = (invoice as any).subscription;
+        const sub = typeof subscriptionValue === 'string' ? subscriptionValue : subscriptionValue?.id;
         if (!sub) break;
         const subscription = await stripe.subscriptions.retrieve(sub);
         const commerceId = await getCommerceIdFromMetadata(subscription.metadata);
@@ -360,7 +362,8 @@ stripeWebhookRoutes.post('/', async (c) => {
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
-        const sub = typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;
+        const subscriptionValue = (invoice as any).subscription;
+        const sub = typeof subscriptionValue === 'string' ? subscriptionValue : subscriptionValue?.id;
         let commerceId: string | null = null;
         if (sub) {
           const subscription = await stripe.subscriptions.retrieve(sub);

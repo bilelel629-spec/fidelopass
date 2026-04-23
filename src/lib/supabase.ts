@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 
 // PUBLIC_ = accessible navigateur + serveur Astro
@@ -22,7 +22,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 /** Client avec la service role key — côté serveur/API uniquement */
-export function createServiceClient() {
+export function createServiceClient(): SupabaseClient<Database> {
   const serviceKey =
     (typeof import.meta !== 'undefined' && import.meta.env?.SUPABASE_SERVICE_ROLE_KEY)
     ?? process.env.SUPABASE_SERVICE_ROLE_KEY

@@ -49,11 +49,12 @@ export async function sendSMS(
   const db = createServiceClient();
 
   // Vérification des crédits
-  const { data: commerce, error: commerceErr } = await db
+  const { data: commerceData, error: commerceErr } = await db
     .from('commerces')
     .select('sms_credits')
     .eq('id', commerceId)
     .single();
+  const commerce = commerceData as { sms_credits: number | null } | null;
 
   if (commerceErr || !commerce) {
     return { success: false, error: 'Commerce introuvable' };

@@ -66,9 +66,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
 
     if (!billingResponse.ok) {
-      if (pathname.startsWith('/dashboard') || pathname === '/onboarding') {
-        return withSecurityHeaders(Response.redirect(new URL('/abonnement/choix', context.url), 302));
-      }
+      // En cas d'erreur temporaire côté API billing, on ne force pas un faux downgrade
+      // vers la page abonnement. Le guard client/API prendra le relais.
       return withSecurityHeaders(await next());
     }
 

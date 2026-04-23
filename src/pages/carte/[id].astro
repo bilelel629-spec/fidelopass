@@ -22,7 +22,14 @@ const firebasePushConfig = {
 
     <div id="loading" class="text-center">
       <div class="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-      <p class="text-slate-400 text-sm">Chargement...</p>
+      <p id="loading-status" class="text-slate-400 text-sm">Chargement...</p>
+      <button
+        id="loading-retry-btn"
+        type="button"
+        class="hidden mt-4 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+      >
+        Réessayer maintenant
+      </button>
     </div>
 
     <div id="carte-content" class="hidden w-full max-w-sm">
@@ -184,7 +191,17 @@ const firebasePushConfig = {
     </div>
 
     <div id="error-content" class="hidden text-center">
-      <p class="text-red-400">Carte introuvable ou expirée.</p>
+      <p id="error-content-msg" class="text-red-400">Carte introuvable ou expirée.</p>
+      <div class="mt-4 flex flex-col items-center gap-2">
+        <button
+          id="error-retry-btn"
+          type="button"
+          class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+        >
+          Réessayer
+        </button>
+        <a href="/" class="text-xs text-slate-500 hover:text-slate-300 transition">Retour à l’accueil</a>
+      </div>
     </div>
   </div>
 </BaseLayout>
@@ -469,8 +486,56 @@ const firebasePushConfig = {
 
   // ── Chargement carte ─────────────────────────────────────────────
   let carteData = null;
+  let loadInFlight = false;
+  let loadFallbackTimeout = null;
+
+  const loadingBlock = document.getElementById('loading');
+  const loadingStatus = document.getElementById('loading-status');
+  const loadingRetryBtn = document.getElementById('loading-retry-btn');
+  const errorContent = document.getElementById('error-content');
+  const errorContentMsg = document.getElementById('error-content-msg');
+  const errorRetryBtn = document.getElementById('error-retry-btn');
+  const carteContent = document.getElementById('carte-content');
+
+  function clearLoadFallback() {
+    if (loadFallbackTimeout) {
+      clearTimeout(loadFallbackTimeout);
+      loadFallbackTimeout = null;
+    }
+  }
+
+  function scheduleLoadFallback() {
+    clearLoadFallback();
+    loadFallbackTimeout = setTimeout(() => {
+      if (loadingBlock?.classList.contains('hidden')) return;
+      if (loadingStatus) {
+        loadingStatus.textContent = 'La connexion est plus lente que prévu. Vous pouvez relancer le chargement.';
+      }
+      loadingRetryBtn?.classList.remove('hidden');
+    }, 8000);
+  }
+
+  function showLoadError(message) {
+    clearLoadFallback();
+    if (loadingBlock) loadingBlock.classList.add('hidden');
+    if (carteContent) carteContent.classList.add('hidden');
+    if (errorContentMsg) errorContentMsg.textContent = message;
+    errorContent?.classList.remove('hidden');
+  }
+
+  function showLoadingState() {
+    if (loadingStatus) loadingStatus.textContent = 'Chargement...';
+    loadingRetryBtn?.classList.add('hidden');
+    errorContent?.classList.add('hidden');
+    carteContent?.classList.add('hidden');
+    loadingBlock?.classList.remove('hidden');
+    scheduleLoadFallback();
+  }
 
   async function loadCarte() {
+    if (loadInFlight) return;
+    loadInFlight = true;
+    showLoadingState();
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
@@ -540,12 +605,19 @@ const firebasePushConfig = {
         document.getElementById('preview-pts-txt').textContent = `0 / ${pts} pts`;
       }
 
-      document.getElementById('loading').classList.add('hidden');
-      document.getElementById('carte-content').classList.remove('hidden');
+      clearLoadFallback();
+      loadingBlock?.classList.add('hidden');
+      carteContent?.classList.remove('hidden');
       await hydrateRememberedClientState();
-    } catch {
-      document.getElementById('loading').classList.add('hidden');
-      document.getElementById('error-content').classList.remove('hidden');
+    } catch (error) {
+      const errorName = error instanceof Error ? error.name : '';
+      if (errorName === 'AbortError') {
+        showLoadError('Le chargement a expiré. Vérifiez votre connexion puis réessayez.');
+      } else {
+        showLoadError('Impossible de charger cette carte pour le moment. Réessayez dans quelques secondes.');
+      }
+    } finally {
+      loadInFlight = false;
     }
   }
 
@@ -1002,6 +1074,14 @@ const firebasePushConfig = {
       }
     });
   }
+
+  loadingRetryBtn?.addEventListener('click', () => {
+    void loadCarte();
+  });
+
+  errorRetryBtn?.addEventListener('click', () => {
+    void loadCarte();
+  });
 
   loadCarte();
 </script>

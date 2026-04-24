@@ -26,4 +26,12 @@ test.describe('Pages auth publiques', () => {
     const elapsed = Date.now() - startedAt;
     expect(elapsed).toBeLessThan(4_000);
   });
+
+  test('Abonnement setup redirige rapidement vers register sans session', async ({ page }) => {
+    const startedAt = Date.now();
+    await page.goto('/abonnement/setup', { waitUntil: 'domcontentloaded' });
+    await page.waitForURL(/\/register(?:[?#].*)?$/, { timeout: 5_000 });
+    const elapsed = Date.now() - startedAt;
+    expect(elapsed).toBeLessThan(5_000);
+  });
 });

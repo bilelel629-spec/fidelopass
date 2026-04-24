@@ -181,6 +181,15 @@ function getBirthdayDefaultMessage(carteName?: string | null): string {
   return `Votre bonus anniversaire est disponible sur ${carteName}.`;
 }
 
+function buildScopedNotificationTitle(baseTitle: string, senderName: string | null | undefined) {
+  const cleanBase = String(baseTitle ?? '').trim();
+  const cleanSender = String(senderName ?? '').trim();
+  if (!cleanSender) return cleanBase;
+  if (!cleanBase) return cleanSender;
+  if (cleanBase.toLowerCase().includes(cleanSender.toLowerCase())) return cleanBase;
+  return `${cleanSender} · ${cleanBase}`;
+}
+
 /** GET /api/notifications/review-reminder-settings — Réglage push auto avis Google (+1h) */
 notificationsRoutes.get('/review-reminder-settings', async (c) => {
   const userId = c.get('userId') as string;
@@ -647,6 +656,20 @@ notificationsRoutes.post('/', async (c) => {
   const { commerce, pointVente } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id, plan, plan_override');
 
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
+  const { data: activeCard } = await db
+    .from('cartes')
+    .select('nom')
+    .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
+    .eq('actif', true)
+    .order('updated_at', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const senderName = (activeCard as { nom?: string | null } | null)?.nom
+    ?? (pointVente as { nom?: string | null }).nom
+    ?? null;
+  const scopedTitle = buildScopedNotificationTitle(parsed.data.titre, senderName);
 
   // Récupère les clients joignables par web push ou Wallet
   const { data: clients } = await db
@@ -677,7 +700,7 @@ notificationsRoutes.post('/', async (c) => {
     .insert({
       commerce_id: commerce.id,
       point_vente_id: pointVente.id,
-      titre: parsed.data.titre,
+      titre: scopedTitle,
       message: parsed.data.message,
       type: parsed.data.type,
       nb_destinataires: targetedClientIds.size,
@@ -700,7 +723,7 @@ notificationsRoutes.post('/', async (c) => {
       for (const client of webPushClients) {
         if (client.fcm_token) tokenToClientId.set(client.fcm_token, client.id);
       }
-      const pushResult = await sendPushNotificationDetailed(tokens, parsed.data.titre, parsed.data.message);
+      const pushResult = await sendPushNotificationDetailed(tokens, scopedTitle, parsed.data.message);
       nbDelivreesWeb = pushResult.successCount;
       for (const token of pushResult.successTokens) {
         const clientId = tokenToClientId.get(token);
@@ -716,7 +739,7 @@ notificationsRoutes.post('/', async (c) => {
       googleWalletClients.map(async (client) => {
         await sendGoogleWalletMessage(
           client.google_pass_id as string,
-          parsed.data.titre,
+          scopedTitle,
           parsed.data.message,
           notif.id,
         );

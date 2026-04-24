@@ -169,6 +169,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   const errorEl = document.getElementById('choice-error') as HTMLDivElement;
 
   type SessionLike = { access_token: string };
+  type PriceSlot =
+    | 'starter_mensuel'
+    | 'starter_annuel_mensuel'
+    | 'starter_annuel_once'
+    | 'pro_mensuel'
+    | 'pro_annuel_mensuel'
+    | 'pro_annuel_once';
   let activeSession: SessionLike | null = null;
   let currentMode: 'monthly' | 'annual' = 'annual';
   let annualPaymentType: 'subscription' | 'payment' = 'subscription';
@@ -237,6 +244,42 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     setMode(currentMode);
   }
 
+  function resolvePriceSlot(plan: string): PriceSlot {
+    const normalizedPlan = plan === 'pro' ? 'pro' : 'starter';
+    if (currentMode === 'monthly') return `${normalizedPlan}_mensuel` as PriceSlot;
+    if (annualPaymentType === 'payment') return `${normalizedPlan}_annuel_once` as PriceSlot;
+    return `${normalizedPlan}_annuel_mensuel` as PriceSlot;
+  }
+
+  async function hydratePricingConfig(accessToken: string) {
+    try {
+      const res = await fetch(`${API}/api/checkout/pricing-config`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!res.ok) return;
+      const payload = await res.json().catch(() => null);
+      const starter = payload?.data?.starter;
+      const pro = payload?.data?.pro;
+      const starterBtn = document.querySelector<HTMLButtonElement>('.plan-select-btn[data-plan="starter"]');
+      const proBtn = document.querySelector<HTMLButtonElement>('.plan-select-btn[data-plan="pro"]');
+      if (starterBtn && starter) {
+        if (starter.monthly?.priceId) starterBtn.dataset.priceMonthly = String(starter.monthly.priceId);
+        if (starter.annual_monthly?.priceId) starterBtn.dataset.priceAnnualSubscription = String(starter.annual_monthly.priceId);
+        if (starter.annual_once?.priceId) starterBtn.dataset.priceAnnualOnce = String(starter.annual_once.priceId);
+      }
+      if (proBtn && pro) {
+        if (pro.monthly?.priceId) proBtn.dataset.priceMonthly = String(pro.monthly.priceId);
+        if (pro.annual_monthly?.priceId) proBtn.dataset.priceAnnualSubscription = String(pro.annual_monthly.priceId);
+        if (pro.annual_once?.priceId) proBtn.dataset.priceAnnualOnce = String(pro.annual_once.priceId);
+      }
+    } catch {
+      // best effort: fallback to embedded IDs
+    }
+  }
+
   async function requireSessionAndBilling() {
     const sessionResult = await withTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
     const session = sessionResult?.data?.session ?? null;
@@ -258,6 +301,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     }
 
     activeSession = session;
+    await hydratePricingConfig(session.access_token);
     return session;
   }
 
@@ -284,12 +328,14 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     const checkoutMode: 'subscription' | 'payment' = isAnnual && annualPaymentType === 'payment'
       ? 'payment'
       : 'subscription';
+    const priceSlot = resolvePriceSlot(btn.dataset.plan ?? 'starter');
 
     const selection = {
       plan: btn.dataset.plan,
       mode: currentMode,
       annualPaymentType,
       checkoutMode,
+      priceSlot,
       priceId,
       selectedAt: Date.now(),
     };
@@ -306,8 +352,12 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   setMode('annual');
 
   const cancelled = new URLSearchParams(window.location.search).get('cancelled');
+  const guard = new URLSearchParams(window.location.search).get('guard');
   if (cancelled === '1') {
     errorEl.textContent = 'Paiement annulé. Vous pouvez reprendre votre sélection.';
+    errorEl.classList.remove('hidden');
+  } else if (guard === '1') {
+    errorEl.textContent = 'Votre session nécessite un abonnement actif pour accéder à l’espace commerçant.';
     errorEl.classList.remove('hidden');
   }
 

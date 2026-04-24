@@ -217,8 +217,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <p class="mt-1 text-sm leading-6 text-slate-500">Ajoutez les éléments qui feront reconnaître votre commerce au premier coup d'œil : nom, logo et icône de tampon.</p>
         </div>
         <div id="step-error-2" class="step-error hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
-        <div class="grid sm:grid-cols-2 gap-4 mb-5">
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
           <div><label class="label" for="nom-carte">Nom de la carte *</label><input id="nom-carte" type="text" class="input" placeholder="Carte fidélité Ma Boutique" value="Carte fidélité" required /></div>
+          <div>
+            <label class="label" for="nom-point-vente">Nom du point de vente</label>
+            <input id="nom-point-vente" type="text" class="input" placeholder="Ex: SomStar — Principal" />
+            <p class="mt-1 text-[0.68rem] text-slate-500">Spécifique au lieu actif (indépendant des autres points de vente).</p>
+          </div>
           <div><label class="label" for="label-client">Label membre</label><input id="label-client" type="text" class="input" placeholder="Client, Membre, VIP..." maxlength="30" /></div>
         </div>
         <div class="mb-5"><label class="label" for="description">Description</label><input id="description" type="text" class="input" placeholder="Cumulez des points à chaque achat !" /></div>
@@ -2479,6 +2484,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         body: JSON.stringify({
           rayon_geo: parseInt((document.getElementById('rayon-geo') as HTMLInputElement).value, 10),
           adresse: (document.getElementById('adresse-commerce') as HTMLInputElement).value || null,
+          point_vente_nom: (document.getElementById('nom-point-vente') as HTMLInputElement).value.trim() || undefined,
         }),
       });
 
@@ -2593,6 +2599,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       }
       const rayon = data?.rayon_geo ?? 1000;
       (document.getElementById('adresse-commerce') as HTMLInputElement).value = data?.adresse ?? '';
+      (document.getElementById('nom-point-vente') as HTMLInputElement).value = data?.point_vente_nom ?? data?.nom ?? '';
       rayonSlider.value = String(rayon);
       rayonLabel.textContent = `${rayon.toLocaleString('fr-FR')} m`;
       if (data?.adresse) setGeoToggle(true, true);

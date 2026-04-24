@@ -68,6 +68,10 @@ function resolvePlanFromPriceId(priceId: string | null, priceIds: Record<string,
   return null;
 }
 
+function isAnnualOnceSlot(slot: string | null | undefined) {
+  return slot === 'starter_annuel_once' || slot === 'pro_annuel_once';
+}
+
 function normalizeBillingStatusFromSubscription(status: string | null | undefined) {
   if (!status) return 'unpaid';
   if (status === 'active') return 'active';
@@ -238,6 +242,15 @@ stripeWebhookRoutes.post('/', async (c) => {
           .map((item) => item.price?.id)
           .filter((id): id is string => Boolean(id));
         const firstPriceId = purchasedPriceIds[0] ?? null;
+        const slotFromMetadataRaw = String(session.metadata?.selected_price_slot ?? '').trim();
+        const selectedSlotFromMetadata = (slotFromMetadataRaw.length > 0 ? slotFromMetadataRaw : null);
+        const matchedSlotFromLineItems = purchasedPriceIds
+          .map((id) => resolvePriceSlot(id, priceIds))
+          .find((slot): slot is string => Boolean(slot)) ?? null;
+        const selectedBillingSlot = selectedSlotFromMetadata ?? matchedSlotFromLineItems;
+        const annualOnceEndsAt = isAnnualOnceSlot(selectedBillingSlot)
+          ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+          : null;
         const selectedPlanFromMetadata = (() => {
           const plan = String(session.metadata?.selected_plan ?? '').toLowerCase();
           return (plan === 'starter' || plan === 'pro') ? plan : null;
@@ -251,11 +264,15 @@ stripeWebhookRoutes.post('/', async (c) => {
         console.log('[stripe-webhook] checkout.session.completed | commerce:', commerceId, '| prices:', purchasedPriceIds);
 
         if (matchedPlan) {
+          const billingStatus = session.mode === 'subscription'
+            ? 'trialing'
+            : (annualOnceEndsAt ? 'trialing' : 'active');
           await db
             .from('commerces')
             .update({
               plan: matchedPlan,
-              billing_status: session.mode === 'subscription' ? 'trialing' : 'active',
+              billing_status: billingStatus,
+              trial_ends_at: annualOnceEndsAt,
             })
             .eq('id', commerceId);
           console.log('[stripe-webhook] → plan =', matchedPlan);
@@ -328,7 +345,7 @@ stripeWebhookRoutes.post('/', async (c) => {
         const updates: Record<string, unknown> = {
           stripe_subscription_id: sub.id,
           billing_status: normalizeBillingStatusFromSubscription(sub.status),
-          ...(trialEnd ? { trial_ends_at: trialEnd } : {}),
+          trial_ends_at: trialEnd,
         };
 
         if (plan === 'starter' || plan === 'pro') updates.plan = plan;
@@ -342,7 +359,7 @@ stripeWebhookRoutes.post('/', async (c) => {
         const sub = event.data.object as Stripe.Subscription;
         const commerceId = await getCommerceIdFromMetadata(sub.metadata);
         if (!commerceId) break;
-        await db.from('commerces').update({ stripe_subscription_id: null, billing_status: 'canceled' }).eq('id', commerceId);
+        await db.from('commerces').update({ stripe_subscription_id: null, billing_status: 'canceled', trial_ends_at: null }).eq('id', commerceId);
         console.log('[stripe-webhook] subscription deleted → billing_status = canceled | commerce:', commerceId);
         break;
       }
@@ -355,6 +372,7 @@ stripeWebhookRoutes.post('/', async (c) => {
         const subscription = await stripe.subscriptions.retrieve(sub);
         const commerceId = await getCommerceIdFromMetadata(subscription.metadata);
         if (commerceId) {
+          await db.from('commerces').update({ billing_status: 'active' }).eq('id', commerceId);
           console.log('[stripe-webhook] invoice.payment_succeeded | commerce:', commerceId);
         }
         break;

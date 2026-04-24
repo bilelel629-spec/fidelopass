@@ -87,6 +87,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     mode: 'monthly' | 'annual';
     annualPaymentType?: 'subscription' | 'payment';
     checkoutMode?: 'subscription' | 'payment';
+    priceSlot?:
+      | 'starter_mensuel'
+      | 'starter_annuel_mensuel'
+      | 'starter_annuel_once'
+      | 'pro_mensuel'
+      | 'pro_annuel_mensuel'
+      | 'pro_annuel_once';
     priceId: string;
     selectedAt: number;
   };
@@ -150,6 +157,35 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   void requireSessionAndBilling();
 
+  async function refreshSelectionFromPricingConfig(sessionToken: string, selection: Selection): Promise<Selection> {
+    try {
+      const res = await fetch(`${API}/api/checkout/pricing-config`, {
+        headers: {
+          Authorization: `Bearer ${sessionToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!res.ok) return selection;
+      const payload = await res.json().catch(() => null);
+      const lookup = {
+        starter_mensuel: payload?.data?.starter?.monthly?.priceId,
+        starter_annuel_mensuel: payload?.data?.starter?.annual_monthly?.priceId,
+        starter_annuel_once: payload?.data?.starter?.annual_once?.priceId,
+        pro_mensuel: payload?.data?.pro?.monthly?.priceId,
+        pro_annuel_mensuel: payload?.data?.pro?.annual_monthly?.priceId,
+        pro_annuel_once: payload?.data?.pro?.annual_once?.priceId,
+      } as const;
+      const slot = selection.priceSlot;
+      if (!slot || !lookup[slot]) return selection;
+      return {
+        ...selection,
+        priceId: String(lookup[slot]),
+      };
+    } catch {
+      return selection;
+    }
+  }
+
   checkoutBtn.addEventListener('click', async () => {
     errorEl.classList.add('hidden');
     checkoutBtn.disabled = true;
@@ -168,6 +204,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         window.location.replace('/register');
         return;
       }
+      const syncedSelection = await refreshSelectionFromPricingConfig(session.access_token, currentSelection);
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(syncedSelection));
 
       const res = await fetch(`${API}/api/checkout/create-session`, {
         method: 'POST',
@@ -176,8 +214,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          priceId: currentSelection.priceId,
-          mode: currentSelection.checkoutMode ?? 'subscription',
+          priceId: syncedSelection.priceId,
+          priceSlot: syncedSelection.priceSlot,
+          mode: syncedSelection.checkoutMode ?? 'subscription',
           includeAccompagnement: setupAddon.checked,
         }),
       });

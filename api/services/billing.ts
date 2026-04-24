@@ -22,7 +22,7 @@ export type BillingStatusPayload = {
   onboarding_completed: boolean;
 };
 
-const ACTIVE_BILLING_STATUSES = new Set(['active', 'trialing']);
+const ACTIVE_BILLING_STATUSES = new Set(['active']);
 
 function normalizeBillingStatus(status: string | null | undefined) {
   return (status ?? 'unpaid').toLowerCase();
@@ -53,7 +53,10 @@ export function buildBillingStatusPayload(record: BillingRecord | null): Billing
 
   const billingStatus = normalizeBillingStatus(record.billing_status);
   const trialActive = isTrialActive(record.trial_ends_at);
-  const hasAccess = ACTIVE_BILLING_STATUSES.has(billingStatus) || trialActive;
+  const isTrialing = billingStatus === 'trialing';
+  // Compat: some legacy rows can be trialing without explicit trial_ends_at.
+  const trialingWithUnknownEnd = isTrialing && !record.trial_ends_at;
+  const hasAccess = ACTIVE_BILLING_STATUSES.has(billingStatus) || trialActive || trialingWithUnknownEnd;
 
   return {
     has_commerce: true,

@@ -70,13 +70,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
 
     if (!billingResponse.ok) {
-      // En cas d'erreur temporaire côté API billing, on ne force pas un faux downgrade
-      // vers la page abonnement. Le guard client/API prendra le relais.
-      return withSecurityHeaders(await next());
+      return withSecurityHeaders(Response.redirect(new URL('/abonnement/choix?guard=1', context.url), 302));
     }
 
     const billingPayload = await billingResponse.json().catch(() => null);
     const billing = billingPayload?.data;
+    if (!billing) {
+      return withSecurityHeaders(Response.redirect(new URL('/abonnement/choix?guard=1', context.url), 302));
+    }
 
     if (!billing?.has_access) {
       if (pathname.startsWith('/dashboard') || pathname === '/onboarding') {
@@ -93,7 +94,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
       return withSecurityHeaders(Response.redirect(new URL('/dashboard', context.url), 302));
     }
   } catch {
-    return withSecurityHeaders(await next());
+    return withSecurityHeaders(Response.redirect(new URL('/abonnement/choix?guard=1', context.url), 302));
   }
 
   return withSecurityHeaders(await next());

@@ -16,6 +16,16 @@ function getStripe() {
 
 const createSessionSchema = z.object({
   priceId: z.string().min(1),
+  priceSlot: z.enum([
+    'starter_mensuel',
+    'starter_annuel_once',
+    'starter_annuel_mensuel',
+    'pro_mensuel',
+    'pro_annuel_once',
+    'pro_annuel_mensuel',
+    'accompagnement',
+    'scanner',
+  ]).optional(),
   mode: z.enum(['subscription', 'payment']),
   includeAccompagnement: z.boolean().optional().default(false),
 });
@@ -140,6 +150,33 @@ async function resolveUsablePriceId(
   throw new Error(`No such price: '${requestedPriceId}'`);
 }
 
+function canonicalPriceId(slot: PriceSlot, priceIds: Record<string, string>) {
+  const candidates = candidatesForSlot(slot, priceIds);
+  return candidates[0] ?? null;
+}
+
+checkoutRoutes.get('/pricing-config', authMiddleware, async (c) => {
+  const priceIds = loadPriceIds();
+  const data = {
+    starter: {
+      monthly: { slot: 'starter_mensuel', mode: 'subscription', priceId: canonicalPriceId('starter_mensuel', priceIds) },
+      annual_monthly: { slot: 'starter_annuel_mensuel', mode: 'subscription', priceId: canonicalPriceId('starter_annuel_mensuel', priceIds) },
+      annual_once: { slot: 'starter_annuel_once', mode: 'payment', priceId: canonicalPriceId('starter_annuel_once', priceIds) },
+    },
+    pro: {
+      monthly: { slot: 'pro_mensuel', mode: 'subscription', priceId: canonicalPriceId('pro_mensuel', priceIds) },
+      annual_monthly: { slot: 'pro_annuel_mensuel', mode: 'subscription', priceId: canonicalPriceId('pro_annuel_mensuel', priceIds) },
+      annual_once: { slot: 'pro_annuel_once', mode: 'payment', priceId: canonicalPriceId('pro_annuel_once', priceIds) },
+    },
+    addons: {
+      accompagnement: { slot: 'accompagnement', mode: 'payment', priceId: canonicalPriceId('accompagnement', priceIds) },
+      scanner: { slot: 'scanner', mode: 'payment', priceId: canonicalPriceId('scanner', priceIds) },
+    },
+  } as const;
+
+  return c.json({ data });
+});
+
 /** POST /api/checkout/create-session */
 checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   const userId = c.get('userId') as string;
@@ -150,9 +187,9 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
     return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides' }, 400);
   }
 
-  const { priceId, mode, includeAccompagnement } = parsed.data;
+  const { priceId, priceSlot, mode, includeAccompagnement } = parsed.data;
   const priceIds = loadPriceIds();
-  const selectedSlot = resolvePriceSlot(priceId, priceIds);
+  const selectedSlot = priceSlot ?? resolvePriceSlot(priceId, priceIds);
 
   if (!selectedSlot) {
     return c.json({ error: 'Prix Stripe invalide.' }, 400);

@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
+import { paidMiddleware } from '../middleware/paid';
 import { geocodeAddress } from '../services/geocoding';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
@@ -9,6 +10,8 @@ import { getEffectivePlanRaw } from '../utils/effective-plan';
 export const commercesRoutes = new Hono();
 
 commercesRoutes.use('*', authMiddleware);
+commercesRoutes.use('/me', paidMiddleware);
+commercesRoutes.use('/points-vente*', paidMiddleware);
 
 const updateSchema = z.object({
   nom: z.string().min(2).max(255).optional(),

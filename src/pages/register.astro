@@ -155,7 +155,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 <script>
   import { createClient } from '@supabase/supabase-js';
   import { clearSessionCookie, setSessionCookie } from '../lib/session-cookie';
-  import { resolvePostAuthDestination } from '../lib/post-auth-destination';
 
   type PendingRegistration = { email: string; password: string };
   type RegistrationResponse = { message?: string; requires_email_verification?: boolean };
@@ -316,9 +315,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       }
 
       setSessionCookie(activeSession.access_token);
-      showProgress('Compte prêt, ouverture de votre espace...');
-      const destination = await resolvePostAuthDestination(activeSession.access_token);
-      window.location.replace(destination);
+      showProgress('Compte prêt, redirection...');
+      // Redirection immédiate: le middleware garde l’accès et envoie vers la bonne page.
+      window.location.replace('/dashboard');
     } finally {
       redirectInFlight = false;
     }

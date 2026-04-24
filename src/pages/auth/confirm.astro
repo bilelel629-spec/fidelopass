@@ -31,7 +31,6 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 <script>
   import { createClient } from '@supabase/supabase-js';
   import { clearSessionCookie, setSessionCookie } from '../../lib/session-cookie';
-  import { resolvePostAuthDestination } from '../../lib/post-auth-destination';
 
   const supabase = createClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
@@ -60,8 +59,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       }
 
       setSessionCookie(session.access_token);
-      const destination = await resolvePostAuthDestination(session.access_token);
-      window.location.replace(destination);
+      // Redirection immédiate: le middleware décide la destination réelle.
+      window.location.replace('/dashboard');
     } finally {
       redirectInFlight = false;
     }

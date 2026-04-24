@@ -67,7 +67,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-3 rounded-sm bg-emerald-400"></span>Récompenses</span>
         </div>
       </div>
-      <div id="chart-container" class="flex h-[12.5rem] max-h-[12.5rem] min-h-0 items-end gap-2 overflow-hidden pb-1">
+      <div id="chart-container" class="flex h-[12.5rem] min-h-[12.5rem] items-end gap-2 overflow-hidden">
         <p class="m-auto text-sm text-slate-400">Chargement...</p>
       </div>
     </div>
@@ -190,15 +190,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       }
 
       const maxVal = Math.max(...data.map((d: { scans: number; recompenses: number }) => d.scans + d.recompenses), 1);
-      const chartHeight = 148;
+      const containerHeight = Math.max(container.clientHeight || 200, 180);
+      const chartHeight = Math.max(120, containerHeight - 36);
 
       container.innerHTML = data.map((d: { date: string; scans: number; recompenses: number }) => {
         const scansH = Math.round((d.scans / maxVal) * chartHeight);
         const recH = Math.round((d.recompenses / maxVal) * chartHeight);
         const label = new Date(d.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
         return `
-          <div class="flex-1 flex flex-col items-center gap-2 min-w-0">
-            <div class="w-full max-w-[58px] flex flex-col-reverse items-center gap-0.5 rounded-xl bg-slate-100/70 p-1.5" style="height:${chartHeight + 16}px">
+          <div class="flex min-w-0 flex-1 flex-col items-center gap-1.5 self-stretch">
+            <div class="w-full max-w-[58px] flex flex-1 flex-col-reverse items-center gap-0.5 rounded-xl bg-slate-100/70 p-1.5" style="height:${chartHeight}px">
               <div class="w-full rounded-md bg-sky-500 transition-all" style="height:${scansH}px" title="${d.scans} scan(s)"></div>
               ${recH > 0 ? `<div class="w-full rounded-t-lg bg-emerald-400 transition-all" style="height:${recH}px" title="${d.recompenses} récompense(s)"></div>` : ''}
             </div>

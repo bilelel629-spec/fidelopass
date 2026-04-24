@@ -104,7 +104,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 <script>
   import { createClient } from '@supabase/supabase-js';
   import { clearSessionCookie, setSessionCookie } from '../lib/session-cookie';
-  import { resolvePostAuthDestination } from '../lib/post-auth-destination';
 
   const supabase = createClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
@@ -177,9 +176,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       }
 
       setSessionCookie(activeSession.access_token);
-      showProgress('Connexion validée, ouverture de votre espace...');
-      const destination = await resolvePostAuthDestination(activeSession.access_token);
-      window.location.replace(destination);
+      showProgress('Connexion validée, redirection...');
+      // Redirection immédiate: le middleware décide ensuite /dashboard, /onboarding ou /abonnement/choix.
+      window.location.replace('/dashboard');
     } finally {
       redirectInFlight = false;
     }

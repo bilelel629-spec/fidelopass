@@ -1,3 +1,5 @@
+import { withTimeout } from './utils/with-timeout';
+
 type BillingStatusResponse = {
   data?: {
     has_access?: boolean;
@@ -7,13 +9,6 @@ type BillingStatusResponse = {
 
 const API_BASE = (import.meta.env.PUBLIC_API_URL || 'https://api.fidelopass.com').replace(/\/$/, '');
 const BILLING_CHECK_TIMEOUT_MS = Number(import.meta.env.PUBLIC_BILLING_CHECK_TIMEOUT_MS ?? 2200);
-
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
-  ]);
-}
 
 export async function resolvePostAuthDestination(accessToken: string): Promise<string> {
   if (!API_BASE || !accessToken) return '/abonnement/choix';

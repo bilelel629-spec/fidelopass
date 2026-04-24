@@ -123,6 +123,14 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
           </div>
         </div>
       </div>
+
+      <div class="card p-6">
+        <h2 class="font-display text-xl font-bold text-slate-900">Dernières actions admin</h2>
+        <p class="mt-1 text-sm text-slate-500">Trace des changements sensibles sur les commerces.</p>
+        <div id="admin-audit-log-list" class="mt-4 space-y-2">
+          <p class="text-sm text-slate-500">Chargement...</p>
+        </div>
+      </div>
     </section>
   </div>
 </AdminLayout>
@@ -395,6 +403,38 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       : 'mt-1 text-sm font-semibold text-rose-700';
   }
 
+  async function loadAdminAuditLogs() {
+    const container = document.getElementById('admin-audit-log-list');
+    if (!container) return;
+    try {
+      const res = await authFetch(`${API_BASE}/api/admin/audit-logs?limit=8`);
+      if (!res.ok) throw new Error();
+      const payload = await res.json().catch(() => null);
+      const logs = Array.isArray(payload?.data) ? payload.data : [];
+      if (!logs.length) {
+        container.innerHTML = '<p class="text-sm text-slate-500">Aucune action enregistrée pour le moment.</p>';
+        return;
+      }
+
+      container.innerHTML = logs.map((log: any) => {
+        const when = new Date(log.created_at).toLocaleString('fr-FR');
+        const actor = String(log.admin_email ?? 'admin');
+        const action = String(log.action ?? 'action');
+        const target = String(log.target_type ?? '');
+        const targetId = String(log.target_id ?? '').slice(0, 8);
+        return `
+          <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+            <p class="text-xs font-semibold text-slate-800">${action}</p>
+            <p class="mt-1 text-[0.72rem] text-slate-500">${actor} · ${target}${targetId ? ` #${targetId}` : ''}</p>
+            <p class="mt-1 text-[0.68rem] text-slate-400">${when}</p>
+          </div>
+        `;
+      }).join('');
+    } catch {
+      container.innerHTML = '<p class="text-sm text-slate-500">Journal indisponible (migration à appliquer).</p>';
+    }
+  }
+
   async function loadPlatformHealth() {
     try {
       const [apiRes, depsRes] = await Promise.all([
@@ -451,4 +491,5 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   loadStats();
   loadRecentCommerces();
   loadPlatformHealth();
+  loadAdminAuditLogs();
 </script>

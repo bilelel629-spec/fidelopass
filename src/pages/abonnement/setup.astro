@@ -152,7 +152,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   void requireSessionAndBilling();
 
-  async function refreshSelectionFromPricingConfig(sessionToken: string, selection: Selection): Promise<Selection> {
+  async function refreshSelectionFromPricingConfig(sessionToken: string, selection: Selection): Promise<Selection | null> {
     try {
       const res = await fetch(`${API}/api/checkout/pricing-config`, {
         headers: {
@@ -163,18 +163,20 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       if (!res.ok) return selection;
       const payload = await res.json().catch(() => null);
       const lookup = {
-        starter_mensuel: payload?.data?.starter?.monthly?.priceId,
-        starter_annuel_mensuel: payload?.data?.starter?.annual_monthly?.priceId,
-        starter_annuel_once: payload?.data?.starter?.annual_once?.priceId,
-        pro_mensuel: payload?.data?.pro?.monthly?.priceId,
-        pro_annuel_mensuel: payload?.data?.pro?.annual_monthly?.priceId,
-        pro_annuel_once: payload?.data?.pro?.annual_once?.priceId,
+        starter_mensuel: payload?.data?.starter?.monthly,
+        starter_annuel_mensuel: payload?.data?.starter?.annual_monthly,
+        starter_annuel_once: payload?.data?.starter?.annual_once,
+        pro_mensuel: payload?.data?.pro?.monthly,
+        pro_annuel_mensuel: payload?.data?.pro?.annual_monthly,
+        pro_annuel_once: payload?.data?.pro?.annual_once,
       } as const;
       const slot = selection.priceSlot;
       if (!slot || !lookup[slot]) return selection;
+      const resolved = lookup[slot];
+      if (!resolved?.available || !resolved?.priceId) return null;
       return {
         ...selection,
-        priceId: String(lookup[slot]),
+        priceId: String(resolved.priceId),
       };
     } catch {
       return selection;
@@ -200,6 +202,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         return;
       }
       const syncedSelection = await refreshSelectionFromPricingConfig(session.access_token, currentSelection);
+      if (!syncedSelection) {
+        window.location.replace('/abonnement/choix?price_unavailable=1');
+        return;
+      }
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(syncedSelection));
 
       const res = await fetch(`${API}/api/checkout/create-session`, {

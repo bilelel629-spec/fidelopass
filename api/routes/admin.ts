@@ -4,11 +4,18 @@ import { authMiddleware } from '../middleware/auth';
 import { adminMiddleware } from '../middleware/admin';
 import { z } from 'zod';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
+import { appendAdminAuditLog, listAdminAuditLogs } from '../services/admin-audit';
 
 export const adminRoutes = new Hono();
 
 adminRoutes.use('*', authMiddleware);
 adminRoutes.use('*', adminMiddleware);
+
+adminRoutes.get('/audit-logs', async (c) => {
+  const limitRaw = Number(c.req.query('limit') ?? 20);
+  const data = await listAdminAuditLogs(limitRaw);
+  return c.json({ data });
+});
 
 /** GET /api/admin/commerces — Liste tous les commerces */
 adminRoutes.get('/commerces', async (c) => {
@@ -102,6 +109,8 @@ adminRoutes.patch('/commerces/:id', async (c) => {
   const commerceId = c.req.param('id');
   const body = await c.req.json().catch(() => null);
   if (typeof body?.actif !== 'boolean') return c.json({ error: 'Paramètre actif requis' }, 400);
+  const adminUser = c.get('user');
+  const adminUserId = c.get('userId') as string;
 
   const db = createServiceClient();
   const { data, error } = await db
@@ -113,6 +122,17 @@ adminRoutes.patch('/commerces/:id', async (c) => {
 
   if (error) return c.json({ error: 'Erreur lors de la mise à jour' }, 500);
 
+  await appendAdminAuditLog({
+    adminUserId,
+    adminEmail: adminUser?.email ?? null,
+    action: 'commerce.toggle_active',
+    targetType: 'commerce',
+    targetId: commerceId,
+    payload: {
+      actif: body.actif,
+    },
+  });
+
   return c.json({ data });
 });
 
@@ -120,6 +140,8 @@ adminRoutes.patch('/commerces/:id', async (c) => {
 adminRoutes.patch('/commerces/:id/plan', async (c) => {
   const commerceId = c.req.param('id');
   const body = await c.req.json().catch(() => null);
+  const adminUser = c.get('user');
+  const adminUserId = c.get('userId') as string;
   const parsed = z.object({
     plan_override: z.union([
       z.literal('starter'),
@@ -145,6 +167,18 @@ adminRoutes.patch('/commerces/:id/plan', async (c) => {
     .single();
 
   if (error) return c.json({ error: 'Erreur lors de la mise à jour du plan.' }, 500);
+
+  await appendAdminAuditLog({
+    adminUserId,
+    adminEmail: adminUser?.email ?? null,
+    action: 'commerce.plan_override.updated',
+    targetType: 'commerce',
+    targetId: commerceId,
+    payload: {
+      plan_override: parsed.data.plan_override,
+      effective_plan: getEffectivePlanRaw(data),
+    },
+  });
 
   return c.json({
     data: {

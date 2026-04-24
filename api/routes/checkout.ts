@@ -131,25 +131,6 @@ function isNoSuchPriceError(error: unknown): boolean {
   return /No such price/i.test(message);
 }
 
-async function resolveUsablePriceId(
-  stripe: Stripe,
-  slot: PriceSlot,
-  requestedPriceId: string,
-  priceIds: Record<string, string>,
-): Promise<string> {
-  const attempts = unique([requestedPriceId, ...candidatesForSlot(slot, priceIds)]);
-  for (const candidate of attempts) {
-    try {
-      await stripe.prices.retrieve(candidate);
-      return candidate;
-    } catch (error) {
-      if (isNoSuchPriceError(error)) continue;
-      throw error;
-    }
-  }
-  throw new Error(`No such price: '${requestedPriceId}'`);
-}
-
 type PricingConfigEntry = {
   slot: PriceSlot;
   mode: 'subscription' | 'payment';
@@ -243,30 +224,56 @@ function buildPricingConfigPayload(priceIds: Record<string, string>, availabilit
   };
 }
 
-checkoutRoutes.get('/pricing-config', authMiddleware, async (c) => {
-  const priceIds = loadPriceIds();
+async function resolvePricingConfig(stripe: Stripe, priceIds: Record<string, string>): Promise<{ data: PricingConfigPayload; cached: boolean; degraded: boolean }> {
   const now = Date.now();
   if (pricingConfigCache && pricingConfigCache.expiresAt > now) {
-    return c.json({ data: pricingConfigCache.data, cached: true });
+    return { data: pricingConfigCache.data, cached: true, degraded: false };
   }
 
   try {
-    const stripe = getStripe();
     const availability = await resolveAvailablePriceMap(stripe, priceIds);
     const data = buildPricingConfigPayload(priceIds, availability);
     pricingConfigCache = {
       expiresAt: now + PRICING_CONFIG_CACHE_TTL_MS,
       data,
     };
-    return c.json({ data, cached: false });
+    return { data, cached: false, degraded: false };
   } catch (error) {
     console.error('[checkout] pricing-config validation fallback:', error);
     const fallbackAvailability = Object.fromEntries(
       PRICE_SLOTS.flatMap((slot) => candidatesForSlot(slot, priceIds)).map((id) => [id, true]),
     ) as Record<string, boolean>;
     const data = buildPricingConfigPayload(priceIds, fallbackAvailability);
-    return c.json({ data, cached: false, degraded: true });
+    return { data, cached: false, degraded: true };
   }
+}
+
+function getPricingEntryFromSlot(data: PricingConfigPayload, slot: PriceSlot): PricingConfigEntry {
+  switch (slot) {
+    case 'starter_mensuel':
+      return data.starter.monthly;
+    case 'starter_annuel_mensuel':
+      return data.starter.annual_monthly;
+    case 'starter_annuel_once':
+      return data.starter.annual_once;
+    case 'pro_mensuel':
+      return data.pro.monthly;
+    case 'pro_annuel_mensuel':
+      return data.pro.annual_monthly;
+    case 'pro_annuel_once':
+      return data.pro.annual_once;
+    case 'accompagnement':
+      return data.addons.accompagnement;
+    case 'scanner':
+      return data.addons.scanner;
+  }
+}
+
+checkoutRoutes.get('/pricing-config', authMiddleware, async (c) => {
+  const priceIds = loadPriceIds();
+  const stripe = getStripe();
+  const pricing = await resolvePricingConfig(stripe, priceIds);
+  return c.json(pricing);
 });
 
 /** POST /api/checkout/create-session */
@@ -338,10 +345,28 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   }
 
   const stripe = getStripe();
-  const resolvedBasePriceId = await resolveUsablePriceId(stripe, selectedSlot, priceId, priceIds);
-  const resolvedAccompagnementPriceId = includeAccompagnement
-    ? await resolveUsablePriceId(stripe, 'accompagnement', priceIds.accompagnement ?? LEGACY_PRICE_IDS.accompagnement[0], priceIds)
+  const pricing = await resolvePricingConfig(stripe, priceIds);
+  const selectedPriceEntry = getPricingEntryFromSlot(pricing.data, selectedSlot);
+  if (!selectedPriceEntry.available || !selectedPriceEntry.priceId) {
+    return c.json({
+      error: 'Ce tarif est temporairement indisponible. Rafraîchissez la page puis réessayez.',
+      code: 'PRICE_UNAVAILABLE',
+      slot: selectedSlot,
+    }, 409);
+  }
+
+  const resolvedBasePriceId = selectedPriceEntry.priceId;
+  const accompagnementEntry = includeAccompagnement
+    ? getPricingEntryFromSlot(pricing.data, 'accompagnement')
     : null;
+  if (includeAccompagnement && (!accompagnementEntry?.available || !accompagnementEntry?.priceId)) {
+    return c.json({
+      error: "L'option Accompagnement Setup est temporairement indisponible. Réessayez dans quelques instants.",
+      code: 'ADDON_UNAVAILABLE',
+      slot: 'accompagnement',
+    }, 409);
+  }
+  const resolvedAccompagnementPriceId = accompagnementEntry?.priceId ?? null;
 
   const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
   const successUrl = isPlanCheckout

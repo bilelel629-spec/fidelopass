@@ -417,11 +417,15 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   const cancelled = new URLSearchParams(window.location.search).get('cancelled');
   const guard = new URLSearchParams(window.location.search).get('guard');
+  const priceUnavailable = new URLSearchParams(window.location.search).get('price_unavailable');
   if (cancelled === '1') {
     errorEl.textContent = 'Paiement annulé. Vous pouvez reprendre votre sélection.';
     errorEl.classList.remove('hidden');
   } else if (guard === '1') {
     errorEl.textContent = 'Votre session nécessite un abonnement actif pour accéder à l’espace commerçant.';
+    errorEl.classList.remove('hidden');
+  } else if (priceUnavailable === '1') {
+    errorEl.textContent = 'Le tarif sélectionné n’est plus disponible. Veuillez choisir un autre mode de facturation.';
     errorEl.classList.remove('hidden');
   }
 

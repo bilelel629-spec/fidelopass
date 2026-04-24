@@ -16,6 +16,8 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     </div>
   </div>
 
+  <p id="admin-action-feedback" class="mb-4 hidden rounded-xl border px-4 py-3 text-sm"></p>
+
   <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
     <div class="stat-card">
       <span class="text-slate-500 text-xs uppercase tracking-wide">Commerces</span>
@@ -141,6 +143,14 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     if (!commerce.cartes.length) return { label: 'Compte créé', badge: 'badge-warning' };
     if (!commerce.clients.length) return { label: 'Carte prête', badge: 'badge-info' };
     return { label: 'Carte partagée', badge: 'badge-success' };
+  }
+
+  function setActionFeedback(message: string, tone: 'success' | 'error') {
+    const feedback = document.getElementById('admin-action-feedback') as HTMLParagraphElement;
+    feedback.textContent = message;
+    feedback.className = tone === 'success'
+      ? 'mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700'
+      : 'mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700';
   }
 
   function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
@@ -341,8 +351,9 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
           await updatePlan(id, select.value as 'starter' | 'pro' | 'sur-mesure');
           await loadStats();
           await loadRecentCommerces();
+          setActionFeedback('Plan mis à jour avec succès.', 'success');
         } catch (error) {
-          window.alert(error instanceof Error ? error.message : 'Erreur de mise à jour du plan.');
+          setActionFeedback(error instanceof Error ? error.message : 'Erreur de mise à jour du plan.', 'error');
           button.disabled = false;
           button.textContent = previous;
         }

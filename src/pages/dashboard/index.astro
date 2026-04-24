@@ -119,6 +119,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   import { ACTIVE_POINT_VENTE_STORAGE_KEY, authFetch } from '../../lib/api';
   import { supabase } from '../../lib/supabase';
   import { isProPlan, planLabel } from '../../lib/dashboard-config';
+  const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
+
+  function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
+    ]);
+  }
 
   function escapeHtml(value: unknown) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -297,7 +305,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   async function loadAdminShortcut() {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const sessionResult = await withTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
+      let session = sessionResult?.data?.session ?? null;
+      if (!session) {
+        const refreshResult = await withTimeout(supabase.auth.refreshSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
+        session = refreshResult?.data?.session ?? null;
+      }
       const email = session?.user?.email?.toLowerCase();
       const isAdmin = ['bilelel@live.fr', 'bilel@pulse-agency.fr'].includes(email ?? '');
       document.getElementById('admin-shortcut')!.classList.toggle('hidden', !isAdmin);

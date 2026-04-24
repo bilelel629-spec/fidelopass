@@ -107,6 +107,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   };
 
   let allCommerces: AdminCommerce[] = [];
+  const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
 
   function normalizePlan(planRaw: unknown) {
     return String(planRaw ?? 'starter').trim().toLowerCase();
@@ -132,14 +133,29 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     return { label: 'Carte partagée', badge: 'badge-success' };
   }
 
-  async function authFetch(url: string, opts: RequestInit = {}) {
+  function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
+    ]);
+  }
+
+  async function getAccessTokenFast() {
     const { supabase } = await import('../../lib/supabase');
-    const { data: { session } } = await supabase.auth.getSession();
+    const sessionResult = await withTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
+    const sessionToken = sessionResult?.data?.session?.access_token;
+    if (sessionToken) return sessionToken;
+    const refreshResult = await withTimeout(supabase.auth.refreshSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
+    return refreshResult?.data?.session?.access_token ?? '';
+  }
+
+  async function authFetch(url: string, opts: RequestInit = {}) {
+    const accessToken = await getAccessTokenFast();
     return fetch(url, {
       ...opts,
       headers: {
         ...(opts.headers ?? {}),
-        Authorization: `Bearer ${session?.access_token ?? ''}`,
+        Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
     });

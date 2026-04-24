@@ -905,6 +905,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const supabase = createClient(import.meta.env.PUBLIC_SUPABASE_URL, import.meta.env.PUBLIC_SUPABASE_ANON_KEY);
   const API = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
   const PUBLIC_SITE_URL = (import.meta.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
+  const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
   const setupMode = new URLSearchParams(window.location.search).get('setup') === '1';
   const TOTAL_STEPS = 7;
   const STEP_LABELS = ['Type', 'Identité', 'Programme', 'Apparence', 'Messages', 'Options', 'Partage'] as const;
@@ -980,6 +981,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const completedSteps = new Set<WizardStep>();
   type RewardTier = { seuil: number; recompense: string };
   type VipTier = { nom: string; seuil: number; avantage?: string };
+
+  function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
+    ]);
+  }
+
+  async function getAccessTokenFast() {
+    const sessionResult = await withTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
+    const sessionToken = sessionResult?.data?.session?.access_token;
+    if (sessionToken) return sessionToken;
+    const refreshResult = await withTimeout(supabase.auth.refreshSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
+    return refreshResult?.data?.session?.access_token ?? '';
+  }
 
   function setDraftState(dirty: boolean, force = false) {
     if (!force && (suppressDirtyTracking || isSaving)) return;
@@ -1179,9 +1195,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   async function uploadFile(file: File): Promise<string> {
-    const {data:{session}} = await supabase.auth.getSession();
+    const accessToken = await getAccessTokenFast();
     const fd = new FormData(); fd.append('file',file);
-    const r = await fetch(`${API}/api/upload`,{method:'POST',headers:{Authorization:`Bearer ${session?.access_token??''}`},body:fd});
+    const r = await fetch(`${API}/api/upload`,{method:'POST',headers:{Authorization:`Bearer ${accessToken}`},body:fd});
     const j = await r.json(); if(!r.ok) throw new Error(j.error??'Erreur upload'); return j.url as string;
   }
 

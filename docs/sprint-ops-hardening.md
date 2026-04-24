@@ -27,6 +27,9 @@ Stabiliser la production Fidelopass sur trois axes:
 - Timeout session global côté front authentifié:
   - `src/lib/api.ts` (`authFetch`) utilise une sonde session + refresh bornées par `PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS`.
   - layouts `Dashboard` / `App` / `Admin` et sidebar dashboard utilisent aussi cette sonde rapide.
+- Sweep session consistency complété:
+  - pages `reset-password`, `admin/index`, `admin/commerces`, `admin/cartes`, `dashboard/index`, `dashboard/carte` alignées sur des sondes session bornées + refresh rapide.
+  - suppression des derniers appels `getSession()` non bornés côté navigateur.
 - Dédup des redirections auth (`redirectInFlight`) pour empêcher les doubles appels concurrents.
 
 ### 2) Observabilité & santé dépendances

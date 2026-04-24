@@ -5,14 +5,14 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 <AdminLayout title="Vue globale — Admin Fidelopass" activeNav="overview">
   <div class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
     <div>
-      <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Pilotage plateforme</p>
-      <h1 class="font-display mt-2 text-3xl font-bold text-slate-900">Vue globale</h1>
-      <p class="mt-2 text-sm text-slate-600">Suivez les commerces inscrits, leur activité, leurs cartes configurées et les signaux qui comptent pour l’équipe fondatrice.</p>
+      <p class="dashboard-kicker">Pilotage plateforme</p>
+      <h1 class="dashboard-title">Vue globale</h1>
+      <p class="dashboard-subtitle">Suivez les commerces inscrits, leur activité, leurs cartes configurées et les signaux qui comptent pour l’équipe fondatrice.</p>
     </div>
     <div class="flex flex-wrap gap-2">
-      <a href="/admin/commerces" class="rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-50">Voir tous les commerces</a>
-      <a href="/admin/cartes" class="rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-50">Assistance cartes</a>
-      <button id="export-admin-csv" type="button" class="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-sky-700">Exporter la base</button>
+      <a href="/admin/commerces" class="btn-secondary px-4 py-2.5 text-sm">Voir tous les commerces</a>
+      <a href="/admin/cartes" class="btn-secondary px-4 py-2.5 text-sm">Assistance cartes</a>
+      <button id="export-admin-csv" type="button" class="btn-primary px-4 py-2.5 text-sm">Exporter la base</button>
     </div>
   </div>
 
@@ -57,7 +57,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   </div>
 
   <div class="mt-6 grid gap-6 xl:grid-cols-[1.4fr_0.9fr]">
-    <section class="card p-6">
+    <section class="card dashboard-panel p-6">
       <div class="mb-4 flex items-center justify-between gap-3">
         <div>
           <h2 class="font-display text-xl font-bold text-slate-900">Commerces récents</h2>
@@ -70,7 +70,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     </section>
 
     <section class="space-y-6">
-      <div class="card p-6">
+      <div class="card dashboard-panel p-6">
         <h2 class="font-display text-xl font-bold text-slate-900">Repères admin</h2>
         <div class="mt-4 space-y-3 text-sm text-slate-600">
           <div class="rounded-2xl border border-sky-100 bg-sky-50 p-4">
@@ -88,7 +88,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         </div>
       </div>
 
-      <div class="card p-6">
+      <div class="card dashboard-panel p-6">
         <h2 class="font-display text-xl font-bold text-slate-900">Historique global</h2>
         <div class="mt-4 flex items-end gap-4">
           <div>
@@ -99,7 +99,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         </div>
       </div>
 
-      <div class="card p-6">
+      <div class="card dashboard-panel p-6">
         <h2 class="font-display text-xl font-bold text-slate-900">Santé plateforme</h2>
         <p class="mt-1 text-sm text-slate-500">Vue consolidée des dépendances critiques API et wallet.</p>
         <div class="mt-4 grid gap-3">
@@ -128,7 +128,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         </div>
       </div>
 
-      <div class="card p-6">
+      <div class="card dashboard-panel p-6">
         <h2 class="font-display text-xl font-bold text-slate-900">Dernières actions admin</h2>
         <p class="mt-1 text-sm text-slate-500">Trace des changements sensibles sur les commerces.</p>
         <div id="admin-audit-log-list" class="mt-4 space-y-2">

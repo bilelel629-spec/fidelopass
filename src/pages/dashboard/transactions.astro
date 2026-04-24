@@ -4,12 +4,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
 <DashboardLayout title="Historique — Fidelopass" activeNav="transactions">
   <div class="mb-8">
-    <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Historique</p>
-    <h1 class="font-display text-3xl font-bold text-slate-900 mt-2">Historique</h1>
-    <p class="text-slate-600 text-sm mt-2">Historique de tous les scans et ajouts de points.</p>
+    <p class="dashboard-kicker">Historique</p>
+    <h1 class="dashboard-title">Historique</h1>
+    <p class="dashboard-subtitle">Historique de tous les scans et ajouts de points.</p>
   </div>
 
-  <div class="card overflow-x-auto">
+  <div class="card dashboard-panel overflow-x-auto">
     <div id="transactions-list">
       <p class="text-slate-500 text-sm p-6">Chargement...</p>
     </div>

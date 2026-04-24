@@ -4,13 +4,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
 <DashboardLayout title="Points de vente — Fidelopass" activeNav="points-vente">
   <div class="mb-6">
-    <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Multi-sites</p>
-    <h1 class="font-display mt-2 text-3xl font-bold text-slate-900">Gérer vos points de vente</h1>
-    <p class="mt-2 text-sm text-slate-600">Plan Pro: jusqu’à 3 points de vente, chacun avec son propre nom affiché côté client, sa carte et son adresse.</p>
+    <p class="dashboard-kicker">Multi-sites</p>
+    <h1 class="dashboard-title">Gérer vos points de vente</h1>
+    <p class="dashboard-subtitle">Plan Pro: jusqu’à 3 points de vente, chacun avec son propre nom affiché côté client, sa carte et son adresse.</p>
   </div>
 
   <div class="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
-    <section class="card p-6">
+    <section class="card dashboard-panel p-6">
       <div class="mb-4 flex items-center justify-between gap-4">
         <div>
           <h2 class="font-display text-xl font-bold text-slate-900">Vos points de vente</h2>
@@ -23,7 +23,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
     </section>
 
-    <section class="card p-6">
+    <section class="card dashboard-panel p-6">
       <h2 class="font-display text-xl font-bold text-slate-900">Ajouter un point de vente</h2>
       <p class="mt-1 text-sm text-slate-500">Ajoutez une adresse supplémentaire dans la limite de votre plan.</p>
       <form id="add-point-vente-form" class="mt-4 space-y-3">

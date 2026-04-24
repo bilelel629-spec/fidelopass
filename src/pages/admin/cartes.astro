@@ -5,17 +5,17 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 <AdminLayout title="Assistance cartes — Admin Fidelopass" activeNav="cartes">
   <div class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
     <div>
-      <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Support opérationnel</p>
-      <h1 class="font-display mt-2 text-3xl font-bold text-slate-900">Assistance cartes commerçants</h1>
-      <p class="mt-2 text-sm text-slate-600">Intervenez directement sur la carte d’un commerce (support, assistance setup 20€, correction urgente).</p>
+      <p class="dashboard-kicker">Support opérationnel</p>
+      <h1 class="dashboard-title">Assistance cartes commerçants</h1>
+      <p class="dashboard-subtitle">Intervenez directement sur la carte d’un commerce (support, assistance setup 20€, correction urgente).</p>
     </div>
-    <a href="/admin/commerces" class="rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-50">
+    <a href="/admin/commerces" class="btn-secondary px-4 py-2.5 text-sm">
       Retour à la liste des commerces
     </a>
   </div>
 
   <div class="grid gap-6 xl:grid-cols-[320px_1fr]">
-    <section class="card p-5">
+    <section class="card dashboard-panel p-5">
       <h2 class="font-display text-xl font-bold text-slate-900">Sélection</h2>
       <div class="mt-4 space-y-4">
         <div>
@@ -35,7 +35,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       <p id="admin-help-msg" class="mt-4 text-xs text-slate-500">Choisissez un commerce puis un point de vente pour éditer sa carte.</p>
     </section>
 
-    <section class="card p-6">
+    <section class="card dashboard-panel p-6">
       <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 class="font-display text-2xl font-bold text-slate-900">Personnalisation rapide</h2>

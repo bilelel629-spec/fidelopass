@@ -16,7 +16,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         <img src="/logo-premium-cropped.png" alt="Fidelopass" class="h-14 w-auto object-contain" />
       </a>
 
-      <div class="bg-white/92 border border-sky-100 shadow-[0_32px_70px_-34px_rgba(37,99,235,0.28)] rounded-[2rem] p-6 sm:p-8">
+      <div class="section-shell rounded-[2rem] p-6 sm:p-8">
         <p class="text-[0.7rem] font-semibold uppercase tracking-[0.26em] text-sky-700/75">Étape 2 sur 2</p>
         <h1 class="font-display text-3xl sm:text-4xl font-bold text-slate-900 mt-3">Finalisez votre commande</h1>
         <p class="text-slate-500 text-base mt-3 leading-relaxed">
@@ -44,10 +44,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         <div id="setup-error" class="hidden mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"></div>
 
         <div class="grid sm:grid-cols-2 gap-3 mt-6">
-          <a href="/abonnement/choix" class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+          <a href="/abonnement/choix" class="btn-secondary px-4 py-3 text-sm">
             Retour au choix du plan
           </a>
-          <button id="btn-checkout" type="button" class="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-900 transition-colors">
+          <button id="btn-checkout" type="button" class="btn-primary px-4 py-3 text-sm">
             Continuer vers Stripe
           </button>
         </div>

@@ -4,33 +4,33 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
 <DashboardLayout title="Notifications push — Fidelopass" activeNav="notifications">
   <div class="mb-6">
-    <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Communication client</p>
-    <h1 class="mt-2 font-display text-3xl font-bold text-slate-900">Notifications push</h1>
-    <p class="mt-2 text-sm text-slate-600">Envoyez un message immédiat ou activez des automatisations pour vos clients Wallet.</p>
+    <p class="dashboard-kicker">Communication client</p>
+    <h1 class="dashboard-title">Notifications push</h1>
+    <p class="dashboard-subtitle">Envoyez un message immédiat ou activez des automatisations pour vos clients Wallet.</p>
   </div>
 
   <div class="mb-5 grid gap-4 sm:grid-cols-2">
-    <div class="card p-5">
+    <div class="card dashboard-panel p-5">
       <p class="text-slate-500 text-xs uppercase tracking-wide">Clients joignables Wallet</p>
       <p id="summary-wallet" class="mt-2 text-2xl font-display font-bold text-slate-900">—</p>
       <p class="mt-1 text-xs text-slate-500">Apple Wallet + Google Wallet</p>
     </div>
-    <div class="card p-5">
+    <div class="card dashboard-panel p-5">
       <p class="text-slate-500 text-xs uppercase tracking-wide">Campagnes envoyées</p>
       <p id="summary-history" class="mt-2 text-2xl font-display font-bold text-slate-900">—</p>
       <p class="mt-1 text-xs text-slate-500">Historique du point de vente actif</p>
     </div>
   </div>
 
-  <div class="mb-5 rounded-2xl border border-sky-100 bg-white p-2">
+  <div class="mb-5 dashboard-tabs">
     <div class="grid gap-2 sm:grid-cols-3">
-      <button type="button" data-tab="manual" class="notif-tab rounded-xl bg-sky-100 px-4 py-2.5 text-sm font-semibold text-sky-800">Envoi manuel</button>
-      <button type="button" data-tab="automation" class="notif-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Automatisations</button>
-      <button type="button" data-tab="history" class="notif-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Historique</button>
+      <button type="button" data-tab="manual" class="notif-tab dashboard-tab dashboard-tab-active">Envoi manuel</button>
+      <button type="button" data-tab="automation" class="notif-tab dashboard-tab">Automatisations</button>
+      <button type="button" data-tab="history" class="notif-tab dashboard-tab">Historique</button>
     </div>
   </div>
 
-  <section id="tab-manual" class="notif-panel card p-6">
+  <section id="tab-manual" class="notif-panel card dashboard-panel p-6">
     <h2 class="mb-4 font-display font-bold text-slate-900">Nouveau message client</h2>
     <form id="notif-form" class="flex flex-col gap-4">
       <div>
@@ -123,7 +123,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   </section>
 
-  <section id="tab-history" class="notif-panel hidden card p-6">
+  <section id="tab-history" class="notif-panel hidden card dashboard-panel p-6">
     <h2 class="mb-4 font-display font-bold text-slate-900">Historique des messages</h2>
     <div id="notif-history" class="flex flex-col gap-3">
       <p class="text-sm text-slate-500">Chargement...</p>
@@ -153,8 +153,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     document.querySelectorAll<HTMLElement>('.notif-tab').forEach((btn) => {
       const active = btn.dataset.tab === tab;
       btn.className = active
-        ? 'notif-tab rounded-xl bg-sky-100 px-4 py-2.5 text-sm font-semibold text-sky-800'
-        : 'notif-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50';
+        ? 'notif-tab dashboard-tab dashboard-tab-active'
+        : 'notif-tab dashboard-tab';
     });
   }
 

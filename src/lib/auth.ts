@@ -1,10 +1,26 @@
 import { supabase } from './supabase';
 import { clearSessionCookie, setSessionCookie } from './session-cookie';
 
+const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
+  ]);
+}
+
 export async function getSession() {
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error) return null;
-  return session;
+  const sessionResult = await withTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
+  if (!sessionResult) return null;
+  const { data: { session }, error } = sessionResult;
+  if (!error && session) return session;
+
+  const refreshResult = await withTimeout(supabase.auth.refreshSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
+  if (!refreshResult) return null;
+  const { data, error: refreshError } = refreshResult;
+  if (refreshError) return null;
+  return data.session ?? null;
 }
 
 export async function getUser() {

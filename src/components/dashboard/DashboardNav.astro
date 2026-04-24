@@ -124,6 +124,7 @@ const navItems = DASHBOARD_NAV_ITEMS;
     import.meta.env.PUBLIC_SUPABASE_URL,
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
   );
+  const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
 
   const desktopPlanBadge = document.getElementById('dashboard-plan-badge');
   const mobilePlanBadge = document.getElementById('dashboard-plan-badge-mobile');
@@ -162,6 +163,13 @@ const navItems = DASHBOARD_NAV_ITEMS;
     } catch {
       // localStorage best-effort
     }
+  }
+
+  function withTimeout(promise: Promise<unknown>, timeoutMs: number) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
+    ]);
   }
 
   async function loadPointVenteSelector() {
@@ -234,7 +242,10 @@ const navItems = DASHBOARD_NAV_ITEMS;
   await loadPointVenteSelector();
   await loadPlanBadge();
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const sessionResult = await withTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null) as {
+    data?: { session?: { access_token?: string } | null };
+  } | null;
+  const session = sessionResult?.data?.session ?? null;
   if (session?.access_token) {
     setSessionCookie(session.access_token);
   }

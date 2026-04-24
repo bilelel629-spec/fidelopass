@@ -36,7 +36,16 @@ const { title = 'Fidelopass Scanner' } = Astro.props;
     import.meta.env.PUBLIC_SUPABASE_URL,
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
   );
-  const { data: { session } } = await supabase.auth.getSession();
+  const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
+  function withTimeout(promise, timeoutMs) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
+    ]);
+  }
+
+  const sessionResult = await withTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
+  const session = sessionResult?.data?.session ?? null;
   if (!session) window.location.replace('/login');
 
   // Enregistrement du Service Worker

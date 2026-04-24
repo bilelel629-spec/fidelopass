@@ -1,8 +1,16 @@
 import { supabase } from './supabase';
 
 const API_URL = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
+const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
 export const ACTIVE_POINT_VENTE_STORAGE_KEY = 'fidelopass_active_point_vente_id';
 export const POINT_VENTE_HEADER_NAME = 'X-Point-Vente-Id';
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
+  ]);
+}
 
 function getActivePointVenteId(): string | null {
   if (typeof window === 'undefined') return null;
@@ -37,16 +45,25 @@ function buildHeaders(opts: RequestInit, activePointVenteId: string | null, acce
   return headers;
 }
 
+async function getAccessTokenFast(): Promise<string | null> {
+  const sessionResult = await withTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
+  const token = sessionResult?.data?.session?.access_token ?? null;
+  if (token) return token;
+
+  const refreshResult = await withTimeout(supabase.auth.refreshSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
+  return refreshResult?.data?.session?.access_token ?? null;
+}
+
 /** Wrapper fetch authentifié (ajoute le JWT Supabase automatiquement) */
 export async function authFetch(path: string, opts: RequestInit = {}): Promise<Response> {
-  const { data: { session } } = await supabase.auth.getSession();
+  const accessToken = await getAccessTokenFast();
   const activePointVenteId = getActivePointVenteId();
   const method = String(opts.method ?? 'GET').toUpperCase();
   const url = `${API_URL}${path}`;
 
   let response = await fetch(url, {
     ...opts,
-    headers: buildHeaders(opts, activePointVenteId, session?.access_token ?? null),
+    headers: buildHeaders(opts, activePointVenteId, accessToken),
   });
 
   // Si le point de vente stocké est obsolète, on retente une seule fois sans forcer d'id.
@@ -54,7 +71,7 @@ export async function authFetch(path: string, opts: RequestInit = {}): Promise<R
     clearActivePointVenteId();
     response = await fetch(url, {
       ...opts,
-      headers: buildHeaders(opts, null, session?.access_token ?? null),
+      headers: buildHeaders(opts, null, accessToken),
     });
   }
 

@@ -150,8 +150,25 @@ import AppLayout from '../../layouts/AppLayout.astro';
 </style>
 
 <script>
-  import { Html5Qrcode } from 'html5-qrcode';
   import { authFetch } from '../../lib/api';
+
+  type ScannerInstance = {
+    start: (
+      cameraConfigOrDeviceId: string | MediaTrackConstraints,
+      configuration: Record<string, unknown>,
+      qrCodeSuccessCallback: (decodedText: string) => void,
+      qrCodeErrorCallback?: (errorMessage: string) => void,
+    ) => Promise<void>;
+    pause: () => void;
+    resume: () => void;
+  };
+
+  type Html5QrcodeModule = {
+    Html5Qrcode: new (elementId: string, verbose?: boolean) => ScannerInstance;
+    Html5QrcodeSupportedFormats: {
+      QR_CODE: number;
+    };
+  };
 
   let currentClientId: string | null = null;
   let currentClientRecompenses = 0;
@@ -165,18 +182,44 @@ import AppLayout from '../../layouts/AppLayout.astro';
   const cameraHelpText = document.getElementById('camera-help-text')!;
   const cameraPermissionBtn = document.getElementById('btn-camera-permission') as HTMLButtonElement;
   const scanToast = document.getElementById('scan-toast')!;
-  const scanner = new Html5Qrcode('reader', false);
+  let scanner: ScannerInstance | null = null;
+  let html5QrcodeModule: Html5QrcodeModule | null = null;
+  let scannerModulePromise: Promise<Html5QrcodeModule> | null = null;
   let scannerStarting = false;
   const CAMERA_CACHE_KEY = 'fidelopass_scanner_camera_id';
   const SCANNER_TOKEN_KEY = 'fidelopass_scanner_token';
-  const scanConfig = {
-    fps: 30,
+  const scanConfigBase = {
+    fps: 24,
     aspectRatio: 4 / 5,
     disableFlip: true,
     experimentalFeatures: {
       useBarCodeDetectorIfSupported: true,
     },
   };
+
+  function getScanConfig() {
+    if (!html5QrcodeModule) return scanConfigBase;
+    return {
+      ...scanConfigBase,
+      formatsToSupport: [html5QrcodeModule.Html5QrcodeSupportedFormats.QR_CODE],
+    };
+  }
+
+  async function loadScannerModule() {
+    if (html5QrcodeModule) return html5QrcodeModule;
+    if (!scannerModulePromise) {
+      scannerModulePromise = import('html5-qrcode') as Promise<Html5QrcodeModule>;
+    }
+    html5QrcodeModule = await scannerModulePromise;
+    return html5QrcodeModule;
+  }
+
+  async function ensureScannerInstance() {
+    if (scanner) return scanner;
+    const module = await loadScannerModule();
+    scanner = new module.Html5Qrcode('reader', false);
+    return scanner;
+  }
 
   function setScannerStatus(message: string) {
     scannerStatus.textContent = message;
@@ -345,9 +388,10 @@ import AppLayout from '../../layouts/AppLayout.astro';
     setScannerStatus('Ouverture de la caméra...');
 
     try {
+      const qrScanner = await ensureScannerInstance();
       try {
         const rememberedCameraId = readRememberedCameraId();
-        await scanner.start(
+        await qrScanner.start(
           rememberedCameraId
             ? { deviceId: { exact: rememberedCameraId } }
             : {
@@ -356,7 +400,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
                 height: { ideal: 1080 },
                 advanced: [{ focusMode: 'continuous' } as MediaTrackConstraintSet],
               },
-          scanConfig,
+          getScanConfig(),
           handleScan,
           () => {},
         );
@@ -368,11 +412,11 @@ import AppLayout from '../../layouts/AppLayout.astro';
         await requestCameraPermission();
         const rearCameraId = await getRearCameraId();
         rememberCameraId(rearCameraId);
-        await scanner.start(
+        await qrScanner.start(
           rearCameraId
             ? { deviceId: { exact: rearCameraId } }
             : { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
-          scanConfig,
+          getScanConfig(),
           handleScan,
           () => {},
         );
@@ -395,14 +439,14 @@ import AppLayout from '../../layouts/AppLayout.astro';
   }
 
   function resumeScanner() {
-    if (!scannerPaused) return;
+    if (!scannerPaused || !scanner) return;
     scannerPaused = false;
     scanner.resume();
     setScannerStatus('Placez le QR code dans l’image, même s’il n’est pas parfaitement centré.');
   }
 
   async function handleScan(decodedText: string) {
-    if (scannerPaused) return;
+    if (scannerPaused || !scanner) return;
     scannerPaused = true;
     scanner.pause();
     setScannerStatus('QR code détecté...');
@@ -551,7 +595,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
   cameraPermissionBtn.addEventListener('click', async () => {
     try {
       await ensureScannerAccess();
-      startScanner({ fromUserAction: true });
+      await startScanner({ fromUserAction: true });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Impossible d’activer le scanner.';
       setScannerStatus('Scanner indisponible pour ce téléphone.');
@@ -562,7 +606,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
   (async () => {
     try {
       await ensureScannerAccess();
-      startScanner();
+      await startScanner();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Impossible d’activer le scanner.';
       setScannerStatus('Scanner indisponible pour ce téléphone.');

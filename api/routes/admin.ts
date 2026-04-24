@@ -42,7 +42,7 @@ adminRoutes.get('/stats', async (c) => {
     db.from('clients').select('id', { count: 'exact', head: true }),
     db.from('transactions').select('id', { count: 'exact', head: true }),
     db.from('commerces').select('id', { count: 'exact', head: true }).gte('created_at', thirtyDaysAgo.toISOString()),
-    db.from('commerces').select('id, cartes(id), clients(id)'),
+    db.from('commerces').select('id, plan, plan_override, billing_status, cartes(id), clients(id), points_vente(id)'),
   ]);
 
   const commerceDetails = commerceDetailsRes.data ?? [];
@@ -52,6 +52,34 @@ adminRoutes.get('/stats', async (c) => {
     cartePartagee: commerceDetails.filter((commerce) => commerce.clients?.length).length,
   };
 
+  const planDistribution = commerceDetails.reduce(
+    (acc, commerce) => {
+      const effectivePlan = getEffectivePlanRaw(commerce);
+      if (effectivePlan.includes('sur')) acc.surMesure += 1;
+      else if (effectivePlan.includes('pro')) acc.pro += 1;
+      else acc.starter += 1;
+      return acc;
+    },
+    { starter: 0, pro: 0, surMesure: 0 },
+  );
+
+  const billingDistribution = commerceDetails.reduce(
+    (acc, commerce) => {
+      const status = String(commerce.billing_status ?? 'unpaid').toLowerCase();
+      if (status === 'active') acc.active += 1;
+      else if (status === 'trialing') acc.trialing += 1;
+      else if (status === 'canceled') acc.canceled += 1;
+      else acc.unpaid += 1;
+      return acc;
+    },
+    { active: 0, trialing: 0, unpaid: 0, canceled: 0 },
+  );
+
+  const pointsVenteTotal = commerceDetails.reduce((acc, commerce) => acc + (commerce.points_vente?.length ?? 0), 0);
+  const pointsVenteAverage = commerceDetails.length > 0
+    ? Number((pointsVenteTotal / commerceDetails.length).toFixed(2))
+    : 0;
+
   return c.json({
     totalCommerces: commercesRes.count ?? 0,
     totalCommercesActifs: commercesActifsRes.count ?? 0,
@@ -60,6 +88,12 @@ adminRoutes.get('/stats', async (c) => {
     totalTransactions: transactionsRes.count ?? 0,
     nouveaux30J: recentCommercesRes.count ?? 0,
     onboarding,
+    plans: planDistribution,
+    billing: billingDistribution,
+    points_vente: {
+      total: pointsVenteTotal,
+      average_per_commerce: pointsVenteAverage,
+    },
   });
 });
 

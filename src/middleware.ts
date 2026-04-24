@@ -26,11 +26,13 @@ function redirectWithCookieClear(target: URL, requestUrl: URL) {
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  const startedAt = Date.now();
   const withSecurityHeaders = (response: Response) => {
     response.headers.set('X-Content-Type-Options', 'nosniff');
     response.headers.set('X-Frame-Options', 'DENY');
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.headers.set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(self)');
+    response.headers.set('X-Response-Time', `${Date.now() - startedAt}ms`);
     if (context.url.protocol === 'https:') {
       response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
     }

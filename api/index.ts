@@ -64,6 +64,7 @@ app.use('*', async (c, next) => {
   await next();
   c.header('X-Request-Id', requestId);
   const elapsedMs = Date.now() - startedAt;
+  c.header('X-Response-Time', `${elapsedMs}ms`);
   if (elapsedMs >= Number(process.env.SLOW_REQUEST_THRESHOLD_MS ?? 1200)) {
     console.warn(`[Slow API] ${c.req.method} ${new URL(c.req.url).pathname} ${elapsedMs}ms requestId=${requestId}`);
   }

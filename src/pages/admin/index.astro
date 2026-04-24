@@ -16,7 +16,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     </div>
   </div>
 
-  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
     <div class="stat-card">
       <span class="text-slate-500 text-xs uppercase tracking-wide">Commerces</span>
       <span id="stat-commerces" class="font-mono text-3xl font-bold text-slate-900">—</span>
@@ -41,6 +41,16 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       <span class="text-slate-500 text-xs uppercase tracking-wide">Nouveaux 30 jours</span>
       <span id="stat-nouveaux-30j" class="font-mono text-3xl font-bold text-slate-900">—</span>
       <p class="mt-2 text-xs text-slate-500">Nouveaux commerces récemment créés.</p>
+    </div>
+    <div class="stat-card">
+      <span class="text-slate-500 text-xs uppercase tracking-wide">Plan Starter</span>
+      <span id="stat-plan-starter" class="font-mono text-3xl font-bold text-slate-900">—</span>
+      <p class="mt-2 text-xs text-slate-500">Commerces actuellement en Starter.</p>
+    </div>
+    <div class="stat-card">
+      <span class="text-slate-500 text-xs uppercase tracking-wide">Points de vente</span>
+      <span id="stat-points-vente" class="font-mono text-3xl font-bold text-slate-900">—</span>
+      <p class="mt-2 text-xs text-slate-500">Total des lieux actifs sur la plateforme.</p>
     </div>
   </div>
 
@@ -200,10 +210,13 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       document.getElementById('stat-clients')!.textContent = String(data.totalClients ?? 0);
       document.getElementById('stat-transactions')!.textContent = String(data.totalTransactions ?? 0);
       document.getElementById('stat-nouveaux-30j')!.textContent = String(data.nouveaux30J ?? 0);
+      document.getElementById('stat-plan-starter')!.textContent = String(data.plans?.starter ?? 0);
+      document.getElementById('stat-points-vente')!.textContent = String(data.points_vente?.total ?? 0);
       const helper = document.getElementById('admin-onboarding-helper');
       const onboarding = data.onboarding ?? {};
+      const billing = data.billing ?? {};
       if (helper) {
-        helper.textContent = `${onboarding.sansCarte ?? 0} comptes créés, ${onboarding.cartePrete ?? 0} cartes prêtes, ${onboarding.cartePartagee ?? 0} cartes déjà partagées.`;
+        helper.textContent = `${onboarding.sansCarte ?? 0} comptes créés, ${onboarding.cartePrete ?? 0} cartes prêtes, ${onboarding.cartePartagee ?? 0} cartes déjà partagées. Facturation: ${billing.active ?? 0} actifs, ${billing.trialing ?? 0} en essai.`;
       }
     } catch {}
   }

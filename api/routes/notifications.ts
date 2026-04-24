@@ -25,20 +25,14 @@ async function resolveScopedCarteIdsForPoint(
   db: ReturnType<typeof createServiceClient>,
   commerceId: string,
   pointVenteId: string,
-  includeLegacyNullScope = false,
 ): Promise<string[]> {
   const ids = new Set<string>();
 
   const cardsQuery = db
     .from('cartes')
     .select('id')
-    .eq('commerce_id', commerceId);
-
-  if (includeLegacyNullScope) {
-    cardsQuery.or(`point_vente_id.eq.${pointVenteId},point_vente_id.is.null`);
-  } else {
-    cardsQuery.eq('point_vente_id', pointVenteId);
-  }
+    .eq('commerce_id', commerceId)
+    .eq('point_vente_id', pointVenteId);
 
   const { data: pointCards } = await cardsQuery;
 
@@ -50,13 +44,8 @@ async function resolveScopedCarteIdsForPoint(
     .from('clients')
     .select('carte_id')
     .eq('commerce_id', commerceId)
-    .not('carte_id', 'is', null);
-
-  if (includeLegacyNullScope) {
-    clientsQuery.or(`point_vente_id.eq.${pointVenteId},point_vente_id.is.null`);
-  } else {
-    clientsQuery.eq('point_vente_id', pointVenteId);
-  }
+    .not('carte_id', 'is', null)
+    .eq('point_vente_id', pointVenteId);
 
   const { data: clientCards } = await clientsQuery;
 
@@ -439,7 +428,6 @@ notificationsRoutes.get('/push-icon-settings', async (c) => {
     db,
     commerce.id,
     pointVente.id,
-    Boolean(pointVente.principal),
   );
   const { data: cartes } = scopedCarteIds.length
     ? await db
@@ -494,7 +482,6 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
     db,
     commerce.id,
     pointVente.id,
-    Boolean(pointVente.principal),
   );
   if (!carteIds.length) return c.json({ error: 'Aucune carte active sur ce point de vente.' }, 404);
 

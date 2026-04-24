@@ -2215,7 +2215,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   window.addEventListener('beforeunload', (event) => {
     if (!isDirty) return;
     event.preventDefault();
-    event.returnValue = '';
+    (event as unknown as { returnValue: string }).returnValue = '';
   });
 
   document.querySelectorAll('#nom-carte,#recompense,#label-client,#tampons-total,#points-recompense,#couleur-fond,#couleur-texte,#couleur-accent,#couleur-fond-2').forEach(el=>el.addEventListener('input',updatePreview));

@@ -32,7 +32,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             'Annulation à tout moment, sans engagement',
           ].map((item) => (
             <div class="flex items-center gap-3 text-sm text-slate-600">
-              <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-bold flex-shrink-0">✓</span>
+              <span class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                <svg viewBox="0 0 20 20" class="h-3.5 w-3.5" fill="none" aria-hidden="true">
+                  <path d="M5 10.2 8.1 13.3 15 6.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+              </span>
               {item}
             </div>
           ))}
@@ -123,7 +127,14 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         <!-- Étape 3 : vérification OTP -->
         <div id="verify-step" class="hidden">
           <div class="rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-4 mb-5">
-            <p class="text-indigo-900 font-medium text-sm">Code envoyé ✓</p>
+            <p class="flex items-center gap-2 text-indigo-900 font-medium text-sm">
+              <span class="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-100 text-indigo-700">
+                <svg viewBox="0 0 20 20" class="h-3.5 w-3.5" fill="none" aria-hidden="true">
+                  <path d="M5 10.2 8.1 13.3 15 6.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+              </span>
+              Code envoyé
+            </p>
             <p class="text-indigo-600 text-sm mt-1">Vérifiez votre boîte mail : <span id="verify-email" class="font-semibold"></span></p>
           </div>
           <form id="verify-form" class="flex flex-col gap-4">

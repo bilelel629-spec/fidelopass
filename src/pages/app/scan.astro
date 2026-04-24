@@ -188,6 +188,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
   let scannerStarting = false;
   const CAMERA_CACHE_KEY = 'fidelopass_scanner_camera_id';
   const SCANNER_TOKEN_KEY = 'fidelopass_scanner_token';
+  const API_TIMEOUT_MS = Number(import.meta.env.PUBLIC_API_FETCH_TIMEOUT_MS ?? 3500);
   const scanConfigBase = {
     fps: 24,
     aspectRatio: 4 / 5,
@@ -203,6 +204,17 @@ import AppLayout from '../../layouts/AppLayout.astro';
       ...scanConfigBase,
       formatsToSupport: [html5QrcodeModule.Html5QrcodeSupportedFormats.QR_CODE],
     };
+  }
+
+  function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
+    ]);
+  }
+
+  async function authFetchWithTimeout(path: string, init?: RequestInit): Promise<Response> {
+    return withTimeout(authFetch(path, init), API_TIMEOUT_MS);
   }
 
   async function loadScannerModule() {
@@ -306,7 +318,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
   async function ensureScannerAccess() {
     const token = getScannerToken();
-    const statusRes = await authFetch(`/api/scanners/status?scanner_token=${encodeURIComponent(token)}`);
+    const statusRes = await authFetchWithTimeout(`/api/scanners/status?scanner_token=${encodeURIComponent(token)}`);
     const statusPayload = await statusRes.json().catch(() => null);
     if (!statusRes.ok) {
       throw new Error(statusPayload?.error ?? 'Impossible de vérifier le quota scanner.');
@@ -323,7 +335,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
       throw new Error(`Limite de scanners atteinte (${statusData.max_scanners}). Passez au plan supérieur pour ajouter un nouvel appareil.`);
     }
 
-    const registerRes = await authFetch('/api/scanners/register', {
+    const registerRes = await authFetchWithTimeout('/api/scanners/register', {
       method: 'POST',
       body: JSON.stringify({
         scanner_token: token,
@@ -469,7 +481,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
       const normalized = decodedText.trim();
       const fromUrl = normalized.match(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i);
       const clientId = fromUrl?.[0] ?? normalized;
-      const res = await authFetch(`/api/clients/${clientId}`);
+      const res = await authFetchWithTimeout(`/api/clients/${clientId}`);
       if (!res.ok) throw new Error('Client introuvable');
 
       const { data } = await res.json();
@@ -531,7 +543,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
   async function addTransaction(type: string, valeur: number) {
     try {
-      const res = await authFetch('/api/transactions', {
+      const res = await authFetchWithTimeout('/api/transactions', {
         method: 'POST',
         body: JSON.stringify({ client_id: currentClientId, type, valeur }),
       });

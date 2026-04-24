@@ -198,6 +198,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const birthdayTitle = document.getElementById('birthday-title') as HTMLInputElement;
   const birthdayMessage = document.getElementById('birthday-message') as HTMLTextAreaElement;
   let cachedPlan: string | null = null;
+  let bootstrapToken = 0;
+
+  function isCurrentBootstrap(token: number) {
+    return token === bootstrapToken;
+  }
 
   function getStoredPointVenteId(): string | null {
     if (typeof window === 'undefined') return null;
@@ -348,14 +353,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   }
 
-  async function loadSummary() {
+  async function loadSummary(token = bootstrapToken) {
     try {
       const [summaryRes, historyRes] = await Promise.all([
         pointAwareFetch('/api/notifications/summary'),
         pointAwareFetch('/api/notifications?limit=50'),
       ]);
+      if (!isCurrentBootstrap(token)) return;
       const summaryPayload = await summaryRes.json().catch(() => null);
       const historyPayload = await historyRes.json().catch(() => null);
+      if (!isCurrentBootstrap(token)) return;
 
       summaryWallet = summaryPayload?.data?.wallet_ready ?? 0;
       summaryHistory = Array.isArray(historyPayload?.data) ? historyPayload.data.length : 0;
@@ -363,17 +370,20 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       document.getElementById('summary-wallet')!.textContent = String(summaryWallet);
       document.getElementById('summary-history')!.textContent = String(summaryHistory);
     } catch {
+      if (!isCurrentBootstrap(token)) return;
       document.getElementById('summary-wallet')!.textContent = '—';
       document.getElementById('summary-history')!.textContent = '—';
     }
   }
 
-  async function loadHistory() {
+  async function loadHistory(token = bootstrapToken) {
     const container = document.getElementById('notif-history')!;
     try {
       const res = await pointAwareFetch('/api/notifications?limit=20');
+      if (!isCurrentBootstrap(token)) return;
       if (!res.ok) throw new Error();
       const { data } = await res.json();
+      if (!isCurrentBootstrap(token)) return;
 
       if (!data?.length) {
         container.innerHTML = '<p class="text-slate-500 text-sm">Aucune notification envoyée.</p>';
@@ -393,6 +403,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
       `).join('');
     } catch {
+      if (!isCurrentBootstrap(token)) return;
       container.innerHTML = '<p class="text-red-600 text-sm">Erreur lors du chargement.</p>';
     }
   }
@@ -421,7 +432,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       successMsg.classList.remove('hidden');
       form.reset();
       charCount.textContent = '0';
-      await Promise.all([loadSummary(), loadHistory()]);
+      await Promise.all([loadSummary(bootstrapToken), loadHistory(bootstrapToken)]);
     } catch (error: unknown) {
       errorMsg.textContent = error instanceof Error ? error.message : 'Erreur réseau.';
       errorMsg.classList.remove('hidden');
@@ -431,11 +442,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   });
 
-  async function loadReviewAutoSettings() {
+  async function loadReviewAutoSettings(token = bootstrapToken) {
     for (let attempt = 0; attempt < SETTINGS_FETCH_RETRIES; attempt += 1) {
       try {
         const res = await pointAwareFetch('/api/notifications/review-reminder-settings');
+        if (!isCurrentBootstrap(token)) return;
         const payload = await res.json().catch(() => null);
+        if (!isCurrentBootstrap(token)) return;
         if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage.');
 
         reviewAutoIsPro = Boolean(payload?.data?.is_pro) || isProPlan(payload?.data?.plan ?? payload?.data?.raw_plan);
@@ -460,6 +473,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       }
     }
 
+    if (!isCurrentBootstrap(token)) return;
     const fallbackPlan = cachedPlan ?? readPlanFromBadge();
     const hasProSignal = isProPlan(fallbackPlan ?? '') || isProPlan(readPlanFromBadge() ?? '');
     reviewAutoIsPro = hasProSignal;
@@ -497,11 +511,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   });
 
-  async function loadBirthdaySettings() {
+  async function loadBirthdaySettings(token = bootstrapToken) {
     for (let attempt = 0; attempt < SETTINGS_FETCH_RETRIES; attempt += 1) {
       try {
         const res = await pointAwareFetch('/api/notifications/birthday-settings');
+        if (!isCurrentBootstrap(token)) return;
         const payload = await res.json().catch(() => null);
+        if (!isCurrentBootstrap(token)) return;
         if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage anniversaire.');
 
         birthdayIsPro = Boolean(payload?.data?.is_pro) || isProPlan(payload?.data?.plan ?? payload?.data?.raw_plan);
@@ -533,6 +549,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       }
     }
 
+    if (!isCurrentBootstrap(token)) return;
     const fallbackPlan = cachedPlan ?? readPlanFromBadge();
     birthdayIsPro = isProPlan(fallbackPlan ?? '') || isProPlan(readPlanFromBadge() ?? '');
     setBirthdayPlanLabel(fallbackPlan ?? 'indisponible');
@@ -598,12 +615,31 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   });
 
   async function bootstrapNotifications() {
+    const token = ++bootstrapToken;
+    const immediatePlan = cachedPlan ?? readPlanFromBadge();
+    if (immediatePlan) {
+      setReviewPlanLabel(immediatePlan);
+      setBirthdayPlanLabel(immediatePlan);
+    }
+    reviewAutoStatus.textContent = 'Chargement du statut...';
+    birthdayStatus.textContent = 'Chargement du statut...';
+    reviewAutoError.classList.add('hidden');
+    reviewAutoSuccess.classList.add('hidden');
+    birthdayError.classList.add('hidden');
+    birthdaySuccess.classList.add('hidden');
+
     await loadPlanFallback();
+    if (!isCurrentBootstrap(token)) return;
+    const resolvedPlan = cachedPlan ?? readPlanFromBadge();
+    if (resolvedPlan) {
+      setReviewPlanLabel(resolvedPlan);
+      setBirthdayPlanLabel(resolvedPlan);
+    }
     await Promise.all([
-      loadSummary(),
-      loadHistory(),
-      loadReviewAutoSettings(),
-      loadBirthdaySettings(),
+      loadSummary(token),
+      loadHistory(token),
+      loadReviewAutoSettings(token),
+      loadBirthdaySettings(token),
     ]);
   }
 

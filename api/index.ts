@@ -125,6 +125,32 @@ app.get('/api/health/deps', async (c) => {
   const dbOk = Boolean(dbResult && !dbResult.error);
   const dbError = dbResult && dbResult.error ? dbResult.error.message : dbResult ? null : `timeout>${timeoutMs}ms`;
 
+  async function probeColumn(table: string, column: string) {
+    const result = await db
+      .from(table as never)
+      .select(column, { count: 'exact', head: true })
+      .limit(1);
+    return {
+      ok: !result.error,
+      error: result.error?.message ?? null,
+    };
+  }
+
+  const migrationProbes = await Promise.all([
+    probeColumn('birthday_rewards', 'id'),
+    probeColumn('admin_audit_logs', 'id'),
+    probeColumn('clients', 'date_naissance'),
+    probeColumn('cartes', 'birthday_auto_enabled'),
+  ]);
+
+  const migrations = {
+    birthday_rewards_table: migrationProbes[0],
+    admin_audit_logs_table: migrationProbes[1],
+    clients_birth_date_column: migrationProbes[2],
+    cartes_birthday_column: migrationProbes[3],
+  };
+  const migrationsOk = Object.values(migrations).every((entry) => entry.ok);
+
   const services = {
     database: {
       ok: dbOk,
@@ -138,9 +164,13 @@ app.get('/api/health/deps', async (c) => {
       apple_ok: Boolean(process.env.APPLE_SIGNER_CERT_PEM && process.env.APPLE_SIGNER_KEY_PEM),
       google_ok: Boolean(process.env.GOOGLE_ISSUER_ID && process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
     },
+    migrations: {
+      ok: migrationsOk,
+      checks: migrations,
+    },
   };
 
-  const ok = services.database.ok && services.stripe.ok;
+  const ok = services.database.ok && services.stripe.ok && services.migrations.ok;
   return c.json({ ok, ts: new Date().toISOString(), services }, ok ? 200 : 503);
 });
 app.notFound((c) => c.json({ error: 'Route introuvable' }, 404));

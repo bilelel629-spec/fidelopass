@@ -134,7 +134,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 <script>
   import { ACTIVE_POINT_VENTE_STORAGE_KEY, authFetch } from '../../lib/api';
   import { isProPlan, normalizePlan } from '../../lib/dashboard-config';
-  import { withTimeout } from '../../lib/utils/with-timeout';
+  import { pointAwareFetch as pointAwareFetchShared } from '../../lib/point-aware-fetch';
 
   function escapeHtml(value: unknown) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -206,25 +206,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     return token === bootstrapToken;
   }
 
-  function getStoredPointVenteId(): string | null {
-    if (typeof window === 'undefined') return null;
-    try {
-      const value = window.localStorage.getItem(ACTIVE_POINT_VENTE_STORAGE_KEY)?.trim() ?? '';
-      return value.length > 0 ? value : null;
-    } catch {
-      return null;
-    }
-  }
-
-  function clearStoredPointVenteId() {
-    if (typeof window === 'undefined') return;
-    try {
-      window.localStorage.removeItem(ACTIVE_POINT_VENTE_STORAGE_KEY);
-    } catch {
-      // best effort
-    }
-  }
-
   function sleep(ms: number) {
     return new Promise((resolve) => window.setTimeout(resolve, ms));
   }
@@ -243,24 +224,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   async function pointAwareFetch(path: string, init?: RequestInit): Promise<Response> {
-    const url = withPointVente(path);
-    const response = await withTimeout(authFetch(url, init), API_FETCH_TIMEOUT_MS);
-    if (response.status !== 403 && response.status !== 404) return response;
-    if (!getStoredPointVenteId()) return response;
-    clearStoredPointVenteId();
-    return withTimeout(authFetch(path, init), API_FETCH_TIMEOUT_MS);
-  }
-
-  function withPointVente(path: string): string {
-    if (typeof window === 'undefined') return path;
-    try {
-      const pointVenteId = window.localStorage.getItem(ACTIVE_POINT_VENTE_STORAGE_KEY)?.trim() ?? '';
-      if (!pointVenteId) return path;
-      const separator = path.includes('?') ? '&' : '?';
-      return `${path}${separator}point_vente_id=${encodeURIComponent(pointVenteId)}`;
-    } catch {
-      return path;
-    }
+    return pointAwareFetchShared(authFetch, path, init, {
+      storageKey: ACTIVE_POINT_VENTE_STORAGE_KEY,
+      timeoutMs: API_FETCH_TIMEOUT_MS,
+    });
   }
 
   function setReviewPlanLabel(planRaw: unknown) {

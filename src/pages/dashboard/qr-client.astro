@@ -22,11 +22,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
 <script>
   import { ACTIVE_POINT_VENTE_STORAGE_KEY, authFetch } from '../../lib/api';
+  import { pointAwareFetch as pointAwareFetchShared } from '../../lib/point-aware-fetch';
 
   const statusEl = document.getElementById('qr-client-status');
   const actionsEl = document.getElementById('qr-client-actions');
   const retryBtn = document.getElementById('qr-client-retry');
-  const FETCH_TIMEOUT_MS = Number(import.meta.env.PUBLIC_API_FETCH_TIMEOUT_MS ?? 3500);
   let openRequestToken = 0;
 
   function setStatus(message: string, showActions = false) {
@@ -34,42 +34,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     actionsEl?.classList.toggle('hidden', !showActions);
   }
 
-  function getStoredPointVenteId(): string | null {
-    try {
-      const value = window.localStorage.getItem(ACTIVE_POINT_VENTE_STORAGE_KEY)?.trim() ?? '';
-      return value.length > 0 ? value : null;
-    } catch {
-      return null;
-    }
-  }
-
-  function clearStoredPointVenteId() {
-    try {
-      window.localStorage.removeItem(ACTIVE_POINT_VENTE_STORAGE_KEY);
-    } catch {
-      // best effort
-    }
-  }
-
-  function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-    return Promise.race([
-      promise,
-      new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
-    ]);
-  }
-
-  async function authFetchWithTimeout(path: string, init?: RequestInit): Promise<Response> {
-    return withTimeout(authFetch(path, init), FETCH_TIMEOUT_MS);
-  }
-
   async function pointAwareFetch(path: string, init?: RequestInit): Promise<Response> {
-    const response = await authFetchWithTimeout(path, init);
-    if (response.status !== 403 && response.status !== 404) return response;
-
-    const pointVenteId = getStoredPointVenteId();
-    if (!pointVenteId) return response;
-    clearStoredPointVenteId();
-    return authFetchWithTimeout(path, init);
+    return pointAwareFetchShared(authFetch, path, init, {
+      storageKey: ACTIVE_POINT_VENTE_STORAGE_KEY,
+      timeoutMs: Number(import.meta.env.PUBLIC_API_FETCH_TIMEOUT_MS ?? 3500),
+    });
   }
 
   async function openClientPoster() {

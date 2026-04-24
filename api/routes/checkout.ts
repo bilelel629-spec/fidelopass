@@ -28,6 +28,7 @@ const createSessionSchema = z.object({
   ]).optional(),
   mode: z.enum(['subscription', 'payment']),
   includeAccompagnement: z.boolean().optional().default(false),
+  dryRun: z.boolean().optional().default(false),
 });
 
 type PriceSlot =
@@ -286,7 +287,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
     return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides' }, 400);
   }
 
-  const { priceId, priceSlot, mode, includeAccompagnement } = parsed.data;
+  const { priceId, priceSlot, mode, includeAccompagnement, dryRun } = parsed.data;
   const priceIds = loadPriceIds();
   const selectedSlot = priceSlot ?? resolvePriceSlot(priceId, priceIds);
 
@@ -313,6 +314,47 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
 
   if (includeAccompagnement && !isPlanCheckout) {
     return c.json({ error: "L'option Accompagnement Setup ne peut être ajoutée qu'à un abonnement Starter ou Pro." }, 400);
+  }
+
+  const stripe = getStripe();
+  const pricing = await resolvePricingConfig(stripe, priceIds);
+  const selectedPriceEntry = getPricingEntryFromSlot(pricing.data, selectedSlot);
+  if (!selectedPriceEntry.available || !selectedPriceEntry.priceId) {
+    return c.json({
+      error: 'Ce tarif est temporairement indisponible. Rafraîchissez la page puis réessayez.',
+      code: 'PRICE_UNAVAILABLE',
+      slot: selectedSlot,
+    }, 409);
+  }
+
+  const resolvedBasePriceId = selectedPriceEntry.priceId;
+  const accompagnementEntry = includeAccompagnement
+    ? getPricingEntryFromSlot(pricing.data, 'accompagnement')
+    : null;
+  if (includeAccompagnement && (!accompagnementEntry?.available || !accompagnementEntry?.priceId)) {
+    return c.json({
+      error: "L'option Accompagnement Setup est temporairement indisponible. Réessayez dans quelques instants.",
+      code: 'ADDON_UNAVAILABLE',
+      slot: 'accompagnement',
+    }, 409);
+  }
+  const resolvedAccompagnementPriceId = accompagnementEntry?.priceId ?? null;
+
+  if (dryRun) {
+    return c.json({
+      ok: true,
+      data: {
+        dry_run: true,
+        selected_slot: selectedSlot,
+        selected_plan: selectedPlan ?? null,
+        mode,
+        include_accompagnement: includeAccompagnement,
+        base_price_id: resolvedBasePriceId,
+        addon_price_id: resolvedAccompagnementPriceId,
+        pricing_config_cached: pricing.cached,
+        pricing_config_degraded: pricing.degraded,
+      },
+    });
   }
 
   const db = createServiceClient();
@@ -343,30 +385,6 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
     }
     commerce = createdCommerce;
   }
-
-  const stripe = getStripe();
-  const pricing = await resolvePricingConfig(stripe, priceIds);
-  const selectedPriceEntry = getPricingEntryFromSlot(pricing.data, selectedSlot);
-  if (!selectedPriceEntry.available || !selectedPriceEntry.priceId) {
-    return c.json({
-      error: 'Ce tarif est temporairement indisponible. Rafraîchissez la page puis réessayez.',
-      code: 'PRICE_UNAVAILABLE',
-      slot: selectedSlot,
-    }, 409);
-  }
-
-  const resolvedBasePriceId = selectedPriceEntry.priceId;
-  const accompagnementEntry = includeAccompagnement
-    ? getPricingEntryFromSlot(pricing.data, 'accompagnement')
-    : null;
-  if (includeAccompagnement && (!accompagnementEntry?.available || !accompagnementEntry?.priceId)) {
-    return c.json({
-      error: "L'option Accompagnement Setup est temporairement indisponible. Réessayez dans quelques instants.",
-      code: 'ADDON_UNAVAILABLE',
-      slot: 'accompagnement',
-    }, 409);
-  }
-  const resolvedAccompagnementPriceId = accompagnementEntry?.priceId ?? null;
 
   const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
   const successUrl = isPlanCheckout

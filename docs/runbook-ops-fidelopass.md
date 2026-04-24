@@ -11,6 +11,7 @@ Réduire le temps de diagnostic quand un incident touche les flux critiques comm
 2. `GET /api/health/deps`:
    - `services.database.ok` = `true`
    - `services.stripe.ok` = `true`
+   - `services.migrations.ok` = `true`
    - `services.wallet.apple_ok` ou `services.wallet.google_ok` selon le cas incident.
 3. Vérifier les variables Railway:
    - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
@@ -36,6 +37,8 @@ Réduire le temps de diagnostic quand un incident touche les flux critiques comm
 4. Vérifier webhook Stripe:
    - route `/api/stripe-webhook`
    - endpoint secret cohérent.
+5. Exécuter un dry-run automatisé:
+   - `E2E_ACCESS_TOKEN=... npm run ops:checkout-validate`
 
 ### Correctif
 1. Mettre à jour `stripe-price-ids.json`.
@@ -81,6 +84,8 @@ Réduire le temps de diagnostic quand un incident touche les flux critiques comm
    - `POST /api/transactions` OK,
    - point de vente actif cohérent.
 4. Vérifier protection navigateur mobile (caméra autorisée).
+5. Vérifier le scope multi-point de vente:
+   - `E2E_ACCESS_TOKEN=... npm run ops:multi-point-qa`
 
 ### Correctif
 1. Régénérer le scanner token depuis dashboard.

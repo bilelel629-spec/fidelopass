@@ -14,6 +14,9 @@
     "typecheck": "npm run typecheck:web",
     "typecheck:web": "astro check --tsconfig ./tsconfig.web.json",
     "typecheck:api": "tsc --noEmit -p ./tsconfig.api.json",
+    "security:audit": "node scripts/security-audit.mjs",
+    "ops:checkout-validate": "node scripts/checkout-validation.mjs",
+    "ops:multi-point-qa": "node scripts/multi-point-qa.mjs",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:install": "playwright install chromium"

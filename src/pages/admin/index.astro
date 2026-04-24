@@ -121,6 +121,10 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
               <p id="health-wallet-status" class="mt-1 text-sm font-semibold text-slate-900">—</p>
             </div>
           </div>
+          <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+            <p class="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-slate-500">Migrations</p>
+            <p id="health-migrations-status" class="mt-1 text-sm font-semibold text-slate-900">—</p>
+          </div>
         </div>
       </div>
 
@@ -453,6 +457,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         setHealthStatus('health-db-status', 'Vérification indisponible', false);
         setHealthStatus('health-stripe-status', 'Indisponible', false);
         setHealthStatus('health-wallet-status', 'Indisponible', false);
+        setHealthStatus('health-migrations-status', 'Indisponible', false);
         return;
       }
 
@@ -476,11 +481,22 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
             ? 'Google OK · Apple KO'
             : 'Non configuré';
       setHealthStatus('health-wallet-status', walletLabel, appleOk || googleOk);
+
+      const migrationsOk = Boolean(services?.migrations?.ok);
+      const checks = services?.migrations?.checks ?? {};
+      const failedCount = Object.values(checks).filter((entry: any) => !entry?.ok).length;
+      const migrationLabel = migrationsOk
+        ? 'Schéma à jour'
+        : failedCount > 0
+          ? `${failedCount} vérification(s) KO`
+          : 'Schéma incomplet';
+      setHealthStatus('health-migrations-status', migrationLabel, migrationsOk);
     } catch {
       setHealthStatus('health-api-status', 'Vérification indisponible', false);
       setHealthStatus('health-db-status', 'Vérification indisponible', false);
       setHealthStatus('health-stripe-status', 'Vérification indisponible', false);
       setHealthStatus('health-wallet-status', 'Vérification indisponible', false);
+      setHealthStatus('health-migrations-status', 'Vérification indisponible', false);
     }
   }
 

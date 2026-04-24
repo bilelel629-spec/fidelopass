@@ -906,6 +906,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 <script>
   import { authFetch } from '../../lib/api';
   import { createClient } from '@supabase/supabase-js';
+  import { clamp, getPatternBackground, stampCols } from '../../lib/dashboard/carte-preview-utils';
 
   const supabase = createClient(import.meta.env.PUBLIC_SUPABASE_URL, import.meta.env.PUBLIC_SUPABASE_ANON_KEY);
   const API = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
@@ -1013,6 +1014,22 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     } else {
       state.textContent = 'Brouillon enregistré';
       state.className = 'rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-emerald-700';
+    }
+  }
+
+  function showFeedbackMessage(type: 'success' | 'error', message: string) {
+    const errorBox = document.getElementById('error-msg') as HTMLDivElement | null;
+    const successBox = document.getElementById('success-msg') as HTMLDivElement | null;
+    errorBox?.classList.add('hidden');
+    successBox?.classList.add('hidden');
+    if (type === 'error' && errorBox) {
+      errorBox.textContent = message;
+      errorBox.classList.remove('hidden');
+      return;
+    }
+    if (successBox) {
+      successBox.textContent = message;
+      successBox.classList.remove('hidden');
     }
   }
 
@@ -1206,10 +1223,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const j = await r.json(); if(!r.ok) throw new Error(j.error??'Erreur upload'); return j.url as string;
   }
 
-  function clamp(value: number, min: number, max: number): number {
-    return Math.max(min, Math.min(max, value));
-  }
-
   function applyImageScaleToElements(ids: string[], scale: number) {
     const clamped = clamp(scale, 0.7, 2.2);
     ids.forEach((id) => {
@@ -1281,10 +1294,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     const file = new File([blob], `${filePrefix}-${Date.now()}.png`, { type: 'image/png' });
     return uploadFile(file);
-  }
-
-  function stampCols(total: number): number {
-    if(total<=6) return total; if(total<=12) return Math.ceil(total/2); if(total<=15) return 5; return 6;
   }
 
   // Switch
@@ -1523,7 +1532,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   (document.getElementById('logo-file') as HTMLInputElement).addEventListener('change',async(e)=>{
     const f=(e.target as HTMLInputElement).files?.[0]; if(!f)return;
     const ld=document.getElementById('logo-loading')!; ld.classList.remove('hidden');
-    try{logoUrl=await uploadFile(f);setLogoPreview(logoUrl);}catch(err:unknown){alert(err instanceof Error?err.message:'Erreur');}finally{ld.classList.add('hidden');}
+    try{logoUrl=await uploadFile(f);setLogoPreview(logoUrl);}catch(err:unknown){showFeedbackMessage('error', err instanceof Error ? err.message : 'Erreur');}finally{ld.classList.add('hidden');}
   });
   function setLogoPreview(url: string){
     ['logo-preview-img','preview-logo','g-logo'].forEach(id=>{const el=document.getElementById(id) as HTMLImageElement;if(url){el.src=url;el.classList.remove('hidden');}else el.classList.add('hidden');});
@@ -1681,7 +1690,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   (document.getElementById('tampon-file') as HTMLInputElement).addEventListener('change',async(e)=>{
     const f=(e.target as HTMLInputElement).files?.[0]; if(!f)return;
     const ld=document.getElementById('tampon-loading')!; ld.classList.remove('hidden');
-    try{tamponIconUrl=await uploadFile(f);setTamponPreview(tamponIconUrl);updatePreview();}catch(err:unknown){alert(err instanceof Error?err.message:'Erreur');}finally{ld.classList.add('hidden');}
+    try{tamponIconUrl=await uploadFile(f);setTamponPreview(tamponIconUrl);updatePreview();}catch(err:unknown){showFeedbackMessage('error', err instanceof Error ? err.message : 'Erreur');}finally{ld.classList.add('hidden');}
   });
   function setTamponPreview(url: string){
     const img=document.getElementById('tampon-preview-img') as HTMLImageElement;
@@ -1902,7 +1911,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   (document.getElementById('strip-file') as HTMLInputElement).addEventListener('change',async(e)=>{
     const f=(e.target as HTMLInputElement).files?.[0]; if(!f)return;
     const ld=document.getElementById('strip-loading')!; ld.classList.remove('hidden');
-    try{stripUrl=await uploadFile(f);setStripPreview(stripUrl);}catch(err:unknown){alert(err instanceof Error?err.message:'Erreur');}finally{ld.classList.add('hidden');}
+    try{stripUrl=await uploadFile(f);setStripPreview(stripUrl);}catch(err:unknown){showFeedbackMessage('error', err instanceof Error ? err.message : 'Erreur');}finally{ld.classList.add('hidden');}
   });
   document.getElementById('strip-clear')!.addEventListener('click',()=>{stripUrl='';setStripPreview('');(document.getElementById('strip-file') as HTMLInputElement).value='';});
   function setStripPreview(url: string){
@@ -2086,16 +2095,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const a=(document.getElementById('gradient-angle') as HTMLInputElement).value;
     return `linear-gradient(${a}deg,${f},${f2})`;
   }
-  function hex2rgb(h:string):string{const v=h.replace('#','');return `${parseInt(v.slice(0,2),16)},${parseInt(v.slice(2,4),16)},${parseInt(v.slice(4,6),16)}`;}
-  function getPatBg(pt:string,accent:string):{image:string;size:string}{
-    const rgb=hex2rgb(accent);
-    if(pt==='dots') return{image:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='12' cy='12' r='2' fill='rgba(${encodeURIComponent(rgb)},0.18)'/%3E%3C/svg%3E")`,size:'24px 24px'};
-    if(pt==='grid') return{image:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M 24 0 L 0 0 0 24' fill='none' stroke='rgba(${encodeURIComponent(rgb)},0.15)' stroke-width='0.6'/%3E%3C/svg%3E")`,size:'24px 24px'};
-    if(pt==='waves') return{image:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='24'%3E%3Cpath d='M 0 12 Q 12 0 24 12 Q 36 24 48 12' fill='none' stroke='rgba(${encodeURIComponent(rgb)},0.2)' stroke-width='1.2'/%3E%3C/svg%3E")`,size:'48px 24px'};
-    if(pt==='diagonal') return{image:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cdefs%3E%3Cpattern id='p' width='28' height='28' patternUnits='userSpaceOnUse' patternTransform='rotate(35)'%3E%3Crect width='5' height='28' fill='rgba(${encodeURIComponent(rgb)},0.16)'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='28' height='28' fill='url(%23p)'/%3E%3C/svg%3E")`,size:'28px 28px'};
-    if(pt==='confetti') return{image:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='54' height='54'%3E%3Ccircle cx='10' cy='12' r='3' fill='rgba(${encodeURIComponent(rgb)},0.18)'/%3E%3Crect x='31' y='8' width='12' height='4' rx='2' transform='rotate(25 37 10)' fill='rgba(${encodeURIComponent(rgb)},0.16)'/%3E%3Ccircle cx='42' cy='38' r='2.5' fill='rgba(${encodeURIComponent(rgb)},0.2)'/%3E%3Crect x='14' y='36' width='10' height='4' rx='2' transform='rotate(-28 19 38)' fill='rgba(${encodeURIComponent(rgb)},0.15)'/%3E%3C/svg%3E")`,size:'54px 54px'};
-    return{image:'none',size:'auto'};
-  }
 
   function renderStamps(container:HTMLElement, current:number, display:number, accent:string, texte:string){
     container.innerHTML='';
@@ -2156,7 +2155,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       : (type === 'tampons' ? (previewTampons >= total ? 1 : 0) : (previewPoints >= ptsCible ? 1 : 0));
 
     const bg=getBgStyle();
-    const pat=getPatBg(pt,accent);
+    const pat=getPatternBackground(pt,accent);
     const display=Math.min(total,12);
 
     // Apple

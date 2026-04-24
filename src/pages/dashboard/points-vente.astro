@@ -75,6 +75,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </form>
     </div>
   </div>
+
+  <div id="archive-point-modal" class="hidden fixed inset-0 z-[55] flex items-center justify-center p-4">
+    <button id="archive-point-backdrop" type="button" class="absolute inset-0 bg-slate-900/50 backdrop-blur-[1px]"></button>
+    <div class="relative w-full max-w-md rounded-[1.6rem] border border-sky-100 bg-white p-6 shadow-[0_32px_80px_-24px_rgba(15,23,42,0.35)]">
+      <h3 class="font-display text-xl font-bold text-slate-900">Archiver ce point de vente ?</h3>
+      <p id="archive-point-text" class="mt-2 text-sm text-slate-600">Ce point ne sera plus actif dans votre espace commerçant.</p>
+      <div id="archive-point-error" class="mt-4 hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+      <div class="mt-5 grid grid-cols-2 gap-2">
+        <button type="button" id="archive-point-cancel" class="btn-secondary py-3">Annuler</button>
+        <button type="button" id="archive-point-confirm" class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 font-semibold text-red-700 transition hover:bg-red-100">
+          Archiver
+        </button>
+      </div>
+    </div>
+  </div>
 </DashboardLayout>
 
 <script>
@@ -106,10 +121,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const editPointNom = document.getElementById('edit-point-nom') as HTMLInputElement;
   const editPointAdresse = document.getElementById('edit-point-adresse') as HTMLInputElement;
   const editPointRayon = document.getElementById('edit-point-rayon') as HTMLInputElement;
+  const archiveModal = document.getElementById('archive-point-modal') as HTMLDivElement;
+  const archiveBackdrop = document.getElementById('archive-point-backdrop') as HTMLButtonElement;
+  const archiveCancelBtn = document.getElementById('archive-point-cancel') as HTMLButtonElement;
+  const archiveConfirmBtn = document.getElementById('archive-point-confirm') as HTMLButtonElement;
+  const archiveText = document.getElementById('archive-point-text') as HTMLParagraphElement;
+  const archiveError = document.getElementById('archive-point-error') as HTMLDivElement;
 
   let selectedPointVenteId: string | null = null;
   let pointsVente: PointVente[] = [];
   let usage: { current: number; max: number; remaining: number } | null = null;
+  let archivePointId: string | null = null;
 
   function escapeHtml(value: unknown) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -200,14 +222,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         }
 
         if (action === 'archive') {
-          const confirmed = window.confirm('Archiver ce point de vente ?');
-          if (!confirmed) return;
-          const res = await authFetch(`/api/commerces/points-vente/${pointId}`, { method: 'DELETE' });
-          if (!res.ok) {
-            const payload = await res.json().catch(() => null);
-            window.alert(payload?.error ?? 'Impossible d’archiver ce point de vente.');
-          }
-          await loadPointsVente();
+          const current = pointsVente.find((point) => point.id === pointId);
+          if (!current) return;
+          openArchiveModal(current);
         }
       });
     });
@@ -226,6 +243,43 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     editModal.classList.add('hidden');
     editForm.reset();
     editError.classList.add('hidden');
+  }
+
+  function openArchiveModal(point: PointVente) {
+    archivePointId = point.id;
+    archiveError.classList.add('hidden');
+    archiveText.textContent = `Le point de vente “${point.nom}” sera archivé. Vous pourrez toujours en créer un nouveau.`;
+    archiveModal.classList.remove('hidden');
+  }
+
+  function closeArchiveModal() {
+    archiveModal.classList.add('hidden');
+    archiveError.classList.add('hidden');
+    archivePointId = null;
+    archiveConfirmBtn.disabled = false;
+    archiveConfirmBtn.textContent = 'Archiver';
+  }
+
+  async function confirmArchivePoint() {
+    if (!archivePointId) return;
+    archiveError.classList.add('hidden');
+    archiveConfirmBtn.disabled = true;
+    const previous = archiveConfirmBtn.textContent;
+    archiveConfirmBtn.textContent = 'Archivage...';
+    const res = await authFetch(`/api/commerces/points-vente/${archivePointId}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const payload = await res.json().catch(() => null);
+      archiveError.textContent = payload?.error ?? 'Impossible d’archiver ce point de vente.';
+      archiveError.classList.remove('hidden');
+      archiveConfirmBtn.disabled = false;
+      archiveConfirmBtn.textContent = previous ?? 'Archiver';
+      return;
+    }
+    closeArchiveModal();
+    addError.classList.add('hidden');
+    addSuccess.textContent = 'Point de vente archivé avec succès.';
+    addSuccess.classList.remove('hidden');
+    await loadPointsVente();
   }
 
   function renderUsage() {
@@ -335,6 +389,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   [editBackdrop, editCloseBtn, editCancelBtn].forEach((element) => {
     element?.addEventListener('click', closeEditModal);
   });
+
+  [archiveBackdrop, archiveCancelBtn].forEach((element) => {
+    element?.addEventListener('click', closeArchiveModal);
+  });
+  archiveConfirmBtn.addEventListener('click', confirmArchivePoint);
 
   await loadPointsVente();
 </script>

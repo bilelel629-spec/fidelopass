@@ -38,6 +38,8 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 </AdminLayout>
 
 <script>
+  import { withTimeout } from '../../lib/utils/with-timeout';
+
   type AdminCommerce = {
     id: string;
     nom: string;
@@ -55,6 +57,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
   let allCommerces: AdminCommerce[] = [];
   const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
+  const API_BASE = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
 
   function normalizePlan(planRaw: unknown) {
     return String(planRaw ?? 'starter').trim().toLowerCase();
@@ -86,13 +89,6 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     feedback.className = tone === 'success'
       ? 'mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700'
       : 'mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700';
-  }
-
-  function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-    return Promise.race([
-      promise,
-      new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
-    ]);
   }
 
   async function getAccessTokenFast() {
@@ -244,7 +240,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   async function loadCommerces() {
     const container = document.getElementById('commerces-table')!;
     try {
-      const res = await authFetch(`${import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001'}/api/admin/commerces`);
+      const res = await authFetch(`${API_BASE}/api/admin/commerces`);
       if (!res.ok) throw new Error();
       const { data } = await res.json();
       allCommerces = data ?? [];
@@ -255,7 +251,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   }
 
   async function toggleCommerce(id: string, actif: boolean) {
-    await authFetch(`${import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001'}/api/admin/commerces/${id}`, {
+    await authFetch(`${API_BASE}/api/admin/commerces/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ actif }),
     });
@@ -263,7 +259,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   }
 
   async function updatePlan(id: string, planOverride: 'starter' | 'pro' | 'sur-mesure') {
-    const endpoint = `${import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001'}/api/admin/commerces/${id}/plan`;
+    const endpoint = `${API_BASE}/api/admin/commerces/${id}/plan`;
     const response = await authFetch(endpoint, {
       method: 'PATCH',
       body: JSON.stringify({ plan_override: planOverride }),

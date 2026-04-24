@@ -1,14 +1,8 @@
 import { supabase } from './supabase';
 import { clearSessionCookie, setSessionCookie } from './session-cookie';
+import { withTimeout } from './utils/with-timeout';
 
 const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
-
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
-  ]);
-}
 
 export async function getSession() {
   const sessionResult = await withTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);

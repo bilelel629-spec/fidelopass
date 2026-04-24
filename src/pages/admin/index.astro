@@ -98,11 +98,38 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
           <p class="pb-1 text-sm text-slate-500">Ajouts de points, tampons et récompenses enregistrés sur l’ensemble de la plateforme.</p>
         </div>
       </div>
+
+      <div class="card p-6">
+        <h2 class="font-display text-xl font-bold text-slate-900">Santé plateforme</h2>
+        <p class="mt-1 text-sm text-slate-500">Vue consolidée des dépendances critiques API et wallet.</p>
+        <div class="mt-4 grid gap-3">
+          <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+            <p class="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-slate-500">API</p>
+            <p id="health-api-status" class="mt-1 text-sm font-semibold text-slate-900">Chargement...</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+            <p class="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-slate-500">Base de données</p>
+            <p id="health-db-status" class="mt-1 text-sm font-semibold text-slate-900">Chargement...</p>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+              <p class="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-slate-500">Stripe</p>
+              <p id="health-stripe-status" class="mt-1 text-sm font-semibold text-slate-900">—</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+              <p class="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-slate-500">Wallet</p>
+              <p id="health-wallet-status" class="mt-1 text-sm font-semibold text-slate-900">—</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
   </div>
 </AdminLayout>
 
 <script>
+  import { withTimeout } from '../../lib/utils/with-timeout';
+
   type AdminCommerce = {
     id: string;
     nom: string;
@@ -120,6 +147,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
   let allCommerces: AdminCommerce[] = [];
   const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
+  const API_BASE = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
 
   function normalizePlan(planRaw: unknown) {
     return String(planRaw ?? 'starter').trim().toLowerCase();
@@ -151,13 +179,6 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     feedback.className = tone === 'success'
       ? 'mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700'
       : 'mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700';
-  }
-
-  function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-    return Promise.race([
-      promise,
-      new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
-    ]);
   }
 
   async function getAccessTokenFast() {
@@ -211,7 +232,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
   async function loadStats() {
     try {
-      const res = await authFetch(`${import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001'}/api/admin/stats`);
+      const res = await authFetch(`${API_BASE}/api/admin/stats`);
       if (!res.ok) return;
       const data = await res.json();
       document.getElementById('stat-commerces')!.textContent = String(data.totalCommerces ?? 0);
@@ -234,7 +255,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   async function loadRecentCommerces() {
     const container = document.getElementById('recent-commerces')!;
     try {
-      const res = await authFetch(`${import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001'}/api/admin/commerces`);
+      const res = await authFetch(`${API_BASE}/api/admin/commerces`);
       if (!res.ok) throw new Error();
       const { data } = await res.json();
       allCommerces = data ?? [];
@@ -316,7 +337,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
   async function toggleCommerce(id: string, actif: boolean) {
     try {
-      await authFetch(`${import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001'}/api/admin/commerces/${id}`, {
+      await authFetch(`${API_BASE}/api/admin/commerces/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({ actif }),
       });
@@ -326,7 +347,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   }
 
   async function updatePlan(id: string, planOverride: 'starter' | 'pro' | 'sur-mesure') {
-    const endpoint = `${import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001'}/api/admin/commerces/${id}/plan`;
+    const endpoint = `${API_BASE}/api/admin/commerces/${id}/plan`;
     const response = await authFetch(endpoint, {
       method: 'PATCH',
       body: JSON.stringify({ plan_override: planOverride }),
@@ -361,10 +382,73 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     });
   }
 
+  function setHealthStatus(targetId: string, label: string, ok: boolean | null) {
+    const node = document.getElementById(targetId);
+    if (!node) return;
+    node.textContent = label;
+    if (ok === null) {
+      node.className = 'mt-1 text-sm font-semibold text-slate-900';
+      return;
+    }
+    node.className = ok
+      ? 'mt-1 text-sm font-semibold text-emerald-700'
+      : 'mt-1 text-sm font-semibold text-rose-700';
+  }
+
+  async function loadPlatformHealth() {
+    try {
+      const [apiRes, depsRes] = await Promise.all([
+        fetch(`${API_BASE}/api/health`).catch(() => null),
+        fetch(`${API_BASE}/api/health/deps`).catch(() => null),
+      ]);
+
+      if (!apiRes) {
+        setHealthStatus('health-api-status', 'API indisponible', false);
+      } else {
+        const apiPayload = await apiRes.json().catch(() => null);
+        setHealthStatus('health-api-status', apiPayload?.ok ? 'Opérationnelle' : 'Dégradée', Boolean(apiPayload?.ok));
+      }
+
+      if (!depsRes) {
+        setHealthStatus('health-db-status', 'Vérification indisponible', false);
+        setHealthStatus('health-stripe-status', 'Indisponible', false);
+        setHealthStatus('health-wallet-status', 'Indisponible', false);
+        return;
+      }
+
+      const depsPayload = await depsRes.json().catch(() => null);
+      const services = depsPayload?.services ?? {};
+      const databaseOk = Boolean(services?.database?.ok);
+      const dbLatency = Number(services?.database?.latency_ms ?? 0);
+      const dbLabel = databaseOk
+        ? `OK (${dbLatency} ms)`
+        : `Dégradée${services?.database?.error ? ` · ${services.database.error}` : ''}`;
+      setHealthStatus('health-db-status', dbLabel, databaseOk);
+      setHealthStatus('health-stripe-status', services?.stripe?.ok ? 'Connecté' : 'Non configuré', Boolean(services?.stripe?.ok));
+
+      const appleOk = Boolean(services?.wallet?.apple_ok);
+      const googleOk = Boolean(services?.wallet?.google_ok);
+      const walletLabel = appleOk && googleOk
+        ? 'Apple + Google OK'
+        : appleOk
+          ? 'Apple OK · Google KO'
+          : googleOk
+            ? 'Google OK · Apple KO'
+            : 'Non configuré';
+      setHealthStatus('health-wallet-status', walletLabel, appleOk || googleOk);
+    } catch {
+      setHealthStatus('health-api-status', 'Vérification indisponible', false);
+      setHealthStatus('health-db-status', 'Vérification indisponible', false);
+      setHealthStatus('health-stripe-status', 'Vérification indisponible', false);
+      setHealthStatus('health-wallet-status', 'Vérification indisponible', false);
+    }
+  }
+
   (window as unknown as Record<string, unknown>).toggleCommerce = toggleCommerce;
 
   document.getElementById('export-admin-csv')!.addEventListener('click', exportCsv);
 
   loadStats();
   loadRecentCommerces();
+  loadPlatformHealth();
 </script>

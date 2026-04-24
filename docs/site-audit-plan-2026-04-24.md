@@ -49,20 +49,19 @@
 - [x] Basculer les logs review-campaign sous flag `DEBUG_REVIEW_CAMPAIGN=1`.
 
 ### Sprint B (prochain lot)
-- [ ] Durcir la page `/abonnement/choix` avec validation stricte de la config prix.
-- [ ] Bloquer visuellement les CTA si un prix requis est indisponible.
-- [ ] Ajouter test e2e dédié "pricing-config usable".
+- [x] Durcir la page `/abonnement/choix` avec validation stricte de la config prix.
+- [x] Bloquer visuellement les CTA si un prix requis est indisponible.
+- [x] Ajouter test e2e dédié "pricing-config usable".
 
 ### Sprint C
-- [ ] Refactor progressif `/dashboard/carte` (state + preview + save).
-- [ ] Remplacement complet des derniers `alert()` dashboard.
+- [x] Refactor progressif `/dashboard/carte` (state + preview + save).
+- [x] Remplacement complet des derniers `alert()` dashboard.
 
 ### Sprint D
-- [ ] Runbook ops (checkout, push wallet, scanner).
-- [ ] KPIs de santé consolidés admin.
+- [x] Runbook ops (checkout, push wallet, scanner).
+- [x] KPIs de santé consolidés admin.
 
 ## Variables utiles
 - `DEBUG_REVIEW_CAMPAIGN=1` (logs détaillés campagne avis Google)
 - `SLOW_REQUEST_THRESHOLD_MS` (alerte lenteur API)
 - `HEALTH_DB_TIMEOUT_MS` (timeout check DB health)
-

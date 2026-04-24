@@ -11,6 +11,7 @@ Valider rapidement les parcours métier les plus sensibles avant chaque release.
 ## Variables utiles
 - `E2E_BASE_URL` (défaut: `https://www.fidelopass.com`)
 - `E2E_API_URL` (défaut: `https://api.fidelopass.com`)
+- `E2E_ACCESS_TOKEN` (optionnel, active le test de cohérence `/api/checkout/pricing-config`)
 - `E2E_PUBLIC_CARD_URL` (optionnel, ex: `https://www.fidelopass.com/carte/<id>`)
 - `E2E_USER_EMAIL` + `E2E_USER_PASSWORD` (optionnel, active le test de routage post-login)
 - `E2E_INCLUDE_PROTECTED=1` (optionnel, active les tests pages protégées `/dashboard`, `/onboarding`, `/app/scan`)
@@ -31,6 +32,7 @@ Valider rapidement les parcours métier les plus sensibles avant chaque release.
 - Santé API: `/api/health`.
 - Santé dépendances: `/api/health/deps` (statut attendu `200`/`503`; `404` toléré tant que l’endpoint n’est pas encore déployé sur l’environnement testé).
 - Routage post-login: redirection rapide vers dashboard/onboarding/abonnement (si identifiants fournis).
+- Pricing config: cohérence des slots Stripe Starter/Pro + disponibilité minimale exploitable (si `E2E_ACCESS_TOKEN` fourni).
 
 > Note: en production avec protections anti-bot, les tests “pages protégées” peuvent être bloqués en headless.  
 > Dans ce cas, exécuter ces tests sur un environnement contrôlé (staging/local) avec `E2E_INCLUDE_PROTECTED=1`.

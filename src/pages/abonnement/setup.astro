@@ -58,6 +58,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
 <script>
   import { createClient } from '@supabase/supabase-js';
+  import { withTimeout } from '../../lib/utils/with-timeout';
 
   const supabase = createClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
@@ -74,12 +75,6 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   const setupAddon = document.getElementById('setup-addon') as HTMLInputElement;
   const errorEl = document.getElementById('setup-error') as HTMLDivElement;
 
-  function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-    return Promise.race([
-      promise,
-      new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
-    ]);
-  }
   const checkoutBtn = document.getElementById('btn-checkout') as HTMLButtonElement;
 
   type Selection = {

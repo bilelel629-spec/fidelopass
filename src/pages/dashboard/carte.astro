@@ -907,60 +907,22 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   import { authFetch } from '../../lib/api';
   import { createClient } from '@supabase/supabase-js';
   import { clamp, getPatternBackground, stampCols } from '../../lib/dashboard/carte-preview-utils';
+  import {
+    TOTAL_WIZARD_STEPS,
+    WIZARD_STEP_GUIDANCE,
+    WIZARD_STEP_LABELS,
+    WIZARD_STEP_TITLES,
+    validateWizardStep,
+    type StepValidationContext,
+    type WizardStep,
+  } from '../../lib/dashboard/carte-wizard';
+  import { withTimeout } from '../../lib/utils/with-timeout';
 
   const supabase = createClient(import.meta.env.PUBLIC_SUPABASE_URL, import.meta.env.PUBLIC_SUPABASE_ANON_KEY);
   const API = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
   const PUBLIC_SITE_URL = (import.meta.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
   const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
   const setupMode = new URLSearchParams(window.location.search).get('setup') === '1';
-  const TOTAL_STEPS = 7;
-  const STEP_LABELS = ['Type', 'Identité', 'Programme', 'Apparence', 'Messages', 'Options', 'Partage'] as const;
-  const STEP_TITLES = [
-    'Type de programme',
-    'Identité visuelle',
-    'Programme fidélité',
-    'Apparence',
-    'Messages client',
-    'Options',
-    'Scanner & Partage',
-  ] as const;
-  const STEP_GUIDANCE = [
-    {
-      title: 'Choisissez le socle du programme',
-      text: 'Tampons: le plus simple en caisse. Points: plus flexible pour offres évolutives.',
-      required: 'Obligatoire: type de programme',
-    },
-    {
-      title: 'Posez votre identité',
-      text: 'Nom clair + logo bien centré = carte reconnue instantanément par le client.',
-      required: 'Obligatoire: nom de carte',
-    },
-    {
-      title: 'Définissez la promesse client',
-      text: 'Fixez un objectif atteignable et une récompense qui donne envie de revenir vite.',
-      required: 'Obligatoire: configuration programme + récompense',
-    },
-    {
-      title: 'Habillez la carte en mode simple',
-      text: 'Commencez par thème + bannière + QR. Les options avancées restent optionnelles.',
-      required: 'Obligatoire: aucun (design libre)',
-    },
-    {
-      title: 'Rassurez le client avec des messages courts',
-      text: 'Un accueil clair et un message post-ajout augmentent l’activation de la carte.',
-      required: 'Obligatoire: aucun',
-    },
-    {
-      title: 'Activez la proximité si utile',
-      text: 'Géolocalisation: renseignez une adresse précise et un message utile en passage boutique.',
-      required: 'Obligatoire si activé: adresse du commerce',
-    },
-    {
-      title: 'Passez en mode opérationnel',
-      text: 'Installez le scanner équipe puis affichez le QR client en caisse.',
-      required: 'Obligatoire: carte déjà enregistrée',
-    },
-  ] as const;
 
   let carteId: string | null = null;
   let logoUrl = '', stripUrl = '', tamponIconUrl = '', tamponEmoji = '';
@@ -971,7 +933,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   let stripFocusY = 50;
   let bannerOverlayOpacity = 0;
   let isGradient = false;
-  type WizardStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
   let currentStep: WizardStep = 1;
   let maxUnlockedStep: WizardStep = 1;
   let savedProgramType: 'tampons' | 'points' | null = null;
@@ -987,13 +948,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const completedSteps = new Set<WizardStep>();
   type RewardTier = { seuil: number; recompense: string };
   type VipTier = { nom: string; seuil: number; avantage?: string };
-
-  function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-    return Promise.race([
-      promise,
-      new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
-    ]);
-  }
 
   async function getAccessTokenFast() {
     const sessionResult = await withTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
@@ -1090,35 +1044,23 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     box.classList.remove('hidden');
   }
 
-  const stepValidators: Record<WizardStep, () => string | null> = {
-    1: () => null,
-    2: () => ((document.getElementById('nom-carte') as HTMLInputElement).value.trim() ? null : 'Renseignez au minimum le nom de la carte.'),
-    3: () => {
-      const type = (document.querySelector('input[name="type"]:checked') as HTMLInputElement | null)?.value ?? 'tampons';
-      if (type === 'tampons') {
-        const total = parseInt((document.getElementById('tampons-total') as HTMLInputElement).value, 10);
-        if (!Number.isFinite(total) || total < 1) return 'Le nombre de tampons doit être supérieur à 0.';
-      } else {
-        const perEuro = parseFloat((document.getElementById('points-par-euro') as HTMLInputElement).value);
-        const target = parseInt((document.getElementById('points-recompense') as HTMLInputElement).value, 10);
-        if (!Number.isFinite(perEuro) || perEuro <= 0) return 'Le ratio points/euro doit être supérieur à 0.';
-        if (!Number.isFinite(target) || target < 1) return 'Le seuil de points doit être supérieur à 0.';
-      }
-      if (!(document.getElementById('recompense') as HTMLInputElement).value.trim()) return 'Décrivez la récompense offerte au client.';
-      return null;
-    },
-    4: () => null,
-    5: () => null,
-    6: () => {
-      if (!geoEnabled) return null;
-      if (!(document.getElementById('adresse-commerce') as HTMLInputElement).value.trim()) return 'Ajoutez l’adresse du commerce pour activer la géolocalisation.';
-      return null;
-    },
-    7: () => null,
-  };
+  function getStepValidationContext(): StepValidationContext {
+    const type = ((document.querySelector('input[name="type"]:checked') as HTMLInputElement | null)?.value ?? 'tampons') as 'tampons' | 'points';
+    return {
+      type,
+      nomCarte: (document.getElementById('nom-carte') as HTMLInputElement).value,
+      recompense: (document.getElementById('recompense') as HTMLInputElement).value,
+      tamponsTotal: parseInt((document.getElementById('tampons-total') as HTMLInputElement).value, 10),
+      pointsParEuro: parseFloat((document.getElementById('points-par-euro') as HTMLInputElement).value),
+      pointsRecompense: parseInt((document.getElementById('points-recompense') as HTMLInputElement).value, 10),
+      geoEnabled,
+      adresseCommerce: (document.getElementById('adresse-commerce') as HTMLInputElement).value,
+    };
+  }
+
 
   function setMaxUnlockedStep(nextStep: number) {
-    maxUnlockedStep = Math.max(1, Math.min(TOTAL_STEPS, nextStep)) as WizardStep;
+    maxUnlockedStep = Math.max(1, Math.min(TOTAL_WIZARD_STEPS, nextStep)) as WizardStep;
   }
 
   function markStepCompleted(step: WizardStep) {
@@ -1135,17 +1077,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       document.getElementById('mobile-save-continue-btn'),
     ].filter(Boolean) as HTMLButtonElement[];
     const currentLabel = document.getElementById('wizard-current-label');
-    if (currentLabel) currentLabel.textContent = `Étape ${currentStep} · ${STEP_LABELS[currentStep - 1]}`;
+    if (currentLabel) currentLabel.textContent = `Étape ${currentStep} · ${WIZARD_STEP_LABELS[currentStep - 1]}`;
     const mobileCounter = document.getElementById('wizard-mobile-counter');
-    if (mobileCounter) mobileCounter.textContent = `Étape ${currentStep}/${TOTAL_STEPS}`;
+    if (mobileCounter) mobileCounter.textContent = `Étape ${currentStep}/${TOTAL_WIZARD_STEPS}`;
     const mobileTitle = document.getElementById('wizard-mobile-title');
-    if (mobileTitle) mobileTitle.textContent = STEP_TITLES[currentStep - 1];
+    if (mobileTitle) mobileTitle.textContent = WIZARD_STEP_TITLES[currentStep - 1];
     const mobileProgress = document.getElementById('wizard-mobile-progress') as HTMLDivElement | null;
-    if (mobileProgress) mobileProgress.style.width = `${(currentStep / TOTAL_STEPS) * 100}%`;
+    if (mobileProgress) mobileProgress.style.width = `${(currentStep / TOTAL_WIZARD_STEPS) * 100}%`;
     const guidanceTitle = document.getElementById('mobile-step-guidance-title');
     const guidanceText = document.getElementById('mobile-step-guidance-text');
     const guidanceRequired = document.getElementById('mobile-step-guidance-required');
-    const guidance = STEP_GUIDANCE[currentStep - 1];
+    const guidance = WIZARD_STEP_GUIDANCE[currentStep - 1];
     if (guidanceTitle) guidanceTitle.textContent = guidance.title;
     if (guidanceText) guidanceText.textContent = guidance.text;
     if (guidanceRequired) guidanceRequired.textContent = guidance.required;
@@ -1185,10 +1127,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   function showStep(step: number) {
-    const target = Math.max(1, Math.min(TOTAL_STEPS, step));
+    const target = Math.max(1, Math.min(TOTAL_WIZARD_STEPS, step));
     const accessibleStep = Math.min(target, maxUnlockedStep);
-    if (target >= TOTAL_STEPS && !carteId) {
-      currentStep = (TOTAL_STEPS - 1) as WizardStep;
+    if (target >= TOTAL_WIZARD_STEPS && !carteId) {
+      currentStep = (TOTAL_WIZARD_STEPS - 1) as WizardStep;
       showStepError(6, "Créez d'abord votre carte avant d'accéder au scanner et au partage.");
     } else {
       currentStep = accessibleStep as WizardStep;
@@ -2306,8 +2248,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const res=await authFetch('/api/cartes'); if(!res.ok)return;
       const {data}=await res.json(); if(!data)return;
       carteId=data.id;
-      setMaxUnlockedStep(TOTAL_STEPS);
-      (Array.from({ length: TOTAL_STEPS }, (_, index) => index + 1) as WizardStep[]).forEach((step) => completedSteps.add(step));
+      setMaxUnlockedStep(TOTAL_WIZARD_STEPS);
+      (Array.from({ length: TOTAL_WIZARD_STEPS }, (_, index) => index + 1) as WizardStep[]).forEach((step) => completedSteps.add(step));
       const set=(id:string,val:string)=>{const el=document.getElementById(id) as HTMLInputElement;if(el)el.value=val;};
       set('nom-carte',data.nom??''); set('description',data.description??''); set('tampons-total',String(data.tampons_total??10));
       set('points-par-euro',String(data.points_par_euro??1)); set('points-recompense',String(data.points_recompense??100));
@@ -2513,7 +2455,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         if (typeChangePendingRevalidation) {
           setMaxUnlockedStep(3);
         } else {
-          setMaxUnlockedStep(TOTAL_STEPS);
+          setMaxUnlockedStep(TOTAL_WIZARD_STEPS);
         }
       }
 
@@ -2525,7 +2467,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       if (advance) {
         clearStepError(currentStep);
-        const nextStep = currentStep < TOTAL_STEPS ? (currentStep + 1) : TOTAL_STEPS;
+        const nextStep = currentStep < TOTAL_WIZARD_STEPS ? (currentStep + 1) : TOTAL_WIZARD_STEPS;
         setMaxUnlockedStep(Math.max(maxUnlockedStep, nextStep));
         showStep(nextStep);
       }
@@ -2542,7 +2484,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   async function handleSaveContinue() {
-    const validation = stepValidators[currentStep]();
+    const validation = validateWizardStep(currentStep, getStepValidationContext());
     if (validation) {
       showStepError(currentStep, validation);
       return;

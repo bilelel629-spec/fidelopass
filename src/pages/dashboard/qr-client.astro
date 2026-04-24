@@ -26,6 +26,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const statusEl = document.getElementById('qr-client-status');
   const actionsEl = document.getElementById('qr-client-actions');
   const retryBtn = document.getElementById('qr-client-retry');
+  const FETCH_TIMEOUT_MS = Number(import.meta.env.PUBLIC_API_FETCH_TIMEOUT_MS ?? 3500);
+  let openRequestToken = 0;
 
   function setStatus(message: string, showActions = false) {
     if (statusEl) statusEl.textContent = message;
@@ -49,25 +51,39 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   }
 
+  function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
+    ]);
+  }
+
+  async function authFetchWithTimeout(path: string, init?: RequestInit): Promise<Response> {
+    return withTimeout(authFetch(path, init), FETCH_TIMEOUT_MS);
+  }
+
   async function pointAwareFetch(path: string, init?: RequestInit): Promise<Response> {
-    const response = await authFetch(path, init);
+    const response = await authFetchWithTimeout(path, init);
     if (response.status !== 403 && response.status !== 404) return response;
 
     const pointVenteId = getStoredPointVenteId();
     if (!pointVenteId) return response;
     clearStoredPointVenteId();
-    return authFetch(path, init);
+    return authFetchWithTimeout(path, init);
   }
 
   async function openClientPoster() {
+    const token = ++openRequestToken;
     setStatus('Recherche de votre carte active…');
     actionsEl?.classList.add('hidden');
 
     try {
       const res = await pointAwareFetch('/api/cartes/active');
+      if (token !== openRequestToken) return;
       if (!res.ok) throw new Error('api-error');
 
       const payload = await res.json().catch(() => ({ data: null }));
+      if (token !== openRequestToken) return;
       const carteId = payload?.data?.id as string | undefined;
 
       if (!carteId) {
@@ -77,6 +93,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       window.location.replace(`/poster/${carteId}?template=signature`);
     } catch {
+      if (token !== openRequestToken) return;
       setStatus('Impossible d’ouvrir l’affiche pour le moment. Vérifiez votre connexion puis réessayez.', true);
     }
   }
@@ -87,4 +104,3 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   void openClientPoster();
 </script>
-

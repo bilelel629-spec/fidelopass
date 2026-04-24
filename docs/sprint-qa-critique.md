@@ -29,6 +29,7 @@ Valider rapidement les parcours métier les plus sensibles avant chaque release.
 - Gating accès: `/dashboard`, `/onboarding`, `/app/scan` redirigent vers login sans session.
 - Carte publique: pas de chargement infini (si `E2E_PUBLIC_CARD_URL` fourni).
 - Santé API: `/api/health`.
+- Santé dépendances: `/api/health/deps` (statut attendu `200`/`503`; `404` toléré tant que l’endpoint n’est pas encore déployé sur l’environnement testé).
 - Routage post-login: redirection rapide vers dashboard/onboarding/abonnement (si identifiants fournis).
 
 > Note: en production avec protections anti-bot, les tests “pages protégées” peuvent être bloqués en headless.  

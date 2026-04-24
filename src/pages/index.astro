@@ -62,49 +62,17 @@ import PublicNav from '../components/marketing/PublicNav.astro';
         </div>
       </div>
 
-      <!-- Mockup carte Wallet -->
+      <!-- Visuel principal -->
       <div class="relative flex justify-center">
-        <div class="absolute inset-8 rounded-[3rem] blur-3xl opacity-20 bg-gradient-to-br from-indigo-300 to-sky-300"></div>
-        <div class="relative w-full max-w-[25rem]">
-          <div class="rounded-[2rem] overflow-hidden border border-white/70 shadow-[0_35px_80px_rgba(15,23,42,0.14)]">
-            <div class="p-6" style="background:linear-gradient(145deg,#1e1b4b,#312e81 55%,#0f766e)">
-              <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center gap-3">
-                  <div class="w-12 h-12 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center text-xs font-semibold text-white">BLF</div>
-                  <div>
-                    <p class="text-white font-bold text-sm">Café Lumière</p>
-                    <p class="text-white/60 text-xs">Carte de fidélité</p>
-                  </div>
-                </div>
-                <span class="rounded-full bg-amber-400/20 border border-amber-400/30 text-amber-200 text-xs font-medium px-3 py-1">6 / 10</span>
-              </div>
-              <div class="rounded-2xl bg-black/20 border border-white/10 p-4 mb-5">
-                <div class="grid grid-cols-5 gap-2.5">
-                  {Array.from({ length: 10 }).map((_, i) => (
-                    <div
-                      class="aspect-square rounded-full border-2 flex items-center justify-center text-sm font-bold"
-                      style={i < 6 ? 'background:#f59e0b;border-color:#f59e0b;color:white;' : 'border-color:rgba(255,255,255,0.2);color:rgba(255,255,255,0.3);'}
-                    >
-                      {i < 6 ? '✓' : '·'}
-                    </div>
-                  ))}
-                </div>
-                <p class="text-white/50 text-xs text-center mt-3">10 tampons = 1 café offert</p>
-              </div>
-              <div class="rounded-xl bg-white px-4 py-3 text-center">
-                <div class="h-10 rounded-lg" style="background:repeating-linear-gradient(90deg,#1e1b4b 0,#1e1b4b 3px,transparent 3px,transparent 7px);"></div>
-                <p class="text-slate-400 text-xs mt-1.5">Scanner en boutique</p>
-              </div>
-            </div>
-          </div>
-          <div class="absolute -right-4 top-6 rounded-2xl border border-slate-100 bg-white/95 px-4 py-3 text-xs shadow-[0_16px_40px_rgba(15,23,42,0.10)] backdrop-blur">
-            <p class="font-semibold text-slate-900">Apple Wallet</p>
-            <p class="text-slate-400 mt-0.5">Ajouté en 20 sec</p>
-          </div>
-          <div class="absolute -left-4 bottom-8 rounded-2xl border border-slate-100 bg-white/95 px-4 py-3 text-xs shadow-[0_16px_40px_rgba(15,23,42,0.10)] backdrop-blur">
-            <p class="font-semibold text-slate-900">Notification push</p>
-            <p class="text-emerald-500 mt-0.5">+1 client revenu</p>
-          </div>
+        <div class="absolute inset-6 rounded-[3rem] bg-gradient-to-br from-indigo-300/30 to-sky-300/25 blur-3xl"></div>
+        <div class="relative w-full max-w-[38rem]">
+          <img
+            src="/hero-wallet-cards.png"
+            alt="Exemples de cartes fidélité Fidelopass"
+            class="w-full h-auto object-contain drop-shadow-[0_34px_65px_rgba(15,23,42,0.22)]"
+            loading="eager"
+            decoding="async"
+          />
         </div>
       </div>
     </div>

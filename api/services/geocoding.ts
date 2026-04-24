@@ -18,7 +18,7 @@ export async function geocodeAddress(adresse: string): Promise<Coordinates | nul
     const res = await fetch(url.toString(), {
       headers: {
         // Nominatim exige un User-Agent identifiable
-        'User-Agent': 'Fidelopass/1.0 (contact@pulse-agency.fr)',
+        'User-Agent': 'Fidelopass/1.0 (contact@duo-agency.com)',
       },
     });
 

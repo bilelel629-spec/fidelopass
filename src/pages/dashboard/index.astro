@@ -313,7 +313,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         session = refreshResult?.data?.session ?? null;
       }
       const email = session?.user?.email?.toLowerCase();
-      const isAdmin = ['bilelel@live.fr', 'bilel@pulse-agency.fr'].includes(email ?? '');
+      const isAdmin = ['bilelel@live.fr', 'contact@duo-agency.com'].includes(email ?? '');
       document.getElementById('admin-shortcut')!.classList.toggle('hidden', !isAdmin);
     } catch {
       // best effort

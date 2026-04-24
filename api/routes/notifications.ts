@@ -16,6 +16,12 @@ const BIRTHDAY_TIMEZONE = 'Europe/Paris';
 const BIRTHDAY_SEND_HOUR = 10;
 const DEFAULT_BIRTHDAY_PUSH_TITLE = 'Joyeux anniversaire 🎉';
 const DEFAULT_BIRTHDAY_PUSH_MESSAGE = 'Votre bonus anniversaire est disponible sur votre carte Fidelopass.';
+const DEBUG_REVIEW_CAMPAIGN = process.env.DEBUG_REVIEW_CAMPAIGN === '1';
+
+function reviewDebug(...args: unknown[]) {
+  if (!DEBUG_REVIEW_CAMPAIGN) return;
+  console.log(...args);
+}
 
 function isHexColor(value: string | null | undefined): value is string {
   return /^#[0-9A-Fa-f]{6}$/.test(String(value ?? '').trim());
@@ -807,7 +813,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
   );
   const commerceError = null;
 
-  console.log('[review-campaign] commerce:', commerce?.id, '| plan:', commerce?.plan, '| error:', commerceError?.message);
+  reviewDebug('[review-campaign] commerce:', commerce?.id, '| plan:', commerce?.plan, '| error:', commerceError?.message);
 
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
   const flags = await loadCommerceFlags(db, commerce.id);
@@ -815,7 +821,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
   // Vérification plan : avis Google réservé au plan Pro
   const effectivePlan = getEffectivePlanRaw(commerce);
   const planLimits = getPlanLimits(effectivePlan);
-  console.log('[review-campaign] planLimits.avisGoogle:', planLimits.avisGoogle);
+  reviewDebug('[review-campaign] planLimits.avisGoogle:', planLimits.avisGoogle);
   if (!planLimits.avisGoogle) {
     return c.json({
       error: `La campagne avis Google est réservée au plan Pro. Plan actuel : ${effectivePlan}. Mettez à niveau votre abonnement.`,
@@ -832,7 +838,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
     .eq('actif', true)
     .single();
 
-  console.log('[review-campaign] carte:', carte?.id, '| review_reward_enabled:', carte?.review_reward_enabled, '| error:', carteError?.message);
+  reviewDebug('[review-campaign] carte:', carte?.id, '| review_reward_enabled:', carte?.review_reward_enabled, '| error:', carteError?.message);
 
   if (!carte) return c.json({ error: 'Carte active introuvable' }, 404);
   if (!carte.review_reward_enabled) {
@@ -855,7 +861,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
 
   const eligibles = (clients ?? []).filter((cl) => !claimedIds.has(cl.id));
 
-  console.log('[review-campaign] total clients:', (clients ?? []).length, '| eligibles:', eligibles.length, '| already claimed:', claimedIds.size);
+  reviewDebug('[review-campaign] total clients:', (clients ?? []).length, '| eligibles:', eligibles.length, '| already claimed:', claimedIds.size);
 
   if (eligibles.length === 0) {
     return c.json({ message: 'Tous vos clients ont déjà réclamé leur récompense.', nb_envoyes: 0, nb_eligibles: 0, nb_deja_reclame: claimedIds.size }, 200);
@@ -866,7 +872,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
   const googleEligibles = eligibles.filter((cl) => !!cl.google_pass_id);
   const appleEligibles = eligibles.filter((cl) => !!cl.apple_pass_serial);
 
-  console.log('[review-campaign] canaux — FCM:', fcmEligibles.length, '| Google Wallet:', googleEligibles.length, '| Apple Wallet:', appleEligibles.length);
+  reviewDebug('[review-campaign] canaux — FCM:', fcmEligibles.length, '| Google Wallet:', googleEligibles.length, '| Apple Wallet:', appleEligibles.length);
 
   if (fcmEligibles.length === 0 && googleEligibles.length === 0 && appleEligibles.length === 0) {
     return c.json({
@@ -904,7 +910,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
     nb_destinataires: eligibles.length,
     nb_delivrees: 0,
   });
-  console.log('[review-campaign] notification insérée dans la table pour que Apple Wallet la détecte au fetch du pass');
+  reviewDebug('[review-campaign] notification insérée dans la table pour que Apple Wallet la détecte au fetch du pass');
 
   // 1. Web push (FCM) — lien personnalisé par client
   if (fcmEligibles.length > 0) {
@@ -916,7 +922,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
       console.error('[review-campaign fcm]', err);
       return 0;
     });
-    console.log('[review-campaign] FCM envoyés:', sent, '/', fcmEligibles.length);
+    reviewDebug('[review-campaign] FCM envoyés:', sent, '/', fcmEligibles.length);
     nbEnvoyes += sent;
   }
 
@@ -929,7 +935,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
       `${message}\n👉 ${reviewUrl}`,
     ).then(() => { nbEnvoyes++; }).catch((err) => console.error('[review-campaign google wallet]', err));
   }
-  console.log('[review-campaign] Google Wallet traités:', googleEligibles.length);
+  reviewDebug('[review-campaign] Google Wallet traités:', googleEligibles.length);
 
   // 3. Apple Wallet — push SILENCIEUX (payload={}, apns-push-type:background, priority:5)
   //    iOS reçoit le push → appelle GET /apple/v1/passes/:type/:serial
@@ -942,7 +948,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
       .select('client_id, push_token, pass_type_identifier')
       .in('client_id', appleIds);
 
-    console.log('[review-campaign] Apple registrations trouvées:', (registrations ?? []).length, '/', appleEligibles.length);
+    reviewDebug('[review-campaign] Apple registrations trouvées:', (registrations ?? []).length, '/', appleEligibles.length);
 
     const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
     const uniqueRegistrations = Array.from(
@@ -957,14 +963,14 @@ notificationsRoutes.post('/review-campaign', async (c) => {
     );
   }
 
-  console.log('[review-campaign] TOTAL envoyés:', nbEnvoyes, '/ eligibles:', eligibles.length);
+  reviewDebug('[review-campaign] TOTAL envoyés:', nbEnvoyes, '/ eligibles:', eligibles.length);
 
   // 4. SMS (si toggle activé et crédits disponibles)
   let nbSmsEnvoyes = 0;
   if (Boolean(flags?.sms_review_enabled) && Number(flags?.sms_credits ?? 0) > 0) {
     const lienAvis = (carte as { google_maps_url?: string | null }).google_maps_url ?? '';
     const smsEligibles = eligibles.filter((cl) => !!(cl as { telephone?: string | null }).telephone);
-    console.log('[review-campaign] SMS éligibles:', smsEligibles.length);
+    reviewDebug('[review-campaign] SMS éligibles:', smsEligibles.length);
 
     for (const cl of smsEligibles) {
       const telephone = (cl as { telephone: string }).telephone;
@@ -980,7 +986,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
       const result = await sendSMS(telephone, msg, commerce.id, cl.id, 'review');
       if (result.success) nbSmsEnvoyes++;
     }
-    console.log('[review-campaign] SMS envoyés:', nbSmsEnvoyes);
+    reviewDebug('[review-campaign] SMS envoyés:', nbSmsEnvoyes);
   }
 
   return c.json({

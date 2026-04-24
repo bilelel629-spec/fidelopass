@@ -289,7 +289,7 @@ const apiBase = (
   }
 </style>
 
-<script define:vars={{ apiBase, carteId: id }}>
+<script is:inline define:vars={{ apiBase, carteId: id }}>
   const API = apiBase;
   const qrBase = 'https://api.qrserver.com/v1/create-qr-code/';
   const params = new URLSearchParams(window.location.search);

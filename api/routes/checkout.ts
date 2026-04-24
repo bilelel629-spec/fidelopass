@@ -150,31 +150,123 @@ async function resolveUsablePriceId(
   throw new Error(`No such price: '${requestedPriceId}'`);
 }
 
-function canonicalPriceId(slot: PriceSlot, priceIds: Record<string, string>) {
+type PricingConfigEntry = {
+  slot: PriceSlot;
+  mode: 'subscription' | 'payment';
+  priceId: string | null;
+  available: boolean;
+};
+
+type PricingConfigPayload = {
+  starter: {
+    monthly: PricingConfigEntry;
+    annual_monthly: PricingConfigEntry;
+    annual_once: PricingConfigEntry;
+  };
+  pro: {
+    monthly: PricingConfigEntry;
+    annual_monthly: PricingConfigEntry;
+    annual_once: PricingConfigEntry;
+  };
+  addons: {
+    accompagnement: PricingConfigEntry;
+    scanner: PricingConfigEntry;
+  };
+};
+
+let pricingConfigCache:
+  | {
+    expiresAt: number;
+    data: PricingConfigPayload;
+  }
+  | null = null;
+
+const PRICING_CONFIG_CACHE_TTL_MS = Number(process.env.PRICING_CONFIG_CACHE_TTL_MS ?? 300_000);
+
+async function resolveAvailablePriceMap(stripe: Stripe, priceIds: Record<string, string>) {
+  const allCandidateIds = Array.from(
+    new Set(
+      PRICE_SLOTS.flatMap((slot) => candidatesForSlot(slot, priceIds)),
+    ),
+  );
+
+  const entries = await Promise.all(
+    allCandidateIds.map(async (id) => {
+      try {
+        await stripe.prices.retrieve(id);
+        return [id, true] as const;
+      } catch (error) {
+        if (isNoSuchPriceError(error)) return [id, false] as const;
+        throw error;
+      }
+    }),
+  );
+
+  return Object.fromEntries(entries) as Record<string, boolean>;
+}
+
+function resolveBestPriceForSlot(slot: PriceSlot, priceIds: Record<string, string>, availability: Record<string, boolean>) {
   const candidates = candidatesForSlot(slot, priceIds);
-  return candidates[0] ?? null;
+  const firstAvailable = candidates.find((candidate) => availability[candidate]);
+  const picked = firstAvailable ?? candidates[0] ?? null;
+  return {
+    priceId: picked,
+    available: Boolean(picked && availability[picked]),
+  };
+}
+
+function buildPricingConfigPayload(priceIds: Record<string, string>, availability: Record<string, boolean>): PricingConfigPayload {
+  const starterMonthly = resolveBestPriceForSlot('starter_mensuel', priceIds, availability);
+  const starterAnnualMonthly = resolveBestPriceForSlot('starter_annuel_mensuel', priceIds, availability);
+  const starterAnnualOnce = resolveBestPriceForSlot('starter_annuel_once', priceIds, availability);
+  const proMonthly = resolveBestPriceForSlot('pro_mensuel', priceIds, availability);
+  const proAnnualMonthly = resolveBestPriceForSlot('pro_annuel_mensuel', priceIds, availability);
+  const proAnnualOnce = resolveBestPriceForSlot('pro_annuel_once', priceIds, availability);
+  const addonAccompagnement = resolveBestPriceForSlot('accompagnement', priceIds, availability);
+  const addonScanner = resolveBestPriceForSlot('scanner', priceIds, availability);
+
+  return {
+    starter: {
+      monthly: { slot: 'starter_mensuel', mode: 'subscription', ...starterMonthly },
+      annual_monthly: { slot: 'starter_annuel_mensuel', mode: 'subscription', ...starterAnnualMonthly },
+      annual_once: { slot: 'starter_annuel_once', mode: 'payment', ...starterAnnualOnce },
+    },
+    pro: {
+      monthly: { slot: 'pro_mensuel', mode: 'subscription', ...proMonthly },
+      annual_monthly: { slot: 'pro_annuel_mensuel', mode: 'subscription', ...proAnnualMonthly },
+      annual_once: { slot: 'pro_annuel_once', mode: 'payment', ...proAnnualOnce },
+    },
+    addons: {
+      accompagnement: { slot: 'accompagnement', mode: 'payment', ...addonAccompagnement },
+      scanner: { slot: 'scanner', mode: 'payment', ...addonScanner },
+    },
+  };
 }
 
 checkoutRoutes.get('/pricing-config', authMiddleware, async (c) => {
   const priceIds = loadPriceIds();
-  const data = {
-    starter: {
-      monthly: { slot: 'starter_mensuel', mode: 'subscription', priceId: canonicalPriceId('starter_mensuel', priceIds) },
-      annual_monthly: { slot: 'starter_annuel_mensuel', mode: 'subscription', priceId: canonicalPriceId('starter_annuel_mensuel', priceIds) },
-      annual_once: { slot: 'starter_annuel_once', mode: 'payment', priceId: canonicalPriceId('starter_annuel_once', priceIds) },
-    },
-    pro: {
-      monthly: { slot: 'pro_mensuel', mode: 'subscription', priceId: canonicalPriceId('pro_mensuel', priceIds) },
-      annual_monthly: { slot: 'pro_annuel_mensuel', mode: 'subscription', priceId: canonicalPriceId('pro_annuel_mensuel', priceIds) },
-      annual_once: { slot: 'pro_annuel_once', mode: 'payment', priceId: canonicalPriceId('pro_annuel_once', priceIds) },
-    },
-    addons: {
-      accompagnement: { slot: 'accompagnement', mode: 'payment', priceId: canonicalPriceId('accompagnement', priceIds) },
-      scanner: { slot: 'scanner', mode: 'payment', priceId: canonicalPriceId('scanner', priceIds) },
-    },
-  } as const;
+  const now = Date.now();
+  if (pricingConfigCache && pricingConfigCache.expiresAt > now) {
+    return c.json({ data: pricingConfigCache.data, cached: true });
+  }
 
-  return c.json({ data });
+  try {
+    const stripe = getStripe();
+    const availability = await resolveAvailablePriceMap(stripe, priceIds);
+    const data = buildPricingConfigPayload(priceIds, availability);
+    pricingConfigCache = {
+      expiresAt: now + PRICING_CONFIG_CACHE_TTL_MS,
+      data,
+    };
+    return c.json({ data, cached: false });
+  } catch (error) {
+    console.error('[checkout] pricing-config validation fallback:', error);
+    const fallbackAvailability = Object.fromEntries(
+      PRICE_SLOTS.flatMap((slot) => candidatesForSlot(slot, priceIds)).map((id) => [id, true]),
+    ) as Record<string, boolean>;
+    const data = buildPricingConfigPayload(priceIds, fallbackAvailability);
+    return c.json({ data, cached: false, degraded: true });
+  }
 });
 
 /** POST /api/checkout/create-session */

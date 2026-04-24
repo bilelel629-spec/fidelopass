@@ -208,7 +208,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
   async function loadScannerModule() {
     if (html5QrcodeModule) return html5QrcodeModule;
     if (!scannerModulePromise) {
-      scannerModulePromise = import('html5-qrcode') as Promise<Html5QrcodeModule>;
+      scannerModulePromise = import('html5-qrcode').then((module) => module as unknown as Html5QrcodeModule);
     }
     html5QrcodeModule = await scannerModulePromise;
     return html5QrcodeModule;
@@ -263,9 +263,16 @@ import AppLayout from '../../layouts/AppLayout.astro';
     oscillator.stop(now + (type === 'success' ? 0.18 : 0.11));
   }
 
-  function showToast(message: string) {
+  function showToast(message: string, tone: 'success' | 'error' = 'success') {
     if (toastTimeout) clearTimeout(toastTimeout);
     scanToast.textContent = message;
+    scanToast.classList.remove('border-emerald-400/30', 'bg-emerald-500/15', 'text-emerald-100');
+    scanToast.classList.remove('border-red-300/40', 'bg-red-500/15', 'text-red-100');
+    if (tone === 'error') {
+      scanToast.classList.add('border-red-300/40', 'bg-red-500/15', 'text-red-100');
+    } else {
+      scanToast.classList.add('border-emerald-400/30', 'bg-emerald-500/15', 'text-emerald-100');
+    }
     scanToast.classList.remove('hidden');
     toastTimeout = setTimeout(() => scanToast.classList.add('hidden'), 2200);
   }
@@ -292,6 +299,11 @@ import AppLayout from '../../layouts/AppLayout.astro';
     return token;
   }
 
+  function getDeviceName() {
+    const userAgentPlatform = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform;
+    return (userAgentPlatform ?? navigator.userAgent ?? 'Téléphone').slice(0, 120);
+  }
+
   async function ensureScannerAccess() {
     const token = getScannerToken();
     const statusRes = await authFetch(`/api/scanners/status?scanner_token=${encodeURIComponent(token)}`);
@@ -315,7 +327,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
       method: 'POST',
       body: JSON.stringify({
         scanner_token: token,
-        device_name: navigator.platform || 'Téléphone',
+        device_name: getDeviceName(),
       }),
     });
     const registerPayload = await registerRes.json().catch(() => null);
@@ -478,7 +490,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
       // Feedback haptique
       if (navigator.vibrate) navigator.vibrate(100);
     } catch {
-      alert('QR code non reconnu. Réessayez.');
+      showToast('QR code non reconnu. Réessayez.', 'error');
       resumeScanner();
     }
   }
@@ -548,7 +560,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
       closeResult();
     } catch {
-      alert('Erreur lors de l\'ajout. Réessayez.');
+      showToast("Erreur lors de l'ajout. Réessayez.", 'error');
     }
   }
 

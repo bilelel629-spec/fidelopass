@@ -206,7 +206,7 @@ const firebasePushConfig = {
   </div>
 </BaseLayout>
 
-<script define:vars={{ carteId: id, firebasePushConfig }}>
+<script is:inline define:vars={{ carteId: id, firebasePushConfig }}>
   const API = (document.getElementById('api-config'))?.dataset.url || 'https://api.fidelopass.com';
   const apiUrl = (path) => `${API}${path}`;
 
@@ -227,8 +227,7 @@ const firebasePushConfig = {
 
   // ── Checkbox consentement ────────────────────────────────────────
   const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
-    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    || (/mac/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
   const supportsPushBrowser = 'Notification' in window && 'serviceWorker' in navigator;
   const supportsMarketingWebPush = supportsPushBrowser && !isIos;
 

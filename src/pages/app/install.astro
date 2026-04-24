@@ -159,6 +159,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
   registerBtn.addEventListener('click', async () => {
     const token = getScannerToken();
+    const userAgentPlatform = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform;
+    const deviceName = (userAgentPlatform ?? navigator.userAgent ?? 'Téléphone').slice(0, 120);
     registerBtn.disabled = true;
     const previous = registerBtn.textContent;
     registerBtn.textContent = 'Enregistrement...';
@@ -167,7 +169,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
         method: 'POST',
         body: JSON.stringify({
           scanner_token: token,
-          device_name: navigator.platform || 'Téléphone',
+          device_name: deviceName,
         }),
       });
       const payload = await res.json().catch(() => null);

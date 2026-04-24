@@ -108,7 +108,7 @@ const { carteId } = Astro.params;
   </div>
 </BaseLayout>
 
-<script define:vars={{ carteId }}>
+<script is:inline define:vars={{ carteId }}>
   const API = (window.__API_URL__ ?? '').trim() || '';
   const params = new URLSearchParams(window.location.search);
   const clientId = params.get('client_id');

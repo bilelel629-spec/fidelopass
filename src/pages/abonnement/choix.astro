@@ -54,6 +54,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       </div>
 
       <div id="choice-error" class="hidden mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"></div>
+      <div id="choice-warning" class="hidden mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"></div>
 
       <div class="grid lg:grid-cols-2 gap-6 mt-8">
         <article class="rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] p-8">
@@ -167,6 +168,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   const annualInstallmentsBtn = document.getElementById('annual-installments-btn') as HTMLButtonElement;
   const annualOnceBtn = document.getElementById('annual-once-btn') as HTMLButtonElement;
   const errorEl = document.getElementById('choice-error') as HTMLDivElement;
+  const warningEl = document.getElementById('choice-warning') as HTMLDivElement;
 
   type SessionLike = { access_token: string };
   type PriceSlot =
@@ -179,6 +181,61 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   let activeSession: SessionLike | null = null;
   let currentMode: 'monthly' | 'annual' = 'annual';
   let annualPaymentType: 'subscription' | 'payment' = 'subscription';
+  let pricingLoaded = false;
+  let pricingDegraded = false;
+
+  function toggleWarning(message: string | null) {
+    if (!message) {
+      warningEl.classList.add('hidden');
+      warningEl.textContent = '';
+      return;
+    }
+    warningEl.textContent = message;
+    warningEl.classList.remove('hidden');
+  }
+
+  function resolveButtonPriceAvailability(button: HTMLButtonElement) {
+    if (currentMode === 'monthly') {
+      return button.dataset.availabilityMonthly === '1';
+    }
+    if (annualPaymentType === 'payment') {
+      return button.dataset.availabilityAnnualOnce === '1';
+    }
+    return button.dataset.availabilityAnnualSubscription === '1';
+  }
+
+  function refreshPlanButtonsState() {
+    const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('.plan-select-btn'));
+    const unavailableCount = buttons.reduce((acc, button) => (
+      acc + (resolveButtonPriceAvailability(button) ? 0 : 1)
+    ), 0);
+
+    buttons.forEach((button) => {
+      const baseLabel = button.dataset.plan === 'pro' ? 'Continuer avec Pro' : 'Continuer avec Starter';
+      const available = pricingLoaded && resolveButtonPriceAvailability(button);
+      button.disabled = !available;
+      button.classList.toggle('opacity-50', !available);
+      button.classList.toggle('cursor-not-allowed', !available);
+      button.textContent = available ? baseLabel : 'Tarif indisponible';
+    });
+
+    if (!pricingLoaded) {
+      toggleWarning('Chargement des tarifs en cours...');
+      return;
+    }
+
+    if (unavailableCount > 0 && !pricingDegraded) {
+      toggleWarning('Certains tarifs sont temporairement indisponibles. Réessayez dans quelques instants.');
+      return;
+    }
+
+    if (pricingDegraded) {
+      toggleWarning('Mode dégradé: validation Stripe indisponible pour le moment.');
+      return;
+    }
+
+    toggleWarning(null);
+  }
 
   function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
     return Promise.race([
@@ -231,6 +288,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
           : el.dataset.annualOnce;
       el.textContent = value ?? '';
     });
+    refreshPlanButtonsState();
   }
 
   function setAnnualPaymentType(type: 'subscription' | 'payment') {
@@ -252,6 +310,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   }
 
   async function hydratePricingConfig(accessToken: string) {
+    pricingLoaded = false;
+    refreshPlanButtonsState();
     try {
       const res = await fetch(`${API}/api/checkout/pricing-config`, {
         headers: {
@@ -261,6 +321,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       });
       if (!res.ok) return;
       const payload = await res.json().catch(() => null);
+      pricingDegraded = Boolean(payload?.degraded);
       const starter = payload?.data?.starter;
       const pro = payload?.data?.pro;
       const starterBtn = document.querySelector<HTMLButtonElement>('.plan-select-btn[data-plan="starter"]');
@@ -269,14 +330,23 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         if (starter.monthly?.priceId) starterBtn.dataset.priceMonthly = String(starter.monthly.priceId);
         if (starter.annual_monthly?.priceId) starterBtn.dataset.priceAnnualSubscription = String(starter.annual_monthly.priceId);
         if (starter.annual_once?.priceId) starterBtn.dataset.priceAnnualOnce = String(starter.annual_once.priceId);
+        starterBtn.dataset.availabilityMonthly = starter.monthly?.available ? '1' : '0';
+        starterBtn.dataset.availabilityAnnualSubscription = starter.annual_monthly?.available ? '1' : '0';
+        starterBtn.dataset.availabilityAnnualOnce = starter.annual_once?.available ? '1' : '0';
       }
       if (proBtn && pro) {
         if (pro.monthly?.priceId) proBtn.dataset.priceMonthly = String(pro.monthly.priceId);
         if (pro.annual_monthly?.priceId) proBtn.dataset.priceAnnualSubscription = String(pro.annual_monthly.priceId);
         if (pro.annual_once?.priceId) proBtn.dataset.priceAnnualOnce = String(pro.annual_once.priceId);
+        proBtn.dataset.availabilityMonthly = pro.monthly?.available ? '1' : '0';
+        proBtn.dataset.availabilityAnnualSubscription = pro.annual_monthly?.available ? '1' : '0';
+        proBtn.dataset.availabilityAnnualOnce = pro.annual_once?.available ? '1' : '0';
       }
     } catch {
-      // best effort: fallback to embedded IDs
+      pricingDegraded = true;
+    } finally {
+      pricingLoaded = true;
+      refreshPlanButtonsState();
     }
   }
 
@@ -319,8 +389,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       : annualPaymentType === 'payment'
         ? btn.dataset.priceAnnualOnce
         : btn.dataset.priceAnnualSubscription;
-    if (!priceId) {
-      errorEl.textContent = "Impossible de récupérer l'identifiant de prix Stripe.";
+    if (!priceId || !resolveButtonPriceAvailability(btn)) {
+      errorEl.textContent = "Ce tarif n'est pas disponible pour le moment. Réessayez dans quelques instants.";
       errorEl.classList.remove('hidden');
       return;
     }
@@ -362,8 +432,12 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   }
 
   document.querySelectorAll<HTMLButtonElement>('.plan-select-btn').forEach((btn) => {
+    btn.dataset.availabilityMonthly = btn.dataset.priceMonthly ? '1' : '0';
+    btn.dataset.availabilityAnnualSubscription = btn.dataset.priceAnnualSubscription ? '1' : '0';
+    btn.dataset.availabilityAnnualOnce = btn.dataset.priceAnnualOnce ? '1' : '0';
     btn.addEventListener('click', () => choosePlan(btn));
   });
 
+  refreshPlanButtonsState();
   void requireSessionAndBilling();
 </script>

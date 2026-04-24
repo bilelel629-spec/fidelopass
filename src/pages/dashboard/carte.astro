@@ -773,7 +773,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           </div>
           <div id="preview-barcode-wrap" class="relative z-10 mx-5 mb-5 bg-white rounded-xl py-3 px-4 flex flex-col items-center gap-1.5">
             <div id="prev-qr" class="w-14 h-14"><svg viewBox="0 0 21 21" class="w-full h-full" style="image-rendering:pixelated"><rect x="0" y="0" width="7" height="7" fill="#111" rx="1"/><rect x="1" y="1" width="5" height="5" fill="white"/><rect x="2" y="2" width="3" height="3" fill="#111"/><rect x="14" y="0" width="7" height="7" fill="#111" rx="1"/><rect x="15" y="1" width="5" height="5" fill="white"/><rect x="16" y="2" width="3" height="3" fill="#111"/><rect x="0" y="14" width="7" height="7" fill="#111" rx="1"/><rect x="1" y="15" width="5" height="5" fill="white"/><rect x="2" y="16" width="3" height="3" fill="#111"/><rect x="9" y="9" width="3" height="3" fill="#111"/><rect x="13" y="9" width="2" height="2" fill="#111"/><rect x="16" y="9" width="3" height="3" fill="#111"/></svg></div>
-            <div id="prev-barcode" class="hidden w-full h-8 flex gap-px">{Array.from({length:30}).map((_,i)=>(<div class="flex-1 h-full" style={`background:#111;opacity:${Math.random()>0.4?1:0.15}`}></div>))}</div>
+            <div id="prev-barcode" class="hidden w-full h-8 flex gap-px">{Array.from({length:30}).map(()=>(<div class="flex-1 h-full" style={`background:#111;opacity:${Math.random()>0.4?1:0.15}`}></div>))}</div>
             <p class="text-gray-400 text-xs">identifiant client</p>
             <p id="preview-branding" class="text-[0.66rem] text-slate-700 font-medium leading-tight">Powered by Fidelopass</p>
           </div>

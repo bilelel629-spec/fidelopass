@@ -26,8 +26,8 @@ const {
     <title>{title}</title>
   </head>
   <body class:list={[
-    "min-h-screen antialiased overflow-x-hidden",
-    theme === 'dashboard' ? 'bg-navy-900 text-slate-50' : 'bg-white text-slate-900'
+    "min-h-screen antialiased overflow-x-hidden bg-transparent text-slate-900",
+    theme === 'dashboard' ? 'dashboard-theme' : 'light-theme'
   ]}>
     <slot />
   </body>

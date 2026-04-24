@@ -45,12 +45,12 @@ const navItems = [
               href={href}
               class={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-all duration-200
                 ${activeNav === id
-                  ? 'bg-gradient-to-r from-slate-900 to-slate-700 text-white shadow-[0_18px_30px_-24px_rgba(15,23,42,0.6)]'
+                  ? 'bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500 text-white shadow-[0_18px_34px_-24px_rgba(37,99,235,0.9)] ring-1 ring-white/35'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`}
             >
               <span class={`flex h-10 w-10 items-center justify-center rounded-2xl border transition-all
-                ${activeNav === id ? 'border-white/10 bg-white/10' : 'border-slate-200 bg-white text-slate-700'}`}
+                ${activeNav === id ? 'border-white/20 bg-white/15' : 'border-slate-200 bg-white text-slate-700'}`}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
                   {paths.map((path) => <path d={path}></path>)}

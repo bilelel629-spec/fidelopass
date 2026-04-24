@@ -9,13 +9,15 @@ const apiBase = (
 ---
 
 <BaseLayout title="Affiche A4 — Fidelopass" description="Téléchargez une affiche A4 Fidelopass prête à imprimer avec le QR code de votre carte.">
-  <div class="min-h-screen px-4 py-8">
+  <div class="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_62%,#ffffff_100%)] px-4 py-8">
+    <div class="pointer-events-none absolute -top-24 right-[-7rem] h-[22rem] w-[22rem] rounded-full bg-cyan-200/35 blur-3xl"></div>
+    <div class="pointer-events-none absolute bottom-[-8rem] left-[-6rem] h-[20rem] w-[20rem] rounded-full bg-blue-100/80 blur-3xl"></div>
     <div class="max-w-6xl mx-auto">
       <div class="poster-ui flex flex-col lg:flex-row gap-6 items-start justify-between mb-6">
         <div>
-          <p class="text-slate-400 text-sm uppercase tracking-[0.28em]">Affiches Fidelopass</p>
-          <h1 class="font-display text-3xl sm:text-4xl font-bold text-white mt-3">Préparez une affiche A4 prête à imprimer</h1>
-          <p class="text-slate-400 text-sm sm:text-base mt-3 max-w-2xl">
+          <p class="text-slate-500 text-sm uppercase tracking-[0.28em]">Affiches Fidelopass</p>
+          <h1 class="font-display text-3xl sm:text-4xl font-bold text-slate-900 mt-3">Préparez une affiche A4 prête à imprimer</h1>
+          <p class="text-slate-600 text-sm sm:text-base mt-3 max-w-2xl">
             Choisissez un modèle, imprimez-le en A4 ou téléchargez uniquement le QR code pour vos supports en boutique.
           </p>
         </div>
@@ -30,35 +32,35 @@ const apiBase = (
         <button type="button" class="poster-template-btn btn-secondary text-sm px-4 py-2.5" data-template="signature">Premium sombre</button>
       </div>
 
-      <div class="poster-ui card mb-6 border border-white/10 bg-slate-900/55 p-5">
-        <p class="text-[0.66rem] font-semibold uppercase tracking-[0.24em] text-sky-300/80">Personnalisation rapide</p>
+      <div class="poster-ui card mb-6 border border-slate-200/80 bg-white/95 p-5 shadow-[0_24px_56px_-34px_rgba(37,99,235,0.24)]">
+        <p class="text-[0.66rem] font-semibold uppercase tracking-[0.24em] text-sky-700/80">Personnalisation rapide</p>
         <div class="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <div class="xl:col-span-2">
-            <label for="poster-custom-title" class="text-xs font-medium text-slate-300">Titre principal</label>
-            <input id="poster-custom-title" type="text" class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 focus:border-sky-400 focus:outline-none" />
+            <label for="poster-custom-title" class="text-xs font-medium text-slate-600">Titre principal</label>
+            <input id="poster-custom-title" type="text" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-sky-400 focus:outline-none" />
           </div>
           <div class="xl:col-span-2">
-            <label for="poster-custom-subtitle" class="text-xs font-medium text-slate-300">Sous-titre</label>
-            <input id="poster-custom-subtitle" type="text" class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 focus:border-sky-400 focus:outline-none" />
+            <label for="poster-custom-subtitle" class="text-xs font-medium text-slate-600">Sous-titre</label>
+            <input id="poster-custom-subtitle" type="text" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-sky-400 focus:outline-none" />
           </div>
           <div class="xl:col-span-2">
-            <label for="poster-custom-reward" class="text-xs font-medium text-slate-300">Texte récompense</label>
-            <input id="poster-custom-reward" type="text" class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 focus:border-sky-400 focus:outline-none" />
+            <label for="poster-custom-reward" class="text-xs font-medium text-slate-600">Texte récompense</label>
+            <input id="poster-custom-reward" type="text" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-sky-400 focus:outline-none" />
           </div>
           <div>
-            <label for="poster-custom-accent" class="text-xs font-medium text-slate-300">Couleur accent</label>
-            <input id="poster-custom-accent" type="color" value="#6366f1" class="mt-1 h-11 w-full cursor-pointer rounded-xl border border-slate-700 bg-slate-950/70 p-1" />
+            <label for="poster-custom-accent" class="text-xs font-medium text-slate-600">Couleur accent</label>
+            <input id="poster-custom-accent" type="color" value="#6366f1" class="mt-1 h-11 w-full cursor-pointer rounded-xl border border-slate-200 bg-white p-1" />
           </div>
           <div>
-            <label for="poster-custom-bg" class="text-xs font-medium text-slate-300">Couleur fond</label>
-            <input id="poster-custom-bg" type="color" value="#0f172a" class="mt-1 h-11 w-full cursor-pointer rounded-xl border border-slate-700 bg-slate-950/70 p-1" />
+            <label for="poster-custom-bg" class="text-xs font-medium text-slate-600">Couleur fond</label>
+            <input id="poster-custom-bg" type="color" value="#0f172a" class="mt-1 h-11 w-full cursor-pointer rounded-xl border border-slate-200 bg-white p-1" />
           </div>
         </div>
       </div>
 
       <div id="poster-loading" class="text-center py-16">
         <div class="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p class="text-slate-400 text-sm">Préparation de l’affiche...</p>
+        <p class="text-slate-500 text-sm">Préparation de l’affiche...</p>
       </div>
 
       <div id="poster-error" class="hidden text-center py-12">

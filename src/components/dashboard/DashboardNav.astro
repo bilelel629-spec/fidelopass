@@ -118,6 +118,7 @@ const navItems = DASHBOARD_NAV_ITEMS;
   import { ACTIVE_POINT_VENTE_STORAGE_KEY, authFetch } from '../../lib/api';
   import { planBadgeClass, planLabel } from '../../lib/dashboard-config';
   import { clearSessionCookie, setSessionCookie } from '../../lib/session-cookie';
+  import { withTimeout } from '../../lib/utils/with-timeout';
   import { createClient } from '@supabase/supabase-js';
 
   const supabase = createClient(
@@ -125,6 +126,7 @@ const navItems = DASHBOARD_NAV_ITEMS;
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
   );
   const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
+  const API_FETCH_TIMEOUT_MS = Number(import.meta.env.PUBLIC_API_FETCH_TIMEOUT_MS ?? 3500);
 
   const desktopPlanBadge = document.getElementById('dashboard-plan-badge');
   const mobilePlanBadge = document.getElementById('dashboard-plan-badge-mobile');
@@ -165,20 +167,17 @@ const navItems = DASHBOARD_NAV_ITEMS;
     }
   }
 
-  function withTimeout(promise: Promise<unknown>, timeoutMs: number) {
-    return Promise.race([
-      promise,
-      new Promise((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
-    ]);
+  async function authFetchWithTimeout(path: string, init?: RequestInit): Promise<Response> {
+    return withTimeout(authFetch(path, init), API_FETCH_TIMEOUT_MS);
   }
 
   async function loadPointVenteSelector() {
     if (!pointVenteSelect) return;
 
-    let res = await authFetch('/api/commerces/points-vente');
+    let res = await authFetchWithTimeout('/api/commerces/points-vente');
     if (res.status === 403) {
       setStoredPointVenteId(null);
-      res = await authFetch('/api/commerces/points-vente');
+      res = await authFetchWithTimeout('/api/commerces/points-vente');
     }
     if (!res.ok) {
       pointVenteSelect.innerHTML = '<option value="">Point indisponible</option>';
@@ -223,7 +222,7 @@ const navItems = DASHBOARD_NAV_ITEMS;
 
   async function loadPlanBadge() {
     try {
-      const res = await authFetch('/api/dashboard/plan');
+      const res = await authFetchWithTimeout('/api/dashboard/plan');
       const payload = await res.json().catch(() => null);
       if (!res.ok) throw new Error(payload?.error ?? 'Plan indisponible');
       setPlanBadge(payload?.data?.plan);

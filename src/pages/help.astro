@@ -3,76 +3,213 @@ import PublicFooter from '../components/marketing/PublicFooter.astro';
 import PublicNav from '../components/marketing/PublicNav.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
-const guides = [
+const quickStart = [
   {
-    title: 'Créer sa première carte Fidelopass',
-    summary: 'Choisir le bon format, configurer les récompenses et publier une première carte vendable.',
+    step: '01',
+    title: 'Créer votre carte',
+    detail: 'Choisissez le programme, ajoutez votre identité visuelle puis publiez la carte.',
+    href: '/dashboard/carte',
+    cta: 'Ouvrir la personnalisation',
+  },
+  {
+    step: '02',
+    title: 'Installer le scanner équipe',
+    detail: "Ajoutez l'accès scanner sur le téléphone caisse pour scanner en un geste.",
+    href: '/app/install',
+    cta: "Voir l'installation mobile",
+  },
+  {
+    step: '03',
+    title: 'Partager en magasin',
+    detail: 'Générez une affiche propre avec QR client pour déclencher des inscriptions rapides.',
+    href: '/dashboard/carte',
+    cta: 'Générer l’affiche',
+  },
+];
+
+const guideCards = [
+  {
+    category: 'Onboarding',
+    title: 'Lancer votre premier point de vente',
+    summary: 'Checklist complète: carte prête, scanner actif, QR client affiché.',
     href: '/onboarding',
   },
   {
-    title: 'Installer le scanner sur l’écran d’accueil',
-    summary: 'Le parcours mobile le plus simple pour que l’équipe en boutique scanne sans friction.',
-    href: '/app/install',
-  },
-  {
-    title: 'Préparer une affiche A4 avec QR code',
-    summary: 'Télécharger le QR code, imprimer une affiche et capter les inscriptions en point de vente.',
+    category: 'Carte Wallet',
+    title: 'Configurer une carte qui convertit',
+    summary: 'Nom, visuel, programme et récompense: la base pour démarrer proprement.',
     href: '/dashboard/carte',
   },
   {
-    title: 'Acheter une clé d’accès',
-    summary: 'Comprendre le rôle de la clé et préparer l’ouverture d’un nouvel espace commerçant.',
-    href: '/acces',
-  },
-  {
-    title: 'Envoyer un message aux clients',
-    summary: 'Utiliser les messages Wallet et les relances utiles au lieu d’un simple “push” technique.',
+    category: 'Notifications',
+    title: 'Envoyer des messages utiles',
+    summary: 'Campagnes manuelles, avis Google auto et anniversaire automatique.',
     href: '/dashboard/notifications',
   },
   {
-    title: 'Partager la carte à un client',
-    summary: 'Diffuser le lien, l’affiche ou le QR code selon le contexte du commerce.',
+    category: 'Diffusion',
+    title: 'Partager en caisse et en ligne',
+    summary: 'Affiches A4, QR premium, lien direct: choisissez le meilleur canal.',
     href: '/dashboard/carte',
+  },
+  {
+    category: 'Plans',
+    title: 'Comprendre Starter vs Pro',
+    summary: 'Points de vente, scanners, automatisations et limites selon votre plan.',
+    href: '/pricing',
+  },
+  {
+    category: 'Support',
+    title: 'Contacter notre équipe',
+    summary: 'Un blocage? Notre support vous aide à débloquer rapidement.',
+    href: '/contact',
+  },
+];
+
+const faqs = [
+  {
+    q: "Je dois commencer par quoi si je viens de m'inscrire ?",
+    a: 'Commencez par personnaliser votre carte, ensuite installez le scanner, puis partagez votre QR client en magasin.',
+  },
+  {
+    q: 'Combien de temps pour être opérationnel ?',
+    a: 'En moyenne 10 à 15 minutes: carte + scanner + affiche QR. Vous pouvez scanner vos premiers clients le jour même.',
+  },
+  {
+    q: 'Mes clients doivent-ils installer une application ?',
+    a: 'Non. Vos clients ajoutent la carte directement dans Apple Wallet ou Google Wallet.',
+  },
+  {
+    q: "Où se trouve l'aide si je bloque depuis le dashboard ?",
+    a: "Vous pouvez revenir sur cette page ou contacter directement notre équipe via la page Contact.",
   },
 ];
 ---
 
-<BaseLayout title="Guides Fidelopass" description="Retrouvez les guides Fidelopass pour lancer votre première carte Wallet, installer le scanner et diffuser votre QR code.">
-  <div class="relative overflow-hidden min-h-screen">
-    <div class="absolute inset-0 pointer-events-none">
-      <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[64rem] h-[64rem] rounded-full blur-3xl opacity-20" style="background:radial-gradient(circle,#6366f1 0%,rgba(255,255,255,0) 62%)"></div>
+<BaseLayout
+  theme="light"
+  title="Centre d’aide Fidelopass — Démarrage, scanner et diffusion"
+  description="Guides Fidelopass: démarrage rapide, installation scanner, personnalisation carte et diffusion QR."
+>
+  <PublicNav currentPath="/help" />
+
+  <section class="relative overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_66%,#ffffff_100%)] pb-14 pt-12 sm:pb-18 sm:pt-16">
+    <div class="pointer-events-none absolute inset-0">
+      <div class="absolute -top-20 right-0 h-72 w-72 rounded-full bg-sky-200/35 blur-3xl"></div>
+      <div class="absolute left-0 top-20 h-64 w-64 rounded-full bg-indigo-200/25 blur-3xl"></div>
     </div>
+    <div class="relative mx-auto max-w-7xl px-4 sm:px-6">
+      <span class="mb-5 inline-flex items-center rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700 shadow-sm">
+        Centre d’aide
+      </span>
+      <h1 class="font-display text-4xl font-bold leading-[1.02] tracking-[-0.03em] text-slate-900 sm:text-5xl lg:text-6xl">
+        Trouvez la bonne action
+        <br />
+        au bon moment.
+      </h1>
+      <p class="mt-5 max-w-3xl text-lg leading-relaxed text-slate-500">
+        Cette page regroupe les parcours essentiels pour déployer Fidelopass proprement:
+        carte Wallet, scanner équipe, partage client et notifications.
+      </p>
+    </div>
+  </section>
 
-    <PublicNav currentPath="/help" />
-
-    <section class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-16">
-      <div class="max-w-4xl">
-        <div class="badge badge-info mb-5">Centre d’aide Fidelopass</div>
-        <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 leading-[0.96]">
-          Des guides courts,
-          <span class="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-blue-500 to-cyan-500">
-            pensés pour des commerçants et pas pour des développeurs
-          </span>
-        </h1>
-        <p class="text-slate-600 text-lg leading-relaxed mt-6 max-w-3xl">
-          Passtastic rassure beaucoup grâce à son help center. Fidelopass doit faire pareil, mais avec des guides plus directs, plus visuels et orientés usage terrain.
-        </p>
+  <section id="demarrage-rapide" class="bg-white py-14 sm:py-16">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6">
+      <div class="mb-8 flex items-end justify-between gap-4">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">Parcours recommandé</p>
+          <h2 class="mt-2 font-display text-3xl font-bold text-slate-900 sm:text-4xl">Démarrage rapide en 3 étapes</h2>
+        </div>
       </div>
-    </section>
 
-    <section class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pb-20">
-      <div class="grid lg:grid-cols-2 xl:grid-cols-3 gap-5">
-        {guides.map((guide) => (
-          <article class="card border border-slate-200/80 bg-white/95 p-6 h-full flex flex-col shadow-[0_22px_52px_-36px_rgba(37,99,235,0.28)]">
-            <p class="text-slate-500 text-xs uppercase tracking-[0.3em]">Guide</p>
-            <h2 class="font-display text-2xl font-bold text-slate-900 mt-4 leading-tight">{guide.title}</h2>
-            <p class="text-slate-500 text-sm leading-relaxed mt-3 flex-1">{guide.summary}</p>
-            <a href={guide.href} class="btn-secondary mt-6 justify-center">Ouvrir</a>
+      <div class="grid gap-5 lg:grid-cols-3">
+        {quickStart.map((item) => (
+          <article class="card border border-slate-200/80 bg-white/95 p-6 shadow-[0_22px_52px_-36px_rgba(37,99,235,0.24)]">
+            <div class="mb-5 flex items-center justify-between">
+              <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950 text-xs font-bold text-white">{item.step}</span>
+              <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Action</span>
+            </div>
+            <h3 class="font-display text-xl font-bold text-slate-900">{item.title}</h3>
+            <p class="mt-3 text-sm leading-relaxed text-slate-500">{item.detail}</p>
+            <a href={item.href} class="btn-secondary mt-6 w-full justify-center py-2.5 text-sm">{item.cta}</a>
           </article>
         ))}
       </div>
-    </section>
+    </div>
+  </section>
 
-    <PublicFooter />
-  </div>
+  <section class="bg-slate-50/70 py-14 sm:py-16">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6">
+      <div class="mb-8">
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">Bibliothèque</p>
+        <h2 class="mt-2 font-display text-3xl font-bold text-slate-900 sm:text-4xl">Guides par besoin</h2>
+      </div>
+      <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        {guideCards.map((guide) => (
+          <article class="card border border-slate-200/80 bg-white/95 p-6 shadow-[0_20px_44px_-34px_rgba(37,99,235,0.22)]">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">{guide.category}</p>
+            <h3 class="mt-3 font-display text-xl font-bold text-slate-900">{guide.title}</h3>
+            <p class="mt-3 text-sm leading-relaxed text-slate-500">{guide.summary}</p>
+            <a href={guide.href} class="btn-secondary mt-5 w-full justify-center py-2.5 text-sm">Ouvrir le guide</a>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white py-14 sm:py-16">
+    <div class="mx-auto max-w-4xl px-4 sm:px-6">
+      <div class="mb-8 text-center">
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">FAQ</p>
+        <h2 class="mt-2 font-display text-3xl font-bold text-slate-900 sm:text-4xl">Questions fréquentes</h2>
+      </div>
+      <div id="faq-list" class="space-y-3">
+        {faqs.map((item, index) => (
+          <div class="overflow-hidden rounded-[1.35rem] border border-slate-200 bg-white shadow-sm" data-faq={index}>
+            <button class="flex w-full items-center justify-between gap-4 px-5 py-4 text-left" aria-expanded="false">
+              <span class="text-sm font-semibold text-slate-900 sm:text-base">{item.q}</span>
+              <span class="faq-icon flex-shrink-0 text-xl font-light text-slate-400">+</span>
+            </button>
+            <div class="faq-answer hidden px-5 pb-5">
+              <p class="text-sm leading-relaxed text-slate-500">{item.a}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-[linear-gradient(135deg,#0f172a_0%,#312e81_58%,#0284c7_100%)] py-16">
+    <div class="mx-auto max-w-3xl px-4 text-center sm:px-6">
+      <h2 class="font-display text-3xl font-bold text-white sm:text-4xl">Besoin d’aide sur un cas réel ?</h2>
+      <p class="mt-4 text-base leading-relaxed text-indigo-200">
+        Notre équipe support vous répond rapidement pour débloquer votre configuration.
+      </p>
+      <div class="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+        <a href="/contact" class="inline-flex items-center justify-center rounded-xl bg-white px-7 py-3 text-sm font-bold text-indigo-700 transition-colors hover:bg-indigo-50">
+          Contacter le support
+        </a>
+        <a href="mailto:contact@duo-agency.com" class="inline-flex items-center justify-center rounded-xl border border-white/25 bg-white/10 px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/20">
+          contact@duo-agency.com
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <PublicFooter />
 </BaseLayout>
+
+<script>
+  document.querySelectorAll('#faq-list [data-faq]').forEach((item) => {
+    const btn = item.querySelector('button') as HTMLButtonElement;
+    const answer = item.querySelector('.faq-answer') as HTMLDivElement;
+    const icon = item.querySelector('.faq-icon') as HTMLSpanElement;
+    btn.addEventListener('click', () => {
+      const isOpen = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+      answer.classList.toggle('hidden', isOpen);
+      icon.textContent = isOpen ? '+' : '×';
+    });
+  });
+</script>

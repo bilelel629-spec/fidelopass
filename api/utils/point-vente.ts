@@ -100,10 +100,39 @@ export async function resolveCommerceAndPointVente<T extends CommerceRow = Comme
     throw pointsVenteError;
   }
 
-  const points = (pointsVente ?? []) as PointVenteRow[];
+  let points = (pointsVente ?? []) as PointVenteRow[];
+
+  // Résilience: certains commerces créés pendant le checkout n'ont pas encore de point de vente.
+  // On bootstrap automatiquement un point "Principal" pour éviter les blocages d'onboarding.
+  if (points.length === 0) {
+    const fallbackName = `${(commerce.nom ?? 'Point de vente').trim() || 'Point de vente'} — Principal`;
+    const { data: createdPoint, error: createPointError } = await db
+      .from('points_vente')
+      .insert({
+        commerce_id: commerce.id,
+        nom: fallbackName,
+        adresse: commerce.adresse ?? null,
+        latitude: commerce.latitude ?? null,
+        longitude: commerce.longitude ?? null,
+        rayon_geo: commerce.rayon_geo ?? 1000,
+        principal: true,
+        actif: true,
+      })
+      .select('id, commerce_id, nom, adresse, latitude, longitude, rayon_geo, principal, actif, created_at')
+      .single();
+
+    if (createPointError) {
+      throw createPointError;
+    }
+
+    if (createdPoint) {
+      points = [createdPoint as PointVenteRow];
+    }
+  }
+
   const fallbackPoint = points.find((point) => point.principal) ?? points[0] ?? null;
   const selectedPoint = requestedPointVenteId
-    ? points.find((point) => point.id === requestedPointVenteId) ?? null
+    ? points.find((point) => point.id === requestedPointVenteId) ?? fallbackPoint
     : fallbackPoint;
 
   return {

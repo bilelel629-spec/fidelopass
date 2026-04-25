@@ -8,11 +8,38 @@ import { createServiceClient } from '../../src/lib/supabase';
 import { getPublicSiteUrl } from '../utils/public-site-url';
 
 export const checkoutRoutes = new Hono();
+const PRODUCTION_SITE_URL = 'https://www.fidelopass.com';
 
 function getStripe() {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error('STRIPE_SECRET_KEY manquant');
   return new Stripe(key);
+}
+
+function isLoopbackHostname(hostname: string): boolean {
+  const value = hostname.trim().toLowerCase();
+  return (
+    value === 'localhost'
+    || value === '127.0.0.1'
+    || value === '0.0.0.0'
+    || value.endsWith('.localhost')
+  );
+}
+
+function resolvePublicSiteUrlFromRequest(originOrReferer?: string | null): string {
+  const fallback = getPublicSiteUrl();
+  if (!originOrReferer) return fallback || PRODUCTION_SITE_URL;
+  try {
+    const parsed = new URL(originOrReferer);
+    if (isLoopbackHostname(parsed.hostname)) return PRODUCTION_SITE_URL;
+    const host = parsed.hostname.toLowerCase();
+    if (host.endsWith('fidelopass.com')) {
+      return `${parsed.protocol}//${parsed.host}`.replace(/\/$/, '');
+    }
+    return fallback || PRODUCTION_SITE_URL;
+  } catch {
+    return fallback || PRODUCTION_SITE_URL;
+  }
 }
 
 const createSessionSchema = z.object({
@@ -387,13 +414,23 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
     commerce = createdCommerce;
   }
 
-  const PUBLIC_SITE_URL = getPublicSiteUrl();
+  const PUBLIC_SITE_URL = resolvePublicSiteUrlFromRequest(
+    c.req.header('origin') || c.req.header('referer') || null,
+  );
   const successUrl = isPlanCheckout
     ? `${PUBLIC_SITE_URL}/onboarding?paid=1`
     : `${PUBLIC_SITE_URL}/dashboard/parametres?tab=plans&checkout=success`;
   const cancelUrl = isPlanCheckout
     ? `${PUBLIC_SITE_URL}/abonnement/choix?cancelled=1`
     : `${PUBLIC_SITE_URL}/dashboard/parametres?tab=plans&checkout=cancelled`;
+  console.info('[checkout] redirect urls', {
+    publicSiteUrl: PUBLIC_SITE_URL,
+    successUrl,
+    cancelUrl,
+    userId,
+    selectedSlot,
+    mode,
+  });
 
   const lineItems = [{ price: resolvedBasePriceId, quantity: 1 }];
   if (resolvedAccompagnementPriceId) {
@@ -489,7 +526,9 @@ checkoutRoutes.post('/create-portal-session', authMiddleware, async (c) => {
       .eq('id', commerce.id);
   }
 
-  const PUBLIC_SITE_URL = getPublicSiteUrl();
+  const PUBLIC_SITE_URL = resolvePublicSiteUrlFromRequest(
+    c.req.header('origin') || c.req.header('referer') || null,
+  );
   try {
     const returnUrl = `${PUBLIC_SITE_URL}/dashboard/parametres?tab=plans`;
     const subscriptionId = commerce.stripe_subscription_id;

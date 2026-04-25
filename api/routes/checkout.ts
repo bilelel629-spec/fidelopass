@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { authMiddleware } from '../middleware/auth';
 import { createServiceClient } from '../../src/lib/supabase';
+import { getPublicSiteUrl } from '../utils/public-site-url';
 
 export const checkoutRoutes = new Hono();
 
@@ -386,7 +387,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
     commerce = createdCommerce;
   }
 
-  const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
+  const PUBLIC_SITE_URL = getPublicSiteUrl();
   const successUrl = isPlanCheckout
     ? `${PUBLIC_SITE_URL}/onboarding?paid=1`
     : `${PUBLIC_SITE_URL}/dashboard/parametres?tab=plans&checkout=success`;
@@ -488,7 +489,7 @@ checkoutRoutes.post('/create-portal-session', authMiddleware, async (c) => {
       .eq('id', commerce.id);
   }
 
-  const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
+  const PUBLIC_SITE_URL = getPublicSiteUrl();
   try {
     const returnUrl = `${PUBLIC_SITE_URL}/dashboard/parametres?tab=plans`;
     const subscriptionId = commerce.stripe_subscription_id;

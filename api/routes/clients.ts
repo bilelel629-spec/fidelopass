@@ -9,8 +9,9 @@ import { updateGooglePassObject } from '../services/google-wallet';
 import { scheduleSMS, personnaliserMessage } from '../../src/lib/brevo-sms';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
+import { getPublicSiteUrl } from '../utils/public-site-url';
 
-const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
+const PUBLIC_SITE_URL = getPublicSiteUrl();
 
 export const clientsRoutes = new Hono();
 

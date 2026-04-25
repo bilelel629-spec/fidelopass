@@ -5,13 +5,14 @@ import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
 import { sendSMS, personnaliserMessage } from '../../src/lib/brevo-sms';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
+import { getPublicSiteUrl } from '../utils/public-site-url';
 
 export const smsRoutes = new Hono();
 
 smsRoutes.use('*', authMiddleware);
 smsRoutes.use('*', paidMiddleware);
 
-const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
+const PUBLIC_SITE_URL = getPublicSiteUrl();
 
 /** GET /api/sms/stats — Solde + historique */
 smsRoutes.get('/stats', async (c) => {

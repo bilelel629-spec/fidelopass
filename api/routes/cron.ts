@@ -6,9 +6,10 @@ import { sendGoogleWalletMessage } from '../services/google-wallet';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { getPlanLimits } from './commerces';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
+import { getPublicSiteUrl } from '../utils/public-site-url';
 
 export const cronRoutes = new Hono();
-const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
+const PUBLIC_SITE_URL = getPublicSiteUrl();
 const BIRTHDAY_TIMEZONE = 'Europe/Paris';
 const BIRTHDAY_SEND_HOUR = 10;
 const BIRTHDAY_WINDOW_MAX_MINUTE = 5;

@@ -10,8 +10,9 @@ import { sendGoogleWalletMessage } from '../services/google-wallet';
 import { sendSMS, personnaliserMessage } from '../../src/lib/brevo-sms';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
+import { getPublicSiteUrl } from '../utils/public-site-url';
 
-const PUBLIC_SITE_URL_NOTIF = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
+const PUBLIC_SITE_URL_NOTIF = getPublicSiteUrl();
 const BIRTHDAY_TIMEZONE = 'Europe/Paris';
 const BIRTHDAY_SEND_HOUR = 10;
 const DEFAULT_BIRTHDAY_PUSH_TITLE = 'Joyeux anniversaire 🎉';
@@ -802,7 +803,7 @@ notificationsRoutes.post('/', async (c) => {
 notificationsRoutes.post('/review-campaign', async (c) => {
   const userId = c.get('userId') as string;
   const db = createServiceClient();
-  const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
+  const PUBLIC_SITE_URL = getPublicSiteUrl();
   const requestedPointVenteId = readRequestedPointVenteId(c);
 
   const { commerce, pointVente } = await resolveCommerceAndPointVente(

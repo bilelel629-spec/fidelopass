@@ -29,17 +29,10 @@ export function getPublicSiteUrl(): string {
     return FALLBACK_PUBLIC_SITE_URL;
   }
 
-  const nodeEnv = normalizeEnvValue(process.env.NODE_ENV).toLowerCase();
-  const isProduction = nodeEnv === 'production';
   const allowLoopback = ['1', 'true', 'yes', 'on'].includes(
     normalizeEnvValue(process.env.ALLOW_LOOPBACK_PUBLIC_SITE_URL).toLowerCase(),
   );
-  const onRailway = Boolean(
-    process.env.RAILWAY_PROJECT_ID
-    || process.env.RAILWAY_ENVIRONMENT
-    || process.env.RAILWAY_ENVIRONMENT_NAME,
-  );
-  if (isLoopbackHostname(parsed.hostname) && !allowLoopback && (isProduction || onRailway || nodeEnv !== 'development')) {
+  if (isLoopbackHostname(parsed.hostname) && !allowLoopback) {
     console.warn('[public-site-url] Loopback URL détectée. Fallback forcé vers https://www.fidelopass.com');
     return FALLBACK_PUBLIC_SITE_URL;
   }

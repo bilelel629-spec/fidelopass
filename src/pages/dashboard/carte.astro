@@ -475,6 +475,34 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                 <button type="button" id="strip-btn" class="btn-secondary text-xs py-1.5 px-3 flex-1">Choisir</button>
                 <button type="button" id="strip-clear" class="hidden btn-secondary text-xs py-1.5 px-2 text-red-400">✕</button>
               </div>
+              <details id="banner-templates-fold" class="rounded-xl border border-sky-100 bg-sky-50/50">
+                <summary class="cursor-pointer list-none px-3 py-2.5 text-xs font-semibold text-slate-700 flex items-center justify-between">
+                  <span>Choisir parmi 20 templates de bannière</span>
+                  <span class="text-slate-400 text-[0.68rem]">Déplier</span>
+                </summary>
+                <div class="px-3 pb-3">
+                  <div class="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                    {Array.from({ length: 20 }, (_, index) => index + 1).map((num) => (
+                      <button
+                        type="button"
+                        class="banner-template-btn group relative overflow-hidden rounded-lg border border-slate-200 bg-white transition hover:border-indigo-300 hover:shadow-[0_10px_24px_-16px_rgba(79,70,229,0.65)]"
+                        data-url={`/banner-templates/template-${String(num).padStart(2, '0')}.png`}
+                        aria-label={`Template bannière ${num}`}
+                      >
+                        <img
+                          src={`/banner-templates/template-${String(num).padStart(2, '0')}.png`}
+                          alt={`Template bannière ${num}`}
+                          class="h-12 w-full object-cover"
+                          loading="lazy"
+                        />
+                        <span class="absolute bottom-1 right-1 rounded-md bg-slate-900/75 px-1.5 py-0.5 text-[0.62rem] font-semibold text-white">
+                          {num}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </details>
               <input type="hidden" id="strip-url" />
               <p id="strip-loading" class="hidden text-indigo-400 text-xs">Upload...</p>
               <p class="text-slate-600 text-xs text-center">PNG/JPG — <strong class="text-slate-500">750×246 px</strong></p>
@@ -1856,6 +1884,45 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     try{stripUrl=await uploadFile(f);setStripPreview(stripUrl);}catch(err:unknown){showFeedbackMessage('error', err instanceof Error ? err.message : 'Erreur');}finally{ld.classList.add('hidden');}
   });
   document.getElementById('strip-clear')!.addEventListener('click',()=>{stripUrl='';setStripPreview('');(document.getElementById('strip-file') as HTMLInputElement).value='';});
+  const bannerTemplateButtons = Array.from(document.querySelectorAll('.banner-template-btn')) as HTMLButtonElement[];
+
+  function normalizeBannerTemplatePath(value: string): string {
+    if (!value) return '';
+    try {
+      const url = new URL(value, window.location.origin);
+      return url.pathname;
+    } catch {
+      return value;
+    }
+  }
+
+  function syncBannerTemplateSelection(url: string) {
+    const currentPath = normalizeBannerTemplatePath(url);
+    bannerTemplateButtons.forEach((button) => {
+      const buttonPath = normalizeBannerTemplatePath(button.dataset.url ?? '');
+      const selected = Boolean(currentPath) && buttonPath === currentPath;
+      button.classList.toggle('ring-2', selected);
+      button.classList.toggle('ring-indigo-500', selected);
+      button.classList.toggle('border-indigo-400', selected);
+      button.classList.toggle('border-slate-200', !selected);
+    });
+  }
+
+  bannerTemplateButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const selectedUrl = button.dataset.url ?? '';
+      if (!selectedUrl) return;
+      stripUrl = selectedUrl;
+      setStripScale(1);
+      setStripFocus(50, 50);
+      setStripPreview(stripUrl);
+      const success = document.getElementById('success-msg') as HTMLDivElement;
+      success.textContent = 'Template de bannière appliqué. Vous pouvez encore ajuster le cadrage.';
+      success.classList.remove('hidden');
+      markDirty();
+    });
+  });
+
   function setStripPreview(url: string){
     const img=document.getElementById('strip-preview-img') as HTMLImageElement;
     document.getElementById('strip-clear')!.classList.toggle('hidden',!url);
@@ -1869,6 +1936,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     (document.getElementById('strip-url') as HTMLInputElement).value=url;
     setStripFocus(stripFocusX, stripFocusY, { silent: true });
     applyImageScaleToElements(['strip-preview-img', 'preview-strip', 'g-strip-img'], stripScale);
+    syncBannerTemplateSelection(url);
   }
 
   stripApplyResizeBtn.addEventListener('click', async () => {

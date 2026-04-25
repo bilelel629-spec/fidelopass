@@ -147,19 +147,21 @@ adminRoutes.patch('/commerces/:id/plan', async (c) => {
       z.literal('starter'),
       z.literal('pro'),
       z.literal('sur-mesure'),
+      z.literal('auto'),
       z.null(),
     ]),
   }).safeParse(body);
 
   if (!parsed.success) {
-    return c.json({ error: 'plan_override invalide (starter, pro, sur-mesure ou null).' }, 400);
+    return c.json({ error: 'plan_override invalide (auto, starter, pro, sur-mesure ou null).' }, 400);
   }
 
+  const nextOverride = parsed.data.plan_override === 'auto' ? null : parsed.data.plan_override;
   const db = createServiceClient();
   const { data, error } = await db
     .from('commerces')
     .update({
-      plan_override: parsed.data.plan_override,
+      plan_override: nextOverride,
       updated_at: new Date().toISOString(),
     })
     .eq('id', commerceId)
@@ -175,8 +177,9 @@ adminRoutes.patch('/commerces/:id/plan', async (c) => {
     targetType: 'commerce',
     targetId: commerceId,
     payload: {
-      plan_override: parsed.data.plan_override,
+      plan_override: nextOverride,
       effective_plan: getEffectivePlanRaw(data),
+      source: nextOverride ? 'admin_override' : 'billing_auto',
     },
   });
 
@@ -184,33 +187,34 @@ adminRoutes.patch('/commerces/:id/plan', async (c) => {
     data: {
       ...data,
       effective_plan: getEffectivePlanRaw(data),
+      source: data.plan_override ? 'admin_override' : 'billing_auto',
     },
   });
 });
 
 const adminCardAssistanceSchema = z.object({
   point_vente_id: z.string().uuid(),
-  nom: z.string().min(2).max(255),
+  nom: z.string().min(2).max(255).optional(),
   description: z.string().max(500).nullable().optional(),
-  type: z.enum(['points', 'tampons']).default('tampons'),
-  tampons_total: z.number().int().min(1).max(50).default(10),
-  points_par_euro: z.number().min(0.1).max(100).default(1),
-  points_recompense: z.number().int().min(1).default(100),
+  type: z.enum(['points', 'tampons']).optional(),
+  tampons_total: z.number().int().min(1).max(50).optional(),
+  points_par_euro: z.number().min(0.1).max(100).optional(),
+  points_recompense: z.number().int().min(1).optional(),
   recompense_description: z.string().max(255).nullable().optional(),
-  couleur_fond: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default('#0f172a'),
-  couleur_texte: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default('#ffffff'),
-  couleur_accent: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default('#60a5fa'),
+  couleur_fond: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  couleur_texte: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  couleur_accent: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
   couleur_fond_2: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable().optional(),
-  gradient_angle: z.number().int().min(0).max(360).default(135),
-  pattern_type: z.enum(['none', 'dots', 'waves', 'grid', 'diagonal', 'confetti']).default('none'),
+  gradient_angle: z.number().int().min(0).max(360).optional(),
+  pattern_type: z.enum(['none', 'dots', 'waves', 'grid', 'diagonal', 'confetti']).optional(),
   logo_url: z.string().url().nullable().optional(),
   strip_url: z.string().url().nullable().optional(),
-  strip_position: z.string().default('50:50'),
+  strip_position: z.string().optional(),
   tampon_icon_url: z.string().url().nullable().optional(),
   tampon_emoji: z.string().max(8).nullable().optional(),
-  tampon_icon_scale: z.number().min(0.6).max(1.5).default(1),
-  barcode_type: z.enum(['QR', 'PDF417', 'AZTEC', 'CODE128', 'NONE']).default('QR'),
-  label_client: z.string().max(50).default('Client'),
+  tampon_icon_scale: z.number().min(0.6).max(1.5).optional(),
+  barcode_type: z.enum(['QR', 'PDF417', 'AZTEC', 'CODE128', 'NONE']).optional(),
+  label_client: z.string().max(50).optional(),
   message_geo: z.string().max(255).nullable().optional(),
   welcome_message: z.string().max(180).nullable().optional(),
   success_message: z.string().max(180).nullable().optional(),
@@ -261,6 +265,8 @@ adminRoutes.get('/commerces/:id/card-assistance', async (c) => {
 adminRoutes.patch('/commerces/:id/card-assistance', async (c) => {
   const commerceId = c.req.param('id');
   const body = await c.req.json().catch(() => null);
+  const adminUser = c.get('user');
+  const adminUserId = c.get('userId') as string;
   const parsed = adminCardAssistanceSchema.safeParse(body);
   if (!parsed.success) {
     return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides.' }, 400);
@@ -282,41 +288,68 @@ adminRoutes.patch('/commerces/:id/card-assistance', async (c) => {
 
   const { data: existing } = await db
     .from('cartes')
-    .select('id')
+    .select('*')
     .eq('commerce_id', commerceId)
     .eq('point_vente_id', pointVenteId)
     .maybeSingle();
+  const input = parsed.data;
+  if (!existing && !input.nom) {
+    return c.json({ error: 'Le nom de la carte est obligatoire pour créer une carte.' }, 400);
+  }
 
-  const payload = {
-    nom: parsed.data.nom,
-    description: parsed.data.description ?? null,
-    type: parsed.data.type,
-    tampons_total: parsed.data.tampons_total,
-    points_par_euro: parsed.data.points_par_euro,
-    points_recompense: parsed.data.points_recompense,
-    recompense_description: parsed.data.recompense_description ?? null,
-    couleur_fond: parsed.data.couleur_fond,
-    couleur_texte: parsed.data.couleur_texte,
-    couleur_accent: parsed.data.couleur_accent,
-    couleur_fond_2: parsed.data.couleur_fond_2 ?? null,
-    gradient_angle: parsed.data.gradient_angle,
-    pattern_type: parsed.data.pattern_type,
-    logo_url: parsed.data.logo_url ?? null,
-    strip_url: parsed.data.strip_url ?? null,
-    strip_position: parsed.data.strip_position,
-    tampon_icon_url: parsed.data.tampon_icon_url ?? null,
-    tampon_emoji: parsed.data.tampon_emoji ?? null,
-    tampon_icon_scale: parsed.data.tampon_icon_scale,
-    barcode_type: parsed.data.barcode_type,
-    label_client: parsed.data.label_client,
-    message_geo: parsed.data.message_geo ?? null,
-    welcome_message: parsed.data.welcome_message ?? null,
-    success_message: parsed.data.success_message ?? null,
-    pass_type_id: process.env.APPLE_PASS_TYPE_ID ?? null,
-    commerce_id: commerceId,
-    point_vente_id: pointVenteId,
+  const payload: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
   };
+
+  if (!existing) {
+    payload.commerce_id = commerceId;
+    payload.point_vente_id = pointVenteId;
+    payload.pass_type_id = process.env.APPLE_PASS_TYPE_ID ?? null;
+    payload.nom = input.nom ?? 'Carte fidélité';
+    payload.type = input.type ?? 'tampons';
+    payload.tampons_total = input.tampons_total ?? 10;
+    payload.points_par_euro = input.points_par_euro ?? 1;
+    payload.points_recompense = input.points_recompense ?? 100;
+    payload.couleur_fond = input.couleur_fond ?? '#0f172a';
+    payload.couleur_texte = input.couleur_texte ?? '#ffffff';
+    payload.couleur_accent = input.couleur_accent ?? '#60a5fa';
+    payload.gradient_angle = input.gradient_angle ?? 135;
+    payload.pattern_type = input.pattern_type ?? 'none';
+    payload.strip_position = input.strip_position ?? '50:50';
+    payload.barcode_type = input.barcode_type ?? 'QR';
+    payload.label_client = input.label_client ?? 'Client';
+    payload.tampon_icon_scale = input.tampon_icon_scale ?? 1;
+  }
+
+  const assignIfDefined = (key: keyof typeof input, column: string = key) => {
+    const value = input[key];
+    if (value !== undefined) payload[column] = value;
+  };
+
+  assignIfDefined('nom');
+  assignIfDefined('description');
+  assignIfDefined('type');
+  assignIfDefined('tampons_total');
+  assignIfDefined('points_par_euro');
+  assignIfDefined('points_recompense');
+  assignIfDefined('recompense_description');
+  assignIfDefined('couleur_fond');
+  assignIfDefined('couleur_texte');
+  assignIfDefined('couleur_accent');
+  assignIfDefined('couleur_fond_2');
+  assignIfDefined('gradient_angle');
+  assignIfDefined('pattern_type');
+  assignIfDefined('logo_url');
+  assignIfDefined('strip_url');
+  assignIfDefined('strip_position');
+  assignIfDefined('tampon_icon_url');
+  assignIfDefined('tampon_emoji');
+  assignIfDefined('tampon_icon_scale');
+  assignIfDefined('barcode_type');
+  assignIfDefined('label_client');
+  assignIfDefined('message_geo');
+  assignIfDefined('welcome_message');
+  assignIfDefined('success_message');
 
   let query = existing?.id
     ? db.from('cartes').update(payload).eq('id', existing.id).eq('commerce_id', commerceId)
@@ -333,5 +366,19 @@ adminRoutes.patch('/commerces/:id/card-assistance', async (c) => {
   }
 
   if (result.error) return c.json({ error: result.error.message }, 500);
+
+  await appendAdminAuditLog({
+    adminUserId,
+    adminEmail: adminUser?.email ?? null,
+    action: existing?.id ? 'commerce.card_assistance.updated' : 'commerce.card_assistance.created',
+    targetType: 'commerce',
+    targetId: commerceId,
+    payload: {
+      point_vente_id: pointVenteId,
+      carte_id: result.data?.id ?? existing?.id ?? null,
+      changed_fields: Object.keys(payload).filter((field) => !['updated_at', 'commerce_id', 'point_vente_id'].includes(field)),
+    },
+  });
+
   return c.json({ data: result.data });
 });

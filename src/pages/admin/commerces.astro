@@ -77,6 +77,11 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     return 'starter';
   }
 
+  function planOverrideSelectValue(commerce: AdminCommerce): 'auto' | 'starter' | 'pro' | 'sur-mesure' {
+    if (!commerce.plan_override) return 'auto';
+    return planSelectValue(commerce.plan_override);
+  }
+
   function getOnboardingState(commerce: AdminCommerce) {
     if (!commerce.cartes.length) return { label: 'Compte créé', badge: 'badge-warning' };
     if (!commerce.clients.length) return { label: 'Carte prête', badge: 'badge-info' };
@@ -191,9 +196,10 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
                         data-plan-select="${commerce.id}"
                         class="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700"
                       >
-                        <option value="starter" ${planSelectValue(commerce.effective_plan ?? commerce.plan) === 'starter' ? 'selected' : ''}>Starter</option>
-                        <option value="pro" ${planSelectValue(commerce.effective_plan ?? commerce.plan) === 'pro' ? 'selected' : ''}>Pro</option>
-                        <option value="sur-mesure" ${planSelectValue(commerce.effective_plan ?? commerce.plan) === 'sur-mesure' ? 'selected' : ''}>Sur mesure</option>
+                        <option value="auto" ${planOverrideSelectValue(commerce) === 'auto' ? 'selected' : ''}>Auto (Stripe)</option>
+                        <option value="starter" ${planOverrideSelectValue(commerce) === 'starter' ? 'selected' : ''}>Forcer Starter</option>
+                        <option value="pro" ${planOverrideSelectValue(commerce) === 'pro' ? 'selected' : ''}>Forcer Pro</option>
+                        <option value="sur-mesure" ${planOverrideSelectValue(commerce) === 'sur-mesure' ? 'selected' : ''}>Forcer Sur mesure</option>
                       </select>
                       <button
                         data-plan-apply="${commerce.id}"
@@ -205,8 +211,8 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
                     </div>
                     <p class="text-[0.68rem] text-slate-500">
                       ${commerce.plan_override
-                        ? `Override actif (${planLabel(commerce.plan_override)}). Base: ${planLabel(commerce.plan)}`
-                        : `Base: ${planLabel(commerce.plan)}`}
+                        ? `Source: override admin (${planLabel(commerce.plan_override)}). Base Stripe: ${planLabel(commerce.plan)}`
+                        : `Source: Stripe (${planLabel(commerce.plan)})`}
                     </p>
                   </div>
                 </td>
@@ -258,7 +264,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     await loadCommerces();
   }
 
-  async function updatePlan(id: string, planOverride: 'starter' | 'pro' | 'sur-mesure') {
+  async function updatePlan(id: string, planOverride: 'auto' | 'starter' | 'pro' | 'sur-mesure') {
     const endpoint = `${API_BASE}/api/admin/commerces/${id}/plan`;
     const response = await authFetch(endpoint, {
       method: 'PATCH',
@@ -278,14 +284,16 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         const select = document.querySelector<HTMLSelectElement>(`[data-plan-select="${id}"]`);
         if (!select) return;
 
-        const nextPlan = select.value as 'starter' | 'pro' | 'sur-mesure';
+        const nextPlan = select.value as 'auto' | 'starter' | 'pro' | 'sur-mesure';
         const initialLabel = button.textContent ?? 'Appliquer';
         button.disabled = true;
         button.textContent = '...';
         try {
           await updatePlan(id, nextPlan);
           await loadCommerces();
-          setActionFeedback('Plan mis à jour avec succès.', 'success');
+          setActionFeedback(nextPlan === 'auto'
+            ? 'Override retiré: le plan Stripe du commerce est de nouveau utilisé.'
+            : 'Plan forcé mis à jour avec succès.', 'success');
         } catch (error) {
           setActionFeedback(error instanceof Error ? error.message : 'Erreur de mise à jour du plan.', 'error');
           button.disabled = false;

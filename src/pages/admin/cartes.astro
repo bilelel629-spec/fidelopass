@@ -307,30 +307,33 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
   async function saveCardAssistance() {
     if (!selectedCommerceId || !selectedPointId) return;
-    const payload = {
+    const selectedType = (document.querySelector('input[name="admin-type"]:checked') as HTMLInputElement)?.value ?? 'tampons';
+    const payload: Record<string, unknown> = {
       point_vente_id: selectedPointId,
       nom: getInput('admin-card-name'),
       label_client: getInput('admin-label-client') || 'Client',
       description: getInput('admin-description') || null,
-      type: (document.querySelector('input[name="admin-type"]:checked') as HTMLInputElement)?.value ?? 'tampons',
-      tampons_total: Number(getInput('admin-tampons-total') || 10),
-      points_recompense: Number(getInput('admin-points-target') || 100),
-      points_par_euro: 1,
+      type: selectedType,
       recompense_description: getInput('admin-reward') || null,
       couleur_fond: getInput('admin-color-bg') || '#0f172a',
       couleur_texte: getInput('admin-color-text') || '#ffffff',
       couleur_accent: getInput('admin-color-accent') || '#60a5fa',
       logo_url: getInput('admin-logo-url') || null,
       strip_url: getInput('admin-strip-url') || null,
-      strip_position: '50:50',
       tampon_icon_url: getInput('admin-stamp-url') || null,
       tampon_icon_scale: Number(stampScale.value || '1'),
-      message_geo: null,
       welcome_message: getInput('admin-welcome-message') || null,
       success_message: getInput('admin-success-message') || null,
     };
 
-    if (payload.nom.length < 2) {
+    if (selectedType === 'points') {
+      payload.points_recompense = Number(getInput('admin-points-target') || 100);
+    } else {
+      payload.tampons_total = Number(getInput('admin-tampons-total') || 10);
+    }
+
+    const cardName = String(payload.nom ?? '');
+    if (cardName.length < 2) {
       setFeedback('error', 'Le nom de carte est obligatoire (2 caractères minimum).');
       return;
     }

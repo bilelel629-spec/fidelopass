@@ -141,6 +141,7 @@ app.get('/api/health/deps', async (c) => {
     probeColumn('admin_audit_logs', 'id'),
     probeColumn('clients', 'date_naissance'),
     probeColumn('cartes', 'birthday_auto_enabled'),
+    probeColumn('admin_card_proposals', 'id'),
   ]);
 
   const migrations = {
@@ -148,6 +149,7 @@ app.get('/api/health/deps', async (c) => {
     admin_audit_logs_table: migrationProbes[1],
     clients_birth_date_column: migrationProbes[2],
     cartes_birthday_column: migrationProbes[3],
+    admin_card_proposals_table: migrationProbes[4],
   };
   const migrationsOk = Object.values(migrations).every((entry) => entry.ok);
 

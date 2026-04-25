@@ -23,6 +23,20 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </a>
     </div>
   </div>
+  <div id="admin-proposal-banner" class="mb-5 hidden rounded-[1.2rem] border border-indigo-200 bg-indigo-50/65 px-4 py-3 shadow-[0_14px_34px_-26px_rgba(79,70,229,0.45)] sm:mb-6">
+    <div class="flex flex-col gap-3">
+      <div>
+        <p class="text-sm font-semibold text-indigo-900">Proposition d’amélioration prête</p>
+        <p id="admin-proposal-meta" class="mt-1 text-xs text-indigo-800/85">Votre équipe Fidelopass a préparé une mise à jour de carte pour ce point de vente.</p>
+      </div>
+      <label class="text-xs text-indigo-800/90" for="admin-proposal-comment">Commentaire (optionnel)</label>
+      <textarea id="admin-proposal-comment" rows="2" class="input text-sm" placeholder="Votre retour avant validation..."></textarea>
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="admin-proposal-approve-btn" type="button" class="btn-primary px-4 py-2 text-xs">Appliquer la proposition</button>
+        <button id="admin-proposal-reject-btn" type="button" class="btn-secondary px-4 py-2 text-xs">Refuser</button>
+      </div>
+    </div>
+  </div>
 
   <div class="mb-4 rounded-[1.4rem] border border-sky-100 bg-white/95 p-4 shadow-[0_18px_48px_-36px_rgba(59,130,246,0.4)] lg:hidden">
     <div class="flex items-center justify-between gap-3">
@@ -976,6 +990,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const completedSteps = new Set<WizardStep>();
   type RewardTier = { seuil: number; recompense: string };
   type VipTier = { nom: string; seuil: number; avantage?: string };
+  type AdminCardProposal = {
+    id: string;
+    status: 'pending_merchant' | string;
+    payload?: Record<string, unknown> | null;
+    submitted_at?: string | null;
+    updated_at?: string | null;
+    admin_note?: string | null;
+  };
+  let pendingAdminProposal: AdminCardProposal | null = null;
+
+  const adminProposalBanner = document.getElementById('admin-proposal-banner') as HTMLDivElement | null;
+  const adminProposalMeta = document.getElementById('admin-proposal-meta') as HTMLParagraphElement | null;
+  const adminProposalComment = document.getElementById('admin-proposal-comment') as HTMLTextAreaElement | null;
+  const adminProposalApproveBtn = document.getElementById('admin-proposal-approve-btn') as HTMLButtonElement | null;
+  const adminProposalRejectBtn = document.getElementById('admin-proposal-reject-btn') as HTMLButtonElement | null;
 
   async function getAccessTokenFast() {
     const sessionResult = await withTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
@@ -1058,6 +1087,84 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const installLink = document.getElementById('scanner-install-link') as HTMLAnchorElement | null;
     if (installLink) installLink.href = scannerInstallUrl();
     ensureQr('scanner-qr-container', scannerInstallUrl());
+  }
+
+  function setAdminProposalActionsDisabled(disabled: boolean) {
+    if (adminProposalApproveBtn) adminProposalApproveBtn.disabled = disabled;
+    if (adminProposalRejectBtn) adminProposalRejectBtn.disabled = disabled;
+  }
+
+  function renderAdminProposalBanner() {
+    if (!adminProposalBanner) return;
+    if (!pendingAdminProposal) {
+      adminProposalBanner.classList.add('hidden');
+      if (adminProposalComment) adminProposalComment.value = '';
+      return;
+    }
+    const when = pendingAdminProposal.submitted_at ?? pendingAdminProposal.updated_at ?? null;
+    const dateLabel = when
+      ? new Date(when).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })
+      : 'récemment';
+    if (adminProposalMeta) {
+      adminProposalMeta.textContent = pendingAdminProposal.admin_note
+        ? `Proposition envoyée le ${dateLabel}. Note admin: ${pendingAdminProposal.admin_note}`
+        : `Proposition envoyée le ${dateLabel}.`;
+    }
+    adminProposalBanner.classList.remove('hidden');
+    setAdminProposalActionsDisabled(false);
+  }
+
+  async function loadPendingAdminProposal() {
+    try {
+      const response = await authFetch('/api/cartes/admin-proposal');
+      if (!response.ok) {
+        pendingAdminProposal = null;
+        renderAdminProposalBanner();
+        return;
+      }
+      const { data } = await response.json();
+      pendingAdminProposal = (data ?? null) as AdminCardProposal | null;
+      renderAdminProposalBanner();
+    } catch {
+      pendingAdminProposal = null;
+      renderAdminProposalBanner();
+    }
+  }
+
+  async function submitAdminProposalDecision(decision: 'approve' | 'reject') {
+    if (!pendingAdminProposal?.id) return;
+    const previousApproveLabel = adminProposalApproveBtn?.textContent ?? 'Appliquer la proposition';
+    const previousRejectLabel = adminProposalRejectBtn?.textContent ?? 'Refuser';
+    setAdminProposalActionsDisabled(true);
+    if (decision === 'approve' && adminProposalApproveBtn) adminProposalApproveBtn.textContent = 'Application...';
+    if (decision === 'reject' && adminProposalRejectBtn) adminProposalRejectBtn.textContent = 'Refus...';
+    try {
+      const response = await authFetch('/api/cartes/admin-proposal/decision', {
+        method: 'POST',
+        body: JSON.stringify({
+          proposal_id: pendingAdminProposal.id,
+          decision,
+          merchant_comment: adminProposalComment?.value?.trim() || null,
+        }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(result?.error ?? 'Impossible de traiter la proposition.');
+
+      if (decision === 'approve') {
+        showFeedbackMessage('success', 'Proposition admin appliquée avec succès.');
+        await loadExistingCarte();
+      } else {
+        showFeedbackMessage('success', 'Proposition refusée.');
+      }
+      pendingAdminProposal = null;
+      renderAdminProposalBanner();
+    } catch (error) {
+      showFeedbackMessage('error', error instanceof Error ? error.message : 'Erreur inattendue.');
+      setAdminProposalActionsDisabled(false);
+    } finally {
+      if (adminProposalApproveBtn) adminProposalApproveBtn.textContent = previousApproveLabel;
+      if (adminProposalRejectBtn) adminProposalRejectBtn.textContent = previousRejectLabel;
+    }
   }
 
   function clearStepError(step: WizardStep) {
@@ -2386,6 +2493,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const b=document.getElementById('copy-link-btn')!;b.textContent='Copié !';setTimeout(()=>b.textContent='Copier le lien',2000);
     });
   });
+  adminProposalApproveBtn?.addEventListener('click', () => submitAdminProposalDecision('approve'));
+  adminProposalRejectBtn?.addEventListener('click', () => submitAdminProposalDecision('reject'));
 
   document.querySelectorAll('[data-step-target]').forEach((tab) => {
     tab.addEventListener('click', () => {
@@ -2670,6 +2779,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       loadCommerceGeo(),
       loadExistingCarte(),
       loadPlanRestrictions(),
+      loadPendingAdminProposal(),
     ]);
     suppressDirtyTracking = false;
     setDraftState(false);

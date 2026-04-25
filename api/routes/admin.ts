@@ -220,6 +220,11 @@ const adminCardAssistanceSchema = z.object({
   success_message: z.string().max(180).nullable().optional(),
 });
 
+const adminCardProposalSchema = adminCardAssistanceSchema.extend({
+  submit_for_validation: z.boolean().optional().default(false),
+  admin_note: z.string().max(500).nullable().optional(),
+});
+
 /** GET /api/admin/commerces/:id/card-assistance — Données d’édition carte (admin) */
 adminRoutes.get('/commerces/:id/card-assistance', async (c) => {
   const commerceId = c.req.param('id');
@@ -259,6 +264,146 @@ adminRoutes.get('/commerces/:id/card-assistance', async (c) => {
       cartes: cartesRes.data ?? [],
     },
   });
+});
+
+/** GET /api/admin/commerces/:id/card-assistance/proposal — Dernière proposition admin (draft/pending) */
+adminRoutes.get('/commerces/:id/card-assistance/proposal', async (c) => {
+  const commerceId = c.req.param('id');
+  const pointVenteId = c.req.query('point_vente_id');
+  if (!pointVenteId) return c.json({ error: 'point_vente_id requis.' }, 400);
+
+  const db = createServiceClient();
+  const { data: proposal, error } = await db
+    .from('admin_card_proposals')
+    .select('*')
+    .eq('commerce_id', commerceId)
+    .eq('point_vente_id', pointVenteId)
+    .in('status', ['draft_admin', 'pending_merchant'])
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) return c.json({ error: 'Impossible de charger la proposition.' }, 500);
+  return c.json({ data: proposal ?? null });
+});
+
+/** POST /api/admin/commerces/:id/card-assistance/proposal — Brouillon/soumission commerçant */
+adminRoutes.post('/commerces/:id/card-assistance/proposal', async (c) => {
+  const commerceId = c.req.param('id');
+  const body = await c.req.json().catch(() => null);
+  const adminUser = c.get('user');
+  const adminUserId = c.get('userId') as string;
+  const parsed = adminCardProposalSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides.' }, 400);
+  }
+
+  const db = createServiceClient();
+  const input = parsed.data;
+
+  const { data: pointVente, error: pointError } = await db
+    .from('points_vente')
+    .select('id, commerce_id')
+    .eq('id', input.point_vente_id)
+    .eq('commerce_id', commerceId)
+    .single();
+
+  if (pointError || !pointVente) {
+    return c.json({ error: 'Point de vente introuvable pour ce commerce.' }, 404);
+  }
+
+  const { data: existingCard } = await db
+    .from('cartes')
+    .select('id')
+    .eq('commerce_id', commerceId)
+    .eq('point_vente_id', input.point_vente_id)
+    .maybeSingle();
+
+  const proposalPayload: Record<string, unknown> = {};
+  const assignIfDefined = (key: keyof typeof input, column: string = key) => {
+    const value = input[key];
+    if (value !== undefined) proposalPayload[column] = value;
+  };
+
+  assignIfDefined('nom');
+  assignIfDefined('description');
+  assignIfDefined('type');
+  assignIfDefined('tampons_total');
+  assignIfDefined('points_par_euro');
+  assignIfDefined('points_recompense');
+  assignIfDefined('recompense_description');
+  assignIfDefined('couleur_fond');
+  assignIfDefined('couleur_texte');
+  assignIfDefined('couleur_accent');
+  assignIfDefined('couleur_fond_2');
+  assignIfDefined('gradient_angle');
+  assignIfDefined('pattern_type');
+  assignIfDefined('logo_url');
+  assignIfDefined('strip_url');
+  assignIfDefined('strip_position');
+  assignIfDefined('tampon_icon_url');
+  assignIfDefined('tampon_emoji');
+  assignIfDefined('tampon_icon_scale');
+  assignIfDefined('barcode_type');
+  assignIfDefined('label_client');
+  assignIfDefined('message_geo');
+  assignIfDefined('welcome_message');
+  assignIfDefined('success_message');
+
+  if (!existingCard?.id && !proposalPayload.nom) {
+    return c.json({ error: 'Le nom de carte est obligatoire pour créer une carte via proposition.' }, 400);
+  }
+
+  const nowIso = new Date().toISOString();
+  const nextStatus = input.submit_for_validation ? 'pending_merchant' : 'draft_admin';
+
+  const { data: openProposal } = await db
+    .from('admin_card_proposals')
+    .select('id')
+    .eq('commerce_id', commerceId)
+    .eq('point_vente_id', input.point_vente_id)
+    .in('status', ['draft_admin', 'pending_merchant'])
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const baseProposal = {
+    commerce_id: commerceId,
+    point_vente_id: input.point_vente_id,
+    carte_id: existingCard?.id ?? null,
+    payload: proposalPayload,
+    admin_note: input.admin_note ?? null,
+    status: nextStatus,
+    updated_at: nowIso,
+    ...(input.submit_for_validation ? { submitted_at: nowIso } : {}),
+  };
+
+  const result = openProposal?.id
+    ? await db.from('admin_card_proposals').update(baseProposal).eq('id', openProposal.id).select('*').single()
+    : await db.from('admin_card_proposals').insert({
+      ...baseProposal,
+      created_by_admin_user_id: adminUserId,
+      created_by_admin_email: adminUser?.email ?? null,
+      created_at: nowIso,
+    }).select('*').single();
+
+  if (result.error) return c.json({ error: result.error.message }, 500);
+
+  await appendAdminAuditLog({
+    adminUserId,
+    adminEmail: adminUser?.email ?? null,
+    action: input.submit_for_validation ? 'commerce.card_proposal.submitted' : 'commerce.card_proposal.saved',
+    targetType: 'commerce',
+    targetId: commerceId,
+    payload: {
+      proposal_id: result.data?.id ?? null,
+      point_vente_id: input.point_vente_id,
+      changed_fields: Object.keys(proposalPayload),
+      status: nextStatus,
+    },
+  });
+
+  return c.json({ data: result.data });
 });
 
 /** PATCH /api/admin/commerces/:id/card-assistance — Édition carte depuis admin */

@@ -39,10 +39,15 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 class="font-display text-2xl font-bold text-slate-900">Personnalisation rapide</h2>
-          <p class="mt-1 text-sm text-slate-500">Les modifications sont enregistrées sur la carte du point de vente sélectionné.</p>
+          <p class="mt-1 text-sm text-slate-500">Préparez une proposition admin, puis laissez le commerçant valider. Application immédiate possible en urgence.</p>
         </div>
-        <button id="admin-save-card-btn" type="button" class="btn-primary px-5 py-2.5" disabled>Enregistrer la carte</button>
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="admin-save-draft-btn" type="button" class="btn-secondary px-4 py-2.5 text-sm" disabled>Brouillon admin</button>
+          <button id="admin-submit-validation-btn" type="button" class="btn-primary px-5 py-2.5 text-sm" disabled>Soumettre au commerçant</button>
+          <button id="admin-apply-now-btn" type="button" class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60" disabled>Appliquer maintenant</button>
+        </div>
       </div>
+      <div id="admin-proposal-status" class="mb-4 hidden rounded-xl border border-indigo-200 bg-indigo-50/70 px-4 py-3 text-xs text-indigo-700"></div>
 
       <div id="admin-error" class="hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
       <div id="admin-success" class="hidden mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
@@ -163,10 +168,20 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   };
 
   type CarteItem = Record<string, unknown> & { id: string; point_vente_id: string };
+  type AdminProposal = {
+    id: string;
+    status: 'draft_admin' | 'pending_merchant' | 'rejected_merchant' | 'applied_merchant';
+    payload: Record<string, unknown>;
+    updated_at?: string | null;
+    submitted_at?: string | null;
+    admin_note?: string | null;
+    merchant_comment?: string | null;
+  };
 
   let commerces: CommerceItem[] = [];
   let pointsVente: PointVenteItem[] = [];
   let cartes: CarteItem[] = [];
+  let currentProposal: AdminProposal | null = null;
   let selectedCommerceId = '';
   let selectedPointId = '';
 
@@ -174,7 +189,10 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
   const commerceSelect = document.getElementById('admin-commerce-select') as HTMLSelectElement;
   const pointSelect = document.getElementById('admin-point-select') as HTMLSelectElement;
-  const saveBtn = document.getElementById('admin-save-card-btn') as HTMLButtonElement;
+  const saveDraftBtn = document.getElementById('admin-save-draft-btn') as HTMLButtonElement;
+  const submitValidationBtn = document.getElementById('admin-submit-validation-btn') as HTMLButtonElement;
+  const applyNowBtn = document.getElementById('admin-apply-now-btn') as HTMLButtonElement;
+  const proposalStatusBox = document.getElementById('admin-proposal-status') as HTMLDivElement;
   const errorBox = document.getElementById('admin-error') as HTMLDivElement;
   const successBox = document.getElementById('admin-success') as HTMLDivElement;
   const stampScale = document.getElementById('admin-stamp-scale') as HTMLInputElement;
@@ -196,6 +214,17 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   function clearFeedback() {
     errorBox.classList.add('hidden');
     successBox.classList.add('hidden');
+  }
+
+  function setProposalStatus(message: string, visible = true) {
+    proposalStatusBox.textContent = message;
+    proposalStatusBox.classList.toggle('hidden', !visible);
+  }
+
+  function disableActionButtons(disabled: boolean) {
+    saveDraftBtn.disabled = disabled;
+    submitValidationBtn.disabled = disabled;
+    applyNowBtn.disabled = disabled;
   }
 
   function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
@@ -236,6 +265,40 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     return (document.getElementById(id) as HTMLInputElement).value.trim();
   }
 
+  function buildPayload() {
+    const selectedType = (document.querySelector('input[name="admin-type"]:checked') as HTMLInputElement)?.value ?? 'tampons';
+    const payload: Record<string, unknown> = {
+      point_vente_id: selectedPointId,
+      nom: getInput('admin-card-name'),
+      label_client: getInput('admin-label-client') || 'Client',
+      description: getInput('admin-description') || null,
+      type: selectedType,
+      recompense_description: getInput('admin-reward') || null,
+      couleur_fond: getInput('admin-color-bg') || '#0f172a',
+      couleur_texte: getInput('admin-color-text') || '#ffffff',
+      couleur_accent: getInput('admin-color-accent') || '#60a5fa',
+      logo_url: getInput('admin-logo-url') || null,
+      strip_url: getInput('admin-strip-url') || null,
+      tampon_icon_url: getInput('admin-stamp-url') || null,
+      tampon_icon_scale: Number(stampScale.value || '1'),
+      welcome_message: getInput('admin-welcome-message') || null,
+      success_message: getInput('admin-success-message') || null,
+    };
+
+    if (selectedType === 'points') {
+      payload.points_recompense = Number(getInput('admin-points-target') || 100);
+    } else {
+      payload.tampons_total = Number(getInput('admin-tampons-total') || 10);
+    }
+    return payload;
+  }
+
+  function validatePayload(payload: Record<string, unknown>): string | null {
+    const cardName = String(payload.nom ?? '').trim();
+    if (cardName.length < 2) return 'Le nom de carte est obligatoire (2 caractères minimum).';
+    return null;
+  }
+
   function setCurrentCard(card: CarteItem | null) {
     const isPoints = String(card?.type ?? 'tampons') === 'points';
     (document.getElementById('admin-type-points') as HTMLInputElement).checked = isPoints;
@@ -257,6 +320,65 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     const scale = Number(card?.tampon_icon_scale ?? 1);
     stampScale.value = String(scale);
     stampScaleValue.textContent = Number(scale).toFixed(2);
+  }
+
+  function applyProposalPayload(payload: Record<string, unknown>) {
+    if (!payload || typeof payload !== 'object') return;
+    const type = String(payload.type ?? '');
+    if (type === 'points' || type === 'tampons') {
+      (document.getElementById('admin-type-points') as HTMLInputElement).checked = type === 'points';
+      (document.getElementById('admin-type-tampons') as HTMLInputElement).checked = type === 'tampons';
+    }
+    if (payload.nom !== undefined) setInput('admin-card-name', String(payload.nom ?? ''));
+    if (payload.label_client !== undefined) setInput('admin-label-client', String(payload.label_client ?? 'Client'));
+    if (payload.description !== undefined) setInput('admin-description', String(payload.description ?? ''));
+    if (payload.tampons_total !== undefined) setInput('admin-tampons-total', Number(payload.tampons_total ?? 10));
+    if (payload.points_recompense !== undefined) setInput('admin-points-target', Number(payload.points_recompense ?? 100));
+    if (payload.recompense_description !== undefined) setInput('admin-reward', String(payload.recompense_description ?? ''));
+    if (payload.logo_url !== undefined) setInput('admin-logo-url', String(payload.logo_url ?? ''));
+    if (payload.strip_url !== undefined) setInput('admin-strip-url', String(payload.strip_url ?? ''));
+    if (payload.tampon_icon_url !== undefined) setInput('admin-stamp-url', String(payload.tampon_icon_url ?? ''));
+    if (payload.welcome_message !== undefined) setInput('admin-welcome-message', String(payload.welcome_message ?? ''));
+    if (payload.success_message !== undefined) setInput('admin-success-message', String(payload.success_message ?? ''));
+    if (payload.couleur_fond !== undefined) setInput('admin-color-bg', String(payload.couleur_fond ?? '#0f172a'));
+    if (payload.couleur_texte !== undefined) setInput('admin-color-text', String(payload.couleur_texte ?? '#ffffff'));
+    if (payload.couleur_accent !== undefined) setInput('admin-color-accent', String(payload.couleur_accent ?? '#60a5fa'));
+    if (payload.tampon_icon_scale !== undefined) {
+      const scale = Number(payload.tampon_icon_scale ?? 1);
+      stampScale.value = String(scale);
+      stampScaleValue.textContent = Number(scale).toFixed(2);
+    }
+  }
+
+  async function loadPointProposal(commerceId: string, pointVenteId: string) {
+    const response = await authFetch(`${API_BASE}/api/admin/commerces/${commerceId}/card-assistance/proposal?point_vente_id=${encodeURIComponent(pointVenteId)}`);
+    if (!response.ok) throw new Error('Impossible de charger la proposition admin.');
+    const { data } = await response.json();
+    currentProposal = (data ?? null) as AdminProposal | null;
+  }
+
+  async function hydrateSelectedPoint() {
+    if (!selectedCommerceId || !selectedPointId) {
+      setCurrentCard(null);
+      currentProposal = null;
+      setProposalStatus('', false);
+      disableActionButtons(true);
+      return;
+    }
+    const existingCard = cartes.find((card) => card.point_vente_id === selectedPointId) ?? null;
+    setCurrentCard(existingCard);
+    await loadPointProposal(selectedCommerceId, selectedPointId);
+    if (currentProposal?.payload) {
+      applyProposalPayload(currentProposal.payload);
+      if (currentProposal.status === 'pending_merchant') {
+        setProposalStatus('Proposition envoyée au commerçant et en attente de validation.');
+      } else {
+        setProposalStatus('Brouillon admin chargé. Vous pouvez continuer puis soumettre.');
+      }
+    } else {
+      setProposalStatus('Aucune proposition enregistrée pour ce point de vente.', true);
+    }
+    disableActionButtons(false);
   }
 
   async function loadCommerces() {
@@ -295,68 +417,79 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     if (pointsVente.length > 0) {
       selectedPointId = pointsVente[0].id;
       pointSelect.value = selectedPointId;
-      const existingCard = cartes.find((card) => card.point_vente_id === selectedPointId) ?? null;
-      setCurrentCard(existingCard);
-      saveBtn.disabled = false;
+      await hydrateSelectedPoint();
     } else {
       selectedPointId = '';
       setCurrentCard(null);
-      saveBtn.disabled = true;
+      currentProposal = null;
+      disableActionButtons(true);
+      setProposalStatus('Aucun point de vente actif pour ce commerce.', true);
     }
   }
 
-  async function saveCardAssistance() {
-    if (!selectedCommerceId || !selectedPointId) return;
-    const selectedType = (document.querySelector('input[name="admin-type"]:checked') as HTMLInputElement)?.value ?? 'tampons';
-    const payload: Record<string, unknown> = {
-      point_vente_id: selectedPointId,
-      nom: getInput('admin-card-name'),
-      label_client: getInput('admin-label-client') || 'Client',
-      description: getInput('admin-description') || null,
-      type: selectedType,
-      recompense_description: getInput('admin-reward') || null,
-      couleur_fond: getInput('admin-color-bg') || '#0f172a',
-      couleur_texte: getInput('admin-color-text') || '#ffffff',
-      couleur_accent: getInput('admin-color-accent') || '#60a5fa',
-      logo_url: getInput('admin-logo-url') || null,
-      strip_url: getInput('admin-strip-url') || null,
-      tampon_icon_url: getInput('admin-stamp-url') || null,
-      tampon_icon_scale: Number(stampScale.value || '1'),
-      welcome_message: getInput('admin-welcome-message') || null,
-      success_message: getInput('admin-success-message') || null,
-    };
-
-    if (selectedType === 'points') {
-      payload.points_recompense = Number(getInput('admin-points-target') || 100);
-    } else {
-      payload.tampons_total = Number(getInput('admin-tampons-total') || 10);
+  async function runWithButtonState(button: HTMLButtonElement, loadingLabel: string, task: () => Promise<void>) {
+    const previousLabel = button.textContent ?? '';
+    button.disabled = true;
+    button.textContent = loadingLabel;
+    try {
+      await task();
+    } finally {
+      button.disabled = false;
+      button.textContent = previousLabel;
     }
+  }
 
-    const cardName = String(payload.nom ?? '');
-    if (cardName.length < 2) {
-      setFeedback('error', 'Le nom de carte est obligatoire (2 caractères minimum).');
+  async function saveCardProposal(submitForValidation: boolean) {
+    if (!selectedCommerceId || !selectedPointId) return;
+    const payload = buildPayload();
+    const validationError = validatePayload(payload);
+    if (validationError) {
+      setFeedback('error', validationError);
       return;
     }
 
     clearFeedback();
-    const initial = saveBtn.textContent;
-    saveBtn.disabled = true;
-    saveBtn.textContent = 'Enregistrement...';
     try {
-      const res = await authFetch(`${API_BASE}/api/admin/commerces/${selectedCommerceId}/card-assistance`, {
+      const response = await authFetch(`${API_BASE}/api/admin/commerces/${selectedCommerceId}/card-assistance/proposal`, {
+        method: 'POST',
+        body: JSON.stringify({
+          ...payload,
+          submit_for_validation: submitForValidation,
+        }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(result?.error ?? 'Impossible de sauvegarder la proposition.');
+      await hydrateSelectedPoint();
+      setFeedback('success', submitForValidation
+        ? 'Proposition envoyée au commerçant pour validation.'
+        : 'Brouillon admin enregistré.');
+    } catch (error) {
+      setFeedback('error', error instanceof Error ? error.message : 'Erreur inattendue.');
+    }
+  }
+
+  async function applyCardDirectly() {
+    if (!selectedCommerceId || !selectedPointId) return;
+    const payload = buildPayload();
+    const validationError = validatePayload(payload);
+    if (validationError) {
+      setFeedback('error', validationError);
+      return;
+    }
+
+    clearFeedback();
+    try {
+      const response = await authFetch(`${API_BASE}/api/admin/commerces/${selectedCommerceId}/card-assistance`, {
         method: 'PATCH',
         body: JSON.stringify(payload),
       });
-      const response = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(response?.error ?? 'Impossible de sauvegarder.');
-      setFeedback('success', 'Carte mise à jour avec succès depuis l’espace admin.');
+      const result = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(result?.error ?? 'Impossible d’appliquer la carte.');
       await loadCommerceAssistance(selectedCommerceId);
       if (selectedPointId) pointSelect.value = selectedPointId;
+      setFeedback('success', 'Carte appliquée immédiatement sur le commerce.');
     } catch (error) {
       setFeedback('error', error instanceof Error ? error.message : 'Erreur inattendue.');
-    } finally {
-      saveBtn.disabled = false;
-      saveBtn.textContent = initial ?? 'Enregistrer la carte';
     }
   }
 
@@ -364,10 +497,11 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     selectedCommerceId = commerceSelect.value;
     selectedPointId = '';
     clearFeedback();
-    saveBtn.disabled = true;
+    disableActionButtons(true);
     pointSelect.disabled = true;
     pointSelect.innerHTML = '<option value="">Choisir un point de vente</option>';
     setCurrentCard(null);
+    setProposalStatus('', false);
     if (!selectedCommerceId) return;
     try {
       await loadCommerceAssistance(selectedCommerceId);
@@ -376,19 +510,36 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     }
   });
 
-  pointSelect.addEventListener('change', () => {
+  pointSelect.addEventListener('change', async () => {
     selectedPointId = pointSelect.value;
-    const current = cartes.find((card) => card.point_vente_id === selectedPointId) ?? null;
-    setCurrentCard(current);
     clearFeedback();
-    saveBtn.disabled = !selectedPointId;
+    if (!selectedPointId) {
+      setCurrentCard(null);
+      currentProposal = null;
+      setProposalStatus('', false);
+      disableActionButtons(true);
+      return;
+    }
+    try {
+      await hydrateSelectedPoint();
+    } catch (error) {
+      setFeedback('error', error instanceof Error ? error.message : 'Erreur inattendue.');
+    }
   });
 
   stampScale.addEventListener('input', () => {
     stampScaleValue.textContent = Number(stampScale.value || '1').toFixed(2);
   });
 
-  saveBtn.addEventListener('click', saveCardAssistance);
+  saveDraftBtn.addEventListener('click', () => runWithButtonState(saveDraftBtn, 'Enregistrement...', async () => {
+    await saveCardProposal(false);
+  }));
+  submitValidationBtn.addEventListener('click', () => runWithButtonState(submitValidationBtn, 'Envoi...', async () => {
+    await saveCardProposal(true);
+  }));
+  applyNowBtn.addEventListener('click', () => runWithButtonState(applyNowBtn, 'Application...', async () => {
+    await applyCardDirectly();
+  }));
 
   (async () => {
     try {

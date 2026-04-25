@@ -11,6 +11,128 @@ import { getEffectivePlanRaw } from '../utils/effective-plan';
 
 export const cartesRoutes = new Hono();
 
+const proposalPayloadKeys = [
+  'nom',
+  'description',
+  'type',
+  'tampons_total',
+  'points_par_euro',
+  'points_recompense',
+  'recompense_description',
+  'couleur_fond',
+  'couleur_texte',
+  'couleur_accent',
+  'couleur_fond_2',
+  'gradient_angle',
+  'pattern_type',
+  'logo_url',
+  'strip_url',
+  'strip_position',
+  'tampon_icon_url',
+  'tampon_emoji',
+  'tampon_icon_scale',
+  'barcode_type',
+  'label_client',
+  'message_geo',
+  'welcome_message',
+  'success_message',
+  'banner_overlay_opacity',
+  'rewards_config',
+  'rewards_multi_enabled',
+  'vip_tiers',
+  'strip_layout',
+  'branding_powered_by_enabled',
+  'google_maps_url',
+  'review_reward_enabled',
+  'review_reward_value',
+  'birthday_auto_enabled',
+  'birthday_reward_value',
+  'birthday_push_title',
+  'birthday_push_message',
+] as const;
+
+const proposalDecisionSchema = z.object({
+  proposal_id: z.string().uuid(),
+  decision: z.enum(['approve', 'reject']),
+  merchant_comment: z.string().max(500).optional().nullable(),
+});
+
+function sanitizeProposalPayload(raw: unknown): Record<string, unknown> {
+  if (!raw || typeof raw !== 'object') return {};
+  const source = raw as Record<string, unknown>;
+  const cleaned: Record<string, unknown> = {};
+  proposalPayloadKeys.forEach((key) => {
+    if (source[key] !== undefined) cleaned[key] = source[key];
+  });
+  return cleaned;
+}
+
+async function upsertCardFromProposal(
+  db: ReturnType<typeof createServiceClient>,
+  {
+    commerceId,
+    pointVenteId,
+    payload,
+  }: {
+    commerceId: string;
+    pointVenteId: string;
+    payload: Record<string, unknown>;
+  },
+) {
+  const { data: existingCard } = await db
+    .from('cartes')
+    .select('id')
+    .eq('commerce_id', commerceId)
+    .eq('point_vente_id', pointVenteId)
+    .maybeSingle();
+
+  if (!existingCard?.id && typeof payload.nom !== 'string') {
+    throw new Error('Le nom de carte est obligatoire pour appliquer cette proposition.');
+  }
+
+  const updatePayload: Record<string, unknown> = {
+    ...payload,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (!existingCard?.id) {
+    updatePayload.commerce_id = commerceId;
+    updatePayload.point_vente_id = pointVenteId;
+    updatePayload.pass_type_id = process.env.APPLE_PASS_TYPE_ID ?? null;
+    if (updatePayload.nom == null) updatePayload.nom = 'Carte fidélité';
+    if (updatePayload.type == null) updatePayload.type = 'tampons';
+    if (updatePayload.tampons_total == null) updatePayload.tampons_total = 10;
+    if (updatePayload.points_par_euro == null) updatePayload.points_par_euro = 1;
+    if (updatePayload.points_recompense == null) updatePayload.points_recompense = 100;
+    if (updatePayload.couleur_fond == null) updatePayload.couleur_fond = '#0f172a';
+    if (updatePayload.couleur_texte == null) updatePayload.couleur_texte = '#ffffff';
+    if (updatePayload.couleur_accent == null) updatePayload.couleur_accent = '#60a5fa';
+    if (updatePayload.gradient_angle == null) updatePayload.gradient_angle = 135;
+    if (updatePayload.pattern_type == null) updatePayload.pattern_type = 'none';
+    if (updatePayload.strip_position == null) updatePayload.strip_position = '50:50';
+    if (updatePayload.barcode_type == null) updatePayload.barcode_type = 'QR';
+    if (updatePayload.label_client == null) updatePayload.label_client = 'Client';
+    if (updatePayload.tampon_icon_scale == null) updatePayload.tampon_icon_scale = 1;
+  }
+
+  let query = existingCard?.id
+    ? db.from('cartes').update(updatePayload).eq('id', existingCard.id).eq('commerce_id', commerceId)
+    : db.from('cartes').insert(updatePayload);
+
+  let result = await query.select('*').single();
+  if (result.error?.message?.includes('column') && 'tampon_icon_scale' in updatePayload) {
+    const fallbackPayload = { ...updatePayload };
+    delete fallbackPayload.tampon_icon_scale;
+    query = existingCard?.id
+      ? db.from('cartes').update(fallbackPayload).eq('id', existingCard.id).eq('commerce_id', commerceId)
+      : db.from('cartes').insert(fallbackPayload);
+    result = await query.select('*').single();
+  }
+
+  if (result.error) throw new Error(result.error.message);
+  return result.data;
+}
+
 function withEffectiveCommerceLogo<
   T extends {
     logo_url?: string | null;
@@ -154,6 +276,119 @@ cartesRoutes.get('/active', authMiddleware, paidMiddleware, async (c) => {
     .maybeSingle();
 
   return c.json({ data: data ?? null });
+});
+
+/** GET /api/cartes/admin-proposal — Proposition admin en attente pour le point de vente actif */
+cartesRoutes.get('/admin-proposal', authMiddleware, paidMiddleware, async (c) => {
+  const userId = c.get('userId') as string;
+  const db = createServiceClient();
+  const requestedPointVenteId = readRequestedPointVenteId(c);
+
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, plan',
+  );
+
+  if (!commerce || !pointVente) return c.json({ data: null });
+
+  const { data: proposal, error } = await db
+    .from('admin_card_proposals')
+    .select('*')
+    .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
+    .eq('status', 'pending_merchant')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) return c.json({ error: 'Impossible de charger la proposition admin.' }, 500);
+  return c.json({ data: proposal ?? null });
+});
+
+/** POST /api/cartes/admin-proposal/decision — Le commerçant approuve/rejette une proposition admin */
+cartesRoutes.post('/admin-proposal/decision', authMiddleware, paidMiddleware, async (c) => {
+  const userId = c.get('userId') as string;
+  const body = await c.req.json().catch(() => null);
+  const parsed = proposalDecisionSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides.' }, 400);
+  }
+
+  const db = createServiceClient();
+  const requestedPointVenteId = readRequestedPointVenteId(c);
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, plan',
+  );
+
+  if (!commerce || !pointVente) return c.json({ error: 'Point de vente introuvable.' }, 404);
+
+  const { data: proposal, error: proposalError } = await db
+    .from('admin_card_proposals')
+    .select('*')
+    .eq('id', parsed.data.proposal_id)
+    .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
+    .eq('status', 'pending_merchant')
+    .single();
+
+  if (proposalError || !proposal) return c.json({ error: 'Proposition introuvable ou déjà traitée.' }, 404);
+
+  const nowIso = new Date().toISOString();
+  const merchantComment = parsed.data.merchant_comment ?? null;
+
+  if (parsed.data.decision === 'reject') {
+    const { data: rejected, error: rejectError } = await db
+      .from('admin_card_proposals')
+      .update({
+        status: 'rejected_merchant',
+        reviewed_by_user_id: userId,
+        merchant_comment: merchantComment,
+        reviewed_at: nowIso,
+        updated_at: nowIso,
+      })
+      .eq('id', proposal.id)
+      .select('*')
+      .single();
+    if (rejectError) return c.json({ error: rejectError.message }, 500);
+    return c.json({ data: rejected });
+  }
+
+  try {
+    const payload = sanitizeProposalPayload(proposal.payload);
+    const updatedCard = await upsertCardFromProposal(db, {
+      commerceId: commerce.id,
+      pointVenteId: pointVente.id,
+      payload,
+    });
+
+    const { data: approved, error: approvedError } = await db
+      .from('admin_card_proposals')
+      .update({
+        status: 'applied_merchant',
+        reviewed_by_user_id: userId,
+        merchant_comment: merchantComment,
+        reviewed_at: nowIso,
+        applied_at: nowIso,
+        updated_at: nowIso,
+        carte_id: (updatedCard as { id?: string | null }).id ?? proposal.carte_id ?? null,
+      })
+      .eq('id', proposal.id)
+      .select('*')
+      .single();
+
+    if (approvedError) return c.json({ error: approvedError.message }, 500);
+    return c.json({
+      data: approved,
+      card: updatedCard,
+    });
+  } catch (error) {
+    return c.json({ error: error instanceof Error ? error.message : 'Impossible d’appliquer la proposition.' }, 500);
+  }
 });
 
 /** GET /api/cartes/:id/public — Infos publiques pour la page d'ajout au Wallet */

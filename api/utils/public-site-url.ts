@@ -23,10 +23,15 @@ export function getPublicSiteUrl(): string {
 
   const nodeEnv = String(process.env.NODE_ENV ?? '').toLowerCase();
   const isProduction = nodeEnv === 'production';
-  if (isProduction && isLoopbackHostname(parsed.hostname)) {
+  const onRailway = Boolean(
+    process.env.RAILWAY_PROJECT_ID
+    || process.env.RAILWAY_ENVIRONMENT
+    || process.env.RAILWAY_ENVIRONMENT_NAME,
+  );
+  if (isLoopbackHostname(parsed.hostname) && (isProduction || onRailway)) {
+    console.warn('[public-site-url] Loopback URL détectée en environnement déployé. Fallback forcé vers https://www.fidelopass.com');
     return FALLBACK_PUBLIC_SITE_URL;
   }
 
   return `${parsed.protocol}//${parsed.host}`.replace(/\/$/, '');
 }
-

@@ -133,10 +133,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     const retriedSession = await getValidSession();
     if (retriedSession) {
       await redirectAfterAuth();
-      return;
+    } else {
+      message.textContent = 'La connexion a expiré. Merci de réessayer.';
+      loginLink.classList.remove('hidden');
     }
-    message.textContent = 'La connexion a expiré. Merci de réessayer.';
-    loginLink.classList.remove('hidden');
   } else {
     await confirmFromEmailLink();
   }

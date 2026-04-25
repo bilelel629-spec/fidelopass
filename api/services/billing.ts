@@ -74,11 +74,20 @@ export function buildBillingStatusPayload(record: BillingRecord | null): Billing
 
 export async function getBillingStatusForUser(userId: string): Promise<BillingStatusPayload> {
   const db = createServiceClient();
-  const { data } = await db
+  const { data, error } = await db
     .from('commerces')
     .select('id, plan, billing_status, stripe_subscription_id, trial_ends_at, onboarding_completed')
     .eq('user_id', userId)
     .single();
+
+  if (error) {
+    // Cas normal: aucun commerce encore créé pour cet utilisateur.
+    if (error.code === 'PGRST116' || /0 rows/i.test(error.message ?? '')) {
+      return buildBillingStatusPayload(null);
+    }
+    // Les autres erreurs doivent remonter (pour éviter un faux "non abonné").
+    throw error;
+  }
 
   return buildBillingStatusPayload((data as BillingRecord | null) ?? null);
 }

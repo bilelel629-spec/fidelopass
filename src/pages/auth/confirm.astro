@@ -32,6 +32,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
 <script>
   import { createClient } from '@supabase/supabase-js';
+  import { resolvePostAuthDestination } from '../../lib/post-auth-destination';
   import { clearSessionCookie, setSessionCookie } from '../../lib/session-cookie';
 
   const supabase = createClient(
@@ -43,17 +44,32 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   const errorBox = document.getElementById('confirm-error') as HTMLDivElement;
   const loginLink = document.getElementById('confirm-login-link') as HTMLAnchorElement;
   let redirectInFlight = false;
-  const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
+  const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 1800);
 
-  async function redirectAfterAuth() {
-    if (redirectInFlight) return;
-    redirectInFlight = true;
+  async function getValidSession() {
     const sessionResult = await Promise.race([
       supabase.auth.getSession(),
       new Promise<null>((resolve) => window.setTimeout(() => resolve(null), SESSION_PROBE_TIMEOUT_MS)),
     ]);
+    if (!sessionResult) return null;
     const session = sessionResult?.data?.session ?? null;
+    if (session?.access_token) return session;
+
+    const refreshResult = await Promise.race([
+      supabase.auth.refreshSession(),
+      new Promise<null>((resolve) => window.setTimeout(() => resolve(null), SESSION_PROBE_TIMEOUT_MS)),
+    ]);
+    if (!refreshResult) return null;
+    const refreshed = refreshResult?.data?.session ?? null;
+    if (refreshed?.access_token) return refreshed;
+    return null;
+  }
+
+  async function redirectAfterAuth() {
+    if (redirectInFlight) return;
+    redirectInFlight = true;
     try {
+      const session = await getValidSession();
       if (!session) {
         clearSessionCookie();
         window.location.href = '/login';
@@ -61,8 +77,15 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       }
 
       setSessionCookie(session.access_token);
-      // Redirection immédiate: le middleware décide la destination réelle.
-      window.location.replace('/dashboard');
+      const target = await resolvePostAuthDestination(session.access_token);
+      if (target === '/login') {
+        clearSessionCookie();
+        await supabase.auth.signOut().catch(() => undefined);
+        window.location.href = '/login';
+        return;
+      }
+
+      window.location.replace(target);
     } finally {
       redirectInFlight = false;
     }
@@ -99,14 +122,21 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   // Le SDK Supabase échange automatiquement le fragment #access_token au premier getSession().
   // Ce cas couvre les callbacks OAuth (Apple, Google) qui redirigent ici.
-  const oauthSessionResult = await Promise.race([
-    supabase.auth.getSession(),
-    new Promise<null>((resolve) => window.setTimeout(() => resolve(null), SESSION_PROBE_TIMEOUT_MS)),
-  ]);
-  const oauthSession = oauthSessionResult?.data?.session ?? null;
+  const hasOAuthHash = window.location.hash.includes('access_token=');
+  const oauthSession = await getValidSession();
   if (oauthSession) {
     message.textContent = 'Connexion réussie. Redirection...';
     await redirectAfterAuth();
+  } else if (hasOAuthHash) {
+    message.textContent = 'Finalisation de la connexion...';
+    await new Promise((resolve) => window.setTimeout(resolve, 700));
+    const retriedSession = await getValidSession();
+    if (retriedSession) {
+      await redirectAfterAuth();
+      return;
+    }
+    message.textContent = 'La connexion a expiré. Merci de réessayer.';
+    loginLink.classList.remove('hidden');
   } else {
     await confirmFromEmailLink();
   }

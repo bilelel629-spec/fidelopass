@@ -30,12 +30,13 @@ export async function resolvePostAuthDestination(accessToken: string): Promise<s
     );
 
     if ('__unauthorized' in billing) return '/login';
-    if ((billing.__status ?? 500) >= 500) return '/abonnement/choix';
+    // En cas d'incident API transitoire, éviter la fausse redirection "abonnement requis".
+    if ((billing.__status ?? 500) >= 500) return '/dashboard';
 
     const data = billing.payload?.data;
     if (!data?.has_access) return '/abonnement/choix';
     return data?.onboarding_completed ? '/dashboard' : '/onboarding';
   } catch {
-    return '/abonnement/choix';
+    return '/dashboard';
   }
 }

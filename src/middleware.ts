@@ -55,7 +55,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   try {
-    const timeoutMs = Number(import.meta.env.BILLING_GUARD_TIMEOUT_MS ?? process.env.BILLING_GUARD_TIMEOUT_MS ?? 1800);
+    const timeoutMs = Number(import.meta.env.BILLING_GUARD_TIMEOUT_MS ?? process.env.BILLING_GUARD_TIMEOUT_MS ?? 4200);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     const billingResponse = await fetch(`${apiBase}/api/billing/status`, {
@@ -72,13 +72,18 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
 
     if (!billingResponse.ok) {
-      return withSecurityHeaders(Response.redirect(new URL('/abonnement/choix?guard=1', context.url), 302));
+      // On n'applique pas de redirection de paiement sur incident serveur/transitoire.
+      // Les routes API sensibles restent protégées côté backend via paidMiddleware.
+      if (billingResponse.status >= 500) {
+        return withSecurityHeaders(await next());
+      }
+      return withSecurityHeaders(await next());
     }
 
     const billingPayload = await billingResponse.json().catch(() => null);
     const billing = billingPayload?.data;
     if (!billing) {
-      return withSecurityHeaders(Response.redirect(new URL('/abonnement/choix?guard=1', context.url), 302));
+      return withSecurityHeaders(await next());
     }
 
     if (!billing?.has_access) {
@@ -96,7 +101,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
       return withSecurityHeaders(Response.redirect(new URL('/dashboard', context.url), 302));
     }
   } catch {
-    return withSecurityHeaders(Response.redirect(new URL('/abonnement/choix?guard=1', context.url), 302));
+    // En cas de timeout/réseau, on laisse passer et on délègue le contrôle d'accès aux APIs protégées.
+    return withSecurityHeaders(await next());
   }
 
   return withSecurityHeaders(await next());

@@ -103,6 +103,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 <script>
   import { createClient } from '@supabase/supabase-js';
+  import { resolvePostAuthDestination } from '../lib/post-auth-destination';
   import { clearSessionCookie, setSessionCookie } from '../lib/session-cookie';
 
   const supabase = createClient(
@@ -117,7 +118,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   const forgotBtn = document.getElementById('forgot-btn') as HTMLButtonElement;
   let statusMessageEl = document.getElementById('auth-progress') as HTMLDivElement | null;
   let redirectInFlight = false;
-  const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
+  const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 1800);
 
   function ensureStatusMessageEl() {
     if (statusMessageEl) return statusMessageEl;
@@ -177,8 +178,18 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
       setSessionCookie(activeSession.access_token);
       showProgress('Connexion validée, redirection...');
-      // Redirection immédiate: le middleware décide ensuite /dashboard, /onboarding ou /abonnement/choix.
-      window.location.replace('/dashboard');
+
+      const target = await resolvePostAuthDestination(activeSession.access_token);
+      if (target === '/login') {
+        clearSessionCookie();
+        await supabase.auth.signOut().catch(() => undefined);
+        errorMsg.textContent = 'Votre session a expiré. Merci de vous reconnecter.';
+        errorMsg.classList.remove('hidden');
+        hideProgress();
+        return;
+      }
+
+      window.location.replace(target);
     } finally {
       redirectInFlight = false;
     }
@@ -198,7 +209,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       clearSessionCookie();
       return;
     }
-    if (event === 'SIGNED_IN') {
+    if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
       setSessionCookie(s.access_token);
       void redirectAfterAuth(s);
     }

@@ -165,6 +165,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 <script>
   import { createClient } from '@supabase/supabase-js';
+  import { resolvePostAuthDestination } from '../lib/post-auth-destination';
   import { clearSessionCookie, setSessionCookie } from '../lib/session-cookie';
 
   type PendingRegistration = { email: string; password: string };
@@ -203,7 +204,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   const progress2 = document.getElementById('progress-2') as HTMLDivElement;
   let statusMessageEl = document.getElementById('auth-progress') as HTMLDivElement | null;
   let redirectInFlight = false;
-  const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
+  const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 1800);
 
   const apiUrl = (path: string) => `${API}${path}`;
   const setProgress = (step: 1 | 2) => {
@@ -327,8 +328,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
       setSessionCookie(activeSession.access_token);
       showProgress('Compte prêt, redirection...');
-      // Redirection immédiate: le middleware garde l’accès et envoie vers la bonne page.
-      window.location.replace('/dashboard');
+
+      const target = await resolvePostAuthDestination(activeSession.access_token);
+      if (target === '/login') {
+        clearSessionCookie();
+        await supabase.auth.signOut().catch(() => undefined);
+        window.location.href = '/login';
+        return;
+      }
+
+      window.location.replace(target);
     } finally {
       redirectInFlight = false;
     }
@@ -351,7 +360,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       clearSessionCookie();
       return;
     }
-    if (event === 'SIGNED_IN') {
+    if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
       clearPending();
       setSessionCookie(s.access_token);
       void redirectAfterAuth(s);

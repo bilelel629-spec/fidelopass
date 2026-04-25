@@ -177,13 +177,11 @@ function getBirthdayDefaultMessage(carteName?: string | null): string {
   return `Votre bonus anniversaire est disponible sur ${carteName}.`;
 }
 
-function buildScopedNotificationTitle(baseTitle: string, senderName: string | null | undefined) {
+function buildScopedNotificationTitle(baseTitle: string, _senderName: string | null | undefined) {
   const cleanBase = String(baseTitle ?? '').trim();
-  const cleanSender = String(senderName ?? '').trim();
-  if (!cleanSender) return cleanBase;
-  if (!cleanBase) return cleanSender;
-  if (cleanBase.toLowerCase().includes(cleanSender.toLowerCase())) return cleanBase;
-  return `${cleanSender} · ${cleanBase}`;
+  // iOS affiche déjà le nom de la carte/commerce au-dessus de la notification Wallet.
+  // On ne préfixe plus le titre avec le nom du commerce pour éviter le doublon visuel.
+  return cleanBase;
 }
 
 /** GET /api/notifications/review-reminder-settings — Réglage push auto avis Google (+1h) */

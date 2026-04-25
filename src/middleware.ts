@@ -25,6 +25,44 @@ function redirectWithCookieClear(target: URL, requestUrl: URL) {
   return new Response(null, { status: 302, headers });
 }
 
+function normalizeConfiguredSiteUrl(value: string | undefined): string {
+  const cleaned = (value ?? '').trim().replace(/^['"]+|['"]+$/g, '');
+  return cleaned.replace(/\/$/, '');
+}
+
+function isLoopbackHost(value: string): boolean {
+  const hostname = value.split(':')[0].trim().toLowerCase();
+  return (
+    hostname === 'localhost'
+    || hostname === '127.0.0.1'
+    || hostname === '0.0.0.0'
+    || hostname.endsWith('.localhost')
+  );
+}
+
+function resolveExternalOrigin(context: Parameters<typeof defineMiddleware>[0] extends (ctx: infer T, ...args: any[]) => any ? T : never): string {
+  const request = context.request;
+  const forwardedHost = (request.headers.get('x-forwarded-host') ?? '').split(',')[0].trim();
+  const host = (forwardedHost || request.headers.get('host') || context.url.host || '').trim();
+  const forwardedProto = (request.headers.get('x-forwarded-proto') ?? '').split(',')[0].trim().toLowerCase();
+  const protocol = forwardedProto || context.url.protocol.replace(':', '') || 'https';
+
+  if (host && !isLoopbackHost(host)) {
+    return `${protocol}://${host}`;
+  }
+
+  return (
+    normalizeConfiguredSiteUrl(import.meta.env.PUBLIC_SITE_URL)
+    || normalizeConfiguredSiteUrl(process.env.PUBLIC_SITE_URL)
+    || normalizeConfiguredSiteUrl(process.env.APP_URL)
+    || 'https://www.fidelopass.com'
+  );
+}
+
+function buildExternalRedirectUrl(context: Parameters<typeof defineMiddleware>[0] extends (ctx: infer T, ...args: any[]) => any ? T : never, pathname: string): URL {
+  return new URL(pathname, `${resolveExternalOrigin(context).replace(/\/$/, '')}/`);
+}
+
 export const onRequest = defineMiddleware(async (context, next) => {
   const startedAt = Date.now();
   const withSecurityHeaders = (response: Response) => {
@@ -50,7 +88,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   const token = getSessionTokenFromCookie(context.request.headers.get('cookie'));
   if (!token) {
-    return withSecurityHeaders(Response.redirect(new URL('/login', context.url), 302));
+    return withSecurityHeaders(Response.redirect(buildExternalRedirectUrl(context, '/login'), 302));
   }
 
   const apiBase = (import.meta.env.PUBLIC_API_URL ?? process.env.PUBLIC_API_URL ?? '').replace(/\/$/, '');
@@ -72,7 +110,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }).finally(() => clearTimeout(timeoutId));
 
     if (billingResponse.status === 401) {
-      return withSecurityHeaders(redirectWithCookieClear(new URL('/login', context.url), context.url));
+      return withSecurityHeaders(redirectWithCookieClear(buildExternalRedirectUrl(context, '/login'), context.url));
     }
 
     if (!billingResponse.ok) {
@@ -92,17 +130,17 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
     if (!billing?.has_access) {
       if (pathname.startsWith('/dashboard') || pathname === '/onboarding') {
-        return withSecurityHeaders(Response.redirect(new URL('/abonnement/choix', context.url), 302));
+        return withSecurityHeaders(Response.redirect(buildExternalRedirectUrl(context, '/abonnement/choix'), 302));
       }
       return withSecurityHeaders(await next());
     }
 
     if (pathname.startsWith('/dashboard') && !billing?.onboarding_completed) {
-      return withSecurityHeaders(Response.redirect(new URL('/onboarding', context.url), 302));
+      return withSecurityHeaders(Response.redirect(buildExternalRedirectUrl(context, '/onboarding'), 302));
     }
 
     if (pathname === '/onboarding' && billing?.onboarding_completed) {
-      return withSecurityHeaders(Response.redirect(new URL('/dashboard', context.url), 302));
+      return withSecurityHeaders(Response.redirect(buildExternalRedirectUrl(context, '/dashboard'), 302));
     }
   } catch {
     // En cas de timeout/réseau, on laisse passer et on délègue le contrôle d'accès aux APIs protégées.

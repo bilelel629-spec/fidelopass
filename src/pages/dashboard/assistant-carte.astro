@@ -1,0 +1,151 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Assistant carte — Fidelopass" activeNav="assistant-carte">
+  <div class="mb-6">
+    <p class="dashboard-kicker">Service premium</p>
+    <h1 class="dashboard-title">Assistant carte</h1>
+    <p class="dashboard-subtitle">On crée une carte sur-mesure selon la direction artistique de votre commerce.</p>
+  </div>
+
+  <section class="card dashboard-panel p-6 sm:p-7">
+    <div class="grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
+      <div>
+        <h2 class="font-display text-2xl font-bold text-slate-900">Accompagnement Setup — 20€ (une seule fois)</h2>
+        <p class="mt-3 text-sm leading-6 text-slate-600">
+          Notre équipe design prépare votre carte à votre place : identité visuelle, hiérarchie des informations,
+          rendu Apple Wallet / Google Wallet, bannière et cohérence globale avec votre commerce.
+        </p>
+        <ul class="mt-4 space-y-2 text-sm text-slate-600">
+          <li>• Design adapté à votre univers (couleurs, style, positionnement)</li>
+          <li>• Carte prête pour conversion client en caisse</li>
+          <li>• Ajustements possibles après votre validation</li>
+          <li>• Facturation unique, sans abonnement supplémentaire</li>
+        </ul>
+      </div>
+
+      <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Statut</p>
+        <p id="assistant-status-title" class="mt-2 text-lg font-semibold text-slate-900">Chargement…</p>
+        <p id="assistant-status-desc" class="mt-1 text-sm text-slate-600">Vérification de votre achat d’accompagnement.</p>
+
+        <div id="assistant-success-box" class="mt-4 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          Accompagnement déjà activé. Notre équipe peut prendre en charge la création de votre carte.
+        </div>
+
+        <div id="assistant-purchase-box" class="mt-4 hidden">
+          <button id="assistant-buy-btn" type="button" class="btn-primary w-full px-4 py-2.5 text-sm">
+            Acheter l’accompagnement (20€)
+          </button>
+          <p class="mt-2 text-xs text-slate-500">Vous serez redirigé vers Stripe pour un paiement unique.</p>
+        </div>
+
+        <div id="assistant-error-box" class="mt-4 hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+      </div>
+    </div>
+  </section>
+</DashboardLayout>
+
+<script>
+  import { authFetch } from '../../lib/api';
+
+  const statusTitle = document.getElementById('assistant-status-title') as HTMLParagraphElement;
+  const statusDesc = document.getElementById('assistant-status-desc') as HTMLParagraphElement;
+  const successBox = document.getElementById('assistant-success-box') as HTMLDivElement;
+  const purchaseBox = document.getElementById('assistant-purchase-box') as HTMLDivElement;
+  const errorBox = document.getElementById('assistant-error-box') as HTMLDivElement;
+  const buyBtn = document.getElementById('assistant-buy-btn') as HTMLButtonElement;
+
+  let accompagnementPriceId: string | null = null;
+
+  function setError(message = '') {
+    if (!message) {
+      errorBox.classList.add('hidden');
+      errorBox.textContent = '';
+      return;
+    }
+    errorBox.textContent = message;
+    errorBox.classList.remove('hidden');
+  }
+
+  async function loadAssistantStatus() {
+    setError('');
+    statusTitle.textContent = 'Chargement…';
+    statusDesc.textContent = 'Vérification de votre achat d’accompagnement.';
+    successBox.classList.add('hidden');
+    purchaseBox.classList.add('hidden');
+
+    try {
+      const [commerceRes, pricingRes] = await Promise.all([
+        authFetch('/api/commerces/me'),
+        authFetch('/api/checkout/pricing-config'),
+      ]);
+
+      const commercePayload = await commerceRes.json().catch(() => null);
+      const pricingPayload = await pricingRes.json().catch(() => null);
+
+      if (!commerceRes.ok) throw new Error(commercePayload?.error ?? 'Impossible de charger votre commerce.');
+      const commerce = commercePayload?.data;
+      const hasAddon = Boolean(commerce?.onboarding_purchased);
+
+      const addonPricing = pricingPayload?.data?.addons?.accompagnement ?? null;
+      accompagnementPriceId = addonPricing?.available ? String(addonPricing?.priceId ?? '') : null;
+
+      if (hasAddon) {
+        statusTitle.textContent = 'Accompagnement déjà activé';
+        statusDesc.textContent = 'Vous avez déjà accès au service Assistant carte.';
+        successBox.classList.remove('hidden');
+        return;
+      }
+
+      statusTitle.textContent = 'Accompagnement non activé';
+      statusDesc.textContent = 'Ajoutez l’option pour confier la création de votre carte à notre équipe design.';
+      purchaseBox.classList.remove('hidden');
+
+      if (!accompagnementPriceId) {
+        buyBtn.disabled = true;
+        setError('Le paiement de l’accompagnement est temporairement indisponible. Réessayez dans quelques minutes.');
+      }
+    } catch (error) {
+      statusTitle.textContent = 'Statut indisponible';
+      statusDesc.textContent = 'Impossible de récupérer les informations pour le moment.';
+      purchaseBox.classList.remove('hidden');
+      buyBtn.disabled = true;
+      setError(error instanceof Error ? error.message : 'Impossible de charger le statut d’accompagnement.');
+    }
+  }
+
+  buyBtn?.addEventListener('click', async () => {
+    setError('');
+    if (!accompagnementPriceId) {
+      setError('Prix d’accompagnement introuvable.');
+      return;
+    }
+
+    buyBtn.disabled = true;
+    const previousLabel = buyBtn.textContent;
+    buyBtn.textContent = 'Redirection…';
+
+    try {
+      const res = await authFetch('/api/checkout/create-session', {
+        method: 'POST',
+        body: JSON.stringify({
+          priceId: accompagnementPriceId,
+          priceSlot: 'accompagnement',
+          mode: 'payment',
+        }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error ?? 'Impossible de créer la session de paiement.');
+      if (!payload?.url) throw new Error('Lien Stripe introuvable.');
+      window.location.href = payload.url;
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Impossible de lancer le paiement.');
+      buyBtn.disabled = false;
+      buyBtn.textContent = previousLabel ?? 'Acheter l’accompagnement (20€)';
+    }
+  });
+
+  loadAssistantStatus();
+</script>

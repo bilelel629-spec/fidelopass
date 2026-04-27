@@ -182,16 +182,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
         <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {[
-            {name:'Café cosy', badge:'CF', fond:'#2b1608', texte:'#fff7ed', accent:'#d97706', fond2:'#5f3214', pattern:'waves', layout:'bottom', stamp:'☕', type:'tampons', total:'10', reward:'1 boisson offerte', label:'Client', desc:'10 passages = 1 boisson offerte', message:'Votre café vous attend !'},
-            {name:'Restaurant', badge:'RS', fond:'#111827', texte:'#fff7ed', accent:'#f97316', fond2:'#7c2d12', pattern:'diagonal', layout:'top', stamp:'🍽️', type:'tampons', total:'8', reward:'1 dessert offert', label:'Table fidèle', desc:'Cumulez des tampons à chaque repas', message:'Une récompense vous attend au restaurant.'},
-            {name:'Institut beauté', badge:'BE', fond:'#4a102a', texte:'#fff1f2', accent:'#f472b6', fond2:'#831843', pattern:'confetti', layout:'bottom', stamp:'✨', type:'tampons', total:'6', reward:'-20% sur un soin', label:'Cliente', desc:'Votre carte privilège beauté', message:'Votre avantage beauté est disponible.'},
-            {name:'Barber shop', badge:'BR', fond:'#0f172a', texte:'#f8fafc', accent:'#38bdf8', fond2:'#1e3a8a', pattern:'grid', layout:'top', stamp:'✂️', type:'tampons', total:'8', reward:'1 coupe offerte', label:'Client', desc:'Une coupe offerte après 8 passages', message:'Votre barber vous attend.'},
-            {name:'Boutique premium', badge:'BT', fond:'#030712', texte:'#fefce8', accent:'#d4af37', fond2:'#422006', pattern:'dots', layout:'background', stamp:'🛍️', type:'points', total:'10', reward:'10€ de réduction', label:'Membre', desc:'Cumulez des points à chaque achat', message:'Votre avantage fidélité est disponible en boutique.'},
+            {name:'Carte café cosy', badge:'CC', fond:'#4a1030', texte:'#ffe4f2', accent:'#ec4899', fond2:'#831843', pattern:'waves', layout:'top', stamp:'☕', type:'tampons', total:'10', reward:'1 boisson offerte', label:'Client', desc:'10 tampons = 1 boisson offerte', message:'Votre café fidélité est prêt !'},
+            {name:'My flower', badge:'MF', fond:'#f7f2ec', texte:'#1f2937', accent:'#84cc16', fond2:'#f3e8d7', pattern:'dots', layout:'bottom', stamp:'🌼', type:'tampons', total:'8', reward:'1 bouquet offert', label:'Client', desc:'Votre programme floral tout en douceur', message:'Un avantage fleur vous attend.'},
+            {name:'Mediterranea', badge:'MD', fond:'#7a0a0a', texte:'#ffe8d8', accent:'#f97316', fond2:'#b91c1c', pattern:'waves', layout:'top', stamp:'🍕', type:'tampons', total:'10', reward:'1 plat offert', label:'Client', desc:'Saveurs méditerranéennes et récompenses', message:'Votre table Méditerranea vous attend.'},
+            {name:'SomStar', badge:'SS', fond:'#065f46', texte:'#ecfeff', accent:'#2dd4bf', fond2:'#047857', pattern:'dots', layout:'top', stamp:'⭐', type:'tampons', total:'10', reward:'1 plat offert', label:'Client', desc:'Carte premium inspirée de SomStar', message:'Votre récompense SomStar est disponible.'},
+            {name:'BLF', badge:'BL', fond:'#0f172a', texte:'#f8fafc', accent:'#ef4444', fond2:'#111827', pattern:'grid', layout:'top', stamp:'🍗', type:'tampons', total:'10', reward:'-10%', label:'Client', desc:'Version sombre à forte identité', message:'Votre avantage BLF vous attend.'},
             {name:'Sport & coaching', badge:'SP', fond:'#022c22', texte:'#ecfdf5', accent:'#22c55e', fond2:'#064e3b', pattern:'diagonal', layout:'background', stamp:'🏆', type:'points', total:'10', reward:'1 séance offerte', label:'Athlète', desc:'Transformez vos visites en récompenses', message:'Votre coach vous attend.'},
           ].map((preset, index) => (
             <button
               type="button"
-              class={`business-template-btn text-left rounded-[1.4rem] border border-sky-100 bg-gradient-to-br from-white to-sky-50/60 p-4 transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_24px_55px_-36px_rgba(59,130,246,0.45)] ${index >= 4 ? 'template-extra hidden' : ''}`}
+              class={`business-template-btn text-left rounded-[1.4rem] border border-sky-100 bg-gradient-to-br from-white to-sky-50/60 p-4 transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_24px_55px_-36px_rgba(59,130,246,0.45)] ${index >= 5 ? 'template-extra hidden' : ''}`}
               data-name={preset.name}
               data-icon={preset.badge}
               data-fond={preset.fond}

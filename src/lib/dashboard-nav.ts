@@ -13,4 +13,5 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
   { href: '/dashboard/clients', id: 'clients', label: 'Clients', paths: ['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2', 'M13 7a4 4 0 1 1-8 0a4 4 0 1 1 8 0', 'M22 21v-2a4 4 0 0 0-3-3.87', 'M16 3.13a4 4 0 0 1 0 7.75'] },
   { href: '/dashboard/transactions', id: 'transactions', label: 'Historique', paths: ['M3 17l6-6 4 4 8-8', 'M21 7h-6v6'] },
   { href: '/dashboard/parametres', id: 'parametres', label: 'Mon compte commerçant', paths: ['M12 3v2.2', 'M12 18.8V21', 'M4.93 4.93l1.56 1.56', 'M17.51 17.51l1.56 1.56', 'M3 12h2.2', 'M18.8 12H21', 'M4.93 19.07l1.56-1.56', 'M17.51 6.49l1.56-1.56', 'M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8'] },
+  { href: '/dashboard/assistant-carte', id: 'assistant-carte', label: 'Assistant carte', paths: ['M5 8a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3z', 'M9 11h6', 'M9 14h4', 'M15 5l2-2 2 2', 'M17 3v4'] },
 ];

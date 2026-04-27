@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { createServiceClient } from '../../src/lib/supabase';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { sendActivationEmail } from '../services/activation-email';
 
 export const stripeWebhookRoutes = new Hono();
 
@@ -260,6 +261,8 @@ stripeWebhookRoutes.post('/', async (c) => {
           .find((plan): plan is 'starter' | 'pro' => Boolean(plan)) ?? null;
         const matchedPlan = selectedPlanFromMetadata ?? matchedPlanFromLineItems;
         const hasAccompagnementLineItem = purchasedPriceIds.some((id) => priceMatchesSlot(id, 'accompagnement', priceIds));
+        let activationPlanForEmail: 'starter' | 'pro' | null = null;
+        let activationBillingStatusForEmail: 'trialing' | 'active' | null = null;
 
         console.log('[stripe-webhook] checkout.session.completed | commerce:', commerceId, '| prices:', purchasedPriceIds);
 
@@ -276,6 +279,8 @@ stripeWebhookRoutes.post('/', async (c) => {
             })
             .eq('id', commerceId);
           console.log('[stripe-webhook] → plan =', matchedPlan);
+          activationPlanForEmail = matchedPlan;
+          activationBillingStatusForEmail = billingStatus;
         } else if (priceMatchesSlot(firstPriceId, 'scanner', priceIds)) {
           const rpcResult = await db.rpc('increment_scanners_count', { commerce_id_input: commerceId });
           if (rpcResult.error) {
@@ -304,9 +309,15 @@ stripeWebhookRoutes.post('/', async (c) => {
           const action = price?.metadata?.action;
           const plan = price?.metadata?.plan;
           if (plan === 'starter') {
-            await db.from('commerces').update({ plan: 'starter', billing_status: session.mode === 'subscription' ? 'trialing' : 'active' }).eq('id', commerceId);
+            const billingStatus = session.mode === 'subscription' ? 'trialing' : 'active';
+            await db.from('commerces').update({ plan: 'starter', billing_status: billingStatus }).eq('id', commerceId);
+            activationPlanForEmail = 'starter';
+            activationBillingStatusForEmail = billingStatus;
           } else if (plan === 'pro') {
-            await db.from('commerces').update({ plan: 'pro', billing_status: session.mode === 'subscription' ? 'trialing' : 'active' }).eq('id', commerceId);
+            const billingStatus = session.mode === 'subscription' ? 'trialing' : 'active';
+            await db.from('commerces').update({ plan: 'pro', billing_status: billingStatus }).eq('id', commerceId);
+            activationPlanForEmail = 'pro';
+            activationBillingStatusForEmail = billingStatus;
           } else if (action === 'onboarding_purchased') {
             await db.from('commerces').update({ onboarding_purchased: true }).eq('id', commerceId);
           }
@@ -320,6 +331,30 @@ stripeWebhookRoutes.post('/', async (c) => {
         if (hasAccompagnementLineItem) {
           await db.from('commerces').update({ onboarding_purchased: true }).eq('id', commerceId);
           console.log('[stripe-webhook] → onboarding_purchased = true (line item)');
+        }
+
+        if (activationPlanForEmail && activationBillingStatusForEmail) {
+          try {
+            const { data: commerceRow } = await db
+              .from('commerces')
+              .select('nom, email')
+              .eq('id', commerceId)
+              .single();
+            const recipientEmail = session.customer_details?.email ?? commerceRow?.email ?? null;
+            if (recipientEmail) {
+              const result = await sendActivationEmail({
+                toEmail: recipientEmail,
+                commerceName: commerceRow?.nom ?? 'Votre commerce',
+                plan: activationPlanForEmail,
+                billingStatus: activationBillingStatusForEmail,
+              });
+              console.log('[stripe-webhook] activation-email:', result.ok ? 'sent' : `not-sent:${result.reason}`);
+            } else {
+              console.warn('[stripe-webhook] activation-email skipped: recipient email missing');
+            }
+          } catch (mailError) {
+            console.error('[stripe-webhook] activation-email error:', (mailError as Error).message);
+          }
         }
 
         break;

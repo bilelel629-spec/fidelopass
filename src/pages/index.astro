@@ -33,6 +33,20 @@ import PublicNav from '../components/marketing/PublicNav.astro';
           Vos clients l'ajoutent en 20 secondes — sans compte, sans téléchargement.
         </p>
 
+        <!-- Visuel mobile (placé avant le CTA principal) -->
+        <div class="relative mt-7 mb-2 flex justify-center lg:hidden">
+          <div class="absolute inset-6 rounded-[3rem] bg-gradient-to-br from-indigo-300/30 to-sky-300/25 blur-3xl"></div>
+          <div class="relative w-full max-w-[24rem]">
+            <img
+              src="/hero-wallet-cards.png"
+              alt="Exemples de cartes fidélité Fidelopass"
+              class="w-full h-auto object-contain drop-shadow-[0_28px_55px_rgba(15,23,42,0.2)]"
+              loading="eager"
+              decoding="async"
+            />
+          </div>
+        </div>
+
         <div class="flex flex-col sm:flex-row gap-3 mt-8">
           <a href="/register" class="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-7 py-3.5 text-base font-semibold text-white shadow-[0_18px_40px_rgba(15,23,42,0.18)] transition-all hover:-translate-y-0.5 hover:bg-slate-900">
             Essai gratuit — 14 jours
@@ -62,8 +76,8 @@ import PublicNav from '../components/marketing/PublicNav.astro';
         </div>
       </div>
 
-      <!-- Visuel principal -->
-      <div class="relative flex justify-center">
+      <!-- Visuel principal (desktop only) -->
+      <div class="relative justify-center lg:[display:flex]" style="display:none;">
         <div class="absolute inset-6 rounded-[3rem] bg-gradient-to-br from-indigo-300/30 to-sky-300/25 blur-3xl"></div>
         <div class="relative w-full max-w-[38rem]">
           <img

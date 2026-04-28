@@ -28,16 +28,13 @@ const {
     <script is:inline>
       (() => {
         const KEY = 'fidelopass-theme';
-        let nextTheme = 'light';
         try {
-          const saved = localStorage.getItem(KEY);
-          if (saved === 'dark' || saved === 'light') nextTheme = saved;
-          else if (window.matchMedia('(prefers-color-scheme: dark)').matches) nextTheme = 'dark';
+          localStorage.removeItem(KEY);
         } catch {
           // ignore
         }
-        document.documentElement.dataset.theme = nextTheme;
-        document.documentElement.classList.toggle('dark', nextTheme === 'dark');
+        document.documentElement.dataset.theme = 'light';
+        document.documentElement.classList.remove('dark');
       })();
     </script>
   </head>
@@ -46,115 +43,5 @@ const {
     theme === 'dashboard' ? 'dashboard-theme' : 'light-theme'
   ]}>
     <slot />
-    <script is:inline>
-      (() => {
-        if (window.__fidelopassThemeManagerInitialized) return;
-        window.__fidelopassThemeManagerInitialized = true;
-        const KEY = 'fidelopass-theme';
-        const root = document.documentElement;
-        const media = window.matchMedia('(prefers-color-scheme: dark)');
-
-        const getStoredTheme = () => {
-          try {
-            const value = localStorage.getItem(KEY);
-            return value === 'dark' || value === 'light' ? value : null;
-          } catch {
-            return null;
-          }
-        };
-
-        const updateThemeColorMeta = (theme) => {
-          const meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) meta.setAttribute('content', theme === 'dark' ? '#0b1120' : '#f8fafc');
-        };
-
-        const applyTheme = (theme, persist = false) => {
-          root.dataset.theme = theme;
-          root.classList.toggle('dark', theme === 'dark');
-          updateThemeColorMeta(theme);
-          if (persist) {
-            try { localStorage.setItem(KEY, theme); } catch {}
-          }
-          window.dispatchEvent(new CustomEvent('fidelopass:theme-change', { detail: { theme } }));
-        };
-
-        const getInitialTheme = () => getStoredTheme() ?? (media.matches ? 'dark' : 'light');
-
-        const updateToggleUi = () => {
-          const isDark = root.dataset.theme === 'dark';
-          document.querySelectorAll('[data-theme-toggle]').forEach((element) => {
-            const button = element;
-            button.setAttribute('aria-pressed', isDark ? 'true' : 'false');
-            const icon = button.querySelector('[data-theme-icon]');
-            if (icon) icon.textContent = isDark ? '☀️' : '🌙';
-            const label = button.querySelector('[data-theme-label]');
-            if (label) label.textContent = isDark ? 'Mode clair' : 'Mode nuit';
-          });
-        };
-
-        const bindToggles = () => {
-          document.querySelectorAll('[data-theme-toggle]').forEach((element) => {
-            const button = element;
-            if (button.dataset.themeBound === '1') return;
-            button.dataset.themeBound = '1';
-            button.addEventListener('click', () => {
-              const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
-              applyTheme(next, true);
-              updateToggleUi();
-            });
-          });
-        };
-
-        const hasVisibleToggle = () => {
-          const toggles = Array.from(document.querySelectorAll('[data-theme-toggle]'));
-          return toggles.some((node) => {
-            const el = node;
-            if (el.dataset.themeFallback === '1') return false;
-            if (el.offsetParent !== null) return true;
-            const style = window.getComputedStyle(el);
-            return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
-          });
-        };
-
-        const syncFallbackToggle = () => {
-          const existingFallback = document.querySelector('[data-theme-toggle][data-theme-fallback="1"]');
-          if (hasVisibleToggle()) {
-            existingFallback?.remove();
-            return;
-          }
-          if (existingFallback) return;
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.className = 'theme-toggle-btn fixed bottom-5 right-5 z-[70]';
-          button.setAttribute('data-theme-toggle', 'true');
-          button.setAttribute('data-theme-fallback', '1');
-          button.innerHTML = '<span data-theme-icon class="theme-toggle-icon">🌙</span><span data-theme-label>Mode nuit</span>';
-          document.body.appendChild(button);
-        };
-
-        applyTheme(getInitialTheme(), false);
-        syncFallbackToggle();
-        bindToggles();
-        updateToggleUi();
-
-        media.addEventListener('change', (event) => {
-          if (getStoredTheme()) return;
-          applyTheme(event.matches ? 'dark' : 'light', false);
-          updateToggleUi();
-        });
-
-        window.addEventListener('fidelopass:theme-refresh', () => {
-          syncFallbackToggle();
-          bindToggles();
-          updateToggleUi();
-        });
-
-        window.addEventListener('resize', () => {
-          syncFallbackToggle();
-          bindToggles();
-          updateToggleUi();
-        });
-      })();
-    </script>
   </body>
 </html>

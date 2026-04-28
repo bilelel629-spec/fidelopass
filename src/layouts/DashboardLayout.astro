@@ -20,8 +20,21 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <title>{title}</title>
+    <script is:inline>
+      (() => {
+        const KEY = 'fidelopass-theme';
+        let nextTheme = 'light';
+        try {
+          const saved = localStorage.getItem(KEY);
+          if (saved === 'dark' || saved === 'light') nextTheme = saved;
+          else if (window.matchMedia('(prefers-color-scheme: dark)').matches) nextTheme = 'dark';
+        } catch {}
+        document.documentElement.dataset.theme = nextTheme;
+        document.documentElement.classList.toggle('dark', nextTheme === 'dark');
+      })();
+    </script>
   </head>
-  <body class="min-h-screen bg-[#f8fafc] text-slate-900 antialiased">
+  <body class="min-h-screen bg-transparent text-slate-900 antialiased">
     <div class="pointer-events-none fixed inset-0 overflow-hidden">
       <div class="absolute -top-36 right-[-9rem] h-[32rem] w-[32rem] rounded-full bg-blue-200/40 blur-3xl"></div>
       <div class="absolute top-[22%] left-[-11rem] h-[28rem] w-[28rem] rounded-full bg-indigo-200/25 blur-3xl"></div>
@@ -192,4 +205,83 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
   }
 
   initDashboardGuard();
+</script>
+
+<script is:inline>
+  (() => {
+    if (window.__fidelopassThemeManagerInitialized) {
+      window.dispatchEvent(new CustomEvent('fidelopass:theme-refresh'));
+      return;
+    }
+    window.__fidelopassThemeManagerInitialized = true;
+    const KEY = 'fidelopass-theme';
+    const root = document.documentElement;
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+
+    const getStoredTheme = () => {
+      try {
+        const value = localStorage.getItem(KEY);
+        return value === 'dark' || value === 'light' ? value : null;
+      } catch {
+        return null;
+      }
+    };
+
+    const updateThemeColorMeta = (theme) => {
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'dark' ? '#0b1120' : '#f8fafc');
+    };
+
+    const applyTheme = (theme, persist = false) => {
+      root.dataset.theme = theme;
+      root.classList.toggle('dark', theme === 'dark');
+      updateThemeColorMeta(theme);
+      if (persist) {
+        try { localStorage.setItem(KEY, theme); } catch {}
+      }
+      window.dispatchEvent(new CustomEvent('fidelopass:theme-change', { detail: { theme } }));
+    };
+
+    const getInitialTheme = () => getStoredTheme() ?? (media.matches ? 'dark' : 'light');
+
+    const updateToggleUi = () => {
+      const isDark = root.dataset.theme === 'dark';
+      document.querySelectorAll('[data-theme-toggle]').forEach((element) => {
+        const button = element;
+        button.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+        const icon = button.querySelector('[data-theme-icon]');
+        if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+        const label = button.querySelector('[data-theme-label]');
+        if (label) label.textContent = isDark ? 'Mode clair' : 'Mode nuit';
+      });
+    };
+
+    const bindToggles = () => {
+      document.querySelectorAll('[data-theme-toggle]').forEach((element) => {
+        const button = element;
+        if (button.dataset.themeBound === '1') return;
+        button.dataset.themeBound = '1';
+        button.addEventListener('click', () => {
+          const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+          applyTheme(next, true);
+          updateToggleUi();
+        });
+      });
+    };
+
+    applyTheme(getInitialTheme(), false);
+    bindToggles();
+    updateToggleUi();
+
+    media.addEventListener('change', (event) => {
+      if (getStoredTheme()) return;
+      applyTheme(event.matches ? 'dark' : 'light', false);
+      updateToggleUi();
+    });
+
+    window.addEventListener('fidelopass:theme-refresh', () => {
+      bindToggles();
+      updateToggleUi();
+    });
+  })();
 </script>

@@ -20,13 +20,30 @@ const { title = 'Fidelopass Scanner' } = Astro.props;
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <title>{title}</title>
+    <script is:inline>
+      (() => {
+        const KEY = 'fidelopass-theme';
+        let nextTheme = 'light';
+        try {
+          const saved = localStorage.getItem(KEY);
+          if (saved === 'dark' || saved === 'light') nextTheme = saved;
+          else if (window.matchMedia('(prefers-color-scheme: dark)').matches) nextTheme = 'dark';
+        } catch {}
+        document.documentElement.dataset.theme = nextTheme;
+        document.documentElement.classList.toggle('dark', nextTheme === 'dark');
+      })();
+    </script>
   </head>
-  <body class="min-h-[100dvh] bg-[#f5f9ff] text-slate-900 antialiased overflow-x-hidden">
+  <body class="min-h-[100dvh] bg-transparent text-slate-900 antialiased overflow-x-hidden">
     <div class="pointer-events-none fixed inset-0 overflow-hidden">
       <div class="absolute -top-24 right-[-6rem] h-[18rem] w-[18rem] rounded-full bg-cyan-200/35 blur-3xl"></div>
       <div class="absolute bottom-[-6rem] left-[-4rem] h-[14rem] w-[14rem] rounded-full bg-blue-100/65 blur-3xl"></div>
       <div class="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/80 to-transparent"></div>
     </div>
+    <button type="button" data-theme-toggle class="theme-toggle-btn fixed top-4 right-4 z-[60]">
+      <span data-theme-icon class="theme-toggle-icon">🌙</span>
+      <span data-theme-label>Mode nuit</span>
+    </button>
     <slot />
   </body>
 </html>
@@ -53,4 +70,81 @@ const { title = 'Fidelopass Scanner' } = Astro.props;
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   }
+</script>
+
+<script is:inline>
+  (() => {
+    if (window.__fidelopassThemeManagerInitialized) {
+      window.dispatchEvent(new CustomEvent('fidelopass:theme-refresh'));
+      return;
+    }
+    window.__fidelopassThemeManagerInitialized = true;
+    const KEY = 'fidelopass-theme';
+    const root = document.documentElement;
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+
+    const getStoredTheme = () => {
+      try {
+        const value = localStorage.getItem(KEY);
+        return value === 'dark' || value === 'light' ? value : null;
+      } catch {
+        return null;
+      }
+    };
+
+    const updateThemeColorMeta = (theme) => {
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'dark' ? '#0b1120' : '#edf6ff');
+    };
+
+    const applyTheme = (theme, persist = false) => {
+      root.dataset.theme = theme;
+      root.classList.toggle('dark', theme === 'dark');
+      updateThemeColorMeta(theme);
+      if (persist) {
+        try { localStorage.setItem(KEY, theme); } catch {}
+      }
+      window.dispatchEvent(new CustomEvent('fidelopass:theme-change', { detail: { theme } }));
+    };
+
+    const updateToggleUi = () => {
+      const isDark = root.dataset.theme === 'dark';
+      document.querySelectorAll('[data-theme-toggle]').forEach((element) => {
+        const button = element;
+        button.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+        const icon = button.querySelector('[data-theme-icon]');
+        if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+        const label = button.querySelector('[data-theme-label]');
+        if (label) label.textContent = isDark ? 'Mode clair' : 'Mode nuit';
+      });
+    };
+
+    const bindToggles = () => {
+      document.querySelectorAll('[data-theme-toggle]').forEach((element) => {
+        const button = element;
+        if (button.dataset.themeBound === '1') return;
+        button.dataset.themeBound = '1';
+        button.addEventListener('click', () => {
+          const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+          applyTheme(next, true);
+          updateToggleUi();
+        });
+      });
+    };
+
+    applyTheme(getStoredTheme() ?? (media.matches ? 'dark' : 'light'));
+    bindToggles();
+    updateToggleUi();
+
+    media.addEventListener('change', (event) => {
+      if (getStoredTheme()) return;
+      applyTheme(event.matches ? 'dark' : 'light');
+      updateToggleUi();
+    });
+
+    window.addEventListener('fidelopass:theme-refresh', () => {
+      bindToggles();
+      updateToggleUi();
+    });
+  })();
 </script>

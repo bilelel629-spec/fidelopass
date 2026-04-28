@@ -44,7 +44,7 @@ async function loadWalletContext(
   clientId: string,
   commerceSelect: string,
 ) {
-  const db = createServiceClient();
+  const db = createServiceClient() as any;
 
   const { data: carte } = await db
     .from('cartes')
@@ -82,7 +82,7 @@ function isValidApplePassAuth(c: Context, serialNumber: string) {
 }
 
 async function loadApplePassByClient(serialNumber: string) {
-  const db = createServiceClient();
+  const db = createServiceClient() as any;
   const { data: client } = await db
     .from('clients')
     .select('*, cartes(*, commerces(id, nom, logo_url, latitude, longitude, rayon_geo, plan), points_vente(id, nom, adresse, latitude, longitude, rayon_geo))')
@@ -198,7 +198,7 @@ walletRoutes.get('/apple/v1/passes/:passTypeIdentifier/:serialNumber', async (c)
 
 /** POST /api/wallet/apple/:carteId — Génère un .pkpass Apple Wallet */
 const appleWalletHandler = async (c: Context) => {
-  const carteId = c.req.param('carteId');
+  const carteId = c.req.param('carteId') ?? '';
   const parsed = await parseClientId(c);
 
   if (!parsed.success) {

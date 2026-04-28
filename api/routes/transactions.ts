@@ -195,10 +195,11 @@ transactionsRoutes.post('/', async (c) => {
 
   if (client.apple_pass_serial) {
     walletUpdates.push(
-      db.from('apple_pass_registrations')
-      .select('push_token, pass_type_identifier')
-      .eq('client_id', parsed.data.client_id)
-      .then(({ data, error }) => {
+      (async () => {
+        const { data, error } = await db.from('apple_pass_registrations')
+          .select('push_token, pass_type_identifier')
+          .eq('client_id', parsed.data.client_id);
+
         if (error) {
           console.error('[Apple Wallet registrations]', error);
           return { provider: 'apple', ok: false, count: 0, error: error.message };
@@ -220,7 +221,7 @@ transactionsRoutes.post('/', async (c) => {
           }
           return { provider: 'apple', ok: !failed, count: registrations.length };
         });
-      }),
+      })(),
     );
   }
 

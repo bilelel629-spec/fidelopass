@@ -11,6 +11,12 @@ type CommerceRow = {
   latitude?: number | null;
   longitude?: number | null;
   rayon_geo?: number | null;
+  sms_credits?: number | null;
+  sms_welcome_enabled?: boolean | null;
+  sms_welcome_message?: string | null;
+  sms_review_enabled?: boolean | null;
+  sms_relance_enabled?: boolean | null;
+  sms_relance_jours?: number | null;
 };
 
 export type PointVenteRow = {

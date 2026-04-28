@@ -47,6 +47,13 @@ function priceMatchesSlot(priceId: string | null, slot: keyof typeof LEGACY_PRIC
   return slotIds(slot, priceIds).includes(priceId);
 }
 
+function resolvePriceSlot(priceId: string, priceIds: Record<string, string>): keyof typeof LEGACY_PRICE_IDS | null {
+  for (const slot of Object.keys(LEGACY_PRICE_IDS) as Array<keyof typeof LEGACY_PRICE_IDS>) {
+    if (priceMatchesSlot(priceId, slot, priceIds)) return slot;
+  }
+  return null;
+}
+
 function resolvePlanFromPriceId(priceId: string | null, priceIds: Record<string, string>): PlanName {
   if (!priceId) return null;
 
@@ -247,7 +254,7 @@ stripeWebhookRoutes.post('/', async (c) => {
         const selectedSlotFromMetadata = (slotFromMetadataRaw.length > 0 ? slotFromMetadataRaw : null);
         const matchedSlotFromLineItems = purchasedPriceIds
           .map((id) => resolvePriceSlot(id, priceIds))
-          .find((slot): slot is string => Boolean(slot)) ?? null;
+          .find((slot): slot is keyof typeof LEGACY_PRICE_IDS => Boolean(slot)) ?? null;
         const selectedBillingSlot = selectedSlotFromMetadata ?? matchedSlotFromLineItems;
         const annualOnceEndsAt = isAnnualOnceSlot(selectedBillingSlot)
           ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()

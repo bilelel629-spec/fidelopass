@@ -810,9 +810,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
     requestedPointVenteId,
     'id, plan, plan_override, nom',
   );
-  const commerceError = null;
-
-  reviewDebug('[review-campaign] commerce:', commerce?.id, '| plan:', commerce?.plan, '| error:', commerceError?.message);
+  reviewDebug('[review-campaign] commerce:', commerce?.id, '| plan:', commerce?.plan);
 
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
   const flags = await loadCommerceFlags(db, commerce.id);

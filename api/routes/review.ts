@@ -47,8 +47,9 @@ reviewRoutes.get('/:carteId/info', async (c) => {
     .eq('carte_id', carteId)
     .maybeSingle();
 
-  const pointVente = (carte.points_vente as { nom?: string | null } | null);
-  const displayCommerceName = pointVente?.nom ?? (carte.commerces as { nom: string; logo_url: string | null } | null)?.nom ?? '';
+  const pointVente = (carte.points_vente as unknown as { nom?: string | null } | null);
+  const commerceInfo = (carte.commerces as unknown as { nom: string; logo_url: string | null } | null);
+  const displayCommerceName = pointVente?.nom ?? commerceInfo?.nom ?? '';
 
   return c.json({
     data: {
@@ -58,7 +59,7 @@ reviewRoutes.get('/:carteId/info', async (c) => {
         review_reward_value: carte.review_reward_value,
         google_maps_url: carte.google_maps_url,
         commerce_nom: displayCommerceName,
-        commerce_logo: (carte.commerces as { nom: string; logo_url: string | null } | null)?.logo_url ?? null,
+        commerce_logo: commerceInfo?.logo_url ?? null,
       },
       already_claimed: !!existing,
       claimed_at: existing?.claimed_at ?? null,
@@ -160,15 +161,15 @@ reviewRoutes.post('/:carteId/claim', async (c) => {
   // Mise à jour Wallets (fire-and-forget)
   void (async () => {
     try {
-      const pointVente = (carte.points_vente as { nom?: string | null } | null);
-      const commerceBase = (carte.commerces as { nom?: string | null; logo_url?: string | null } | null);
+      const pointVente = (carte.points_vente as unknown as { nom?: string | null } | null);
+      const commerceBase = (carte.commerces as unknown as { nom?: string | null; logo_url?: string | null } | null);
       const carteForWallet = {
         ...carte,
         commerces: {
           nom: pointVente?.nom ?? commerceBase?.nom ?? '',
           logo_url: commerceBase?.logo_url ?? null,
         },
-      } as Parameters<typeof updateGooglePassObject>[1];
+      } as unknown as Parameters<typeof updateGooglePassObject>[1];
       const updatedClient = { ...client, points_actuels: newPoints, tampons_actuels: newTampons, recompenses_obtenues: recompensesObtenues };
 
       if (client.google_pass_id) {

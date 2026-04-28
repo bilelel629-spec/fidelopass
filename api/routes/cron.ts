@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { createServiceClient } from '../../src/lib/supabase';
 import { sendSMS } from '../../src/lib/brevo-sms';
 import { sendPersonalizedPushNotifications } from '../services/push';
-import { sendGoogleWalletMessage } from '../services/google-wallet';
+import { sendGoogleWalletMessage, updateGooglePassObject } from '../services/google-wallet';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { getPlanLimits } from './commerces';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
@@ -492,7 +492,7 @@ async function sendScheduledBirthdayPushes(db: ReturnType<typeof createServiceCl
             token: client.fcm_token as string,
             clickUrl,
           }));
-          const sent = await sendPersonalizedPushNotifications(recipients, messageTitle, messageBody).catch((err) => {
+          const sent = await sendPersonalizedPushNotifications(recipients, messageTitle, messageBody).catch((err: unknown) => {
             console.error('[cron birthday webpush]', err);
             return 0;
           });
@@ -523,7 +523,7 @@ async function sendScheduledBirthdayPushes(db: ReturnType<typeof createServiceCl
               pushesSent++;
               deliveredClientIds.add(client.id);
             })
-            .catch((err) => console.error('[cron birthday google-wallet]', err));
+            .catch((err: unknown) => console.error('[cron birthday google-wallet]', err));
         }
 
         const appleWalletClients = rewardedClients.filter((client) => Boolean(client.apple_pass_serial));

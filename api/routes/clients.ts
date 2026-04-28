@@ -302,7 +302,8 @@ clientsRoutes.post('/', async (c) => {
 
 /** PATCH /api/clients/:id/adjust — Ajustement manuel du score (+ ou -) par le commerçant */
 clientsRoutes.patch('/:id/adjust', authMiddleware, paidMiddleware, async (c) => {
-  const clientId = c.req.param('id');
+  const clientId = c.req.param('id') ?? '';
+  if (!clientId) return c.json({ error: 'Client introuvable' }, 404);
   const userId = c.get('userId') as string;
   const body = await c.req.json().catch(() => null);
   const requestedPointVenteId = readRequestedPointVenteId(c);

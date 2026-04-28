@@ -3,20 +3,20 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout title="Connexion — Fidelopass" description="Connectez-vous à votre espace commerçant Fidelopass.">
-  <div class="min-h-screen bg-[#f8fbff] px-4 py-10 sm:py-14 relative overflow-hidden">
+  <div class="min-h-screen bg-[#f8fbff] px-4 py-10 sm:py-14 relative overflow-hidden dark:bg-[linear-gradient(180deg,#020617_0%,#0b1120_55%,#020617_100%)]">
     <div class="pointer-events-none absolute -top-28 right-[-8rem] h-[26rem] w-[26rem] rounded-full bg-cyan-200/35 blur-3xl"></div>
     <div class="pointer-events-none absolute bottom-[-7rem] left-[-6rem] h-[22rem] w-[22rem] rounded-full bg-blue-100/80 blur-3xl"></div>
 
     <div class="max-w-6xl mx-auto grid lg:grid-cols-[1.05fr_0.95fr] gap-10 items-center">
       <div class="hidden lg:block">
-        <a href="/" class="inline-flex items-center gap-1 mb-10">
-          <img src="/logo-premium-cropped.png" alt="Fidelopass" class="h-28 w-auto object-contain" />
+        <a href="/" class="inline-flex items-center gap-1 mb-10 rounded-2xl dark:bg-slate-100/95 dark:px-2.5 dark:py-1.5 dark:shadow-[0_10px_26px_-16px_rgba(0,0,0,0.6)]">
+          <img src="/logo-premium-cropped.png" alt="Fidelopass" class="h-28 w-auto object-contain dark:brightness-110 dark:contrast-125" />
         </a>
-        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-sky-700/70">Espace commerçant</p>
-        <h1 class="font-display text-4xl font-bold text-slate-900 leading-tight mt-3">
+        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-sky-700/70 dark:text-sky-300/80">Espace commerçant</p>
+        <h1 class="font-display text-4xl font-bold text-slate-900 leading-tight mt-3 dark:text-slate-100">
           Retrouvez votre tableau de bord et pilotez votre fidélité sereinement.
         </h1>
-        <p class="text-slate-500 text-base leading-relaxed mt-5 max-w-lg">
+        <p class="text-slate-500 text-base leading-relaxed mt-5 max-w-lg dark:text-slate-300">
           Gérez vos cartes Wallet, votre scanner, vos clients, vos notifications et vos performances depuis un seul espace clair.
         </p>
 
@@ -27,23 +27,23 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             ['Design de carte personnalisable', 'Modifiez votre identité visuelle à tout moment.'],
             ['Suivi clients et historique', 'Gardez une vue claire sur les visites et récompenses.'],
           ].map(([title, text]) => (
-            <div class="rounded-2xl border border-sky-100 bg-white/80 backdrop-blur-md p-5 shadow-[0_18px_44px_-34px_rgba(37,99,235,0.25)]">
-              <p class="font-semibold text-slate-900 text-sm">{title}</p>
-              <p class="text-slate-500 text-sm mt-2 leading-relaxed">{text}</p>
+            <div class="rounded-2xl border border-sky-100 bg-white/80 backdrop-blur-md p-5 shadow-[0_18px_44px_-34px_rgba(37,99,235,0.25)] dark:border-slate-700 dark:bg-slate-900/80">
+              <p class="font-semibold text-slate-900 text-sm dark:text-slate-100">{title}</p>
+              <p class="text-slate-500 text-sm mt-2 leading-relaxed dark:text-slate-300">{text}</p>
             </div>
           ))}
         </div>
       </div>
 
-      <div class="bg-white/92 backdrop-blur-xl rounded-[2rem] border border-sky-100 shadow-[0_32px_70px_-34px_rgba(37,99,235,0.28)] p-6 sm:p-8">
-        <a href="/" class="lg:hidden inline-flex items-center gap-1 mb-6">
-          <img src="/logo-premium-cropped.png" alt="Fidelopass" class="h-20 w-auto object-contain" />
+      <div class="bg-white/92 backdrop-blur-xl rounded-[2rem] border border-sky-100 shadow-[0_32px_70px_-34px_rgba(37,99,235,0.28)] p-6 sm:p-8 dark:border-slate-700 dark:bg-slate-900/90">
+        <a href="/" class="lg:hidden inline-flex items-center gap-1 mb-6 rounded-2xl dark:bg-slate-100/95 dark:px-2.5 dark:py-1.5 dark:shadow-[0_10px_26px_-16px_rgba(0,0,0,0.6)]">
+          <img src="/logo-premium-cropped.png" alt="Fidelopass" class="h-20 w-auto object-contain dark:brightness-110 dark:contrast-125" />
         </a>
 
         <div class="mb-7">
-          <p class="text-sky-700/70 text-sm">Connexion commerçant</p>
-          <h2 class="font-display text-3xl font-bold text-slate-900 mt-1">Bienvenue</h2>
-          <p class="text-slate-500 text-sm mt-2">Connectez-vous pour accéder à votre tableau de bord Fidelopass.</p>
+          <p class="text-sky-700/70 text-sm dark:text-sky-300/80">Connexion commerçant</p>
+          <h2 class="font-display text-3xl font-bold text-slate-900 mt-1 dark:text-slate-100">Bienvenue</h2>
+          <p class="text-slate-500 text-sm mt-2 dark:text-slate-300">Connectez-vous pour accéder à votre tableau de bord Fidelopass.</p>
         </div>
 
         <button id="apple-login-btn" type="button" class="w-full rounded-2xl bg-black text-white font-semibold py-3.5 px-4 flex items-center justify-center gap-3 border border-black hover:bg-slate-900 transition-colors mb-3 shadow-sm">
@@ -53,7 +53,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           Continuer avec Apple
         </button>
 
-        <button id="google-login-btn" type="button" class="w-full rounded-2xl bg-white text-slate-950 font-semibold py-3.5 px-4 flex items-center justify-center gap-3 border border-slate-200 hover:bg-slate-50 transition-colors mb-5 shadow-sm">
+        <button id="google-login-btn" type="button" class="w-full rounded-2xl bg-white text-slate-950 font-semibold py-3.5 px-4 flex items-center justify-center gap-3 border border-slate-200 hover:bg-slate-50 transition-colors mb-5 shadow-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700">
           <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" aria-hidden="true">
             <path d="M21.56 10.74a9.55 9.55 0 0 0-.15-1.69H12v3.2h5.37a4.6 4.6 0 0 1-2 3.02v2.51h3.23c1.89-1.74 2.96-4.3 2.96-7.04z" fill="#4285F4"/>
             <path d="M12 22c2.7 0 4.96-.9 6.61-2.43l-3.23-2.51c-.9.6-2.04.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H3.08v2.6A10 10 0 0 0 12 22z" fill="#34A853"/>
@@ -64,9 +64,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </button>
 
         <div class="flex items-center gap-3 mb-5">
-          <div class="h-px flex-1 bg-slate-200"></div>
-          <span class="text-xs uppercase tracking-[0.2em] text-slate-400">ou</span>
-          <div class="h-px flex-1 bg-slate-200"></div>
+          <div class="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+          <span class="text-xs uppercase tracking-[0.2em] text-slate-400 dark:text-slate-400">ou</span>
+          <div class="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
         </div>
 
         <form id="login-form" class="flex flex-col gap-4">
@@ -84,7 +84,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             <input id="password" type="password" class="input" placeholder="••••••••" required autocomplete="current-password" />
           </div>
 
-          <div class="rounded-2xl border border-sky-100 bg-sky-50/90 px-4 py-3 text-sm text-slate-600">
+          <div class="rounded-2xl border border-sky-100 bg-sky-50/90 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
             Les nouveaux comptes doivent d’abord confirmer leur email avec le code reçu lors de l’inscription.
           </div>
 
@@ -92,7 +92,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           <button type="submit" class="btn-primary w-full py-3.5 mt-2">Se connecter</button>
         </form>
 
-        <p class="text-center text-slate-500 text-sm mt-6">
+        <p class="text-center text-slate-500 text-sm mt-6 dark:text-slate-300">
           Pas encore de compte ?
           <a href="/register" class="text-indigo-600 hover:text-indigo-500 transition-colors ml-1 font-medium">S'inscrire</a>
         </p>

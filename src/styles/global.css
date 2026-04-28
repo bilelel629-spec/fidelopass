@@ -2,6 +2,8 @@
 
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 @theme {
   /* Couleurs */
   --color-navy-950: #0a0f1e;
@@ -591,10 +593,22 @@
     background-color: rgb(30 41 59 / 0.85) !important;
   }
 
-  html[data-theme='dark'] [class*='bg-white'][class*='border-slate'],
-  html[data-theme='dark'] [class*='bg-white'][class*='border-sky'],
-  html[data-theme='dark'] [class*='bg-white'][class*='border-indigo'],
-  html[data-theme='dark'] [class*='bg-white'][class*='border-blue'] {
+  html[data-theme='dark'] [class*='bg-white'] {
+    background-color: rgb(15 23 42 / 0.9) !important;
+  }
+
+  html[data-theme='dark'] [class*='bg-[#f8fbff]'],
+  html[data-theme='dark'] [class*='bg-[#f6f9ff]'],
+  html[data-theme='dark'] [class*='bg-[#eef4ff]'] {
+    background-color: rgb(15 23 42 / 0.92) !important;
+  }
+
+  html[data-theme='dark'] [class*='bg-[linear-gradient'] {
+    background-image: linear-gradient(180deg, #020617 0%, #0b1120 55%, #020617 100%) !important;
+  }
+
+  html[data-theme='dark'] [class*='from-white'],
+  html[data-theme='dark'] [class*='to-white'] {
     background-color: rgb(15 23 42 / 0.88) !important;
   }
 

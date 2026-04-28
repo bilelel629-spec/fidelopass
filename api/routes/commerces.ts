@@ -4,6 +4,7 @@ import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
 import { geocodeAddress } from '../services/geocoding';
+import { syncWalletForPointVente } from '../services/wallet-sync';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
 
@@ -66,6 +67,25 @@ export function getPlanLimits(plan: string | null | undefined) {
   return PLAN_LIMITS[normalizePlan(plan)];
 }
 
+function computeGeoReadiness(payload: {
+  adresse?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  rayon_geo?: number | null;
+}) {
+  const hasAddress = !!String(payload.adresse ?? '').trim();
+  const hasCoordinates = typeof payload.latitude === 'number' && typeof payload.longitude === 'number';
+  const hasValidRadius = typeof payload.rayon_geo === 'number' && Number.isFinite(payload.rayon_geo) && payload.rayon_geo >= 100;
+
+  const ready = hasAddress && hasCoordinates && hasValidRadius;
+  let reason = 'ready';
+  if (!hasAddress) reason = 'address_missing';
+  else if (!hasCoordinates) reason = 'coordinates_missing';
+  else if (!hasValidRadius) reason = 'radius_invalid';
+
+  return { ready, reason };
+}
+
 /** GET /api/commerces/me — Récupère le commerce de l'utilisateur connecté */
 commercesRoutes.get('/me', async (c) => {
   const userId = c.get('userId') as string;
@@ -92,6 +112,12 @@ commercesRoutes.get('/me', async (c) => {
       point_vente_nom: pointVente?.nom ?? commerce.nom ?? null,
       points_vente_count: pointsVente.length,
       points_vente: pointsVente,
+      geo: computeGeoReadiness({
+        adresse: pointVente?.adresse ?? commerce.adresse ?? null,
+        latitude: pointVente?.latitude ?? commerce.latitude ?? null,
+        longitude: pointVente?.longitude ?? commerce.longitude ?? null,
+        rayon_geo: pointVente?.rayon_geo ?? commerce.rayon_geo ?? 1000,
+      }),
     };
 
     return c.json({ data: mergedCommerce });
@@ -227,6 +253,17 @@ commercesRoutes.patch('/me', async (c) => {
     .eq('id', pointVente.id)
     .single();
 
+  const finalPointVenteId = updatedPoint?.id ?? pointVente.id;
+  void syncWalletForPointVente(finalPointVenteId)
+    .then((stats) => {
+      if (stats.cartes > 0) {
+        console.info('[geolocation wallet-sync] /commerces/me', { point_vente_id: finalPointVenteId, ...stats });
+      }
+    })
+    .catch((err) => {
+      console.error('[geolocation wallet-sync] /commerces/me', err);
+    });
+
   return c.json({
     data: {
       ...commerce,
@@ -238,6 +275,12 @@ commercesRoutes.patch('/me', async (c) => {
       point_vente_id: updatedPoint?.id ?? pointVente.id,
       point_vente_nom: updatedPoint?.nom ?? pointVente.nom,
       points_vente_count: pointsVente.length,
+      geo: computeGeoReadiness({
+        adresse: updatedPoint?.adresse ?? parsed.data.adresse ?? null,
+        latitude: updatedPoint?.latitude ?? null,
+        longitude: updatedPoint?.longitude ?? null,
+        rayon_geo: updatedPoint?.rayon_geo ?? parsed.data.rayon_geo ?? 1000,
+      }),
     },
   });
 });
@@ -320,8 +363,15 @@ commercesRoutes.post('/points-vente', async (c) => {
     .single();
 
   if (error) return c.json({ error: 'Impossible de créer ce point de vente.' }, 500);
-
-  return c.json({ data }, 201);
+  return c.json({
+    data,
+    geo: computeGeoReadiness({
+      adresse: data.adresse ?? null,
+      latitude: data.latitude ?? null,
+      longitude: data.longitude ?? null,
+      rayon_geo: data.rayon_geo ?? 1000,
+    }),
+  }, 201);
 });
 
 /** PATCH /api/commerces/points-vente/:id — Modifier un point de vente */
@@ -376,8 +426,25 @@ commercesRoutes.patch('/points-vente/:id', async (c) => {
     .single();
 
   if (error) return c.json({ error: 'Erreur lors de la mise à jour du point de vente.' }, 500);
+  void syncWalletForPointVente(data.id)
+    .then((stats) => {
+      if (stats.cartes > 0) {
+        console.info('[geolocation wallet-sync] /points-vente/:id', { point_vente_id: data.id, ...stats });
+      }
+    })
+    .catch((err) => {
+      console.error('[geolocation wallet-sync] /points-vente/:id', err);
+    });
 
-  return c.json({ data });
+  return c.json({
+    data,
+    geo: computeGeoReadiness({
+      adresse: data.adresse ?? null,
+      latitude: data.latitude ?? null,
+      longitude: data.longitude ?? null,
+      rayon_geo: data.rayon_geo ?? 1000,
+    }),
+  });
 });
 
 /** DELETE /api/commerces/points-vente/:id — Archive un point de vente */

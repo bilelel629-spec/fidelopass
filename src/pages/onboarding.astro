@@ -71,6 +71,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 <script>
   import { createClient } from '@supabase/supabase-js';
+  import { getAddressPayload, initAddressAutocomplete } from '../lib/address-autocomplete';
   import { withTimeout } from '../lib/utils/with-timeout';
 
   const supabase = createClient(
@@ -113,7 +114,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   const commerceForm = document.getElementById('commerce-form') as HTMLFormElement;
   const errorCommerce = document.getElementById('error-commerce') as HTMLDivElement;
   const button = document.getElementById('btn-commerce') as HTMLButtonElement;
+  const adresseInput = document.getElementById('adresse') as HTMLInputElement;
   let commerceExists = false;
+
+  initAddressAutocomplete({ input: adresseInput });
 
   function showError(message: string) {
     errorCommerce.textContent = message;
@@ -132,7 +136,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     if (existingCommerce.data) {
       commerceExists = true;
       (document.getElementById('nom') as HTMLInputElement).value = existingCommerce.data.nom ?? '';
-      (document.getElementById('adresse') as HTMLInputElement).value = existingCommerce.data.adresse ?? '';
+      adresseInput.value = existingCommerce.data.adresse ?? '';
       (document.getElementById('telephone') as HTMLInputElement).value = existingCommerce.data.telephone ?? '';
       (document.getElementById('email-commerce') as HTMLInputElement).value = existingCommerce.data.email ?? '';
     }
@@ -149,7 +153,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
     const payload = {
       nom: (document.getElementById('nom') as HTMLInputElement).value,
-      adresse: (document.getElementById('adresse') as HTMLInputElement).value || null,
+      adresse: adresseInput.value || null,
+      ...getAddressPayload(adresseInput),
       telephone: (document.getElementById('telephone') as HTMLInputElement).value || null,
       email: (document.getElementById('email-commerce') as HTMLInputElement).value || null,
       onboarding_completed: true,

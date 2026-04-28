@@ -93,12 +93,19 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 </DashboardLayout>
 
 <script>
+  import { clearAddressPayload, getAddressPayload, initAddressAutocomplete } from '../../lib/address-autocomplete';
   import { ACTIVE_POINT_VENTE_STORAGE_KEY, authFetch } from '../../lib/api';
 
   type PointVente = {
     id: string;
     nom: string;
     adresse: string | null;
+    rue?: string | null;
+    ville?: string | null;
+    code_postal?: string | null;
+    pays?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
     rayon_geo: number | null;
     principal: boolean;
     actif: boolean;
@@ -121,6 +128,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const editPointNom = document.getElementById('edit-point-nom') as HTMLInputElement;
   const editPointAdresse = document.getElementById('edit-point-adresse') as HTMLInputElement;
   const editPointRayon = document.getElementById('edit-point-rayon') as HTMLInputElement;
+  const newPointAdresse = document.getElementById('new-point-adresse') as HTMLInputElement;
   const archiveModal = document.getElementById('archive-point-modal') as HTMLDivElement;
   const archiveBackdrop = document.getElementById('archive-point-backdrop') as HTMLButtonElement;
   const archiveCancelBtn = document.getElementById('archive-point-cancel') as HTMLButtonElement;
@@ -132,6 +140,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   let pointsVente: PointVente[] = [];
   let usage: { current: number; max: number; remaining: number } | null = null;
   let archivePointId: string | null = null;
+
+  initAddressAutocomplete({ input: newPointAdresse });
+  initAddressAutocomplete({ input: editPointAdresse });
 
   function escapeHtml(value: unknown) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -235,6 +246,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     editPointId.value = point.id;
     editPointNom.value = point.nom;
     editPointAdresse.value = point.adresse ?? '';
+    clearAddressPayload(editPointAdresse);
+    if (typeof point.latitude === 'number' && typeof point.longitude === 'number') {
+      editPointAdresse.dataset.latitude = String(point.latitude);
+      editPointAdresse.dataset.longitude = String(point.longitude);
+      editPointAdresse.dataset.rue = point.rue ?? '';
+      editPointAdresse.dataset.ville = point.ville ?? '';
+      editPointAdresse.dataset.codePostal = point.code_postal ?? '';
+      editPointAdresse.dataset.pays = point.pays ?? '';
+    }
     editPointRayon.value = String(point.rayon_geo ?? 1000);
     editModal.classList.remove('hidden');
   }
@@ -325,7 +345,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     try {
       const payload = {
         nom: (document.getElementById('new-point-nom') as HTMLInputElement).value.trim(),
-        adresse: ((document.getElementById('new-point-adresse') as HTMLInputElement).value.trim() || null),
+        adresse: (newPointAdresse.value.trim() || null),
+        ...getAddressPayload(newPointAdresse),
         rayon_geo: Math.max(100, parseInt((document.getElementById('new-point-rayon') as HTMLInputElement).value, 10) || 1000),
       };
 
@@ -339,6 +360,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       addSuccess.textContent = 'Point de vente ajouté avec succès.';
       addSuccess.classList.remove('hidden');
       addForm.reset();
+      clearAddressPayload(newPointAdresse);
       (document.getElementById('new-point-rayon') as HTMLInputElement).value = '1000';
       await loadPointsVente();
     } catch (error) {
@@ -369,6 +391,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         body: JSON.stringify({
           nom,
           adresse: adresse || null,
+          ...getAddressPayload(editPointAdresse),
           rayon_geo: rayon,
         }),
       });

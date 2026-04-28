@@ -21,6 +21,7 @@ import { smsRoutes } from './routes/sms';
 import { cronRoutes } from './routes/cron';
 import { billingRoutes } from './routes/billing';
 import { scannersRoutes } from './routes/scanners';
+import { geocodingRoutes } from './routes/geocoding';
 import { createRateLimitMiddleware } from './middleware/rate-limit';
 import { createServiceClient } from '../src/lib/supabase';
 
@@ -109,6 +110,7 @@ app.route('/api/stripe-webhook', stripeWebhookRoutes);
 app.route('/api/sms', smsRoutes);
 app.route('/api/cron', cronRoutes);
 app.route('/api/scanners', scannersRoutes);
+app.route('/api/geocoding', geocodingRoutes);
 
 app.get('/api/health', (c) => c.json({ ok: true, ts: new Date().toISOString() }));
 app.get('/api/health/deps', async (c) => {
@@ -142,6 +144,7 @@ app.get('/api/health/deps', async (c) => {
     probeColumn('clients', 'date_naissance'),
     probeColumn('cartes', 'birthday_auto_enabled'),
     probeColumn('admin_card_proposals', 'id'),
+    probeColumn('points_vente', 'ville'),
   ]);
 
   const migrations = {
@@ -150,6 +153,7 @@ app.get('/api/health/deps', async (c) => {
     clients_birth_date_column: migrationProbes[2],
     cartes_birthday_column: migrationProbes[3],
     admin_card_proposals_table: migrationProbes[4],
+    points_vente_address_details: migrationProbes[5],
   };
   const migrationsOk = Object.values(migrations).every((entry) => entry.ok);
 

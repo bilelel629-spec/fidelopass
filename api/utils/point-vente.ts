@@ -18,6 +18,10 @@ export type PointVenteRow = {
   commerce_id: string;
   nom: string;
   adresse: string | null;
+  rue?: string | null;
+  ville?: string | null;
+  code_postal?: string | null;
+  pays?: string | null;
   latitude: number | null;
   longitude: number | null;
   rayon_geo: number | null;
@@ -88,16 +92,34 @@ export async function resolveCommerceAndPointVente<T extends CommerceRow = Comme
     return { commerce: null, pointVente: null, pointsVente: [] };
   }
 
-  const { data: pointsVente, error: pointsVenteError } = await db
+  const pointVenteSelect = 'id, commerce_id, nom, adresse, rue, ville, code_postal, pays, latitude, longitude, rayon_geo, principal, actif, created_at';
+  const pointVenteFallbackSelect = 'id, commerce_id, nom, adresse, latitude, longitude, rayon_geo, principal, actif, created_at';
+
+  const primaryPointsResult = await db
     .from('points_vente')
-    .select('id, commerce_id, nom, adresse, latitude, longitude, rayon_geo, principal, actif, created_at')
+    .select(pointVenteSelect)
     .eq('commerce_id', commerce.id)
     .eq('actif', true)
     .order('principal', { ascending: false })
     .order('created_at', { ascending: true });
+  let pointsVente = primaryPointsResult.data as unknown[] | null;
+  let pointsVenteError = primaryPointsResult.error;
 
   if (pointsVenteError) {
-    throw pointsVenteError;
+    const missingAddressDetails = /rue|ville|code_postal|pays|schema cache|does not exist/i.test(pointsVenteError.message ?? '');
+    if (!missingAddressDetails) throw pointsVenteError;
+
+    const fallback = await db
+      .from('points_vente')
+      .select(pointVenteFallbackSelect)
+      .eq('commerce_id', commerce.id)
+      .eq('actif', true)
+      .order('principal', { ascending: false })
+      .order('created_at', { ascending: true });
+
+    pointsVente = fallback.data as unknown[] | null;
+    pointsVenteError = fallback.error;
+    if (pointsVenteError) throw pointsVenteError;
   }
 
   let points = (pointsVente ?? []) as PointVenteRow[];
@@ -118,7 +140,7 @@ export async function resolveCommerceAndPointVente<T extends CommerceRow = Comme
         principal: true,
         actif: true,
       })
-      .select('id, commerce_id, nom, adresse, latitude, longitude, rayon_geo, principal, actif, created_at')
+      .select(pointVenteFallbackSelect)
       .single();
 
     if (createPointError) {

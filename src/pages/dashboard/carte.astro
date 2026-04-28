@@ -944,6 +944,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
 <script>
   import { authFetch } from '../../lib/api';
+  import { clearAddressPayload, getAddressPayload, initAddressAutocomplete } from '../../lib/address-autocomplete';
   import { createClient } from '@supabase/supabase-js';
   import { clamp, getPatternBackground, stampCols } from '../../lib/dashboard/carte-preview-utils';
   import {
@@ -978,6 +979,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   let typeChangePendingRevalidation = false;
   let isDirty = false;
   let isSaving = false;
+  const adresseCommerceInput = document.getElementById('adresse-commerce') as HTMLInputElement | null;
+  if (adresseCommerceInput) {
+    initAddressAutocomplete({ input: adresseCommerceInput });
+  }
   let suppressDirtyTracking = true;
   let multiRewardsEnabled = false;
   let brandingEnabled = true;
@@ -2605,7 +2610,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         method: 'PATCH',
         body: JSON.stringify({
           rayon_geo: parseInt((document.getElementById('rayon-geo') as HTMLInputElement).value, 10),
-          adresse: (document.getElementById('adresse-commerce') as HTMLInputElement).value || null,
+          adresse: (adresseCommerceInput?.value || null),
+          ...(adresseCommerceInput ? getAddressPayload(adresseCommerceInput) : {}),
           point_vente_nom: (document.getElementById('nom-point-vente') as HTMLInputElement).value.trim() || undefined,
         }),
       });
@@ -2720,7 +2726,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         activePointName.textContent = data?.point_vente_nom ?? data?.nom ?? 'Principal';
       }
       const rayon = data?.rayon_geo ?? 1000;
-      (document.getElementById('adresse-commerce') as HTMLInputElement).value = data?.adresse ?? '';
+      if (adresseCommerceInput) {
+        adresseCommerceInput.value = data?.adresse ?? '';
+        clearAddressPayload(adresseCommerceInput);
+        if (typeof data?.latitude === 'number' && typeof data?.longitude === 'number') {
+          adresseCommerceInput.dataset.latitude = String(data.latitude);
+          adresseCommerceInput.dataset.longitude = String(data.longitude);
+          adresseCommerceInput.dataset.rue = data?.rue ?? '';
+          adresseCommerceInput.dataset.ville = data?.ville ?? '';
+          adresseCommerceInput.dataset.codePostal = data?.code_postal ?? '';
+          adresseCommerceInput.dataset.pays = data?.pays ?? '';
+        }
+      }
       (document.getElementById('nom-point-vente') as HTMLInputElement).value = data?.point_vente_nom ?? data?.nom ?? '';
       rayonSlider.value = String(rayon);
       rayonLabel.textContent = `${rayon.toLocaleString('fr-FR')} m`;

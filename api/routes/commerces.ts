@@ -17,6 +17,12 @@ commercesRoutes.use('/points-vente*', paidMiddleware);
 const updateSchema = z.object({
   nom: z.string().min(2).max(255).optional(),
   adresse: z.string().max(500).nullable().optional(),
+  rue: z.string().max(255).nullable().optional(),
+  ville: z.string().max(120).nullable().optional(),
+  code_postal: z.string().max(20).nullable().optional(),
+  pays: z.string().max(80).nullable().optional(),
+  latitude: z.number().finite().nullable().optional(),
+  longitude: z.number().finite().nullable().optional(),
   telephone: z.string().max(20).nullable().optional(),
   email: z.string().email().nullable().optional(),
   logo_url: z.string().url().nullable().optional(),
@@ -28,12 +34,24 @@ const updateSchema = z.object({
 const pointVenteCreateSchema = z.object({
   nom: z.string().min(2).max(255),
   adresse: z.string().max(500).nullable().optional(),
+  rue: z.string().max(255).nullable().optional(),
+  ville: z.string().max(120).nullable().optional(),
+  code_postal: z.string().max(20).nullable().optional(),
+  pays: z.string().max(80).nullable().optional(),
+  latitude: z.number().finite().nullable().optional(),
+  longitude: z.number().finite().nullable().optional(),
   rayon_geo: z.number().int().min(100).max(50000).optional(),
 });
 
 const pointVenteUpdateSchema = z.object({
   nom: z.string().min(2).max(255).optional(),
   adresse: z.string().max(500).nullable().optional(),
+  rue: z.string().max(255).nullable().optional(),
+  ville: z.string().max(120).nullable().optional(),
+  code_postal: z.string().max(20).nullable().optional(),
+  pays: z.string().max(80).nullable().optional(),
+  latitude: z.number().finite().nullable().optional(),
+  longitude: z.number().finite().nullable().optional(),
   rayon_geo: z.number().int().min(100).max(50000).optional(),
   principal: z.boolean().optional(),
 });
@@ -86,6 +104,49 @@ function computeGeoReadiness(payload: {
   return { ready, reason };
 }
 
+async function resolveCoordinates(payload: {
+  adresse?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}) {
+  if (
+    typeof payload.latitude === 'number'
+    && Number.isFinite(payload.latitude)
+    && typeof payload.longitude === 'number'
+    && Number.isFinite(payload.longitude)
+  ) {
+    return { latitude: payload.latitude, longitude: payload.longitude };
+  }
+
+  if (payload.adresse) return geocodeAddress(payload.adresse);
+  return null;
+}
+
+function applyAddressDetails(target: Record<string, unknown>, source: {
+  rue?: string | null;
+  ville?: string | null;
+  code_postal?: string | null;
+  pays?: string | null;
+}) {
+  if (source.rue !== undefined) target.rue = source.rue;
+  if (source.ville !== undefined) target.ville = source.ville;
+  if (source.code_postal !== undefined) target.code_postal = source.code_postal;
+  if (source.pays !== undefined) target.pays = source.pays;
+}
+
+function isMissingAddressDetailsError(error: { message?: string } | null | undefined) {
+  return /rue|ville|code_postal|pays|schema cache|does not exist/i.test(error?.message ?? '');
+}
+
+function stripAddressDetails<T extends Record<string, unknown>>(payload: T): T {
+  const cloned = { ...payload };
+  delete cloned.rue;
+  delete cloned.ville;
+  delete cloned.code_postal;
+  delete cloned.pays;
+  return cloned;
+}
+
 /** GET /api/commerces/me — Récupère le commerce de l'utilisateur connecté */
 commercesRoutes.get('/me', async (c) => {
   const userId = c.get('userId') as string;
@@ -105,6 +166,10 @@ commercesRoutes.get('/me', async (c) => {
     const mergedCommerce = {
       ...commerce,
       adresse: pointVente?.adresse ?? commerce.adresse ?? null,
+      rue: pointVente?.rue ?? null,
+      ville: pointVente?.ville ?? null,
+      code_postal: pointVente?.code_postal ?? null,
+      pays: pointVente?.pays ?? null,
       latitude: pointVente?.latitude ?? commerce.latitude ?? null,
       longitude: pointVente?.longitude ?? commerce.longitude ?? null,
       rayon_geo: pointVente?.rayon_geo ?? commerce.rayon_geo ?? 1000,
@@ -154,7 +219,16 @@ commercesRoutes.post('/', async (c) => {
     return c.json({ error: 'Vous avez déjà un commerce enregistré' }, 409);
   }
 
-  const { point_vente_nom: _ignorePointVenteNom, ...commerceInsertPayload } = parsed.data;
+  const {
+    point_vente_nom: _ignorePointVenteNom,
+    rue: _ignoreRue,
+    ville: _ignoreVille,
+    code_postal: _ignoreCodePostal,
+    pays: _ignorePays,
+    latitude: _ignoreLatitude,
+    longitude: _ignoreLongitude,
+    ...commerceInsertPayload
+  } = parsed.data;
 
   const { data, error } = await db
     .from('commerces')
@@ -165,19 +239,28 @@ commercesRoutes.post('/', async (c) => {
   if (error) return c.json({ error: 'Erreur lors de la création' }, 500);
 
   const principalPointNom = `${parsed.data.nom} — Principal`;
-  const coords = parsed.data.adresse ? await geocodeAddress(parsed.data.adresse) : null;
-  await db
+  const coords = await resolveCoordinates(parsed.data);
+  const pointInsertPayload: Record<string, unknown> = {
+    commerce_id: data.id,
+    nom: principalPointNom,
+    adresse: parsed.data.adresse ?? null,
+    rue: parsed.data.rue ?? null,
+    ville: parsed.data.ville ?? null,
+    code_postal: parsed.data.code_postal ?? null,
+    pays: parsed.data.pays ?? null,
+    latitude: coords?.latitude ?? null,
+    longitude: coords?.longitude ?? null,
+    rayon_geo: parsed.data.rayon_geo ?? 1000,
+    principal: true,
+    actif: true,
+  };
+
+  const { error: pointInsertError } = await db
     .from('points_vente')
-    .insert({
-      commerce_id: data.id,
-      nom: principalPointNom,
-      adresse: parsed.data.adresse ?? null,
-      latitude: coords?.latitude ?? null,
-      longitude: coords?.longitude ?? null,
-      rayon_geo: parsed.data.rayon_geo ?? 1000,
-      principal: true,
-      actif: true,
-    });
+    .insert(pointInsertPayload);
+  if (pointInsertError && isMissingAddressDetailsError(pointInsertError)) {
+    await db.from('points_vente').insert(stripAddressDetails(pointInsertPayload));
+  }
 
   return c.json({ data }, 201);
 });
@@ -217,17 +300,20 @@ commercesRoutes.patch('/me', async (c) => {
   if (parsed.data.point_vente_nom !== undefined) pointPayload.nom = parsed.data.point_vente_nom;
   if (parsed.data.adresse !== undefined) pointPayload.adresse = parsed.data.adresse;
   if (parsed.data.rayon_geo !== undefined) pointPayload.rayon_geo = parsed.data.rayon_geo;
+  applyAddressDetails(pointPayload, parsed.data);
 
-  if (parsed.data.adresse) {
-    const coords = await geocodeAddress(parsed.data.adresse);
+  if (parsed.data.latitude !== undefined) pointPayload.latitude = parsed.data.latitude;
+  if (parsed.data.longitude !== undefined) pointPayload.longitude = parsed.data.longitude;
+
+  if (parsed.data.adresse !== undefined || parsed.data.latitude !== undefined || parsed.data.longitude !== undefined) {
+    const coords = await resolveCoordinates(parsed.data);
     if (coords) {
       pointPayload.latitude = coords.latitude;
       pointPayload.longitude = coords.longitude;
-      // Maintien des colonnes legacy au niveau commerce pour compatibilité
       commercePayload.latitude = coords.latitude;
       commercePayload.longitude = coords.longitude;
-      commercePayload.adresse = parsed.data.adresse;
     }
+    if (parsed.data.adresse !== undefined) commercePayload.adresse = parsed.data.adresse;
   }
 
   if (Object.keys(commercePayload).length > 1) {
@@ -239,19 +325,37 @@ commercesRoutes.patch('/me', async (c) => {
   }
 
   if (Object.keys(pointPayload).length > 1) {
-    const { error: pointError } = await db
+    let pointUpdatePayload = pointPayload;
+    let { error: pointError } = await db
       .from('points_vente')
-      .update(pointPayload)
+      .update(pointUpdatePayload)
       .eq('id', pointVente.id)
       .eq('commerce_id', commerce.id);
+    if (pointError && isMissingAddressDetailsError(pointError)) {
+      pointUpdatePayload = stripAddressDetails(pointPayload);
+      const retry = await db
+        .from('points_vente')
+        .update(pointUpdatePayload)
+        .eq('id', pointVente.id)
+        .eq('commerce_id', commerce.id);
+      pointError = retry.error;
+    }
     if (pointError) return c.json({ error: 'Erreur lors de la mise à jour du point de vente' }, 500);
   }
 
-  const { data: updatedPoint } = await db
+  let { data: updatedPoint, error: updatedPointError } = await db
     .from('points_vente')
-    .select('id, commerce_id, nom, adresse, latitude, longitude, rayon_geo, principal, actif, created_at')
+    .select('id, commerce_id, nom, adresse, rue, ville, code_postal, pays, latitude, longitude, rayon_geo, principal, actif, created_at')
     .eq('id', pointVente.id)
     .single();
+  if (updatedPointError && isMissingAddressDetailsError(updatedPointError)) {
+    const retry = await db
+      .from('points_vente')
+      .select('id, commerce_id, nom, adresse, latitude, longitude, rayon_geo, principal, actif, created_at')
+      .eq('id', pointVente.id)
+      .single();
+    updatedPoint = retry.data as typeof updatedPoint;
+  }
 
   const finalPointVenteId = updatedPoint?.id ?? pointVente.id;
   void syncWalletForPointVente(finalPointVenteId)
@@ -269,6 +373,10 @@ commercesRoutes.patch('/me', async (c) => {
       ...commerce,
       ...commercePayload,
       adresse: updatedPoint?.adresse ?? parsed.data.adresse ?? null,
+      rue: updatedPoint?.rue ?? parsed.data.rue ?? null,
+      ville: updatedPoint?.ville ?? parsed.data.ville ?? null,
+      code_postal: updatedPoint?.code_postal ?? parsed.data.code_postal ?? null,
+      pays: updatedPoint?.pays ?? parsed.data.pays ?? null,
       latitude: updatedPoint?.latitude ?? null,
       longitude: updatedPoint?.longitude ?? null,
       rayon_geo: updatedPoint?.rayon_geo ?? parsed.data.rayon_geo ?? 1000,
@@ -346,21 +454,35 @@ commercesRoutes.post('/points-vente', async (c) => {
     }, 403);
   }
 
-  const coords = parsed.data.adresse ? await geocodeAddress(parsed.data.adresse) : null;
-  const { data, error } = await db
+  const coords = await resolveCoordinates(parsed.data);
+  const pointInsertPayload: Record<string, unknown> = {
+    commerce_id: commerce.id,
+    nom: parsed.data.nom,
+    adresse: parsed.data.adresse ?? null,
+    rue: parsed.data.rue ?? null,
+    ville: parsed.data.ville ?? null,
+    code_postal: parsed.data.code_postal ?? null,
+    pays: parsed.data.pays ?? null,
+    latitude: coords?.latitude ?? null,
+    longitude: coords?.longitude ?? null,
+    rayon_geo: parsed.data.rayon_geo ?? 1000,
+    principal: pointsVente.length === 0,
+    actif: true,
+  };
+  let { data, error } = await db
     .from('points_vente')
-    .insert({
-      commerce_id: commerce.id,
-      nom: parsed.data.nom,
-      adresse: parsed.data.adresse ?? null,
-      latitude: coords?.latitude ?? null,
-      longitude: coords?.longitude ?? null,
-      rayon_geo: parsed.data.rayon_geo ?? 1000,
-      principal: pointsVente.length === 0,
-      actif: true,
-    })
+    .insert(pointInsertPayload)
     .select()
     .single();
+  if (error && isMissingAddressDetailsError(error)) {
+    const retry = await db
+      .from('points_vente')
+      .insert(stripAddressDetails(pointInsertPayload))
+      .select()
+      .single();
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error) return c.json({ error: 'Impossible de créer ce point de vente.' }, 500);
   return c.json({
@@ -400,9 +522,12 @@ commercesRoutes.patch('/points-vente/:id', async (c) => {
   if (parsed.data.nom !== undefined) payload.nom = parsed.data.nom;
   if (parsed.data.adresse !== undefined) payload.adresse = parsed.data.adresse;
   if (parsed.data.rayon_geo !== undefined) payload.rayon_geo = parsed.data.rayon_geo;
+  applyAddressDetails(payload, parsed.data);
+  if (parsed.data.latitude !== undefined) payload.latitude = parsed.data.latitude;
+  if (parsed.data.longitude !== undefined) payload.longitude = parsed.data.longitude;
 
-  if (parsed.data.adresse) {
-    const coords = await geocodeAddress(parsed.data.adresse);
+  if (parsed.data.adresse !== undefined || parsed.data.latitude !== undefined || parsed.data.longitude !== undefined) {
+    const coords = await resolveCoordinates(parsed.data);
     if (coords) {
       payload.latitude = coords.latitude;
       payload.longitude = coords.longitude;
@@ -417,13 +542,24 @@ commercesRoutes.patch('/points-vente/:id', async (c) => {
     payload.principal = true;
   }
 
-  const { data, error } = await db
+  let { data, error } = await db
     .from('points_vente')
     .update(payload)
     .eq('id', pointVenteId)
     .eq('commerce_id', commerce.id)
     .select()
     .single();
+  if (error && isMissingAddressDetailsError(error)) {
+    const retry = await db
+      .from('points_vente')
+      .update(stripAddressDetails(payload))
+      .eq('id', pointVenteId)
+      .eq('commerce_id', commerce.id)
+      .select()
+      .single();
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error) return c.json({ error: 'Erreur lors de la mise à jour du point de vente.' }, 500);
   void syncWalletForPointVente(data.id)

@@ -14,25 +14,25 @@ const links = [
 ];
 ---
 
-<nav class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/92 backdrop-blur-2xl shadow-[0_16px_40px_-34px_rgba(15,23,42,0.42)]">
+<nav class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/92 backdrop-blur-2xl shadow-[0_16px_40px_-34px_rgba(15,23,42,0.42)] dark:border-slate-700/70 dark:bg-slate-950/90 dark:shadow-[0_16px_40px_-34px_rgba(0,0,0,0.65)]">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 py-1.5 sm:py-2.5 flex items-center justify-between gap-3">
     <!-- Logo -->
     <a href="/" class="inline-flex items-center shrink-0">
       <img
         src="/logo-premium-cropped.png"
         alt="Fidelopass"
-        class="h-12 w-auto sm:h-[5.25rem] sm:w-[15.5rem] object-contain object-left drop-shadow-[0_18px_30px_rgba(59,130,246,0.16)]"
+        class="h-12 w-auto sm:h-[5.25rem] sm:w-[15.5rem] object-contain object-left drop-shadow-[0_18px_30px_rgba(59,130,246,0.16)] dark:brightness-125 dark:contrast-125"
       />
     </a>
 
     <!-- Desktop links -->
-    <div class="hidden md:flex items-center gap-7 rounded-full border border-slate-200/90 bg-white/95 px-5 py-2.5 text-sm text-slate-500 font-medium shadow-[0_12px_28px_-24px_rgba(15,23,42,0.32)]">
+    <div class="hidden md:flex items-center gap-7 rounded-full border border-slate-200/90 bg-white/95 px-5 py-2.5 text-sm text-slate-500 font-medium shadow-[0_12px_28px_-24px_rgba(15,23,42,0.32)] dark:border-slate-700/70 dark:bg-slate-900/80 dark:text-slate-300">
       {links.map((link) => (
         <a
           href={link.href}
           class:list={[
-            'transition-colors hover:text-slate-900',
-            currentPath === link.href && 'text-slate-900',
+            'transition-colors hover:text-slate-900 dark:hover:text-white',
+            currentPath === link.href && 'text-slate-900 dark:text-white',
           ]}
         >
           {link.label}
@@ -46,7 +46,7 @@ const links = [
         <span data-theme-icon class="theme-toggle-icon">🌙</span>
         <span data-theme-label>Mode nuit</span>
       </button>
-      <a href="/login" class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:text-slate-900 hover:shadow-md">Connexion</a>
+      <a href="/login" class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:text-slate-900 hover:shadow-md dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:text-white">Connexion</a>
       <a href="/register" class="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#2563eb,#4f46e5)] px-4 py-2 text-sm font-semibold text-white shadow-[0_16px_32px_-18px_rgba(37,99,235,0.75)] transition-all hover:-translate-y-0.5 hover:brightness-105">Essai gratuit</a>
     </div>
 
@@ -54,7 +54,7 @@ const links = [
     <button
       id="mobile-menu-btn"
       type="button"
-      class="md:hidden flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors shrink-0 shadow-sm"
+      class="md:hidden flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors shrink-0 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
       aria-label="Menu"
       aria-expanded="false"
     >
@@ -68,7 +68,7 @@ const links = [
   </div>
 
   <!-- Mobile menu panel -->
-  <div id="mobile-menu" class="hidden md:hidden border-t border-slate-200/80 bg-white/98 backdrop-blur-xl">
+  <div id="mobile-menu" class="hidden md:hidden border-t border-slate-200/80 bg-white/98 backdrop-blur-xl dark:border-slate-700/70 dark:bg-slate-950/95">
     <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-1">
       {links.map((link) => (
         <a
@@ -76,19 +76,19 @@ const links = [
           class:list={[
             'rounded-xl px-4 py-3 text-sm font-medium transition-colors',
             currentPath === link.href
-              ? 'bg-sky-50 text-sky-700'
-              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+              ? 'bg-sky-50 text-sky-700 dark:bg-slate-800 dark:text-sky-300'
+              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white',
           ]}
         >
           {link.label}
         </a>
       ))}
-      <div class="mt-3 pt-3 border-t border-slate-100 flex flex-col gap-2">
+      <div class="mt-3 pt-3 border-t border-slate-100 flex flex-col gap-2 dark:border-slate-700/70">
         <button type="button" data-theme-toggle class="theme-toggle-btn w-full justify-center">
           <span data-theme-icon class="theme-toggle-icon">🌙</span>
           <span data-theme-label>Mode nuit</span>
         </button>
-        <a href="/login" class="w-full text-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+        <a href="/login" class="w-full text-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white">
           Connexion
         </a>
         <a href="/register" class="w-full text-center rounded-xl bg-[linear-gradient(135deg,#2563eb,#4f46e5)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_32px_-18px_rgba(37,99,235,0.65)] hover:brightness-105 transition-all">

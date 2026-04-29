@@ -207,10 +207,34 @@ const adminCardAssistanceSchema = z.object({
   couleur_fond_2: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable().optional(),
   gradient_angle: z.number().int().min(0).max(360).optional(),
   pattern_type: z.enum(['none', 'dots', 'waves', 'grid', 'diagonal', 'confetti']).optional(),
-  logo_url: z.string().url().nullable().optional(),
-  strip_url: z.string().url().nullable().optional(),
+  logo_url: z.string().trim().refine((value) => {
+    if (value.startsWith('/')) return true;
+    try {
+      const url = new URL(value);
+      return url.protocol === 'https:' || url.protocol === 'http:';
+    } catch {
+      return false;
+    }
+  }, { message: 'URL média invalide' }).nullable().optional(),
+  strip_url: z.string().trim().refine((value) => {
+    if (value.startsWith('/')) return true;
+    try {
+      const url = new URL(value);
+      return url.protocol === 'https:' || url.protocol === 'http:';
+    } catch {
+      return false;
+    }
+  }, { message: 'URL média invalide' }).nullable().optional(),
   strip_position: z.string().optional(),
-  tampon_icon_url: z.string().url().nullable().optional(),
+  tampon_icon_url: z.string().trim().refine((value) => {
+    if (value.startsWith('/')) return true;
+    try {
+      const url = new URL(value);
+      return url.protocol === 'https:' || url.protocol === 'http:';
+    } catch {
+      return false;
+    }
+  }, { message: 'URL média invalide' }).nullable().optional(),
   tampon_emoji: z.string().max(8).nullable().optional(),
   tampon_icon_scale: z.number().min(0.6).max(1.5).optional(),
   barcode_type: z.enum(['QR', 'PDF417', 'AZTEC', 'CODE128', 'NONE']).optional(),

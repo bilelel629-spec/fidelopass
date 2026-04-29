@@ -169,6 +169,16 @@ const stripPositionSchema = z.string().default('50:50').refine((value) => {
   return Number.isFinite(x) && Number.isFinite(y) && x >= 0 && x <= 100 && y >= 0 && y <= 100;
 }, { message: 'Position de bannière invalide' });
 
+const mediaUrlSchema = z.string().trim().refine((value) => {
+  if (value.startsWith('/')) return true;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}, { message: 'URL média invalide' });
+
 const carteSchema = z.object({
   nom: z.string().min(2).max(255),
   description: z.string().max(500).nullable().optional(),
@@ -182,10 +192,10 @@ const carteSchema = z.object({
   couleur_accent: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default('#e94560'),
   message_geo: z.string().max(255).optional(),
   // Champs étendus (migration 002)
-  logo_url: z.string().url().nullable().optional(),
-  strip_url: z.string().url().nullable().optional(),
+  logo_url: mediaUrlSchema.nullable().optional(),
+  strip_url: mediaUrlSchema.nullable().optional(),
   strip_position: stripPositionSchema,
-  tampon_icon_url: z.string().url().nullable().optional(),
+  tampon_icon_url: mediaUrlSchema.nullable().optional(),
   barcode_type: z.enum(['QR', 'PDF417', 'AZTEC', 'CODE128', 'NONE']).default('QR'),
   label_client: z.string().max(50).default('Client'),
   push_icon_bg_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default('#6366f1'),

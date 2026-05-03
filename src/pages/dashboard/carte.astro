@@ -182,14 +182,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
         <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {[
-            {name:'Restaurant', fond:'#064E3B', texte:'#F8FAFC', accent:'#D4AF37', fond2:'#022C22', pattern:'dots', layout:'top', stamp:'★', type:'tampons', total:'10', reward:'1 plat offert', label:'Client', desc:'10 passages = 1 plat offert', message:'Votre carte fidélité est prête. Présentez-la à chaque passage.', banner:'/banner-templates/template-19.png'},
-            {name:'Pâtisserie', fond:'#4A1030', texte:'#FFF7ED', accent:'#F9A8D4', fond2:'#831843', pattern:'waves', layout:'top', stamp:'✦', type:'tampons', total:'10', reward:'1 pâtisserie offerte', label:'Client', desc:'10 tampons = 1 pâtisserie offerte', message:'Une douceur vous attend bientôt. Présentez votre carte à chaque passage.', banner:'/banner-templates/template-05.png'},
-            {name:'Fleuriste', fond:'#F7F2EC', texte:'#1F2937', accent:'#84CC16', fond2:'#DDECCB', pattern:'dots', layout:'bottom', stamp:'✿', type:'tampons', total:'8', reward:'1 bouquet offert', label:'Client', desc:'Votre programme floral tout en douceur', message:'Votre carte fleurie est prête. Cumulez vos passages et profitez de vos avantages.', banner:'/banner-templates/template-02.png'},
-            {name:'Pizzeria', fond:'#7A0A0A', texte:'#FFE8D8', accent:'#F97316', fond2:'#B91C1C', pattern:'waves', layout:'top', stamp:'◆', type:'tampons', total:'10', reward:'1 pizza offerte', label:'Client', desc:'10 passages = 1 pizza offerte', message:'Votre carte fidélité est prête. Une pizza offerte vous attend bientôt.', banner:'/banner-templates/template-06.png'},
-            {name:'Boucherie', fond:'#111827', texte:'#F8FAFC', accent:'#DC2626', fond2:'#3B0A0A', pattern:'grid', layout:'top', stamp:'●', type:'tampons', total:'10', reward:'-10% sur votre prochain achat', label:'Client', desc:'10 passages = -10% sur votre prochain achat', message:'Votre avantage fidélité est prêt. Présentez votre carte à chaque passage.', banner:'/banner-templates/template-03.png'},
-            {name:'Café', fond:'#3B2416', texte:'#FFF7ED', accent:'#D6A15D', fond2:'#7C4A2D', pattern:'waves', layout:'top', stamp:'✦', type:'tampons', total:'8', reward:'1 café offert', label:'Client', desc:'8 passages = 1 café offert', message:'Votre carte café est prête. Encore quelques passages avant votre boisson offerte.', banner:'/banner-templates/template-05.png'},
-            {name:'Coiffeur / Beauté', fond:'#1F1B2E', texte:'#F8FAFC', accent:'#C4B5FD', fond2:'#6D28D9', pattern:'diagonal', layout:'top', stamp:'✦', type:'tampons', total:'10', reward:'-20% sur une prestation', label:'Client', desc:'10 passages = -20% sur une prestation', message:'Votre carte beauté est prête. Présentez-la lors de votre prochain rendez-vous.', banner:'/banner-templates/template-12.png'},
-            {name:'Sport & coaching', fond:'#022C22', texte:'#ECFDF5', accent:'#22C55E', fond2:'#064E3B', pattern:'diagonal', layout:'background', stamp:'▲', type:'points', total:'10', reward:'100 points = 1 séance offerte', label:'Athlète', desc:'1 point par euro, 100 points = 1 séance offerte', message:'Votre carte est prête. Cumulez vos points à chaque séance.', banner:'/banner-templates/template-18.png'},
+            {name:'Pizzeria', fond:'#590306', texte:'#ffffff', accent:'#fc851d', fond2:'#590306', gradient:'false', pattern:'waves', layout:'top', stamp:'🍕', type:'tampons', total:'10', reward:'1 pizza offerte', label:'Client', desc:'10 passages = 1 pizza offerte', message:'Votre carte fidélité est prête. Une pizza offerte vous attend bientôt.', banner:'/banner-templates/template-01.png'},
+            {name:'Restaurant', fond:'#064e3b', texte:'#ffffff', accent:'#34d399', fond2:'#064e3b', gradient:'false', pattern:'dots', layout:'top', stamp:'🍽️', type:'tampons', total:'10', reward:'1 plat offert', label:'Client', desc:'10 passages = 1 plat offert', message:'Votre carte fidélité est prête. Présentez-la à chaque passage.', banner:'/banner-templates/restaurant.png'},
+            {name:'Patisserie', fond:'#e4e2fd', texte:'#000000', accent:'#bbf2d8', fond2:'#e4e2fd', gradient:'false', pattern:'waves', layout:'top', stamp:'🧁', type:'tampons', total:'10', reward:'1 pâtisserie offerte', label:'Client', desc:'10 tampons = 1 pâtisserie offerte', message:'Une douceur vous attend bientôt. Présentez votre carte à chaque passage.', banner:'/banner-templates/patisserie.png'},
+            {name:'Fleuriste', fond:'#f7f2ec', texte:'#1f2937', accent:'#bc85bf', fond2:'#f7f2ec', gradient:'false', pattern:'dots', layout:'bottom', stamp:'🌸', type:'tampons', total:'8', reward:'1 bouquet offert', label:'Client', desc:'Votre programme floral tout en douceur', message:'Votre carte fleurie est prête. Cumulez vos passages et profitez de vos avantages.', banner:'/banner-templates/template-02.png'},
+            {name:'Boucherie', fond:'#111827', texte:'#fff3d1', accent:'#ffe7bd', fond2:'#111827', gradient:'false', pattern:'grid', layout:'top', stamp:'🥩', type:'tampons', total:'10', reward:'-10% sur votre prochain achat', label:'Client', desc:'10 passages = -10% sur votre prochain achat', message:'Votre avantage fidélité est prêt. Présentez votre carte à chaque passage.', banner:'/banner-templates/template-03.png'},
+            {name:'Café', fond:'#3B2416', texte:'#FFF7ED', accent:'#D6A15D', fond2:'#7C4A2D', gradient:'true', pattern:'waves', layout:'top', stamp:'☕', type:'tampons', total:'8', reward:'1 café offert', label:'Client', desc:'8 passages = 1 café offert', message:'Votre carte café est prête. Encore quelques passages avant votre boisson offerte.', banner:'/banner-templates/template-05.png'},
+            {name:'Coiffeur', fond:'#1d1f1e', texte:'#f8fafc', accent:'#f8fafc', fond2:'#1d1f1e', gradient:'false', pattern:'diagonal', layout:'top', stamp:'✂️', type:'tampons', total:'10', reward:'-20% sur une prestation', label:'Client', desc:'10 passages = -20% sur une prestation', message:'Votre carte beauté est prête. Présentez-la lors de votre prochain rendez-vous.', banner:'/banner-templates/template-17.png'},
+            {name:'Nail salon', fond:'#fff0e5', texte:'#df652a', accent:'#fee1d0', fond2:'#fff0e5', gradient:'false', pattern:'waves', layout:'top', stamp:'💅', type:'tampons', total:'10', reward:'1 soin offert', label:'Client', desc:'10 passages = 1 avantage beauté', message:'Votre carte beauté est prête. Présentez-la lors de votre prochain rendez-vous.', banner:'/banner-templates/nail-art.png'},
+            {name:'Sport', fond:'#045698', texte:'#ffffff', accent:'#dee7e6', fond2:'#045698', gradient:'false', pattern:'diagonal', layout:'background', stamp:'🏆', type:'points', total:'10', reward:'100 points = 1 séance offerte', label:'Athlète', desc:'1 point par euro, 100 points = 1 séance offerte', message:'Votre carte est prête. Cumulez vos points à chaque séance.', banner:'/banner-templates/template-06.png'},
           ].map((preset, index) => (
             <button
               type="button"
@@ -199,6 +200,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               data-texte={preset.texte}
               data-accent={preset.accent}
               data-fond2={preset.fond2}
+              data-gradient={preset.gradient}
               data-pattern={preset.pattern}
               data-layout={preset.layout}
               data-stamp={preset.stamp}
@@ -291,7 +293,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             <div id="tampon-emoji-zone" class="hidden">
               <p class="text-slate-500 text-xs mb-1.5">Sélectionnez un emoji</p>
               <div class="grid grid-cols-6 gap-1">
-                {['☕','🍩','⭐','🎁','❤️','🏆','🍕','🎫','💎','🔥','🎉','✨','🍦','🥐','🛍️','🌟','🎵','🍰','🍽️','✂️','💅','🏋️'].map(e => (
+                {['☕','🍩','⭐','🎁','❤️','🏆','🍕','🍽️','🍴','🧁','🍰','🍦','🥐','🍪','🍫','🥩','🍔','🥗','🥙','🎫','💎','🔥','🎉','✨','🛍️','🌟','🎵','✂️','💅','🌸','🌷','💐','🏋️'].map(e => (
                   <button type="button" class="emoji-stamp-btn w-9 h-9 rounded-lg text-xl hover:bg-white/10 transition-all flex items-center justify-center border-2 border-transparent" data-emoji={e}>{e}</button>
                 ))}
               </div>
@@ -490,26 +492,38 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               </div>
               <details id="banner-templates-fold" class="rounded-xl border border-sky-100 bg-sky-50/50">
                 <summary class="cursor-pointer list-none px-3 py-2.5 text-xs font-semibold text-slate-700 flex items-center justify-between">
-                  <span>Choisir parmi 20 templates de bannière</span>
+                  <span>Choisir parmi les templates de bannière</span>
                   <span class="text-slate-400 text-[0.68rem]">Déplier</span>
                 </summary>
                 <div class="px-3 pb-3">
                   <div class="grid grid-cols-4 sm:grid-cols-5 gap-2">
-                    {Array.from({ length: 20 }, (_, index) => index + 1).map((num) => (
+                    {[
+                      ...Array.from({ length: 20 }, (_, index) => {
+                        const num = index + 1;
+                        return {
+                          url: `/banner-templates/template-${String(num).padStart(2, '0')}.png`,
+                          label: `Template bannière ${num}`,
+                          badge: String(num),
+                        };
+                      }),
+                      { url: '/banner-templates/restaurant.png', label: 'Template bannière Restaurant', badge: 'Resto' },
+                      { url: '/banner-templates/patisserie.png', label: 'Template bannière Patisserie', badge: 'Pât.' },
+                      { url: '/banner-templates/nail-art.png', label: 'Template bannière Nail art', badge: 'Nail' },
+                    ].map((template) => (
                       <button
                         type="button"
                         class="banner-template-btn group relative overflow-hidden rounded-lg border border-slate-200 bg-white transition hover:border-indigo-300 hover:shadow-[0_10px_24px_-16px_rgba(79,70,229,0.65)]"
-                        data-url={`/banner-templates/template-${String(num).padStart(2, '0')}.png`}
-                        aria-label={`Template bannière ${num}`}
+                        data-url={template.url}
+                        aria-label={template.label}
                       >
                         <img
-                          src={`/banner-templates/template-${String(num).padStart(2, '0')}.png`}
-                          alt={`Template bannière ${num}`}
+                          src={template.url}
+                          alt={template.label}
                           class="h-12 w-full object-cover"
                           loading="lazy"
                         />
                         <span class="absolute bottom-1 right-1 rounded-md bg-slate-900/75 px-1.5 py-0.5 text-[0.62rem] font-semibold text-white">
-                          {num}
+                          {template.badge}
                         </span>
                       </button>
                     ))}
@@ -2138,7 +2152,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     setInput('couleur-fond', el.dataset.fond ?? '#0f172a');
     setInput('couleur-texte', el.dataset.texte ?? '#ffffff');
     setInput('couleur-accent', el.dataset.accent ?? '#6366f1');
-    ensureGradient(true);
+    ensureGradient(el.dataset.gradient === 'true');
     setInput('couleur-fond-2', el.dataset.fond2 ?? '#6366f1');
     setInput('gradient-angle', '135');
     document.getElementById('gradient-angle-val')!.textContent='135°';

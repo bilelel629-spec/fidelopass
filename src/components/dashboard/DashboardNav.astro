@@ -8,10 +8,10 @@ const { activeNav = '' } = Astro.props;
 const navItems = DASHBOARD_NAV_ITEMS;
 ---
 
-<aside class="hidden lg:flex w-[18.75rem] shrink-0 h-full min-h-0 flex-col border-r border-slate-200/60 bg-white/88 backdrop-blur-2xl shadow-[0_18px_42px_-30px_rgba(15,23,42,0.28)]">
-  <div class="px-6 py-6 border-b border-slate-200/65">
+<aside class="hidden lg:flex w-[17.5rem] shrink-0 h-full min-h-0 flex-col border-r border-slate-200/60 bg-white/88 backdrop-blur-2xl shadow-[0_18px_42px_-30px_rgba(15,23,42,0.28)]">
+  <div class="px-5 py-5 border-b border-slate-200/65">
     <a href="/dashboard" class="flex flex-col gap-2">
-      <img src="/logo-premium.png" alt="Fidelopass" class="h-16 w-52 object-cover object-center" />
+      <img src="/logo-premium.png" alt="Fidelopass" class="h-14 w-48 object-cover object-center" />
       <span class="text-[0.68rem] font-semibold tracking-[0.23em] uppercase text-sky-700/75">Espace commerçant</span>
     </a>
     <div class="mt-4 rounded-2xl border border-slate-200/60 bg-white/90 px-3 py-2.5 shadow-[0_8px_20px_-20px_rgba(37,99,235,0.45)]">
@@ -32,11 +32,11 @@ const navItems = DASHBOARD_NAV_ITEMS;
     </div>
   </div>
 
-  <nav class="flex-1 min-h-0 overflow-y-auto px-4 py-5 flex flex-col gap-2">
+  <nav class="flex-1 min-h-0 overflow-y-auto px-3 py-4 flex flex-col gap-1.5">
     {navItems.map(({ href, id, label, paths }) => (
       <a
         href={href}
-        class={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-all duration-300
+        class={`group flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm transition-all duration-300
           ${activeNav === id
             ? 'bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500 text-white shadow-[0_18px_34px_-24px_rgba(37,99,235,0.9)] ring-1 ring-white/35'
             : 'text-slate-600 hover:bg-white hover:text-slate-900 hover:shadow-[0_12px_28px_-24px_rgba(15,23,42,0.4)]'
@@ -48,7 +48,7 @@ const navItems = DASHBOARD_NAV_ITEMS;
             : 'border-slate-200 bg-slate-50 text-sky-600 group-hover:border-sky-200 group-hover:bg-sky-50'
           }`}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-[1.125rem] w-[1.125rem]">
             {paths.map((path) => <path d={path}></path>)}
           </svg>
         </span>
@@ -74,17 +74,11 @@ const navItems = DASHBOARD_NAV_ITEMS;
   </div>
 </aside>
 
-<header class="lg:hidden fixed top-0 inset-x-0 z-40 border-b border-slate-200/70 bg-white/92 backdrop-blur-2xl px-4 py-3 flex items-center justify-between shadow-[0_12px_28px_-26px_rgba(15,23,42,0.5)]">
+<header class="lg:hidden fixed top-0 inset-x-0 z-40 border-b border-slate-200/70 bg-white/94 backdrop-blur-2xl px-4 py-2.5 flex items-center justify-between shadow-[0_12px_28px_-26px_rgba(15,23,42,0.5)]">
   <a href="/dashboard" class="flex items-center gap-3 min-w-0">
     <img src="/logo-premium.png" alt="Fidelopass" class="h-10 w-36 object-cover object-center" />
   </a>
   <div class="flex items-center gap-2">
-    <a href="/dashboard/points-vente" class="rounded-full border border-sky-200 bg-white px-2.5 py-1.5 text-[0.62rem] font-semibold text-sky-700 shadow-[0_8px_16px_-14px_rgba(37,99,235,0.45)]">
-      Points de vente
-    </a>
-    <a href="/dashboard/assistant-carte" class="rounded-full border border-violet-200 bg-white px-2.5 py-1.5 text-[0.62rem] font-semibold text-violet-700 shadow-[0_8px_16px_-14px_rgba(79,70,229,0.45)]">
-      Assistant
-    </a>
     <span
       id="dashboard-plan-badge-mobile"
       class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[0.65rem] font-semibold tracking-wide text-slate-500"

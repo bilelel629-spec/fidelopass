@@ -46,6 +46,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   <section id="tab-abonnement" class="account-panel hidden card dashboard-panel p-6">
     <h2 class="mb-5 font-display text-xl font-bold text-slate-900">Abonnement</h2>
+    <div class="mb-5 rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3 text-sm leading-6 text-slate-700">
+      Votre abonnement pilote les limites de points de vente, scanners et automatisations. Pour gérer la carte bancaire ou annuler, utilisez le portail de facturation sécurisé.
+    </div>
     <div class="grid gap-4 lg:grid-cols-2">
       <div class="rounded-2xl border border-sky-100 bg-sky-50/80 p-5">
         <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700/75">Plan actuel</p>
@@ -71,6 +74,20 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   <section id="tab-organisation" class="account-panel hidden card dashboard-panel p-6">
     <h2 class="mb-5 font-display text-xl font-bold text-slate-900">Organisation</h2>
+    <div class="mb-5 grid gap-3 sm:grid-cols-3">
+      <div class="rounded-2xl border border-slate-200 bg-white p-4">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Lieu</p>
+        <p class="mt-2 text-sm font-semibold text-slate-900">Point actif</p>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white p-4">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Équipe</p>
+        <p class="mt-2 text-sm font-semibold text-slate-900">Scanner caisse</p>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white p-4">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Client</p>
+        <p class="mt-2 text-sm font-semibold text-slate-900">QR de partage</p>
+      </div>
+    </div>
     <div class="grid gap-4 lg:grid-cols-2">
       <div class="rounded-2xl border border-slate-200 bg-white p-5">
         <p class="text-sm font-semibold text-slate-900">Point de vente actif</p>

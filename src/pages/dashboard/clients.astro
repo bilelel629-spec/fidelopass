@@ -26,13 +26,39 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   </div>
 
   <!-- Barre de recherche -->
-  <div class="mb-6">
-    <input
-      id="search"
-      type="search"
-      class="input max-w-sm"
-      placeholder="Rechercher un client..."
-    />
+  <div class="mb-6 grid gap-4 xl:grid-cols-[0.78fr_1.22fr]">
+    <div class="card dashboard-panel p-4">
+      <label class="label" for="search">Recherche rapide</label>
+      <input
+        id="search"
+        type="search"
+        class="input"
+        placeholder="Rechercher un client..."
+      />
+      <p class="mt-2 text-xs leading-5 text-slate-500">Cliquez sur une ligne pour ajouter ou retirer des points/tampons.</p>
+    </div>
+    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div class="rounded-3xl border border-sky-100 bg-white p-4 shadow-[0_14px_34px_-30px_rgba(37,99,235,0.45)]">
+        <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-sky-700/70">Base active</p>
+        <p id="segment-total" class="mt-2 font-mono text-2xl font-bold text-slate-900">—</p>
+        <p class="mt-1 text-xs text-slate-500">clients enregistrés</p>
+      </div>
+      <div class="rounded-3xl border border-emerald-100 bg-white p-4 shadow-[0_14px_34px_-30px_rgba(16,185,129,0.35)]">
+        <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-emerald-700/70">À servir</p>
+        <p id="segment-rewards" class="mt-2 font-mono text-2xl font-bold text-slate-900">—</p>
+        <p class="mt-1 text-xs text-slate-500">récompenses dispo</p>
+      </div>
+      <div class="rounded-3xl border border-amber-100 bg-white p-4 shadow-[0_14px_34px_-30px_rgba(245,158,11,0.35)]">
+        <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-amber-700/70">Presque prêt</p>
+        <p id="segment-near-reward" class="mt-2 font-mono text-2xl font-bold text-slate-900">—</p>
+        <p class="mt-1 text-xs text-slate-500">proches d’une récompense</p>
+      </div>
+      <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-[0_14px_34px_-30px_rgba(15,23,42,0.2)]">
+        <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-slate-500">À relancer</p>
+        <p id="segment-inactive" class="mt-2 font-mono text-2xl font-bold text-slate-900">—</p>
+        <p class="mt-1 text-xs text-slate-500">sans visite depuis 30j</p>
+      </div>
+    </div>
   </div>
 
   <!-- Liste clients -->
@@ -107,6 +133,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   let currentClients: Client[] = [];
   let selectedClient: Client | null = null;
   let carteType: 'tampons' | 'points' = 'tampons';
+  let rewardTarget = 10;
 
   function escapeHtml(value: unknown) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -127,6 +154,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (!res.ok) throw new Error();
       const { data } = await res.json();
       currentClients = data ?? [];
+      updateClientSegments();
 
       if (!data?.length) {
         container.innerHTML = '<p class="text-slate-500 text-sm p-6">Aucun client trouvé.</p>';
@@ -188,7 +216,34 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (!res.ok) return;
       const { data } = await res.json();
       if (data?.type) carteType = data.type;
+      rewardTarget = carteType === 'points'
+        ? Number(data?.points_recompense ?? 100)
+        : Number(data?.tampons_total ?? 10);
+      updateClientSegments();
     } catch { /* silencieux */ }
+  }
+
+  function updateClientSegments() {
+    const total = currentClients.length;
+    const rewards = currentClients.filter((client) => Number(client.recompenses_obtenues ?? 0) > 0).length;
+    const inactiveLimit = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const inactive = currentClients.filter((client) => {
+      if (!client.derniere_visite) return total > 0;
+      return new Date(client.derniere_visite).getTime() < inactiveLimit;
+    }).length;
+    const nearReward = currentClients.filter((client) => {
+      const score = carteType === 'points'
+        ? Number(client.points_actuels ?? 0)
+        : Number(client.tampons_actuels ?? 0);
+      if (!rewardTarget || score <= 0) return false;
+      const remaining = rewardTarget - (score % rewardTarget || rewardTarget);
+      return remaining > 0 && remaining <= (carteType === 'points' ? Math.max(10, Math.ceil(rewardTarget * 0.15)) : 2);
+    }).length;
+
+    document.getElementById('segment-total')!.textContent = String(total);
+    document.getElementById('segment-rewards')!.textContent = String(rewards);
+    document.getElementById('segment-near-reward')!.textContent = String(nearReward);
+    document.getElementById('segment-inactive')!.textContent = String(inactive);
   }
 
   // ── Modal ──────────────────────────────────────────────────────────
@@ -268,6 +323,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         if (carteType === 'points') currentClients[idx].points_actuels = data.client.points_actuels;
         else currentClients[idx].tampons_actuels = data.client.tampons_actuels;
         currentClients[idx].recompenses_obtenues = data.client.recompenses_obtenues;
+        updateClientSegments();
       }
 
       const sign = direction === 'add' ? '+' : '−';

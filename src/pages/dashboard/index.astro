@@ -20,19 +20,50 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </button>
   </div>
 
-  <div class="card dashboard-panel mb-6 p-5">
-    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-      <div>
-        <p class="text-[0.64rem] font-semibold uppercase tracking-[0.24em] text-sky-700/70">Actions du jour</p>
-        <p class="mt-1 text-sm text-slate-600">
+  <div class="card dashboard-panel mb-6 overflow-hidden p-0">
+    <div class="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
+      <div class="relative overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 p-6 text-white sm:p-7">
+        <div class="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-sky-400/20 blur-3xl"></div>
+        <div class="pointer-events-none absolute -bottom-24 left-10 h-48 w-48 rounded-full bg-indigo-300/20 blur-3xl"></div>
+        <p class="relative text-[0.64rem] font-semibold uppercase tracking-[0.26em] text-sky-200">Action recommandée</p>
+        <h2 id="next-action-title" class="relative mt-3 font-display text-2xl font-bold leading-tight sm:text-3xl">
+          Scannez une carte en caisse.
+        </h2>
+        <p id="next-action-desc" class="relative mt-3 max-w-xl text-sm leading-6 text-slate-200">
           Point actif:
-          <span id="active-point-name" class="font-semibold text-slate-900">Chargement...</span>
+          <span id="active-point-name" class="font-semibold text-white">Chargement...</span>.
+          Gardez le scanner ouvert pendant le service pour valider les passages rapidement.
         </p>
+        <div class="relative mt-5 flex flex-wrap gap-2">
+          <a href="/app/scan" class="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-bold text-slate-950 shadow-[0_18px_40px_-24px_rgba(255,255,255,0.9)] transition hover:-translate-y-0.5 hover:bg-sky-50">
+            Scanner en caisse
+          </a>
+          <a id="dashboard-client-qr-btn" href="/dashboard/qr-client" class="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/16">
+            Afficher le QR client
+          </a>
+        </div>
       </div>
-      <div class="flex flex-wrap gap-2">
-        <a href="/app/scan" class="btn-primary px-4 py-2.5 text-sm">Scanner en caisse</a>
-        <a id="dashboard-client-qr-btn" href="/dashboard/qr-client" class="btn-secondary px-4 py-2.5 text-sm">Afficher le QR client</a>
-        <a href="/dashboard/notifications" class="btn-secondary px-4 py-2.5 text-sm">Envoyer une notification</a>
+      <div class="grid gap-3 bg-white/70 p-5 sm:grid-cols-2 sm:p-6">
+        <a href="/dashboard/carte" class="rounded-3xl border border-sky-100 bg-white p-4 transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_40px_-28px_rgba(37,99,235,0.45)]">
+          <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-sky-700/70">Créer</p>
+          <p class="mt-2 text-sm font-bold text-slate-900">Personnaliser la carte</p>
+          <p class="mt-1 text-xs leading-5 text-slate-500">Visuel, programme, messages et géolocalisation.</p>
+        </a>
+        <a href="/dashboard/notifications" class="rounded-3xl border border-violet-100 bg-white p-4 transition hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-[0_18px_40px_-28px_rgba(79,70,229,0.45)]">
+          <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-violet-700/70">Relancer</p>
+          <p class="mt-2 text-sm font-bold text-slate-900">Envoyer une notification</p>
+          <p class="mt-1 text-xs leading-5 text-slate-500">Message immédiat ou automatisation client.</p>
+        </a>
+        <a href="/app/install" class="rounded-3xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.28)]">
+          <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Équipe</p>
+          <p class="mt-2 text-sm font-bold text-slate-900">Installer le scanner</p>
+          <p class="mt-1 text-xs leading-5 text-slate-500">À ajouter sur le téléphone de caisse.</p>
+        </a>
+        <a href="/dashboard/points-vente" class="rounded-3xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.28)]">
+          <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Lieu actif</p>
+          <p class="mt-2 text-sm font-bold text-slate-900">Changer de point de vente</p>
+          <p id="points-vente-usage" class="mt-1 text-xs leading-5 text-slate-500">Chargement du quota...</p>
+        </a>
       </div>
     </div>
   </div>
@@ -96,7 +127,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </a>
         <a href="/dashboard/points-vente" class="block rounded-2xl border border-slate-200 bg-white px-4 py-3 transition hover:border-slate-300 hover:bg-slate-50">
           <p class="text-sm font-semibold text-slate-900">3. Gérer vos points de vente</p>
-          <p id="points-vente-usage" class="mt-1 text-xs text-slate-600">Chargement du quota...</p>
+          <p id="points-vente-usage-secondary" class="mt-1 text-xs text-slate-600">Chargement du quota...</p>
         </a>
       </div>
       <div id="admin-shortcut" class="hidden mt-4 rounded-2xl border border-sky-100 bg-sky-50/80 p-4">
@@ -297,10 +328,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const pro = isProPlan(payload?.plan);
 
       activeName.textContent = selected?.nom ?? '—';
-      usage.textContent = `Plan ${plan}: ${stats?.current ?? 0}/${stats?.max ?? 1} point(s) de vente utilisés (${pro ? 'multi-sites activé' : '1 point inclus'}).`;
+      const usageText = `Plan ${plan}: ${stats?.current ?? 0}/${stats?.max ?? 1} point(s) de vente utilisés (${pro ? 'multi-sites activé' : '1 point inclus'}).`;
+      usage.textContent = usageText;
+      const secondaryUsage = document.getElementById('points-vente-usage-secondary');
+      if (secondaryUsage) secondaryUsage.textContent = usageText;
     } catch {
       activeName.textContent = '—';
       usage.textContent = 'Impossible de charger votre contexte point de vente.';
+      const secondaryUsage = document.getElementById('points-vente-usage-secondary');
+      if (secondaryUsage) secondaryUsage.textContent = 'Impossible de charger votre contexte point de vente.';
     }
   }
 

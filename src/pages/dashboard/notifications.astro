@@ -22,6 +22,24 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </div>
   </div>
 
+  <div class="mb-5 grid gap-3 lg:grid-cols-3">
+    <button type="button" data-tab-shortcut="manual" class="notif-shortcut rounded-3xl border border-sky-100 bg-white p-4 text-left shadow-[0_16px_38px_-32px_rgba(37,99,235,0.45)] transition hover:-translate-y-0.5 hover:border-sky-200">
+      <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-sky-700/70">Immédiat</p>
+      <p class="mt-2 text-sm font-bold text-slate-900">Envoyer un message maintenant</p>
+      <p class="mt-1 text-xs leading-5 text-slate-500">Idéal pour une offre du jour ou une relance rapide.</p>
+    </button>
+    <button type="button" data-tab-shortcut="automation" class="notif-shortcut rounded-3xl border border-violet-100 bg-white p-4 text-left shadow-[0_16px_38px_-32px_rgba(79,70,229,0.45)] transition hover:-translate-y-0.5 hover:border-violet-200">
+      <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-violet-700/70">Automatique</p>
+      <p class="mt-2 text-sm font-bold text-slate-900">Programmer les moments clés</p>
+      <p class="mt-1 text-xs leading-5 text-slate-500">Avis Google, anniversaire et prochains scénarios clients.</p>
+    </button>
+    <button type="button" data-tab-shortcut="history" class="notif-shortcut rounded-3xl border border-slate-200 bg-white p-4 text-left shadow-[0_16px_38px_-32px_rgba(15,23,42,0.2)] transition hover:-translate-y-0.5 hover:border-slate-300">
+      <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Suivi</p>
+      <p class="mt-2 text-sm font-bold text-slate-900">Voir ce qui a été envoyé</p>
+      <p class="mt-1 text-xs leading-5 text-slate-500">Historique filtré sur le point de vente actif.</p>
+    </button>
+  </div>
+
   <div class="mb-5 dashboard-tabs">
     <div class="grid gap-2 sm:grid-cols-3">
       <button type="button" data-tab="manual" class="notif-tab dashboard-tab dashboard-tab-active">Envoi manuel</button>
@@ -31,7 +49,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   </div>
 
   <section id="tab-manual" class="notif-panel card dashboard-panel p-6">
-    <h2 class="mb-4 font-display font-bold text-slate-900">Nouveau message client</h2>
+    <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <h2 class="font-display font-bold text-slate-900">Nouveau message client</h2>
+        <p class="mt-1 text-sm text-slate-500">Le nom de la carte apparaît déjà comme expéditeur: écrivez seulement le message utile.</p>
+      </div>
+      <span class="w-fit rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-emerald-700">Wallet-first</span>
+    </div>
     <form id="notif-form" class="flex flex-col gap-4">
       <div>
         <label class="label" for="titre">Titre</label>
@@ -160,6 +184,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   document.querySelectorAll<HTMLElement>('.notif-tab').forEach((btn) => {
     btn.addEventListener('click', () => setNotifTab((btn.dataset.tab as 'manual' | 'automation' | 'history') ?? 'manual'));
+  });
+  document.querySelectorAll<HTMLElement>('.notif-shortcut').forEach((btn) => {
+    btn.addEventListener('click', () => setNotifTab((btn.dataset.tabShortcut as 'manual' | 'automation' | 'history') ?? 'manual'));
   });
 
   const messageInput = document.getElementById('message') as HTMLTextAreaElement;

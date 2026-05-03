@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { authMiddleware } from '../middleware/auth';
 import { createServiceClient } from '../../src/lib/supabase';
 import { getPublicSiteUrl } from '../utils/public-site-url';
+import { getEffectivePlanRaw } from '../utils/effective-plan';
 
 export const checkoutRoutes = new Hono();
 const PRODUCTION_SITE_URL = 'https://www.fidelopass.com';
@@ -153,6 +154,59 @@ function resolvePlanFromSlot(slot: PriceSlot): 'starter' | 'pro' | null {
   if (slot.startsWith('starter_')) return 'starter';
   if (slot.startsWith('pro_')) return 'pro';
   return null;
+}
+
+type CheckoutCommerceRecord = {
+  id: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  plan: string | null;
+  plan_override?: string | null;
+  billing_status?: string | null;
+  trial_ends_at?: string | null;
+};
+
+function normalizePlanForCheckout(plan: string | null | undefined): 'starter' | 'pro' | 'sur-mesure' | 'unknown' {
+  const normalized = String(plan ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, '-');
+
+  if (normalized === 'starter' || normalized.startsWith('starter-') || normalized.includes('starter')) return 'starter';
+  if (normalized === 'pro' || normalized.startsWith('pro-') || normalized.includes('pro')) return 'pro';
+  if (
+    normalized === 'sur-mesure'
+    || normalized.includes('sur-mesure')
+    || normalized.includes('surmesure')
+    || normalized.includes('custom')
+    || normalized.includes('enterprise')
+  ) return 'sur-mesure';
+  return 'unknown';
+}
+
+function isFutureDate(value: string | null | undefined): boolean {
+  if (!value) return false;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) && timestamp > Date.now();
+}
+
+function canPurchaseAccompagnement(commerce: CheckoutCommerceRecord | null | undefined): boolean {
+  if (!commerce) return false;
+
+  const effectivePlan = normalizePlanForCheckout(getEffectivePlanRaw(commerce));
+  const isEligiblePack = effectivePlan === 'starter' || effectivePlan === 'pro';
+  if (!isEligiblePack) return false;
+
+  const billingStatus = String(commerce.billing_status ?? 'unpaid').trim().toLowerCase();
+  const hasBillingAccess = billingStatus === 'active'
+    || billingStatus === 'trialing'
+    || isFutureDate(commerce.trial_ends_at);
+
+  // Un override admin est volontaire: il doit ouvrir les options du plan choisi
+  // même si la facturation Stripe n'a pas encore synchronisé tous les champs.
+  const hasAdminOverride = Boolean(String(commerce.plan_override ?? '').trim());
+
+  return hasBillingAccess || hasAdminOverride;
 }
 
 function isNoSuchPriceError(error: unknown): boolean {
@@ -328,10 +382,6 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   const isPlanCheckout = selectedPlan !== null;
   const isAccompagnementOnly = selectedSlot === 'accompagnement';
 
-  if (isAccompagnementOnly) {
-    return c.json({ error: "L'option Accompagnement Setup est disponible uniquement en complément d'un pack Starter ou Pro." }, 400);
-  }
-
   if (mode !== expectedMode) {
     return c.json({
       error: expectedMode === 'payment'
@@ -342,6 +392,20 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
 
   if (includeAccompagnement && !isPlanCheckout) {
     return c.json({ error: "L'option Accompagnement Setup ne peut être ajoutée qu'à un abonnement Starter ou Pro." }, 400);
+  }
+
+  const db = createServiceClient();
+
+  const { data: existingCommerce } = await db
+    .from('commerces')
+    .select('id, stripe_customer_id, stripe_subscription_id, plan, plan_override, billing_status, trial_ends_at')
+    .eq('user_id', userId)
+    .single();
+
+  if (isAccompagnementOnly && !canPurchaseAccompagnement(existingCommerce as CheckoutCommerceRecord | null)) {
+    return c.json({
+      error: "L'option Accompagnement Setup est disponible uniquement en complément d'un pack Starter ou Pro actif.",
+    }, 400);
   }
 
   const stripe = getStripe();
@@ -385,17 +449,10 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
     });
   }
 
-  const db = createServiceClient();
   const { data: { user } } = await db.auth.admin.getUserById(userId);
   const email = user?.email ?? undefined;
 
-  const { data: existingCommerce } = await db
-    .from('commerces')
-    .select('id, stripe_customer_id')
-    .eq('user_id', userId)
-    .single();
-
-  let commerce = existingCommerce;
+  let commerce = existingCommerce as CheckoutCommerceRecord | null;
   if (!commerce) {
     const fallbackName = (email?.split('@')[0] ?? 'Mon commerce').trim() || 'Mon commerce';
     const { data: createdCommerce, error: createCommerceError } = await db
@@ -406,12 +463,12 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
         onboarding_completed: false,
         billing_status: 'unpaid',
       })
-      .select('id, stripe_customer_id')
+      .select('id, stripe_customer_id, stripe_subscription_id, plan, plan_override, billing_status, trial_ends_at')
       .single();
     if (createCommerceError || !createdCommerce) {
       return c.json({ error: "Impossible d'initialiser le commerce avant le paiement." }, 500);
     }
-    commerce = createdCommerce;
+    commerce = createdCommerce as CheckoutCommerceRecord;
   }
 
   const PUBLIC_SITE_URL = resolvePublicSiteUrlFromRequest(
@@ -419,9 +476,13 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   );
   const successUrl = isPlanCheckout
     ? `${PUBLIC_SITE_URL}/onboarding?paid=1`
+    : isAccompagnementOnly
+      ? `${PUBLIC_SITE_URL}/dashboard/assistant-carte?checkout=success`
     : `${PUBLIC_SITE_URL}/dashboard/parametres?tab=plans&checkout=success`;
   const cancelUrl = isPlanCheckout
     ? `${PUBLIC_SITE_URL}/abonnement/choix?cancelled=1`
+    : isAccompagnementOnly
+      ? `${PUBLIC_SITE_URL}/dashboard/assistant-carte?checkout=cancelled`
     : `${PUBLIC_SITE_URL}/dashboard/parametres?tab=plans&checkout=cancelled`;
   console.info('[checkout] redirect urls', {
     publicSiteUrl: PUBLIC_SITE_URL,

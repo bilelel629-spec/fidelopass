@@ -21,26 +21,40 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   </div>
 
   <div class="card dashboard-panel mb-6 overflow-hidden p-0">
-    <div class="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
-      <div class="relative overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 p-6 text-white sm:p-7">
+    <div class="grid gap-0 lg:grid-cols-[1.08fr_0.92fr]">
+      <div id="priority-panel" class="relative overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 p-6 text-white sm:p-7">
         <div class="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-sky-400/20 blur-3xl"></div>
         <div class="pointer-events-none absolute -bottom-24 left-10 h-48 w-48 rounded-full bg-indigo-300/20 blur-3xl"></div>
-        <p class="relative text-[0.64rem] font-semibold uppercase tracking-[0.26em] text-sky-200">Action recommandée</p>
+        <p id="next-action-kicker" class="relative text-[0.64rem] font-semibold uppercase tracking-[0.26em] text-sky-200">Action prioritaire</p>
         <h2 id="next-action-title" class="relative mt-3 font-display text-2xl font-bold leading-tight sm:text-3xl">
-          Scannez une carte en caisse.
+          Préparez votre programme fidélité.
         </h2>
         <p id="next-action-desc" class="relative mt-3 max-w-xl text-sm leading-6 text-slate-200">
           Point actif:
           <span id="active-point-name" class="font-semibold text-white">Chargement...</span>.
-          Gardez le scanner ouvert pendant le service pour valider les passages rapidement.
+          On charge vos indicateurs pour vous proposer la meilleure prochaine action.
         </p>
         <div class="relative mt-5 flex flex-wrap gap-2">
-          <a href="/app/scan" class="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-bold text-slate-950 shadow-[0_18px_40px_-24px_rgba(255,255,255,0.9)] transition hover:-translate-y-0.5 hover:bg-sky-50">
-            Scanner en caisse
+          <a id="next-action-primary" href="/dashboard/carte" class="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-bold text-slate-950 shadow-[0_18px_40px_-24px_rgba(255,255,255,0.9)] transition hover:-translate-y-0.5 hover:bg-sky-50">
+            Créer ma carte
           </a>
-          <a id="dashboard-client-qr-btn" href="/dashboard/qr-client" class="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/16">
-            Afficher le QR client
+          <a id="next-action-secondary" href="/app/install" class="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/16">
+            Installer le scanner
           </a>
+        </div>
+        <div class="relative mt-6 grid gap-2 sm:grid-cols-3">
+          <div id="setup-card-state" class="rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 backdrop-blur">
+            <p class="text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-sky-100/80">Carte</p>
+            <p class="mt-1 text-sm font-bold text-white">Vérification...</p>
+          </div>
+          <div id="setup-scanner-state" class="rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 backdrop-blur">
+            <p class="text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-sky-100/80">Scanner</p>
+            <p class="mt-1 text-sm font-bold text-white">À installer</p>
+          </div>
+          <div id="setup-share-state" class="rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 backdrop-blur">
+            <p class="text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-sky-100/80">Clients</p>
+            <p class="mt-1 text-sm font-bold text-white">0 ajouté</p>
+          </div>
         </div>
       </div>
       <div class="grid gap-3 bg-white/70 p-5 sm:grid-cols-2 sm:p-6">
@@ -68,21 +82,26 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </div>
   </div>
 
-  <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
     <div class="stat-card">
-      <span class="text-slate-500 text-xs uppercase tracking-wide">Clients totaux</span>
+      <span class="text-slate-500 text-xs uppercase tracking-wide">Clients actifs</span>
       <span id="stat-clients" class="font-mono text-3xl font-bold text-slate-900">—</span>
-      <span class="text-slate-500 text-xs">Base active</span>
+      <span class="text-slate-500 text-xs">Cartes créées par vos clients</span>
     </div>
     <div class="stat-card">
-      <span class="text-slate-500 text-xs uppercase tracking-wide">Scans aujourd’hui</span>
+      <span class="text-slate-500 text-xs uppercase tracking-wide">Passages aujourd’hui</span>
       <span id="stat-scans" class="font-mono text-3xl font-bold text-slate-900">—</span>
-      <span class="text-slate-500 text-xs">Transactions</span>
+      <span class="text-slate-500 text-xs">Scans et validations en caisse</span>
     </div>
     <div class="stat-card">
       <span class="text-slate-500 text-xs uppercase tracking-wide">Récompenses offertes</span>
       <span id="stat-recompenses" class="font-mono text-3xl font-bold text-slate-900">—</span>
-      <span class="text-slate-500 text-xs">Total</span>
+      <span class="text-slate-500 text-xs">Avantages débloqués par vos clients</span>
+    </div>
+    <div class="stat-card">
+      <span class="text-slate-500 text-xs uppercase tracking-wide">Retour client 30j</span>
+      <span id="stat-retention-card" class="font-mono text-3xl font-bold text-slate-900">—</span>
+      <span id="stat-retention-detail" class="text-slate-500 text-xs">Clients revenus au moins 2 fois</span>
     </div>
   </div>
 
@@ -91,14 +110,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <div class="mb-5 flex items-center justify-between">
         <div>
           <h2 class="font-display font-bold text-slate-900">Activité des 7 derniers jours</h2>
-          <p class="mt-0.5 text-xs text-slate-500">Scans et récompenses</p>
+          <p id="chart-insight" class="mt-0.5 text-xs text-slate-500">Scans et récompenses</p>
         </div>
         <div class="flex items-center gap-4 text-xs text-slate-500">
           <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-3 rounded-sm bg-sky-500"></span>Scans</span>
           <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-3 rounded-sm bg-emerald-400"></span>Récompenses</span>
         </div>
       </div>
-      <div id="chart-container" class="flex h-[12.5rem] min-h-[12.5rem] items-end gap-2 overflow-hidden">
+      <div id="chart-container" class="flex h-[10.5rem] min-h-[10.5rem] items-end gap-2 overflow-hidden">
         <p class="m-auto text-sm text-slate-400">Chargement...</p>
       </div>
     </div>
@@ -152,6 +171,24 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   import { isProPlan, planLabel } from '../../lib/dashboard-config';
   const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
 
+  type DashboardState = {
+    totalClients: number;
+    scansAujourdhui: number;
+    totalRecompenses: number;
+    hasCard: boolean | null;
+    cardName: string | null;
+    activePointName: string | null;
+  };
+
+  const dashboardState: DashboardState = {
+    totalClients: 0,
+    scansAujourdhui: 0,
+    totalRecompenses: 0,
+    hasCard: null,
+    cardName: null,
+    activePointName: null,
+  };
+
   function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
     return Promise.race([
       promise,
@@ -195,14 +232,100 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     return authFetch(path, init);
   }
 
+  function setSetupState(id: string, title: string, tone: 'success' | 'warning' | 'neutral' = 'neutral') {
+    const node = document.getElementById(id);
+    if (!node) return;
+    const value = node.querySelector('p:last-child');
+    if (!value) return;
+    value.textContent = title;
+    node.className = tone === 'success'
+      ? 'rounded-2xl border border-emerald-300/30 bg-emerald-400/15 px-3 py-2.5 backdrop-blur'
+      : tone === 'warning'
+        ? 'rounded-2xl border border-amber-300/30 bg-amber-400/15 px-3 py-2.5 backdrop-blur'
+        : 'rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 backdrop-blur';
+  }
+
+  function updatePriorityAction() {
+    const kicker = document.getElementById('next-action-kicker');
+    const title = document.getElementById('next-action-title');
+    const desc = document.getElementById('next-action-desc');
+    const primary = document.getElementById('next-action-primary') as HTMLAnchorElement | null;
+    const secondary = document.getElementById('next-action-secondary') as HTMLAnchorElement | null;
+    if (!kicker || !title || !desc || !primary || !secondary) return;
+
+    const pointLabel = dashboardState.activePointName ?? 'votre point de vente actif';
+    setSetupState('setup-card-state', dashboardState.hasCard ? 'Configurée' : dashboardState.hasCard === false ? 'À créer' : 'Vérification...', dashboardState.hasCard ? 'success' : 'warning');
+    setSetupState('setup-scanner-state', dashboardState.scansAujourdhui > 0 ? 'Utilisé aujourd’hui' : 'Prêt à installer', dashboardState.scansAujourdhui > 0 ? 'success' : 'neutral');
+    setSetupState('setup-share-state', `${dashboardState.totalClients} client${dashboardState.totalClients > 1 ? 's' : ''}`, dashboardState.totalClients > 0 ? 'success' : 'warning');
+
+    if (dashboardState.hasCard === false) {
+      kicker.textContent = 'À faire maintenant';
+      title.textContent = 'Créez votre carte fidélité.';
+      desc.innerHTML = `Point actif: <span class="font-semibold text-white">${escapeHtml(pointLabel)}</span>. Commencez par une carte simple, vous pourrez l’améliorer ensuite.`;
+      primary.href = '/dashboard/carte?setup=1';
+      primary.textContent = 'Créer ma carte';
+      secondary.href = '/dashboard/assistant-carte';
+      secondary.textContent = 'Demander l’assistance';
+      return;
+    }
+
+    if (dashboardState.hasCard && dashboardState.totalClients === 0) {
+      kicker.textContent = 'Prochaine conversion';
+      title.textContent = 'Faites installer la carte à vos premiers clients.';
+      desc.innerHTML = `Votre carte <span class="font-semibold text-white">${escapeHtml(dashboardState.cardName ?? 'fidélité')}</span> est prête. Affichez le QR client en caisse pour démarrer la collecte.`;
+      primary.href = '/dashboard/qr-client';
+      primary.textContent = 'Afficher le QR client';
+      secondary.href = '/app/install';
+      secondary.textContent = 'Installer le scanner';
+      return;
+    }
+
+    if (dashboardState.scansAujourdhui === 0) {
+      kicker.textContent = 'Action du jour';
+      title.textContent = 'Gardez le scanner prêt en caisse.';
+      desc.innerHTML = `Point actif: <span class="font-semibold text-white">${escapeHtml(pointLabel)}</span>. Scannez chaque passage pour faire progresser vos clients vers leur récompense.`;
+      primary.href = '/app/scan';
+      primary.textContent = 'Scanner en caisse';
+      secondary.href = '/dashboard/notifications';
+      secondary.textContent = 'Relancer mes clients';
+      return;
+    }
+
+    kicker.textContent = 'Activité en cours';
+    title.textContent = `${dashboardState.scansAujourdhui} passage${dashboardState.scansAujourdhui > 1 ? 's' : ''} validé${dashboardState.scansAujourdhui > 1 ? 's' : ''} aujourd’hui.`;
+    desc.innerHTML = `Continuez à scanner pendant le service. Vos récompenses offertes: <span class="font-semibold text-white">${dashboardState.totalRecompenses}</span>.`;
+    primary.href = '/app/scan';
+    primary.textContent = 'Continuer à scanner';
+    secondary.href = '/dashboard/transactions';
+    secondary.textContent = 'Voir l’historique';
+  }
+
+  async function loadCardContext() {
+    try {
+      const res = await pointAwareFetch('/api/cartes');
+      if (!res.ok) throw new Error();
+      const payload = await res.json().catch(() => null);
+      dashboardState.hasCard = Boolean(payload?.data?.id);
+      dashboardState.cardName = payload?.data?.nom ?? null;
+      updatePriorityAction();
+    } catch {
+      dashboardState.hasCard = null;
+      updatePriorityAction();
+    }
+  }
+
   async function loadStats() {
     try {
       const res = await pointAwareFetch('/api/dashboard/stats');
       if (!res.ok) return;
       const data = await res.json();
-      document.getElementById('stat-clients')!.textContent = String(data.totalClients ?? 0);
-      document.getElementById('stat-scans')!.textContent = String(data.scansAujourdhui ?? 0);
-      document.getElementById('stat-recompenses')!.textContent = String(data.totalRecompenses ?? 0);
+      dashboardState.totalClients = Number(data.totalClients ?? 0);
+      dashboardState.scansAujourdhui = Number(data.scansAujourdhui ?? 0);
+      dashboardState.totalRecompenses = Number(data.totalRecompenses ?? 0);
+      document.getElementById('stat-clients')!.textContent = String(dashboardState.totalClients);
+      document.getElementById('stat-scans')!.textContent = String(dashboardState.scansAujourdhui);
+      document.getElementById('stat-recompenses')!.textContent = String(dashboardState.totalRecompenses);
+      updatePriorityAction();
     } catch {
       // best effort
     }
@@ -217,7 +340,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       if (!data?.length) {
         container.innerHTML = '<p class="text-slate-400 text-sm m-auto">Aucune activité cette semaine.</p>';
+        const insight = document.getElementById('chart-insight');
+        if (insight) insight.textContent = 'Aucun passage enregistré cette semaine.';
         return;
+      }
+
+      const totalScans = data.reduce((acc: number, d: { scans: number }) => acc + Number(d.scans ?? 0), 0);
+      const totalRewards = data.reduce((acc: number, d: { recompenses: number }) => acc + Number(d.recompenses ?? 0), 0);
+      const insight = document.getElementById('chart-insight');
+      if (insight) {
+        insight.textContent = totalScans > 0
+          ? `${totalScans} passage${totalScans > 1 ? 's' : ''} sur 7 jours · ${totalRewards} récompense${totalRewards > 1 ? 's' : ''}`
+          : 'Aucun scan cette semaine: pensez à garder le scanner ouvert en caisse.';
       }
 
       const maxVal = Math.max(...data.map((d: { scans: number; recompenses: number }) => d.scans + d.recompenses), 1);
@@ -255,11 +389,19 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         return;
       }
 
+      const transactionLabel = (type: string, value: number) => {
+        if (type === 'ajout_tampon') return `Un client a reçu ${value} tampon${value > 1 ? 's' : ''}`;
+        if (type === 'ajout_points') return `Un client a reçu ${value} point${value > 1 ? 's' : ''}`;
+        if (type === 'recompense') return `Une récompense a été attribuée`;
+        if (type === 'reset') return `Une carte client a été remise à zéro`;
+        return type.replace('_', ' ');
+      };
+
       container.innerHTML = data.map((t: { type: string; valeur: number; created_at: string }) => `
         <div class="flex items-center justify-between border-b border-slate-200 py-3 last:border-0">
           <div class="flex items-center gap-3">
             <span class="w-2 h-2 rounded-full ${t.type === 'ajout_tampon' ? 'bg-indigo-400' : t.type === 'ajout_points' ? 'bg-cyan-400' : 'bg-emerald-400'}"></span>
-            <span class="text-slate-700 text-sm capitalize">${escapeHtml(t.type.replace('_', ' '))}</span>
+            <span class="text-slate-700 text-sm">${escapeHtml(transactionLabel(t.type, t.valeur))}</span>
           </div>
           <div class="flex items-center gap-4">
             <span class="font-mono text-sm text-slate-900">+${t.valeur}</span>
@@ -285,6 +427,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const weekly = Array.isArray(payload?.data) ? payload.data : [];
 
       rate.textContent = `${summary?.rate_30d ?? 0}%`;
+      const retentionCard = document.getElementById('stat-retention-card');
+      const retentionDetail = document.getElementById('stat-retention-detail');
+      if (retentionCard) retentionCard.textContent = `${summary?.rate_30d ?? 0}%`;
+      if (retentionDetail) {
+        retentionDetail.textContent = `${summary?.repeat_30d ?? 0}/${summary?.active_30d ?? 0} client${Number(summary?.active_30d ?? 0) > 1 ? 's' : ''} revenu${Number(summary?.repeat_30d ?? 0) > 1 ? 's' : ''}`;
+      }
 
       if (!weekly.length) {
         chart.innerHTML = '<p class="m-auto text-xs text-slate-400">Pas assez de données.</p>';
@@ -327,12 +475,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const plan = planLabel(payload?.plan);
       const pro = isProPlan(payload?.plan);
 
-      activeName.textContent = selected?.nom ?? '—';
+      dashboardState.activePointName = selected?.nom ?? '—';
+      activeName.textContent = dashboardState.activePointName;
       const usageText = `Plan ${plan}: ${stats?.current ?? 0}/${stats?.max ?? 1} point(s) de vente utilisés (${pro ? 'multi-sites activé' : '1 point inclus'}).`;
       usage.textContent = usageText;
       const secondaryUsage = document.getElementById('points-vente-usage-secondary');
       if (secondaryUsage) secondaryUsage.textContent = usageText;
+      updatePriorityAction();
     } catch {
+      dashboardState.activePointName = '—';
       activeName.textContent = '—';
       usage.textContent = 'Impossible de charger votre contexte point de vente.';
       const secondaryUsage = document.getElementById('points-vente-usage-secondary');
@@ -363,6 +514,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     icon.style.animation = 'spin 0.8s linear infinite';
     await Promise.all([
       loadStats(),
+      loadCardContext(),
       loadChart(),
       loadRecentTransactions(),
       loadRetention(),
@@ -374,7 +526,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   document.getElementById('refresh-btn')!.addEventListener('click', refreshAll);
   window.addEventListener('fidelopass:point-vente-ready', () => {
-    void Promise.all([loadStats(), loadChart(), loadRecentTransactions(), loadRetention(), loadPointVenteContext()]);
+    void Promise.all([loadStats(), loadCardContext(), loadChart(), loadRecentTransactions(), loadRetention(), loadPointVenteContext()]);
   });
 
   const style = document.createElement('style');
@@ -382,6 +534,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   document.head.appendChild(style);
 
   loadStats();
+  loadCardContext();
   loadChart();
   loadRecentTransactions();
   loadRetention();

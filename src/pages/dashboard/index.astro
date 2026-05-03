@@ -134,19 +134,35 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
       </div>
 
-      <p class="text-[0.64rem] font-semibold uppercase tracking-[0.24em] text-sky-700/70">Parcours rapide</p>
+      <p class="text-[0.64rem] font-semibold uppercase tracking-[0.24em] text-sky-700/70">Mise en route</p>
       <div class="mt-3 space-y-3">
-        <a href="/dashboard/carte" class="block rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3 transition hover:border-sky-200 hover:bg-sky-100/70">
-          <p class="text-sm font-semibold text-slate-900">1. Personnaliser la carte</p>
-          <p class="mt-1 text-xs text-slate-600">Template, visuels, programme et géolocalisation.</p>
+        <a id="check-card" data-step="1" href="/dashboard/carte" class="dashboard-checklist-item">
+          <span class="dashboard-checklist-icon">1</span>
+          <span>
+            <span class="block text-sm font-semibold text-slate-900">Personnaliser la carte</span>
+            <span class="block mt-1 text-xs text-slate-600">Template, visuels, programme et géolocalisation.</span>
+          </span>
         </a>
-        <a href="/app/install" class="block rounded-2xl border border-slate-200 bg-white px-4 py-3 transition hover:border-slate-300 hover:bg-slate-50">
-          <p class="text-sm font-semibold text-slate-900">2. Installer le scanner équipe</p>
-          <p class="mt-1 text-xs text-slate-600">QRCode d’installation pour la caisse.</p>
+        <a id="check-share" data-step="2" href="/dashboard/qr-client" class="dashboard-checklist-item">
+          <span class="dashboard-checklist-icon">2</span>
+          <span>
+            <span class="block text-sm font-semibold text-slate-900">Partager le QR client</span>
+            <span class="block mt-1 text-xs text-slate-600">Affichez la carte en caisse pour obtenir les premiers clients.</span>
+          </span>
         </a>
-        <a href="/dashboard/points-vente" class="block rounded-2xl border border-slate-200 bg-white px-4 py-3 transition hover:border-slate-300 hover:bg-slate-50">
-          <p class="text-sm font-semibold text-slate-900">3. Gérer vos points de vente</p>
-          <p id="points-vente-usage-secondary" class="mt-1 text-xs text-slate-600">Chargement du quota...</p>
+        <a id="check-scanner" data-step="3" href="/app/install" class="dashboard-checklist-item">
+          <span class="dashboard-checklist-icon">3</span>
+          <span>
+            <span class="block text-sm font-semibold text-slate-900">Installer le scanner équipe</span>
+            <span class="block mt-1 text-xs text-slate-600">QRCode d’installation pour la caisse.</span>
+          </span>
+        </a>
+        <a id="check-points" data-step="4" href="/dashboard/points-vente" class="dashboard-checklist-item">
+          <span class="dashboard-checklist-icon">4</span>
+          <span>
+            <span class="block text-sm font-semibold text-slate-900">Gérer vos points de vente</span>
+            <span id="points-vente-usage-secondary" class="block mt-1 text-xs text-slate-600">Chargement du quota...</span>
+          </span>
         </a>
       </div>
       <div id="admin-shortcut" class="hidden mt-4 rounded-2xl border border-sky-100 bg-sky-50/80 p-4">
@@ -242,7 +258,22 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       ? 'rounded-2xl border border-emerald-300/30 bg-emerald-400/15 px-3 py-2.5 backdrop-blur'
       : tone === 'warning'
         ? 'rounded-2xl border border-amber-300/30 bg-amber-400/15 px-3 py-2.5 backdrop-blur'
-        : 'rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 backdrop-blur';
+      : 'rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 backdrop-blur';
+  }
+
+  function setChecklistState(id: string, done: boolean) {
+    const item = document.getElementById(id);
+    const icon = item?.querySelector('.dashboard-checklist-icon');
+    if (!item || !icon) return;
+    item.classList.toggle('is-done', done);
+    icon.textContent = done ? '✓' : (item.dataset.step ?? icon.textContent ?? '•');
+  }
+
+  function updateChecklist() {
+    setChecklistState('check-card', Boolean(dashboardState.hasCard));
+    setChecklistState('check-share', dashboardState.totalClients > 0);
+    setChecklistState('check-scanner', dashboardState.scansAujourdhui > 0);
+    setChecklistState('check-points', Boolean(dashboardState.activePointName));
   }
 
   function updatePriorityAction() {
@@ -257,6 +288,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     setSetupState('setup-card-state', dashboardState.hasCard ? 'Configurée' : dashboardState.hasCard === false ? 'À créer' : 'Vérification...', dashboardState.hasCard ? 'success' : 'warning');
     setSetupState('setup-scanner-state', dashboardState.scansAujourdhui > 0 ? 'Utilisé aujourd’hui' : 'Prêt à installer', dashboardState.scansAujourdhui > 0 ? 'success' : 'neutral');
     setSetupState('setup-share-state', `${dashboardState.totalClients} client${dashboardState.totalClients > 1 ? 's' : ''}`, dashboardState.totalClients > 0 ? 'success' : 'warning');
+    updateChecklist();
 
     if (dashboardState.hasCard === false) {
       kicker.textContent = 'À faire maintenant';
@@ -385,26 +417,58 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const container = document.getElementById('recent-transactions')!;
 
       if (!data?.length) {
-        container.innerHTML = '<p class="text-slate-500 text-sm">Aucune transaction pour le moment.</p>';
+        container.innerHTML = `
+          <div class="rounded-3xl border border-dashed border-slate-200 bg-slate-50/70 p-5 text-sm text-slate-600">
+            Aucune transaction pour le moment. Dès que le scanner sera utilisé, les passages clients apparaîtront ici.
+          </div>
+        `;
         return;
       }
 
-      const transactionLabel = (type: string, value: number) => {
-        if (type === 'ajout_tampon') return `Un client a reçu ${value} tampon${value > 1 ? 's' : ''}`;
-        if (type === 'ajout_points') return `Un client a reçu ${value} point${value > 1 ? 's' : ''}`;
-        if (type === 'recompense') return `Une récompense a été attribuée`;
-        if (type === 'reset') return `Une carte client a été remise à zéro`;
-        return type.replace('_', ' ');
+      type RecentTransaction = {
+        type: string;
+        valeur: number;
+        created_at: string;
+        clients?: { nom?: string | null; telephone?: string | null } | null;
       };
 
-      container.innerHTML = data.map((t: { type: string; valeur: number; created_at: string }) => `
-        <div class="flex items-center justify-between border-b border-slate-200 py-3 last:border-0">
+      const clientLabel = (transaction: RecentTransaction) => (
+        transaction.clients?.nom?.trim()
+        || transaction.clients?.telephone?.trim()
+        || 'Un client'
+      );
+      const transactionLabel = (transaction: RecentTransaction) => {
+        const type = transaction.type;
+        const value = Number(transaction.valeur ?? 0);
+        const label = clientLabel(transaction);
+        if (type === 'ajout_tampon') return `${label} a reçu ${value} tampon${value > 1 ? 's' : ''}`;
+        if (type === 'ajout_points') return `${label} a reçu ${value} point${value > 1 ? 's' : ''}`;
+        if (type === 'recompense') return `Récompense attribuée à ${label}`;
+        if (type === 'reset') return `Carte de ${label} remise à zéro`;
+        return type.replace('_', ' ');
+      };
+      const transactionBadge = (transaction: RecentTransaction) => {
+        const value = Number(transaction.valeur ?? 0);
+        if (transaction.type === 'ajout_tampon' || transaction.type === 'ajout_points') return `+${value}`;
+        if (transaction.type === 'recompense') return 'Offerte';
+        if (transaction.type === 'reset') return 'Reset';
+        return String(value);
+      };
+      const transactionTone = (type: string) => {
+        if (type === 'ajout_tampon') return 'bg-indigo-400';
+        if (type === 'ajout_points') return 'bg-cyan-400';
+        if (type === 'recompense') return 'bg-emerald-400';
+        return 'bg-slate-400';
+      };
+
+      container.innerHTML = data.map((t: RecentTransaction) => `
+        <div class="flex flex-col gap-2 rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-[0_12px_30px_-28px_rgba(15,23,42,0.35)] sm:flex-row sm:items-center sm:justify-between">
           <div class="flex items-center gap-3">
-            <span class="w-2 h-2 rounded-full ${t.type === 'ajout_tampon' ? 'bg-indigo-400' : t.type === 'ajout_points' ? 'bg-cyan-400' : 'bg-emerald-400'}"></span>
-            <span class="text-slate-700 text-sm">${escapeHtml(transactionLabel(t.type, t.valeur))}</span>
+            <span class="h-2.5 w-2.5 shrink-0 rounded-full ${transactionTone(t.type)}"></span>
+            <span class="text-sm font-medium text-slate-700">${escapeHtml(transactionLabel(t))}</span>
           </div>
           <div class="flex items-center gap-4">
-            <span class="font-mono text-sm text-slate-900">+${t.valeur}</span>
+            <span class="rounded-full bg-slate-100 px-2.5 py-1 font-mono text-xs font-bold text-slate-900">${escapeHtml(transactionBadge(t))}</span>
             <span class="text-slate-500 text-xs">${new Date(t.created_at).toLocaleDateString('fr-FR')}</span>
           </div>
         </div>

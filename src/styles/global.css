@@ -216,6 +216,50 @@
     line-height: 1.55;
   }
 
+  .dashboard-checklist-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    border-radius: 1rem;
+    border: 1px solid rgb(226 232 240 / 0.95);
+    background: rgb(255 255 255 / 0.92);
+    padding: 0.85rem 1rem;
+    transition: all 0.25s ease;
+  }
+
+  .dashboard-checklist-item:hover {
+    transform: translateY(-1px);
+    border-color: rgb(186 230 253 / 0.9);
+    background: rgb(248 250 252 / 0.96);
+    box-shadow: 0 16px 34px -28px rgb(37 99 235 / 0.35);
+  }
+
+  .dashboard-checklist-item.is-done {
+    border-color: rgb(167 243 208 / 0.95);
+    background: linear-gradient(180deg, rgb(236 253 245 / 0.9) 0%, rgb(240 253 250 / 0.78) 100%);
+  }
+
+  .dashboard-checklist-icon {
+    display: inline-flex;
+    width: 1.65rem;
+    height: 1.65rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #eff6ff, #e0f2fe);
+    color: #2563eb;
+    font-size: 0.72rem;
+    font-weight: 800;
+    box-shadow: inset 0 0 0 1px rgb(147 197 253 / 0.5);
+  }
+
+  .dashboard-checklist-item.is-done .dashboard-checklist-icon {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    color: #047857;
+    box-shadow: inset 0 0 0 1px rgb(16 185 129 / 0.22);
+  }
+
   .ghost-button {
     display: inline-flex;
     align-items: center;

@@ -36,17 +36,29 @@ transactionsRoutes.get('/', async (c) => {
 
   if (!commerce || !pointVente) return c.json({ data: [] });
 
-  const { data, error } = await db
+  let queryResult = await db
     .from('transactions')
-    .select('*')
+    .select('*, clients(nom, telephone)')
     .eq('commerce_id', commerce.id)
     .eq('point_vente_id', pointVente.id)
     .order('created_at', { ascending: false })
     .limit(limit);
 
-  if (error) return c.json({ error: 'Erreur lors de la récupération' }, 500);
+  // Some older schemas do not expose the client relationship in PostgREST yet.
+  // Keep the dashboard usable instead of failing the whole activity feed.
+  if (queryResult.error) {
+    queryResult = await db
+      .from('transactions')
+      .select('*')
+      .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+  }
 
-  return c.json({ data });
+  if (queryResult.error) return c.json({ error: 'Erreur lors de la récupération' }, 500);
+
+  return c.json({ data: queryResult.data });
 });
 
 /** POST /api/transactions — Ajoute points ou tampons (via scanner) */

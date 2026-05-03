@@ -56,13 +56,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <h2 class="font-display font-bold text-slate-900">Avis Google automatique (+1h)</h2>
           <p class="mt-1 text-sm text-slate-500">Push envoyé 60 minutes après l’installation de la carte.</p>
         </div>
-        <span class="rounded-full border border-amber-200 bg-amber-100 px-2 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-700">Pro uniquement</span>
+        <span class="rounded-full border border-amber-200 bg-amber-100 px-2 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-700">Pro · inclus pendant l’essai</span>
       </div>
       <div class="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
         Plan actuel: <span id="review-auto-plan-value" class="font-semibold text-slate-900">Chargement...</span>
       </div>
       <div id="review-auto-locked" class="mb-4 hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-        Cette fonctionnalité est réservée au plan Pro.
+        Cette fonctionnalité est incluse pendant l’essai gratuit, puis réservée au plan Pro.
       </div>
       <div id="review-auto-error" class="mb-3 hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
       <div id="review-auto-success" class="mb-3 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
@@ -176,6 +176,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   let summaryHistory = 0;
   let reviewAutoEnabled = false;
   let reviewAutoIsPro = false;
+  let reviewAutoTrialActive = false;
   let birthdayEnabled = false;
   let birthdayIsPro = false;
   const SETTINGS_FETCH_RETRIES = 3;
@@ -241,7 +242,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       reviewAutoPlanValue.textContent = 'Sur mesure';
       return;
     }
-    reviewAutoPlanValue.textContent = isProPlan(normalized) ? 'Pro' : 'Starter';
+    const baseLabel = isProPlan(normalized) ? 'Pro' : 'Starter';
+    reviewAutoPlanValue.textContent = reviewAutoTrialActive && !isProPlan(normalized)
+      ? `${baseLabel} (essai gratuit)`
+      : baseLabel;
   }
 
   function setReviewToggle(enabled: boolean) {
@@ -420,6 +424,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         if (!isCurrentBootstrap(token)) return;
         if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage.');
 
+        reviewAutoTrialActive = Boolean(payload?.data?.trial_active);
         reviewAutoIsPro = Boolean(payload?.data?.is_pro) || isProPlan(payload?.data?.plan ?? payload?.data?.raw_plan);
         setReviewPlanLabel(payload?.data?.plan ?? payload?.data?.raw_plan ?? cachedPlan);
         setReviewToggle(Boolean(payload?.data?.enabled));

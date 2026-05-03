@@ -141,6 +141,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             <div>
               <label class="label" for="verification-code">Code de vérification</label>
               <input id="verification-code" type="text" class="input text-center text-lg tracking-[0.3em] font-mono" placeholder="12345678" inputmode="numeric" autocomplete="one-time-code" maxlength="8" required />
+              <p class="mt-2 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-xs leading-relaxed text-sky-800">
+                Le code est composé de chiffres. Si l’email arrive dans les indésirables, déplacez-le dans votre boîte principale avant de copier le code.
+              </p>
             </div>
             <div id="verify-error-msg" class="hidden text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3"></div>
             <div id="verify-success-msg" class="hidden text-emerald-700 text-sm bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3"></div>

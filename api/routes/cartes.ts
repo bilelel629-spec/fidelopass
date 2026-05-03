@@ -573,6 +573,11 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
     return c.json({ error: result.error.message }, 500);
   }
 
+  const savedPointVenteId = (result.data as { point_vente_id?: string | null } | null)?.point_vente_id ?? pointVente.id;
+  void syncWalletForPointVente(savedPointVenteId).catch((err) => {
+    console.error('[cartes POST wallet-sync]', err);
+  });
+
   return c.json({ data: result.data }, 201);
 });
 

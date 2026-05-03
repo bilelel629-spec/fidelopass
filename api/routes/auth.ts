@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { deleteCookie, setCookie } from 'hono/cookie';
+import { sendRegistrationEmail } from '../services/registration-email';
 
 export const authRoutes = new Hono();
 
@@ -111,6 +112,10 @@ async function handleRegisterRequest(body: unknown) {
       };
     }
 
+    void sendRegistrationEmail({ toEmail: email }).catch((mailError) => {
+      console.error('[auth registration email]', mailError);
+    });
+
     return {
       status: 200,
       payload: {
@@ -179,7 +184,11 @@ authRoutes.post('/register', async (c) => {
 });
 
 authRoutes.post('/logout', async (c) => {
-  deleteCookie(c, 'fp_session', { path: '/' });
+  deleteCookie(c, 'fp_session', {
+    path: '/',
+    sameSite: 'Lax',
+    secure: c.req.url.startsWith('https://'),
+  });
   await supabase.auth.signOut();
   return c.json({ ok: true });
 });

@@ -196,6 +196,9 @@ notificationsRoutes.get('/review-reminder-settings', async (c) => {
     const effectivePlan = getEffectivePlanRaw(commerce);
     const planLimits = getPlanLimits(effectivePlan);
     const normalizedPlan = normalizePlan(effectivePlan);
+    const billing = c.get('billing') as { trial_active?: boolean; billing_status?: string | null } | undefined;
+    const trialActive = Boolean(billing?.trial_active || billing?.billing_status === 'trialing');
+    const canUseReviewAuto = Boolean(planLimits.avisGoogle) || trialActive;
 
     return c.json({
       data: {
@@ -203,7 +206,9 @@ notificationsRoutes.get('/review-reminder-settings', async (c) => {
         plan: normalizedPlan,
         raw_plan: commerce.plan ?? 'starter',
         plan_override: commerce.plan_override ?? null,
-        is_pro: Boolean(planLimits.avisGoogle),
+        is_pro: canUseReviewAuto,
+        plan_is_pro: Boolean(planLimits.avisGoogle),
+        trial_active: trialActive,
         delay_minutes: 60,
       },
     });
@@ -229,8 +234,10 @@ notificationsRoutes.patch('/review-reminder-settings', async (c) => {
     if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
 
     const planLimits = getPlanLimits(getEffectivePlanRaw(commerce));
-    if (!planLimits.avisGoogle) {
-      return c.json({ error: 'Cette automatisation est réservée au plan Pro.' }, 403);
+    const billing = c.get('billing') as { trial_active?: boolean; billing_status?: string | null } | undefined;
+    const trialActive = Boolean(billing?.trial_active || billing?.billing_status === 'trialing');
+    if (!planLimits.avisGoogle && !trialActive) {
+      return c.json({ error: 'Cette automatisation est réservée au plan Pro après la période d’essai.' }, 403);
     }
 
     const writeResult = await persistReviewAutoEnabled(db, commerce.id, parsed.data.enabled);

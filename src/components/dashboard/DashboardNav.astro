@@ -124,6 +124,7 @@ const navItems = DASHBOARD_NAV_ITEMS;
   import { withTimeout } from '../../lib/utils/with-timeout';
   import { createClient } from '@supabase/supabase-js';
 
+  const API_URL = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
   const supabase = createClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
@@ -252,9 +253,31 @@ const navItems = DASHBOARD_NAV_ITEMS;
     setSessionCookie(session.access_token);
   }
 
-  document.getElementById('logout-btn')?.addEventListener('click', async () => {
+  function clearBrowserAuthState() {
     clearSessionCookie();
-    await supabase.auth.signOut();
-    window.location.href = '/login';
+    for (const storage of [window.localStorage, window.sessionStorage]) {
+      try {
+        Object.keys(storage).forEach((key) => {
+          if (
+            key.startsWith('sb-')
+            || key.includes('supabase')
+            || key.startsWith('fidelopass.pending-registration')
+            || key === ACTIVE_POINT_VENTE_STORAGE_KEY
+          ) {
+            storage.removeItem(key);
+          }
+        });
+      } catch {
+        // best effort
+      }
+    }
+  }
+
+  document.getElementById('logout-btn')?.addEventListener('click', async () => {
+    clearBrowserAuthState();
+    await fetch(`${API_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => undefined);
+    await supabase.auth.signOut({ scope: 'global' }).catch(() => undefined);
+    clearSessionCookie();
+    window.location.replace('/login?logout=1');
   });
 </script>

@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 import { withTimeout } from './utils/with-timeout';
 
 const API_URL = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
-const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
+const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 2500);
 export const ACTIVE_POINT_VENTE_STORAGE_KEY = 'fidelopass_active_point_vente_id';
 export const POINT_VENTE_HEADER_NAME = 'X-Point-Vente-Id';
 

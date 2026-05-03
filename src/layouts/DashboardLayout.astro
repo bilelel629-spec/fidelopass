@@ -180,25 +180,55 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
   }
 
   async function initDashboardGuard() {
-    const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
-    const withTimeout = (promise: Promise<unknown>, timeoutMs: number) => Promise.race([
+    const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 2500);
+    const timeoutSymbol = Symbol('session-timeout');
+    const withSoftTimeout = <T,>(promise: Promise<T>, timeoutMs: number) => Promise.race([
       promise,
-      new Promise((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
+      new Promise<typeof timeoutSymbol>((resolve) => window.setTimeout(() => resolve(timeoutSymbol), timeoutMs)),
     ]);
 
-    const sessionResult = await withTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null) as {
-      data?: { session?: SessionLike | null };
-    } | null;
-    const session = sessionResult?.data?.session ?? null;
-    if (!session) {
-      clearSessionCookie();
-      window.location.replace('/login');
+    async function resolveSession(): Promise<{ state: 'authenticated'; session: SessionLike } | { state: 'missing' } | { state: 'unknown' }> {
+      const sessionResult = await withSoftTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null) as
+        | typeof timeoutSymbol
+        | { data?: { session?: SessionLike | null } }
+        | null;
+
+      if (sessionResult === timeoutSymbol) return { state: 'unknown' };
+      const session = sessionResult?.data?.session ?? null;
+      if (session?.access_token) return { state: 'authenticated', session };
+
+      const refreshResult = await withSoftTimeout(supabase.auth.refreshSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null) as
+        | typeof timeoutSymbol
+        | { data?: { session?: SessionLike | null } }
+        | null;
+
+      if (refreshResult === timeoutSymbol) return { state: 'unknown' };
+      const refreshedSession = refreshResult?.data?.session ?? null;
+      if (refreshedSession?.access_token) return { state: 'authenticated', session: refreshedSession };
+
+      return { state: 'missing' };
+    }
+
+    const resolved = await resolveSession();
+
+    if (resolved.state === 'authenticated') {
+      setSessionCookie(resolved.session.access_token);
+      maybeShowTour(resolved.session);
       return;
     }
 
-    setSessionCookie(session.access_token);
+    if (resolved.state === 'unknown') {
+      // Le middleware serveur protège déjà les routes dashboard via le cookie fp_session.
+      // Si Supabase JS est simplement lent, ne pas envoyer l'utilisateur sur /login puis le reconnecter aussitôt.
+      window.setTimeout(async () => {
+        const retry = await resolveSession();
+        if (retry.state === 'authenticated') setSessionCookie(retry.session.access_token);
+      }, 1200);
+      return;
+    }
 
-    maybeShowTour(session as SessionLike);
+    clearSessionCookie();
+    window.location.replace('/login');
   }
 
   initDashboardGuard();

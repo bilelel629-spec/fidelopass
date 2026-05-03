@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 import { clearSessionCookie, setSessionCookie } from './session-cookie';
 import { withTimeout } from './utils/with-timeout';
 
-const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
+const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 2500);
 
 export async function getSession() {
   const sessionResult = await withTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);

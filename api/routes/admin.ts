@@ -142,23 +142,35 @@ adminRoutes.patch('/commerces/:id/plan', async (c) => {
   const body = await c.req.json().catch(() => null);
   const adminUser = c.get('user');
   const adminUserId = c.get('userId') as string;
+
+  function normalizePlanOverride(value: unknown): 'starter' | 'pro' | 'sur-mesure' | 'auto' | null {
+    if (value === null || value === undefined || value === '') return null;
+    const normalized = String(value).trim().toLowerCase().replaceAll('_', '-');
+    if (normalized === 'auto') return 'auto';
+    if (normalized === 'starter') return 'starter';
+    if (normalized === 'pro') return 'pro';
+    if (
+      normalized === 'sur-mesure'
+      || normalized === 'sur mesure'
+      || normalized === 'surmesure'
+      || normalized === 'custom'
+      || normalized === 'enterprise'
+    ) return 'sur-mesure';
+    return null;
+  }
+
   const parsed = z.object({
-    plan_override: z.union([
-      z.literal('starter'),
-      z.literal('pro'),
-      z.literal('sur-mesure'),
-      z.literal('auto'),
-      z.null(),
-    ]),
+    plan_override: z.unknown().transform(normalizePlanOverride),
   }).safeParse(body);
 
-  if (!parsed.success) {
+  if (!parsed.success || parsed.data.plan_override === null && body?.plan_override !== null && body?.plan_override !== undefined && body?.plan_override !== '') {
     return c.json({ error: 'plan_override invalide (auto, starter, pro, sur-mesure ou null).' }, 400);
   }
 
   const nextOverride = parsed.data.plan_override === 'auto' ? null : parsed.data.plan_override;
   const db = createServiceClient();
-  const { data, error } = await db
+
+  const updateResult = await db
     .from('commerces')
     .update({
       plan_override: nextOverride,
@@ -168,7 +180,57 @@ adminRoutes.patch('/commerces/:id/plan', async (c) => {
     .select('id, plan, plan_override')
     .single();
 
-  if (error) return c.json({ error: 'Erreur lors de la mise à jour du plan.' }, 500);
+  let data = updateResult.data;
+  let usedFallback = false;
+
+  if (updateResult.error) {
+    const message = updateResult.error.message ?? '';
+    const missingPlanOverrideColumn = updateResult.error.code === '42703'
+      || /plan_override/i.test(message)
+      || /schema cache/i.test(message);
+
+    if (!missingPlanOverrideColumn) {
+      console.error('[admin] plan override update failed:', updateResult.error);
+      return c.json({ error: `Erreur lors de la mise à jour du plan: ${message}` }, 500);
+    }
+
+    // Fallback de sécurité pour les bases où la migration plan_override n'est pas encore appliquée.
+    // L'admin peut tout de même forcer un plan en mettant à jour la colonne plan existante.
+    usedFallback = true;
+    if (nextOverride) {
+      const fallbackResult = await db
+        .from('commerces')
+        .update({
+          plan: nextOverride,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', commerceId)
+        .select('id, plan')
+        .single();
+
+      if (fallbackResult.error) {
+        console.error('[admin] plan fallback update failed:', fallbackResult.error);
+        return c.json({ error: `Erreur lors de la mise à jour du plan: ${fallbackResult.error.message}` }, 500);
+      }
+
+      data = { ...fallbackResult.data, plan_override: null };
+    } else {
+      const fallbackResult = await db
+        .from('commerces')
+        .select('id, plan')
+        .eq('id', commerceId)
+        .single();
+
+      if (fallbackResult.error) {
+        console.error('[admin] plan fallback read failed:', fallbackResult.error);
+        return c.json({ error: `Erreur lors de la lecture du plan: ${fallbackResult.error.message}` }, 500);
+      }
+
+      data = { ...fallbackResult.data, plan_override: null };
+    }
+  }
+
+  if (!data) return c.json({ error: 'Commerce introuvable.' }, 404);
 
   await appendAdminAuditLog({
     adminUserId,
@@ -179,7 +241,7 @@ adminRoutes.patch('/commerces/:id/plan', async (c) => {
     payload: {
       plan_override: nextOverride,
       effective_plan: getEffectivePlanRaw(data),
-      source: nextOverride ? 'admin_override' : 'billing_auto',
+      source: usedFallback ? 'plan_fallback' : nextOverride ? 'admin_override' : 'billing_auto',
     },
   });
 
@@ -187,7 +249,10 @@ adminRoutes.patch('/commerces/:id/plan', async (c) => {
     data: {
       ...data,
       effective_plan: getEffectivePlanRaw(data),
-      source: data.plan_override ? 'admin_override' : 'billing_auto',
+      source: usedFallback ? 'plan_fallback' : data.plan_override ? 'admin_override' : 'billing_auto',
+      warning: usedFallback
+        ? 'La migration plan_override est absente: le plan de base a été mis à jour directement.'
+        : null,
     },
   });
 });

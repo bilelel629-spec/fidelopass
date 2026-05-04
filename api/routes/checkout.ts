@@ -7,6 +7,7 @@ import { authMiddleware } from '../middleware/auth';
 import { createServiceClient } from '../../src/lib/supabase';
 import { getPublicSiteUrl } from '../utils/public-site-url';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
+import { getBillingStatusForUser } from '../services/billing';
 
 export const checkoutRoutes = new Hono();
 const PRODUCTION_SITE_URL = 'https://www.fidelopass.com';
@@ -200,13 +201,23 @@ function canPurchaseAccompagnement(commerce: CheckoutCommerceRecord | null | und
   const billingStatus = String(commerce.billing_status ?? 'unpaid').trim().toLowerCase();
   const hasBillingAccess = billingStatus === 'active'
     || billingStatus === 'trialing'
+    || billingStatus === 'paid'
     || isFutureDate(commerce.trial_ends_at);
 
   // Un override admin est volontaire: il doit ouvrir les options du plan choisi
   // même si la facturation Stripe n'a pas encore synchronisé tous les champs.
   const hasAdminOverride = Boolean(String(commerce.plan_override ?? '').trim());
 
-  return hasBillingAccess || hasAdminOverride;
+  const hasStripeSubscription = Boolean(commerce.stripe_subscription_id)
+    && !['unpaid', 'canceled', 'cancelled'].includes(billingStatus);
+
+  return hasBillingAccess || hasAdminOverride || hasStripeSubscription;
+}
+
+function canPurchaseAccompagnementFromBilling(payload: Awaited<ReturnType<typeof getBillingStatusForUser>> | null | undefined): boolean {
+  if (!payload?.has_access) return false;
+  const plan = normalizePlanForCheckout(payload.plan);
+  return plan === 'starter' || plan === 'pro';
 }
 
 function isNoSuchPriceError(error: unknown): boolean {
@@ -402,7 +413,15 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
     .eq('user_id', userId)
     .single();
 
-  if (isAccompagnementOnly && !canPurchaseAccompagnement(existingCommerce as CheckoutCommerceRecord | null)) {
+  const billingAccess = isAccompagnementOnly
+    ? await getBillingStatusForUser(userId).catch(() => null)
+    : null;
+
+  if (
+    isAccompagnementOnly
+    && !canPurchaseAccompagnement(existingCommerce as CheckoutCommerceRecord | null)
+    && !canPurchaseAccompagnementFromBilling(billingAccess)
+  ) {
     return c.json({
       error: "L'option Accompagnement Setup est disponible uniquement en complément d'un pack Starter ou Pro actif.",
     }, 400);
@@ -516,8 +535,11 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
       onboarding_addon: includeAccompagnement ? 'true' : 'false',
       billing_commitment: resolveCommitmentLabelFromSlot(selectedSlot),
     },
-    ...(email ? { customer_email: email } : {}),
-    ...(commerce.stripe_customer_id ? { customer: commerce.stripe_customer_id } : {}),
+    ...(commerce.stripe_customer_id
+      ? { customer: commerce.stripe_customer_id }
+      : email
+        ? { customer_email: email }
+        : {}),
   };
 
   if (mode === 'subscription') {

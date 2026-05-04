@@ -120,6 +120,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <div id="chart-container" class="flex h-[10.5rem] min-h-[10.5rem] items-end gap-2 overflow-hidden">
         <p class="m-auto text-sm text-slate-400">Chargement...</p>
       </div>
+      <div id="dashboard-tip" class="mt-5 rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3 text-sm leading-6 text-slate-600">
+        On prépare un conseil utile selon votre activité du jour.
+      </div>
     </div>
 
     <div class="card dashboard-panel self-start h-fit min-h-0 p-6">
@@ -276,6 +279,28 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     setChecklistState('check-points', Boolean(dashboardState.activePointName));
   }
 
+  function updateDashboardTip() {
+    const tip = document.getElementById('dashboard-tip');
+    if (!tip) return;
+    if (dashboardState.hasCard === false) {
+      tip.textContent = 'Conseil: commencez avec un modèle rapide, puis ajustez seulement le logo, la récompense et les couleurs. La carte peut être améliorée après publication.';
+      return;
+    }
+    if (dashboardState.hasCard && dashboardState.totalClients === 0) {
+      tip.textContent = 'Conseil: affichez le QR client près de la caisse et demandez au premier client de l’ajouter avant paiement. C’est le meilleur moment pour lancer la boucle fidélité.';
+      return;
+    }
+    if (dashboardState.totalClients > 0 && dashboardState.scansAujourdhui === 0) {
+      tip.textContent = 'Conseil: gardez le scanner ouvert sur le téléphone de caisse. Chaque passage non scanné est une occasion de fidélisation perdue.';
+      return;
+    }
+    if (dashboardState.scansAujourdhui > 0) {
+      tip.textContent = 'Conseil: bonne dynamique aujourd’hui. Si l’activité ralentit, envoyez une notification courte avec une offre simple à comprendre.';
+      return;
+    }
+    tip.textContent = 'Conseil: suivez ici vos passages, récompenses et retours clients pour savoir quoi faire en priorité.';
+  }
+
   function updatePriorityAction() {
     const kicker = document.getElementById('next-action-kicker');
     const title = document.getElementById('next-action-title');
@@ -289,6 +314,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     setSetupState('setup-scanner-state', dashboardState.scansAujourdhui > 0 ? 'Utilisé aujourd’hui' : 'Prêt à installer', dashboardState.scansAujourdhui > 0 ? 'success' : 'neutral');
     setSetupState('setup-share-state', `${dashboardState.totalClients} client${dashboardState.totalClients > 1 ? 's' : ''}`, dashboardState.totalClients > 0 ? 'success' : 'warning');
     updateChecklist();
+    updateDashboardTip();
 
     if (dashboardState.hasCard === false) {
       kicker.textContent = 'À faire maintenant';
@@ -460,6 +486,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         if (type === 'recompense') return 'bg-emerald-400';
         return 'bg-slate-400';
       };
+      const relativeDate = (date: string) => {
+        const createdAt = new Date(date).getTime();
+        const diffMinutes = Math.max(0, Math.round((Date.now() - createdAt) / 60000));
+        if (diffMinutes < 1) return 'À l’instant';
+        if (diffMinutes < 60) return `Il y a ${diffMinutes} min`;
+        const diffHours = Math.round(diffMinutes / 60);
+        if (diffHours < 24) return `Il y a ${diffHours} h`;
+        return new Date(date).toLocaleDateString('fr-FR');
+      };
 
       container.innerHTML = data.map((t: RecentTransaction) => `
         <div class="flex flex-col gap-2 rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-[0_12px_30px_-28px_rgba(15,23,42,0.35)] sm:flex-row sm:items-center sm:justify-between">
@@ -469,7 +504,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           </div>
           <div class="flex items-center gap-4">
             <span class="rounded-full bg-slate-100 px-2.5 py-1 font-mono text-xs font-bold text-slate-900">${escapeHtml(transactionBadge(t))}</span>
-            <span class="text-slate-500 text-xs">${new Date(t.created_at).toLocaleDateString('fr-FR')}</span>
+            <span class="text-slate-500 text-xs">${escapeHtml(relativeDate(t.created_at))}</span>
           </div>
         </div>
       `).join('');

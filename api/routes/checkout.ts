@@ -168,14 +168,15 @@ type CheckoutCommerceRecord = {
 };
 
 const CHECKOUT_COMMERCE_SELECT = 'id, stripe_customer_id, stripe_subscription_id, plan, plan_override, billing_status, trial_ends_at';
+const CHECKOUT_COMMERCE_SELECT_FALLBACK = 'id, stripe_customer_id, stripe_subscription_id, plan, billing_status, trial_ends_at';
 
 async function findCheckoutCommerceForUser(
   db: ReturnType<typeof createServiceClient>,
   userId: string,
 ): Promise<CheckoutCommerceRecord | null> {
-  const buildQuery = () => db
+  const buildQuery = (select = CHECKOUT_COMMERCE_SELECT) => db
     .from('commerces')
-    .select(CHECKOUT_COMMERCE_SELECT)
+    .select(select)
     .eq('user_id', userId);
 
   let result = await buildQuery()
@@ -187,12 +188,46 @@ async function findCheckoutCommerceForUser(
     result = await buildQuery().limit(1);
   }
 
+  if (result.error && /plan_override|schema cache|does not exist/i.test(result.error.message ?? '')) {
+    console.warn('[checkout] commerce lookup fallback without plan_override:', result.error.message);
+    result = await buildQuery(CHECKOUT_COMMERCE_SELECT_FALLBACK).limit(1);
+  }
+
   if (result.error) {
     console.error('[checkout] commerce lookup failed:', result.error.message);
     return null;
   }
 
-  return ((result.data ?? [])[0] ?? null) as CheckoutCommerceRecord | null;
+  return (((result.data as unknown[] | null) ?? [])[0] ?? null) as CheckoutCommerceRecord | null;
+}
+
+async function findCheckoutCommerceById(
+  db: ReturnType<typeof createServiceClient>,
+  commerceId: string | null | undefined,
+): Promise<CheckoutCommerceRecord | null> {
+  if (!commerceId) return null;
+
+  let result = await db
+    .from('commerces')
+    .select(CHECKOUT_COMMERCE_SELECT)
+    .eq('id', commerceId)
+    .maybeSingle();
+
+  if (result.error && /plan_override|schema cache|does not exist/i.test(result.error.message ?? '')) {
+    console.warn('[checkout] commerce by id fallback without plan_override:', result.error.message);
+    result = await db
+      .from('commerces')
+      .select(CHECKOUT_COMMERCE_SELECT_FALLBACK)
+      .eq('id', commerceId)
+      .maybeSingle();
+  }
+
+  if (result.error) {
+    console.error('[checkout] commerce by id lookup failed:', result.error.message);
+    return null;
+  }
+
+  return (result.data ?? null) as CheckoutCommerceRecord | null;
 }
 
 function normalizePlanForCheckout(plan: string | null | undefined): 'starter' | 'pro' | 'sur-mesure' | 'unknown' {
@@ -435,11 +470,15 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
 
   const db = createServiceClient();
 
-  const existingCommerce = await findCheckoutCommerceForUser(db, userId);
+  let existingCommerce = await findCheckoutCommerceForUser(db, userId);
 
   const billingAccess = isAccompagnementOnly
     ? await getBillingStatusForUser(userId).catch(() => null)
     : null;
+
+  if (!existingCommerce && billingAccess?.commerce_id) {
+    existingCommerce = await findCheckoutCommerceById(db, billingAccess.commerce_id);
+  }
 
   if (
     isAccompagnementOnly

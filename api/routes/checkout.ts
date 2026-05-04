@@ -167,6 +167,34 @@ type CheckoutCommerceRecord = {
   trial_ends_at?: string | null;
 };
 
+const CHECKOUT_COMMERCE_SELECT = 'id, stripe_customer_id, stripe_subscription_id, plan, plan_override, billing_status, trial_ends_at';
+
+async function findCheckoutCommerceForUser(
+  db: ReturnType<typeof createServiceClient>,
+  userId: string,
+): Promise<CheckoutCommerceRecord | null> {
+  const buildQuery = () => db
+    .from('commerces')
+    .select(CHECKOUT_COMMERCE_SELECT)
+    .eq('user_id', userId);
+
+  let result = await buildQuery()
+    .order('created_at', { ascending: true })
+    .limit(1);
+
+  if (result.error) {
+    console.warn('[checkout] commerce lookup with order failed:', result.error.message);
+    result = await buildQuery().limit(1);
+  }
+
+  if (result.error) {
+    console.error('[checkout] commerce lookup failed:', result.error.message);
+    return null;
+  }
+
+  return ((result.data ?? [])[0] ?? null) as CheckoutCommerceRecord | null;
+}
+
 function normalizePlanForCheckout(plan: string | null | undefined): 'starter' | 'pro' | 'sur-mesure' | 'unknown' {
   const normalized = String(plan ?? '')
     .trim()
@@ -407,11 +435,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
 
   const db = createServiceClient();
 
-  const { data: existingCommerce } = await db
-    .from('commerces')
-    .select('id, stripe_customer_id, stripe_subscription_id, plan, plan_override, billing_status, trial_ends_at')
-    .eq('user_id', userId)
-    .single();
+  const existingCommerce = await findCheckoutCommerceForUser(db, userId);
 
   const billingAccess = isAccompagnementOnly
     ? await getBillingStatusForUser(userId).catch(() => null)
@@ -471,7 +495,13 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   const { data: { user } } = await db.auth.admin.getUserById(userId);
   const email = user?.email ?? undefined;
 
-  let commerce = existingCommerce as CheckoutCommerceRecord | null;
+  let commerce = existingCommerce;
+  if (!commerce && isAccompagnementOnly) {
+    return c.json({
+      error: 'Commerce introuvable pour cet achat. Rechargez la page puis réessayez.',
+    }, 404);
+  }
+
   if (!commerce) {
     const fallbackName = (email?.split('@')[0] ?? 'Mon commerce').trim() || 'Mon commerce';
     const { data: createdCommerce, error: createCommerceError } = await db
@@ -482,12 +512,18 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
         onboarding_completed: false,
         billing_status: 'unpaid',
       })
-      .select('id, stripe_customer_id, stripe_subscription_id, plan, plan_override, billing_status, trial_ends_at')
+      .select(CHECKOUT_COMMERCE_SELECT)
       .single();
     if (createCommerceError || !createdCommerce) {
-      return c.json({ error: "Impossible d'initialiser le commerce avant le paiement." }, 500);
+      const fallbackCommerce = await findCheckoutCommerceForUser(db, userId);
+      if (!fallbackCommerce) {
+        console.error('[checkout] commerce initialization failed:', createCommerceError?.message ?? 'unknown');
+        return c.json({ error: "Impossible d'initialiser le commerce avant le paiement." }, 500);
+      }
+      commerce = fallbackCommerce;
+    } else {
+      commerce = createdCommerce as CheckoutCommerceRecord;
     }
-    commerce = createdCommerce as CheckoutCommerceRecord;
   }
 
   const PUBLIC_SITE_URL = resolvePublicSiteUrlFromRequest(

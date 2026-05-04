@@ -46,17 +46,6 @@ const faq = [
       <p class="text-slate-500 text-lg mt-5 max-w-xl mx-auto">
         Essai gratuit 14 jours sur tous les plans. Carte bancaire requise, résiliable à tout moment pendant l’essai.
       </p>
-
-      <!-- Toggle mensuel / annuel — annuel par défaut -->
-      <div class="inline-flex items-center gap-1 mt-8 rounded-2xl border border-slate-200 bg-white/90 p-1.5 shadow-sm">
-        <button id="toggle-monthly" type="button" class="px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500">
-          Mensuel
-        </button>
-        <button id="toggle-annual" type="button" class="px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm">
-          Annuel
-          <span class="ml-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 font-semibold">-29%</span>
-        </button>
-      </div>
     </div>
   </section>
 
@@ -70,6 +59,15 @@ const faq = [
           <div class="mb-3">
             <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Starter</span>
           </div>
+          <div class="billing-toggle mb-5 flex items-center gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-1.5" data-surface="light" aria-label="Choisir la facturation Starter">
+            <button type="button" data-billing-mode="monthly" aria-pressed="false">
+              Mensuel
+            </button>
+            <button type="button" data-billing-mode="annual" aria-pressed="true">
+              Annuel
+              <span class="ml-1.5 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">-29%</span>
+            </button>
+          </div>
           <!-- Prix affiché -->
           <div class="flex items-end gap-1 mb-1">
             <span class="font-display font-bold leading-none text-slate-900">
@@ -77,7 +75,7 @@ const faq = [
             </span>
             <span class="text-sm mb-1 text-slate-400">/mois</span>
           </div>
-          <p class="text-xs text-slate-400 mb-4 price-label" id="starter-label">35€/mois sans engagement</p>
+          <p class="text-xs text-slate-400 mb-4 price-label" id="starter-label">25€/mois · économisez 120€/an</p>
 
           <!-- Badge essai gratuit (mensuel) -->
           <div class="trial-badge mb-4 inline-flex items-center gap-1.5 rounded-full bg-sky-50 border border-sky-100 px-3 py-1.5 text-xs font-semibold text-sky-700 w-fit">
@@ -100,7 +98,7 @@ const faq = [
             >
               Starter + Setup (+20€ une fois)
             </a>
-            <p class="text-center text-xs text-slate-400 mt-2">14 jours gratuits · Annuler à tout moment</p>
+            <p class="trial-note text-center text-xs text-slate-400 mt-2">14 jours gratuits · Engagement annuel</p>
           </div>
 
           <ul class="space-y-3 flex-1">
@@ -134,6 +132,15 @@ const faq = [
           <div class="mb-3">
             <span class="text-xs font-bold uppercase tracking-widest text-indigo-200">Pro</span>
           </div>
+          <div class="billing-toggle mb-5 flex items-center gap-1 rounded-2xl border border-white/20 bg-white/10 p-1.5" data-surface="dark" aria-label="Choisir la facturation Pro">
+            <button type="button" data-billing-mode="monthly" aria-pressed="false">
+              Mensuel
+            </button>
+            <button type="button" data-billing-mode="annual" aria-pressed="true">
+              Annuel
+              <span class="ml-1.5 rounded-full bg-emerald-300/20 px-2 py-0.5 text-xs font-semibold text-emerald-100">-29%</span>
+            </button>
+          </div>
           <!-- Prix affiché -->
           <div class="flex items-end gap-1 mb-1">
             <span class="font-display font-bold leading-none text-white">
@@ -141,7 +148,7 @@ const faq = [
             </span>
             <span class="text-sm mb-1 text-indigo-200">/mois</span>
           </div>
-          <p class="text-xs text-indigo-300 mb-4 price-label" id="pro-label">65€/mois sans engagement</p>
+          <p class="text-xs text-indigo-300 mb-4 price-label" id="pro-label">49€/mois · économisez 192€/an</p>
 
           <!-- Badge essai gratuit (mensuel) -->
           <div class="trial-badge mb-4 inline-flex items-center gap-1.5 rounded-full bg-white/15 border border-white/20 px-3 py-1.5 text-xs font-semibold text-white w-fit">
@@ -164,7 +171,7 @@ const faq = [
             >
               Pro + Setup (+20€ une fois)
             </a>
-            <p class="text-center text-xs text-indigo-300 mt-2">14 jours gratuits · Annuler à tout moment</p>
+            <p class="trial-note text-center text-xs text-indigo-300 mt-2">14 jours gratuits · Engagement annuel</p>
           </div>
 
           <ul class="space-y-3 flex-1">
@@ -282,7 +289,7 @@ const faq = [
   <section class="bg-[linear-gradient(135deg,#0f172a_0%,#312e81_55%,#0284c7_100%)] py-20">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 text-center">
       <h2 class="font-display text-4xl font-bold text-white">Commencez votre essai gratuit</h2>
-      <p class="text-indigo-200 text-lg mt-4">14 jours offerts. Aucune carte bancaire.</p>
+      <p class="text-indigo-200 text-lg mt-4">14 jours offerts. Carte bancaire requise, résiliable pendant l’essai.</p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center mt-8">
         <a href="/register" class="inline-flex items-center justify-center bg-white text-indigo-700 font-bold px-8 py-4 rounded-xl hover:bg-indigo-50 transition-colors text-base shadow-lg">
           Démarrer l'essai gratuit
@@ -298,18 +305,30 @@ const faq = [
 </BaseLayout>
 
 <script>
-  const monthlyBtn = document.getElementById('toggle-monthly') as HTMLButtonElement;
-  const annualBtn = document.getElementById('toggle-annual') as HTMLButtonElement;
+  const billingButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-billing-mode]'));
+
+  function buttonClass(mode: 'monthly' | 'annual', activeMode: 'monthly' | 'annual', surface: string | undefined) {
+    const isActive = mode === activeMode;
+    const base = 'flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-all';
+    if (surface === 'dark') {
+      return isActive
+        ? `${base} bg-white text-indigo-700 shadow-sm`
+        : `${base} text-indigo-100 hover:bg-white/10`;
+    }
+    return isActive
+      ? `${base} bg-slate-950 text-white shadow-sm`
+      : `${base} text-slate-500 hover:bg-slate-100`;
+  }
 
   function setMode(mode: 'monthly' | 'annual') {
     const isAnnual = mode === 'annual';
 
-    monthlyBtn.className = isAnnual
-      ? 'px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500'
-      : 'px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm';
-    annualBtn.className = isAnnual
-      ? 'px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm'
-      : 'px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500';
+    billingButtons.forEach((button) => {
+      const buttonMode = button.dataset.billingMode as 'monthly' | 'annual';
+      const surface = button.closest<HTMLElement>('.billing-toggle')?.dataset.surface;
+      button.className = buttonClass(buttonMode, mode, surface);
+      button.setAttribute('aria-pressed', String(buttonMode === mode));
+    });
 
     document.querySelectorAll<HTMLElement>('.price-display').forEach((el) => {
       const val = isAnnual ? el.dataset.annual : el.dataset.monthly;
@@ -320,10 +339,18 @@ const faq = [
     const proLabel = document.getElementById('pro-label');
     if (starterLabel) starterLabel.textContent = isAnnual ? '25€/mois · économisez 120€/an' : '35€/mois sans engagement';
     if (proLabel) proLabel.textContent = isAnnual ? '49€/mois · économisez 192€/an' : '65€/mois sans engagement';
+
+    document.querySelectorAll<HTMLElement>('.trial-note').forEach((note) => {
+      note.textContent = isAnnual ? '14 jours gratuits · Engagement annuel' : '14 jours gratuits · Annuler à tout moment';
+    });
   }
 
-  monthlyBtn.addEventListener('click', () => setMode('monthly'));
-  annualBtn.addEventListener('click', () => setMode('annual'));
+  billingButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const mode = button.dataset.billingMode === 'monthly' ? 'monthly' : 'annual';
+      setMode(mode);
+    });
+  });
   setMode('annual');
 
   document.querySelectorAll('#pricing-faq [data-faq]').forEach((item) => {

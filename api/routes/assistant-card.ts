@@ -165,16 +165,17 @@ assistantCardRoutes.post('/brief', async (c) => {
     }
     if (error) return c.json({ error: error.message }, 500);
 
-    sendAssistantBriefEmail({
+    const emailResult = await sendAssistantBriefEmail({
       commerceName: commerce.nom ?? parsed.data.business_name,
       commerceEmail: commerce.email ?? null,
       pointVenteName: pointVente.nom ?? null,
       brief: parsed.data,
     }).catch((emailError) => {
       console.error('[assistant-card] brief email failed:', emailError);
+      return { ok: false, skipped: false, reason: 'send_exception' as const };
     });
 
-    return c.json({ data });
+    return c.json({ data, email: emailResult });
   } catch (error) {
     console.error('[assistant-card] brief save failed:', error);
     return c.json({ error: 'Impossible d’enregistrer le brief.' }, 500);

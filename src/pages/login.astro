@@ -120,6 +120,19 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   let redirectInFlight = false;
   const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 1800);
 
+  function getPreferredDestination() {
+    const raw = new URLSearchParams(window.location.search).get('next');
+    if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return null;
+    return raw;
+  }
+
+  function getAuthCallbackPath(pathname: '/login' | '/auth/confirm') {
+    const callbackUrl = new URL(pathname, window.location.origin);
+    const preferredDestination = getPreferredDestination();
+    if (preferredDestination) callbackUrl.searchParams.set('next', preferredDestination);
+    return callbackUrl.toString();
+  }
+
   function ensureStatusMessageEl() {
     if (statusMessageEl) return statusMessageEl;
     statusMessageEl = document.createElement('div');
@@ -179,7 +192,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       setSessionCookie(activeSession.access_token);
       showProgress('Connexion validée, redirection...');
 
-      const target = await resolvePostAuthDestination(activeSession.access_token);
+      const target = await resolvePostAuthDestination(activeSession.access_token, getPreferredDestination());
       if (target === '/login') {
         clearSessionCookie();
         await supabase.auth.signOut().catch(() => undefined);
@@ -219,7 +232,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/login`,
+        redirectTo: getAuthCallbackPath('/login'),
         skipBrowserRedirect: true,
       },
     });
@@ -250,7 +263,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
-          redirectTo: `${window.location.origin}/auth/confirm`,
+          redirectTo: getAuthCallbackPath('/auth/confirm'),
         },
       });
       if (error) throw error;

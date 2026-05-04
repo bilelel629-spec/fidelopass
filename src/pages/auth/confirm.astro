@@ -46,6 +46,19 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   let redirectInFlight = false;
   const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 1800);
 
+  function getPreferredDestination() {
+    const raw = new URLSearchParams(window.location.search).get('next');
+    if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return null;
+    return raw;
+  }
+
+  function loginUrlWithNext() {
+    const url = new URL('/login', window.location.origin);
+    const preferredDestination = getPreferredDestination();
+    if (preferredDestination) url.searchParams.set('next', preferredDestination);
+    return `${url.pathname}${url.search}`;
+  }
+
   async function getValidSession() {
     const sessionResult = await Promise.race([
       supabase.auth.getSession(),
@@ -72,16 +85,16 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       const session = await getValidSession();
       if (!session) {
         clearSessionCookie();
-        window.location.href = '/login';
+        window.location.href = loginUrlWithNext();
         return;
       }
 
       setSessionCookie(session.access_token);
-      const target = await resolvePostAuthDestination(session.access_token);
+      const target = await resolvePostAuthDestination(session.access_token, getPreferredDestination());
       if (target === '/login') {
         clearSessionCookie();
         await supabase.auth.signOut().catch(() => undefined);
-        window.location.href = '/login';
+        window.location.href = loginUrlWithNext();
         return;
       }
 

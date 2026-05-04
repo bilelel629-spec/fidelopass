@@ -462,7 +462,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       currentBrief = response?.data ?? null;
       await loadAssistantStatus();
       briefSuccess.classList.remove('hidden');
-      formFeedback.textContent = 'Brief envoyé. Notre équipe vous contactera rapidement pour la suite.';
+      if (response?.email?.ok === false) {
+        formFeedback.textContent = 'Brief enregistré. Attention : la notification email équipe n’a pas pu être confirmée, mais le brief est bien disponible dans l’espace admin.';
+      } else {
+        formFeedback.textContent = 'Brief envoyé. Notre équipe vous contactera rapidement pour la suite.';
+      }
     } catch (error) {
       formFeedback.textContent = error instanceof Error ? error.message : 'Impossible d’envoyer le brief.';
       submitBtn.disabled = false;

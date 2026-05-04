@@ -10,7 +10,30 @@ type BillingStatusResponse = {
 const API_BASE = (import.meta.env.PUBLIC_API_URL || 'https://api.fidelopass.com').replace(/\/$/, '');
 const BILLING_CHECK_TIMEOUT_MS = Number(import.meta.env.PUBLIC_BILLING_CHECK_TIMEOUT_MS ?? 2200);
 
-export async function resolvePostAuthDestination(accessToken: string): Promise<string> {
+function normalizePreferredDestination(value?: string | null) {
+  const raw = String(value ?? '').trim();
+  if (!raw.startsWith('/') || raw.startsWith('//')) return null;
+
+  try {
+    const url = new URL(raw, 'https://www.fidelopass.com');
+    const path = `${url.pathname}${url.search}`;
+    const isAllowed =
+      url.pathname === '/onboarding'
+      || url.pathname === '/app'
+      || url.pathname.startsWith('/app/')
+      || url.pathname === '/dashboard'
+      || url.pathname.startsWith('/dashboard/');
+
+    return isAllowed ? path : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function resolvePostAuthDestination(
+  accessToken: string,
+  preferredDestination?: string | null,
+): Promise<string> {
   if (!API_BASE || !accessToken) return '/abonnement/choix';
 
   try {
@@ -35,7 +58,10 @@ export async function resolvePostAuthDestination(accessToken: string): Promise<s
 
     const data = billing.payload?.data;
     if (!data?.has_access) return '/abonnement/choix';
-    return data?.onboarding_completed ? '/dashboard' : '/onboarding';
+
+    const preferred = normalizePreferredDestination(preferredDestination);
+    if (!data?.onboarding_completed) return '/onboarding';
+    return preferred ?? '/dashboard';
   } catch {
     return '/dashboard';
   }

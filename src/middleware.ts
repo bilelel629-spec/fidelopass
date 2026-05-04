@@ -88,7 +88,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   const token = getSessionTokenFromCookie(context.request.headers.get('cookie'));
   if (!token) {
-    return withSecurityHeaders(Response.redirect(buildExternalRedirectUrl(context, '/login'), 302));
+    const loginUrl = buildExternalRedirectUrl(context, '/login');
+    loginUrl.searchParams.set('next', `${context.url.pathname}${context.url.search}`);
+    return withSecurityHeaders(Response.redirect(loginUrl, 302));
   }
 
   const apiBase = (import.meta.env.PUBLIC_API_URL ?? process.env.PUBLIC_API_URL ?? '').replace(/\/$/, '');

@@ -128,17 +128,48 @@ import PublicNav from '../components/marketing/PublicNav.astro';
       </div>
       <div class="grid gap-5 lg:grid-cols-3 lg:gap-8">
         {[
-          { num: '01', tag: 'Création', title: 'Créez votre carte en 5 min', desc: 'Choisissez le type de programme, vos couleurs et votre identité. La carte est immédiatement prête à être partagée.' },
-          { num: '02', tag: 'Diffusion', title: 'Partagez le QR code', desc: 'Affichez le QR en magasin ou envoyez votre lien. Vos clients ajoutent leur carte au Wallet en quelques secondes.' },
-          { num: '03', tag: 'Activation', title: 'Scannez & relancez', desc: 'À chaque passage, la carte est scannée, mise à jour et prête à déclencher vos récompenses ou messages Wallet.' },
+          {
+            num: '01',
+            tag: 'Création',
+            title: 'Créez votre carte en 5 min',
+            desc: 'Choisissez le type de programme, vos couleurs et votre identité. La carte est immédiatement prête à être partagée.',
+            image: '/images/how-it-works/etape-dashboard-premium.png',
+            alt: 'Interface Fidelopass de création et prévisualisation de carte Wallet',
+          },
+          {
+            num: '02',
+            tag: 'Diffusion',
+            title: 'Partagez le QR code',
+            desc: 'Affichez le QR en magasin ou envoyez votre lien. Vos clients ajoutent leur carte au Wallet en quelques secondes.',
+            image: '/images/how-it-works/etape-diffusion-premium.png',
+            alt: 'Affiche QR code Fidelopass posée en commerce',
+          },
+          {
+            num: '03',
+            tag: 'Activation',
+            title: 'Scannez & relancez',
+            desc: 'À chaque passage, la carte est scannée, mise à jour et prête à déclencher vos récompenses ou messages Wallet.',
+            image: '/images/how-it-works/etape-activation-premium.png',
+            alt: 'Client présentant sa carte Wallet pendant un scan en caisse',
+          },
         ].map((s) => (
-          <div class="rounded-[1.55rem] border border-slate-200 bg-white p-6 shadow-[0_20px_45px_rgba(15,23,42,0.06)] transition-transform hover:-translate-y-1 sm:rounded-[1.75rem] sm:p-8 dark:border-slate-700 dark:bg-slate-900">
+          <div class="overflow-hidden rounded-[1.55rem] border border-slate-200 bg-white shadow-[0_20px_45px_rgba(15,23,42,0.06)] transition-transform hover:-translate-y-1 sm:rounded-[1.75rem] dark:border-slate-700 dark:bg-slate-900">
+            <div class="aspect-[16/10] overflow-hidden bg-slate-100 dark:bg-slate-800">
+              <img
+                src={s.image}
+                alt={s.alt}
+                class="h-full w-full object-cover transition duration-500 hover:scale-[1.03]"
+                loading="lazy"
+              />
+            </div>
+            <div class="p-6 sm:p-8">
             <div class="flex items-center justify-between gap-4 mb-6">
               <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-sm font-bold text-white shadow-[0_14px_30px_rgba(15,23,42,0.16)]">{s.num}</span>
               <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{s.tag}</span>
             </div>
             <h3 class="font-display text-xl font-bold text-slate-900 dark:text-slate-100">{s.title}</h3>
             <p class="text-slate-500 text-sm leading-relaxed mt-3 dark:text-slate-300">{s.desc}</p>
+            </div>
           </div>
         ))}
       </div>

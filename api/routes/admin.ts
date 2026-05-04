@@ -257,6 +257,118 @@ adminRoutes.patch('/commerces/:id/plan', async (c) => {
   });
 });
 
+const assistantBriefStatusSchema = z.enum([
+  'not_started',
+  'brief_received',
+  'in_progress',
+  'ready_for_review',
+  'changes_requested',
+  'approved',
+  'published',
+]);
+
+function isMissingAssistantBriefsTable(error: { code?: string; message?: string } | null | undefined) {
+  const message = error?.message ?? '';
+  return error?.code === '42P01' || /assistant_card_briefs|schema cache|does not exist/i.test(message);
+}
+
+/** GET /api/admin/assistant-card/briefs — Demandes d’accompagnement setup */
+adminRoutes.get('/assistant-card/briefs', async (c) => {
+  const db = createServiceClient();
+  const { data, error } = await db
+    .from('assistant_card_briefs')
+    .select(`
+      *,
+      commerces(id, nom, email, plan, plan_override, actif),
+      points_vente(id, nom, actif)
+    `)
+    .order('updated_at', { ascending: false })
+    .limit(100);
+
+  if (error && isMissingAssistantBriefsTable(error)) {
+    return c.json({
+      data: [],
+      table_ready: false,
+      warning: 'Migration assistant_card_briefs à exécuter.',
+    });
+  }
+  if (error) return c.json({ error: 'Impossible de charger les demandes d’accompagnement.' }, 500);
+
+  return c.json({
+    data: (data ?? []).map((brief) => ({
+      ...brief,
+      commerce: brief.commerces
+        ? {
+          ...brief.commerces,
+          effective_plan: getEffectivePlanRaw(brief.commerces),
+        }
+        : null,
+      point_vente: brief.points_vente ?? null,
+      commerces: undefined,
+      points_vente: undefined,
+    })),
+    table_ready: true,
+  });
+});
+
+/** PATCH /api/admin/assistant-card/briefs/:id — Pilotage statut accompagnement */
+adminRoutes.patch('/assistant-card/briefs/:id', async (c) => {
+  const briefId = c.req.param('id');
+  const body = await c.req.json().catch(() => null);
+  const adminUser = c.get('user');
+  const adminUserId = c.get('userId') as string;
+  const parsed = z.object({
+    status: assistantBriefStatusSchema.optional(),
+    admin_note: z.string().max(1500).nullable().optional(),
+  }).safeParse(body);
+
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides.' }, 400);
+  }
+
+  const nowIso = new Date().toISOString();
+  const updates: Record<string, unknown> = {
+    updated_at: nowIso,
+  };
+
+  if (parsed.data.status) {
+    updates.status = parsed.data.status;
+    if (parsed.data.status === 'ready_for_review') updates.ready_at = nowIso;
+    if (parsed.data.status === 'approved') updates.approved_at = nowIso;
+    if (parsed.data.status === 'published') updates.published_at = nowIso;
+  }
+  if (parsed.data.admin_note !== undefined) updates.admin_note = parsed.data.admin_note;
+
+  const db = createServiceClient();
+  const { data, error } = await db
+    .from('assistant_card_briefs')
+    .update(updates)
+    .eq('id', briefId)
+    .select('*')
+    .single();
+
+  if (error && isMissingAssistantBriefsTable(error)) {
+    return c.json({ error: 'Migration assistant_card_briefs à exécuter.' }, 503);
+  }
+  if (error) return c.json({ error: error.message }, 500);
+
+  await appendAdminAuditLog({
+    adminUserId,
+    adminEmail: adminUser?.email ?? null,
+    action: 'assistant_card_brief.updated',
+    targetType: 'assistant_card_brief',
+    targetId: briefId,
+    payload: {
+      status: parsed.data.status ?? null,
+      has_admin_note: parsed.data.admin_note !== undefined,
+      commerce_id: data?.commerce_id ?? null,
+      point_vente_id: data?.point_vente_id ?? null,
+    },
+  });
+
+  return c.json({ data });
+});
+
 const adminCardAssistanceSchema = z.object({
   point_vente_id: z.string().uuid(),
   nom: z.string().min(2).max(255).optional(),

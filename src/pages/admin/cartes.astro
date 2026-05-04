@@ -14,6 +14,23 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     </a>
   </div>
 
+  <section class="card dashboard-panel mb-6 p-5">
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div>
+        <p class="dashboard-kicker">Demandes setup 20€</p>
+        <h2 class="font-display text-xl font-bold text-slate-900">Briefs d’accompagnement</h2>
+        <p class="mt-1 text-sm text-slate-500">Suivez les commerçants qui ont payé l’assistance et pilotez le statut de création.</p>
+      </div>
+      <button id="admin-refresh-briefs-btn" type="button" class="btn-secondary px-4 py-2.5 text-sm">
+        Actualiser
+      </button>
+    </div>
+    <div id="assistant-briefs-warning" class="mt-4 hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"></div>
+    <div id="assistant-briefs-list" class="mt-4 grid gap-3">
+      <p class="text-sm text-slate-500">Chargement des demandes…</p>
+    </div>
+  </section>
+
   <div class="grid gap-6 xl:grid-cols-[320px_1fr]">
     <section class="card dashboard-panel p-5">
       <h2 class="font-display text-xl font-bold text-slate-900">Sélection</h2>
@@ -177,11 +194,39 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     admin_note?: string | null;
     merchant_comment?: string | null;
   };
+  type AssistantBrief = {
+    id: string;
+    commerce_id: string;
+    point_vente_id: string;
+    status: string;
+    business_name?: string | null;
+    sector?: string | null;
+    desired_style?: string | null;
+    preferred_colors?: string | null;
+    reward_details?: string | null;
+    logo_url?: string | null;
+    inspiration_url?: string | null;
+    notes?: string | null;
+    admin_note?: string | null;
+    updated_at?: string | null;
+    submitted_at?: string | null;
+    commerce?: {
+      id: string;
+      nom?: string | null;
+      email?: string | null;
+      effective_plan?: string | null;
+    } | null;
+    point_vente?: {
+      id: string;
+      nom?: string | null;
+    } | null;
+  };
 
   let commerces: CommerceItem[] = [];
   let pointsVente: PointVenteItem[] = [];
   let cartes: CarteItem[] = [];
   let currentProposal: AdminProposal | null = null;
+  let assistantBriefs: AssistantBrief[] = [];
   let selectedCommerceId = '';
   let selectedPointId = '';
 
@@ -195,6 +240,9 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   const proposalStatusBox = document.getElementById('admin-proposal-status') as HTMLDivElement;
   const errorBox = document.getElementById('admin-error') as HTMLDivElement;
   const successBox = document.getElementById('admin-success') as HTMLDivElement;
+  const assistantBriefsList = document.getElementById('assistant-briefs-list') as HTMLDivElement;
+  const assistantBriefsWarning = document.getElementById('assistant-briefs-warning') as HTMLDivElement;
+  const refreshBriefsBtn = document.getElementById('admin-refresh-briefs-btn') as HTMLButtonElement;
   const stampScale = document.getElementById('admin-stamp-scale') as HTMLInputElement;
   const stampScaleValue = document.getElementById('admin-stamp-scale-value') as HTMLSpanElement;
   const commerceMeta = document.getElementById('admin-commerce-meta') as HTMLDivElement;
@@ -214,6 +262,121 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   function clearFeedback() {
     errorBox.classList.add('hidden');
     successBox.classList.add('hidden');
+  }
+
+  function escapeHtml(value: unknown) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  function assistantStatusLabel(status: string) {
+    const labels: Record<string, string> = {
+      not_started: 'Non démarré',
+      brief_received: 'Brief reçu',
+      in_progress: 'Création en cours',
+      ready_for_review: 'Prête à valider',
+      changes_requested: 'Modification demandée',
+      approved: 'Validée',
+      published: 'Publiée',
+    };
+    return labels[status] ?? status;
+  }
+
+  function assistantStatusClass(status: string) {
+    if (status === 'published' || status === 'approved') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+    if (status === 'ready_for_review') return 'border-amber-200 bg-amber-50 text-amber-800';
+    if (status === 'in_progress') return 'border-blue-200 bg-blue-50 text-blue-700';
+    if (status === 'changes_requested') return 'border-orange-200 bg-orange-50 text-orange-700';
+    return 'border-slate-200 bg-slate-50 text-slate-600';
+  }
+
+  function renderAssistantBriefs() {
+    if (assistantBriefs.length === 0) {
+      assistantBriefsList.innerHTML = '<p class="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-5 text-sm text-slate-500">Aucune demande d’accompagnement pour le moment.</p>';
+      return;
+    }
+
+    assistantBriefsList.innerHTML = assistantBriefs.map((brief) => {
+      const commerceName = brief.commerce?.nom ?? brief.business_name ?? 'Commerce';
+      const pointName = brief.point_vente?.nom ?? 'Point de vente';
+      const updated = brief.updated_at ? new Date(brief.updated_at).toLocaleString('fr-FR') : '—';
+      return `
+        <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div class="grid gap-4 xl:grid-cols-[1.1fr_1.2fr_auto] xl:items-start">
+            <div>
+              <div class="flex flex-wrap items-center gap-2">
+                <h3 class="font-display text-lg font-bold text-slate-900">${escapeHtml(commerceName)}</h3>
+                <span class="rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${assistantStatusClass(brief.status)}">${escapeHtml(assistantStatusLabel(brief.status))}</span>
+              </div>
+              <p class="mt-1 text-xs text-slate-500">${escapeHtml(brief.commerce?.email ?? '')}</p>
+              <p class="mt-2 text-sm text-slate-600"><span class="font-semibold text-slate-800">${escapeHtml(pointName)}</span> · ${escapeHtml(brief.sector ?? 'Secteur non précisé')}</p>
+              <p class="mt-1 text-xs text-slate-500">Mis à jour: ${escapeHtml(updated)}</p>
+            </div>
+            <div class="grid gap-2 text-sm text-slate-600 md:grid-cols-2">
+              <p><span class="font-semibold text-slate-800">Style:</span> ${escapeHtml(brief.desired_style ?? '—')}</p>
+              <p><span class="font-semibold text-slate-800">Couleurs:</span> ${escapeHtml(brief.preferred_colors ?? '—')}</p>
+              <p><span class="font-semibold text-slate-800">Récompense:</span> ${escapeHtml(brief.reward_details ?? '—')}</p>
+              <p><span class="font-semibold text-slate-800">Note:</span> ${escapeHtml(brief.notes ?? '—')}</p>
+              ${brief.logo_url ? `<a class="text-sky-700 underline" href="${escapeHtml(brief.logo_url)}" target="_blank" rel="noreferrer">Voir logo</a>` : '<span class="text-slate-400">Logo non fourni</span>'}
+              ${brief.inspiration_url ? `<a class="text-sky-700 underline" href="${escapeHtml(brief.inspiration_url)}" target="_blank" rel="noreferrer">Voir inspiration</a>` : '<span class="text-slate-400">Inspiration non fournie</span>'}
+            </div>
+            <div class="flex flex-col gap-2">
+              <button type="button" data-brief-action="select" data-commerce-id="${escapeHtml(brief.commerce_id)}" data-point-id="${escapeHtml(brief.point_vente_id)}" class="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-700 transition hover:bg-sky-100">
+                Ouvrir dans l’éditeur
+              </button>
+              <button type="button" data-brief-action="in_progress" data-brief-id="${escapeHtml(brief.id)}" class="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100">
+                En cours
+              </button>
+              <button type="button" data-brief-action="ready_for_review" data-brief-id="${escapeHtml(brief.id)}" class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 transition hover:bg-amber-100">
+                Prête à valider
+              </button>
+              <button type="button" data-brief-action="published" data-brief-id="${escapeHtml(brief.id)}" class="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100">
+                Publiée
+              </button>
+            </div>
+          </div>
+        </article>
+      `;
+    }).join('');
+  }
+
+  async function loadAssistantBriefs() {
+    assistantBriefsWarning.classList.add('hidden');
+    assistantBriefsList.innerHTML = '<p class="text-sm text-slate-500">Chargement des demandes…</p>';
+    const response = await authFetch(`${API_BASE}/api/admin/assistant-card/briefs`);
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(payload?.error ?? 'Impossible de charger les briefs assistant.');
+    assistantBriefs = (payload?.data ?? []) as AssistantBrief[];
+    if (payload?.table_ready === false) {
+      assistantBriefsWarning.textContent = payload.warning ?? 'Migration assistant_card_briefs à exécuter.';
+      assistantBriefsWarning.classList.remove('hidden');
+    }
+    renderAssistantBriefs();
+  }
+
+  async function updateAssistantBriefStatus(briefId: string, status: string) {
+    const response = await authFetch(`${API_BASE}/api/admin/assistant-card/briefs/${briefId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(payload?.error ?? 'Impossible de mettre à jour le brief.');
+    await loadAssistantBriefs();
+  }
+
+  async function selectBriefCommerce(commerceId: string, pointId: string) {
+    if (!commerces.length) await loadCommerces();
+    commerceSelect.value = commerceId;
+    selectedCommerceId = commerceId;
+    await loadCommerceAssistance(commerceId);
+    pointSelect.value = pointId;
+    selectedPointId = pointId;
+    await hydrateSelectedPoint();
+    document.getElementById('admin-card-name')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   function setProposalStatus(message: string, visible = true) {
@@ -540,10 +703,35 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   applyNowBtn.addEventListener('click', () => runWithButtonState(applyNowBtn, 'Application...', async () => {
     await applyCardDirectly();
   }));
+  refreshBriefsBtn.addEventListener('click', () => runWithButtonState(refreshBriefsBtn, 'Chargement...', async () => {
+    await loadAssistantBriefs();
+  }));
+  assistantBriefsList.addEventListener('click', async (event) => {
+    const target = event.target as HTMLElement | null;
+    const button = target?.closest('button[data-brief-action]') as HTMLButtonElement | null;
+    if (!button) return;
+    const action = button.dataset.briefAction ?? '';
+    try {
+      await runWithButtonState(button, '...', async () => {
+        if (action === 'select') {
+          const commerceId = button.dataset.commerceId ?? '';
+          const pointId = button.dataset.pointId ?? '';
+          if (!commerceId || !pointId) throw new Error('Commerce ou point de vente introuvable.');
+          await selectBriefCommerce(commerceId, pointId);
+          return;
+        }
+        const briefId = button.dataset.briefId ?? '';
+        if (!briefId) throw new Error('Brief introuvable.');
+        await updateAssistantBriefStatus(briefId, action);
+      });
+    } catch (error) {
+      setFeedback('error', error instanceof Error ? error.message : 'Erreur inattendue.');
+    }
+  });
 
   (async () => {
     try {
-      await loadCommerces();
+      await Promise.all([loadCommerces(), loadAssistantBriefs()]);
       const params = new URLSearchParams(window.location.search);
       const preselectedCommerce = params.get('commerce');
       if (preselectedCommerce && commerces.some((commerce) => commerce.id === preselectedCommerce)) {

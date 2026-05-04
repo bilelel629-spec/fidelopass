@@ -4,6 +4,7 @@ import { createServiceClient } from '../../src/lib/supabase';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { sendActivationEmail } from '../services/activation-email';
+import { sendSetupAssistanceEmail } from '../services/setup-assistance-email';
 
 export const stripeWebhookRoutes = new Hono();
 
@@ -240,11 +241,6 @@ stripeWebhookRoutes.post('/', async (c) => {
           await db.from('commerces').update({ stripe_customer_id: session.customer }).eq('id', commerceId);
         }
 
-        if (session.metadata?.onboarding_addon === 'true') {
-          await db.from('commerces').update({ onboarding_purchased: true }).eq('id', commerceId);
-          console.log('[stripe-webhook] → onboarding_purchased = true (addon inclus au checkout abonnement)');
-        }
-
         const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 20 });
         const purchasedPriceIds = lineItems.data
           .map((item) => item.price?.id)
@@ -270,6 +266,13 @@ stripeWebhookRoutes.post('/', async (c) => {
         const hasAccompagnementLineItem = purchasedPriceIds.some((id) => priceMatchesSlot(id, 'accompagnement', priceIds));
         let activationPlanForEmail: 'starter' | 'pro' | null = null;
         let activationBillingStatusForEmail: 'trialing' | 'active' | null = null;
+        let shouldSendSetupAssistanceEmail = false;
+
+        if (session.metadata?.onboarding_addon === 'true') {
+          await db.from('commerces').update({ onboarding_purchased: true }).eq('id', commerceId);
+          shouldSendSetupAssistanceEmail = true;
+          console.log('[stripe-webhook] → onboarding_purchased = true (addon inclus au checkout abonnement)');
+        }
 
         console.log('[stripe-webhook] checkout.session.completed | commerce:', commerceId, '| prices:', purchasedPriceIds);
 
@@ -327,6 +330,7 @@ stripeWebhookRoutes.post('/', async (c) => {
             activationBillingStatusForEmail = billingStatus;
           } else if (action === 'onboarding_purchased') {
             await db.from('commerces').update({ onboarding_purchased: true }).eq('id', commerceId);
+            shouldSendSetupAssistanceEmail = true;
           }
           else if (action === 'sms_credits') {
             const credits = parseInt(price?.metadata?.credits ?? '0');
@@ -337,6 +341,7 @@ stripeWebhookRoutes.post('/', async (c) => {
 
         if (hasAccompagnementLineItem) {
           await db.from('commerces').update({ onboarding_purchased: true }).eq('id', commerceId);
+          shouldSendSetupAssistanceEmail = true;
           console.log('[stripe-webhook] → onboarding_purchased = true (line item)');
         }
 
@@ -361,6 +366,28 @@ stripeWebhookRoutes.post('/', async (c) => {
             }
           } catch (mailError) {
             console.error('[stripe-webhook] activation-email error:', (mailError as Error).message);
+          }
+        }
+
+        if (shouldSendSetupAssistanceEmail) {
+          try {
+            const { data: commerceRow } = await db
+              .from('commerces')
+              .select('nom, email')
+              .eq('id', commerceId)
+              .single();
+            const recipientEmail = session.customer_details?.email ?? commerceRow?.email ?? null;
+            if (recipientEmail) {
+              const result = await sendSetupAssistanceEmail({
+                toEmail: recipientEmail,
+                commerceName: commerceRow?.nom ?? 'Votre commerce',
+              });
+              console.log('[stripe-webhook] setup-assistance-email:', result.ok ? 'sent' : `not-sent:${result.reason}`);
+            } else {
+              console.warn('[stripe-webhook] setup-assistance-email skipped: recipient email missing');
+            }
+          } catch (mailError) {
+            console.error('[stripe-webhook] setup-assistance-email error:', (mailError as Error).message);
           }
         }
 

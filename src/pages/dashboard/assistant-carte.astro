@@ -3,14 +3,19 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 ---
 
 <DashboardLayout title="Assistant carte — Fidelopass" activeNav="assistant-carte">
-  <div class="mb-6">
-    <p class="dashboard-kicker">Service premium</p>
-    <h1 class="dashboard-title">Assistant carte</h1>
-    <p class="dashboard-subtitle">On crée une carte sur-mesure selon la direction artistique de votre commerce.</p>
+  <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div>
+      <p class="dashboard-kicker">Service premium</p>
+      <h1 class="dashboard-title">Assistant carte</h1>
+      <p class="dashboard-subtitle">On crée une carte sur-mesure selon la direction artistique de votre commerce.</p>
+    </div>
+    <a href="/dashboard/carte" class="btn-secondary inline-flex w-fit px-4 py-2.5 text-sm">
+      Revenir à ma carte
+    </a>
   </div>
 
-  <section class="card dashboard-panel p-6 sm:p-7">
-    <div class="grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
+  <section id="assistant-hero" class="card dashboard-panel p-6 sm:p-7">
+    <div class="grid gap-5 xl:grid-cols-[1.05fr_0.95fr] xl:items-start">
       <div>
         <h2 class="font-display text-2xl font-bold text-slate-900">Accompagnement Setup — 20€ (une seule fois)</h2>
         <p class="mt-3 text-sm leading-6 text-slate-600">
@@ -45,7 +50,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <p id="assistant-status-desc" class="mt-1 text-sm text-slate-600">Vérification de votre achat d’accompagnement.</p>
 
         <div id="assistant-success-box" class="mt-4 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          Accompagnement déjà activé. Notre équipe peut prendre en charge la création de votre carte.
+          Accompagnement activé. Remplissez le brief ci-dessous pour que notre équipe puisse démarrer.
         </div>
 
         <div id="assistant-purchase-box" class="mt-4 hidden">
@@ -55,23 +60,157 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <p class="mt-2 text-xs text-slate-500">Vous serez redirigé vers Stripe pour un paiement unique.</p>
         </div>
 
+        <div id="assistant-next-action" class="mt-4 hidden rounded-2xl border border-blue-100 bg-white p-4">
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Prochaine étape</p>
+          <p id="assistant-next-action-text" class="mt-2 text-sm leading-6 text-slate-700"></p>
+          <a href="#assistant-brief-card" class="mt-3 inline-flex rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800">
+            Remplir le brief design
+          </a>
+        </div>
+
         <div id="assistant-error-box" class="mt-4 hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
       </div>
     </div>
+  </section>
+
+  <section id="assistant-workflow" class="mt-6 hidden card dashboard-panel p-5 sm:p-6">
+    <div class="mb-5 flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <p class="dashboard-kicker">Suivi</p>
+        <h2 class="font-display text-2xl font-bold text-slate-900">Votre parcours assistant</h2>
+      </div>
+      <p class="rounded-full border border-sky-100 bg-sky-50 px-4 py-2 text-xs font-semibold text-sky-700">
+        Réponse équipe sous 24h ouvrées après réception du brief
+      </p>
+    </div>
+    <div id="assistant-timeline" class="grid gap-3 lg:grid-cols-4"></div>
+  </section>
+
+  <section id="assistant-brief-card" class="mt-6 hidden card dashboard-panel p-5 sm:p-6">
+    <div class="mb-5">
+      <p class="dashboard-kicker">Brief design</p>
+      <h2 class="font-display text-2xl font-bold text-slate-900">Dites-nous quoi créer</h2>
+      <p class="mt-2 text-sm leading-6 text-slate-600">
+        Plus votre brief est précis, plus la première proposition sera proche de votre commerce.
+      </p>
+    </div>
+
+    <form id="assistant-brief-form" class="grid gap-5 lg:grid-cols-2">
+      <div>
+        <label class="label mb-2 block" for="brief-business-name">Nom à afficher sur la carte *</label>
+        <input id="brief-business-name" name="business_name" class="input" type="text" required placeholder="Ex: SomStar" />
+      </div>
+      <div>
+        <label class="label mb-2 block" for="brief-sector">Secteur / activité</label>
+        <input id="brief-sector" name="sector" class="input" type="text" placeholder="Ex: restaurant, salon de coiffure, fleuriste..." />
+      </div>
+      <div>
+        <label class="label mb-2 block" for="brief-colors">Couleurs souhaitées</label>
+        <input id="brief-colors" name="preferred_colors" class="input" type="text" placeholder="Ex: vert foncé, doré, beige premium" />
+      </div>
+      <div>
+        <label class="label mb-2 block" for="brief-reward">Récompense / offre</label>
+        <input id="brief-reward" name="reward_details" class="input" type="text" placeholder="Ex: 1 café offert au 10e tampon" />
+      </div>
+
+      <div class="lg:col-span-2">
+        <label class="label mb-2 block" for="brief-style">Style recherché</label>
+        <textarea id="brief-style" name="desired_style" class="input min-h-[110px]" placeholder="Ex: premium, chaleureux, moderne, proche d’un restaurant haut de gamme, couleurs sobres..."></textarea>
+      </div>
+
+      <div class="rounded-2xl border border-slate-200 bg-white p-4">
+        <label class="label mb-2 block" for="brief-logo-file">Logo du commerce</label>
+        <input id="brief-logo-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-xl file:border-0 file:bg-sky-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-sky-700" />
+        <input id="brief-logo-url" name="logo_url" type="url" class="input mt-3" placeholder="Ou collez une URL de logo" />
+        <p id="brief-logo-feedback" class="mt-2 text-xs text-slate-500">PNG/JPG/WebP conseillé, idéalement fond transparent.</p>
+      </div>
+
+      <div class="rounded-2xl border border-slate-200 bg-white p-4">
+        <label class="label mb-2 block" for="brief-inspiration-file">Inspiration / photo / menu</label>
+        <input id="brief-inspiration-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-xl file:border-0 file:bg-violet-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-violet-700" />
+        <input id="brief-inspiration-url" name="inspiration_url" type="url" class="input mt-3" placeholder="Ou lien Instagram, site, menu, inspiration..." />
+        <p id="brief-inspiration-feedback" class="mt-2 text-xs text-slate-500">Ajoutez un exemple visuel si vous en avez un.</p>
+      </div>
+
+      <div class="lg:col-span-2">
+        <label class="label mb-2 block" for="brief-notes">Informations importantes pour notre équipe</label>
+        <textarea id="brief-notes" name="notes" class="input min-h-[130px]" placeholder="Ex: police souhaitée, ton de marque, message client, éléments à éviter, lien Google Maps..."></textarea>
+      </div>
+
+      <div id="assistant-ready-box" class="hidden lg:col-span-2 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+        <p class="font-semibold text-amber-900">Une proposition est prête à valider.</p>
+        <p class="mt-1 text-sm text-amber-800">Si la carte vous convient, validez-la. Sinon, demandez une modification en précisant ce qu’il faut ajuster.</p>
+        <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+          <button id="assistant-approve-btn" type="button" class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700">
+            Valider la proposition
+          </button>
+          <button id="assistant-change-btn" type="button" class="rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-semibold text-amber-800 transition hover:bg-amber-100">
+            Demander une modification
+          </button>
+        </div>
+      </div>
+
+      <div class="lg:col-span-2 flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+        <p id="assistant-brief-feedback" class="text-sm text-slate-500">Votre brief reste modifiable tant que la carte n’est pas publiée.</p>
+        <button id="assistant-brief-submit" type="submit" class="btn-primary px-6 py-3 text-sm">
+          Envoyer mon brief
+        </button>
+      </div>
+    </form>
   </section>
 </DashboardLayout>
 
 <script>
   import { authFetch } from '../../lib/api';
 
+  type AssistantBrief = {
+    id?: string;
+    status?: string | null;
+    business_name?: string | null;
+    sector?: string | null;
+    desired_style?: string | null;
+    preferred_colors?: string | null;
+    reward_details?: string | null;
+    logo_url?: string | null;
+    inspiration_url?: string | null;
+    files?: Array<Record<string, unknown>> | null;
+    notes?: string | null;
+    admin_note?: string | null;
+  };
+
   const statusTitle = document.getElementById('assistant-status-title') as HTMLParagraphElement;
   const statusDesc = document.getElementById('assistant-status-desc') as HTMLParagraphElement;
   const successBox = document.getElementById('assistant-success-box') as HTMLDivElement;
   const purchaseBox = document.getElementById('assistant-purchase-box') as HTMLDivElement;
+  const nextAction = document.getElementById('assistant-next-action') as HTMLDivElement;
+  const nextActionText = document.getElementById('assistant-next-action-text') as HTMLParagraphElement;
   const errorBox = document.getElementById('assistant-error-box') as HTMLDivElement;
   const buyBtn = document.getElementById('assistant-buy-btn') as HTMLButtonElement;
+  const workflow = document.getElementById('assistant-workflow') as HTMLElement;
+  const timeline = document.getElementById('assistant-timeline') as HTMLDivElement;
+  const briefCard = document.getElementById('assistant-brief-card') as HTMLElement;
+  const form = document.getElementById('assistant-brief-form') as HTMLFormElement;
+  const submitBtn = document.getElementById('assistant-brief-submit') as HTMLButtonElement;
+  const formFeedback = document.getElementById('assistant-brief-feedback') as HTMLParagraphElement;
+  const readyBox = document.getElementById('assistant-ready-box') as HTMLDivElement;
+  const approveBtn = document.getElementById('assistant-approve-btn') as HTMLButtonElement;
+  const changeBtn = document.getElementById('assistant-change-btn') as HTMLButtonElement;
+  const logoFile = document.getElementById('brief-logo-file') as HTMLInputElement;
+  const logoUrl = document.getElementById('brief-logo-url') as HTMLInputElement;
+  const logoFeedback = document.getElementById('brief-logo-feedback') as HTMLParagraphElement;
+  const inspirationFile = document.getElementById('brief-inspiration-file') as HTMLInputElement;
+  const inspirationUrl = document.getElementById('brief-inspiration-url') as HTMLInputElement;
+  const inspirationFeedback = document.getElementById('brief-inspiration-feedback') as HTMLParagraphElement;
 
   let accompagnementPriceId: string | null = null;
+  let currentBrief: AssistantBrief | null = null;
+
+  const steps = [
+    { key: 'brief', title: 'Brief reçu', desc: 'Votre demande est complète et exploitable.' },
+    { key: 'creation', title: 'Création en cours', desc: 'Notre équipe prépare la carte.' },
+    { key: 'review', title: 'Carte prête à valider', desc: 'Vous pouvez valider ou demander un ajustement.' },
+    { key: 'published', title: 'Carte publiée', desc: 'Votre carte est prête à partager en caisse.' },
+  ];
 
   function setError(message = '') {
     if (!message) {
@@ -83,33 +222,149 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     errorBox.classList.remove('hidden');
   }
 
+  function statusIndex(status?: string | null) {
+    if (status === 'published') return 3;
+    if (status === 'approved' || status === 'ready_for_review') return 2;
+    if (status === 'in_progress') return 1;
+    if (status === 'brief_received' || status === 'changes_requested') return 0;
+    return -1;
+  }
+
+  function renderTimeline(status?: string | null) {
+    const activeIndex = statusIndex(status);
+    timeline.innerHTML = steps.map((step, index) => {
+      const isDone = activeIndex > index || status === 'published';
+      const isCurrent = activeIndex === index;
+      const classes = isDone
+        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+        : isCurrent
+          ? 'border-blue-200 bg-blue-50 text-blue-900 shadow-sm'
+          : 'border-slate-200 bg-white text-slate-600';
+      const badge = isDone ? 'Validé' : isCurrent ? 'En cours' : 'À venir';
+      return `
+        <div class="rounded-2xl border ${classes} p-4">
+          <div class="flex items-center justify-between gap-3">
+            <p class="text-sm font-bold">${index + 1}. ${step.title}</p>
+            <span class="rounded-full bg-white/70 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em]">${badge}</span>
+          </div>
+          <p class="mt-2 text-xs leading-5 opacity-80">${step.desc}</p>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function fillForm(brief: AssistantBrief | null, fallbackName: string) {
+    const setValue = (id: string, value: string | null | undefined) => {
+      const el = document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | null;
+      if (el) el.value = value ?? '';
+    };
+
+    setValue('brief-business-name', brief?.business_name ?? fallbackName);
+    setValue('brief-sector', brief?.sector);
+    setValue('brief-colors', brief?.preferred_colors);
+    setValue('brief-reward', brief?.reward_details);
+    setValue('brief-style', brief?.desired_style);
+    setValue('brief-logo-url', brief?.logo_url);
+    setValue('brief-inspiration-url', brief?.inspiration_url);
+    setValue('brief-notes', brief?.notes);
+  }
+
+  function updatePurchasedUi(payload: Record<string, any>) {
+    const commerce = payload.commerce ?? {};
+    const point = payload.point_vente ?? {};
+    currentBrief = payload.brief ?? null;
+    const status = currentBrief?.status ?? 'not_started';
+    const fallbackName = point?.nom || commerce?.nom || 'Votre commerce';
+
+    statusTitle.textContent = status === 'published'
+      ? 'Carte publiée par l’équipe'
+      : status === 'ready_for_review'
+        ? 'Proposition prête à valider'
+        : status === 'in_progress'
+          ? 'Création en cours'
+          : currentBrief?.id
+            ? 'Brief reçu'
+            : 'Accompagnement activé';
+
+    statusDesc.textContent = currentBrief?.id
+      ? 'Vous pouvez suivre l’avancement et compléter votre brief si besoin.'
+      : 'Remplissez le brief design pour que notre équipe démarre la création.';
+
+    successBox.classList.remove('hidden');
+    workflow.classList.remove('hidden');
+    briefCard.classList.remove('hidden');
+    nextAction.classList.remove('hidden');
+    nextActionText.textContent = currentBrief?.id
+      ? 'Votre brief est envoyé. Vous pouvez encore ajouter des détails utiles avant la publication.'
+      : 'Remplissez votre brief design en 3 minutes pour lancer la création.';
+    readyBox.classList.toggle('hidden', status !== 'ready_for_review');
+    renderTimeline(status);
+    fillForm(currentBrief, fallbackName);
+
+    if (status === 'published') {
+      submitBtn.disabled = true;
+      formFeedback.textContent = 'Carte publiée. Pour une modification, contactez l’équipe Fidelopass.';
+    } else {
+      submitBtn.disabled = false;
+      formFeedback.textContent = status === 'changes_requested'
+        ? 'Votre demande de modification a été transmise. Ajoutez ici vos précisions si nécessaire.'
+        : 'Votre brief reste modifiable tant que la carte n’est pas publiée.';
+    }
+  }
+
+  async function uploadFile(input: HTMLInputElement, feedbackEl: HTMLParagraphElement, kind: 'logo' | 'inspiration') {
+    const file = input.files?.[0];
+    if (!file) return null;
+    feedbackEl.textContent = 'Envoi du fichier…';
+    const body = new FormData();
+    body.append('file', file);
+    const res = await authFetch('/api/upload', {
+      method: 'POST',
+      body,
+    });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok || !payload?.url) {
+      throw new Error(payload?.error ?? `Impossible d’envoyer le fichier ${kind}.`);
+    }
+    feedbackEl.textContent = 'Fichier ajouté au brief.';
+    return String(payload.url);
+  }
+
   async function loadAssistantStatus() {
     setError('');
     statusTitle.textContent = 'Chargement…';
     statusDesc.textContent = 'Vérification de votre achat d’accompagnement.';
     successBox.classList.add('hidden');
     purchaseBox.classList.add('hidden');
+    workflow.classList.add('hidden');
+    briefCard.classList.add('hidden');
+    nextAction.classList.add('hidden');
 
     try {
-      const [commerceRes, pricingRes] = await Promise.all([
-        authFetch('/api/commerces/me'),
+      const [assistantRes, pricingRes] = await Promise.all([
+        authFetch('/api/assistant-card/brief'),
         authFetch('/api/checkout/pricing-config'),
       ]);
 
-      const commercePayload = await commerceRes.json().catch(() => null);
+      const assistantPayload = await assistantRes.json().catch(() => null);
       const pricingPayload = await pricingRes.json().catch(() => null);
-
-      if (!commerceRes.ok) throw new Error(commercePayload?.error ?? 'Impossible de charger votre commerce.');
-      const commerce = commercePayload?.data;
-      const hasAddon = Boolean(commerce?.onboarding_purchased);
+      if (!assistantRes.ok) throw new Error(assistantPayload?.error ?? 'Impossible de charger votre accompagnement.');
 
       const addonPricing = pricingPayload?.data?.addons?.accompagnement ?? null;
       accompagnementPriceId = addonPricing?.available ? String(addonPricing?.priceId ?? '') : null;
 
+      const data = assistantPayload?.data ?? {};
+      const hasAddon = Boolean(data?.purchased);
+
       if (hasAddon) {
-        statusTitle.textContent = 'Accompagnement déjà activé';
-        statusDesc.textContent = 'Vous avez déjà accès au service Assistant carte.';
-        successBox.classList.remove('hidden');
+        if (data.table_ready === false) {
+          statusTitle.textContent = 'Accompagnement activé';
+          statusDesc.textContent = 'La base brief doit encore être initialisée.';
+          successBox.classList.remove('hidden');
+          setError('Migration assistant_card_briefs à exécuter pour activer le brief design.');
+          return;
+        }
+        updatePurchasedUi(data);
         return;
       }
 
@@ -160,6 +415,83 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       buyBtn.textContent = previousLabel ?? 'Acheter l’accompagnement (20€)';
     }
   });
+
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    setError('');
+    submitBtn.disabled = true;
+    const previousLabel = submitBtn.textContent;
+    submitBtn.textContent = 'Envoi…';
+    formFeedback.textContent = 'Préparation du brief…';
+
+    try {
+      const uploadedLogoUrl = await uploadFile(logoFile, logoFeedback, 'logo');
+      const uploadedInspirationUrl = await uploadFile(inspirationFile, inspirationFeedback, 'inspiration');
+
+      if (uploadedLogoUrl) logoUrl.value = uploadedLogoUrl;
+      if (uploadedInspirationUrl) inspirationUrl.value = uploadedInspirationUrl;
+
+      const formData = new FormData(form);
+      const payload = {
+        business_name: String(formData.get('business_name') ?? '').trim(),
+        sector: String(formData.get('sector') ?? '').trim() || null,
+        desired_style: String(formData.get('desired_style') ?? '').trim() || null,
+        preferred_colors: String(formData.get('preferred_colors') ?? '').trim() || null,
+        reward_details: String(formData.get('reward_details') ?? '').trim() || null,
+        logo_url: logoUrl.value.trim() || null,
+        inspiration_url: inspirationUrl.value.trim() || null,
+        notes: String(formData.get('notes') ?? '').trim() || null,
+        files: [
+          logoUrl.value.trim() ? { type: 'logo', label: 'Logo commerce', url: logoUrl.value.trim() } : null,
+          inspirationUrl.value.trim() ? { type: 'inspiration', label: 'Inspiration / fichier', url: inspirationUrl.value.trim() } : null,
+        ].filter(Boolean),
+      };
+
+      const res = await authFetch('/api/assistant-card/brief', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      const response = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(response?.error ?? 'Impossible d’envoyer le brief.');
+      currentBrief = response?.data ?? null;
+      formFeedback.textContent = 'Brief envoyé. Notre équipe revient vers vous sous 24h ouvrées.';
+      await loadAssistantStatus();
+    } catch (error) {
+      formFeedback.textContent = error instanceof Error ? error.message : 'Impossible d’envoyer le brief.';
+      submitBtn.disabled = false;
+    } finally {
+      submitBtn.textContent = previousLabel ?? 'Envoyer mon brief';
+    }
+  });
+
+  async function sendDecision(decision: 'approved' | 'changes_requested') {
+    const notes = decision === 'changes_requested'
+      ? window.prompt('Que souhaitez-vous modifier sur la proposition ?') ?? ''
+      : '';
+    if (decision === 'changes_requested' && !notes.trim()) return;
+
+    const button = decision === 'approved' ? approveBtn : changeBtn;
+    const previousLabel = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Envoi…';
+    try {
+      const res = await authFetch('/api/assistant-card/brief/decision', {
+        method: 'PATCH',
+        body: JSON.stringify({ decision, notes }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error ?? 'Impossible d’enregistrer votre décision.');
+      await loadAssistantStatus();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Impossible d’enregistrer votre décision.');
+    } finally {
+      button.disabled = false;
+      button.textContent = previousLabel;
+    }
+  }
+
+  approveBtn?.addEventListener('click', () => sendDecision('approved'));
+  changeBtn?.addEventListener('click', () => sendDecision('changes_requested'));
 
   loadAssistantStatus();
 </script>

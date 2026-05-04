@@ -3,11 +3,20 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import PublicNav from '../components/marketing/PublicNav.astro';
 import PublicFooter from '../components/marketing/PublicFooter.astro';
 
+const RESELLER_SETUP_PRICE = 290;
+const RESELLER_MONTHLY_PRICE = 49.99;
+
 const profitabilityExamples = [
-  { commerces: 5, revenu: 245 },
-  { commerces: 10, revenu: 490 },
-  { commerces: 15, revenu: 735 },
+  { commerces: 5 },
+  { commerces: 10 },
+  { commerces: 15 },
 ];
+
+const formatEuro = (amount: number) => amount.toLocaleString('fr-FR', {
+  style: 'currency',
+  currency: 'EUR',
+  minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+});
 ---
 
 <BaseLayout
@@ -103,10 +112,15 @@ const profitabilityExamples = [
             {profitabilityExamples.map((example) => (
               <div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
                 <div>
-                  <p class="text-sm font-semibold text-slate-900">{example.commerces} commerces à 49€/mois</p>
-                  <p class="mt-1 text-xs text-slate-500">Exemple de revente simple côté terrain</p>
+                  <p class="text-sm font-semibold text-slate-900">{example.commerces} commerces</p>
+                  <p class="mt-1 text-xs text-slate-500">
+                    Moyenne observée: 290€ de mise en place + 49,99€/mois par commerce
+                  </p>
                 </div>
-                <p class="font-mono text-2xl font-bold text-sky-700">{example.revenu}€</p>
+                <div class="text-right">
+                  <p class="font-mono text-2xl font-bold text-sky-700">{formatEuro(example.commerces * RESELLER_MONTHLY_PRICE)}/mois</p>
+                  <p class="mt-1 text-xs font-semibold text-slate-500">{formatEuro(example.commerces * RESELLER_SETUP_PRICE)} au setup</p>
+                </div>
               </div>
             ))}
           </div>

@@ -139,7 +139,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       <div id="assistant-ready-box" class="hidden lg:col-span-2 rounded-2xl border border-amber-200 bg-amber-50 p-4">
         <p class="font-semibold text-amber-900">Une proposition est prête à valider.</p>
-        <p class="mt-1 text-sm text-amber-800">Si la carte vous convient, validez-la. Sinon, demandez une modification en précisant ce qu’il faut ajuster.</p>
+        <p class="mt-1 text-sm text-amber-800">Votre carte est créée. Dites-nous si elle vous convient ou demandez une modification avant publication.</p>
         <div class="mt-4 flex flex-col gap-2 sm:flex-row">
           <button id="assistant-approve-btn" type="button" class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700">
             Valider la proposition
@@ -148,6 +148,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             Demander une modification
           </button>
         </div>
+      </div>
+
+      <div id="assistant-brief-success" class="hidden lg:col-span-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-800">
+        Brief envoyé avec succès. Notre équipe a bien reçu vos éléments et vous contactera rapidement pour la suite.
       </div>
 
       <div class="lg:col-span-2 flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
@@ -192,6 +196,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const form = document.getElementById('assistant-brief-form') as HTMLFormElement;
   const submitBtn = document.getElementById('assistant-brief-submit') as HTMLButtonElement;
   const formFeedback = document.getElementById('assistant-brief-feedback') as HTMLParagraphElement;
+  const briefSuccess = document.getElementById('assistant-brief-success') as HTMLDivElement;
   const readyBox = document.getElementById('assistant-ready-box') as HTMLDivElement;
   const approveBtn = document.getElementById('assistant-approve-btn') as HTMLButtonElement;
   const changeBtn = document.getElementById('assistant-change-btn') as HTMLButtonElement;
@@ -206,9 +211,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   let currentBrief: AssistantBrief | null = null;
 
   const steps = [
-    { key: 'brief', title: 'Brief reçu', desc: 'Votre demande est complète et exploitable.' },
-    { key: 'creation', title: 'Création en cours', desc: 'Notre équipe prépare la carte.' },
-    { key: 'review', title: 'Carte prête à valider', desc: 'Vous pouvez valider ou demander un ajustement.' },
+    { key: 'brief', title: 'Éléments envoyés', desc: 'Votre brief, vos visuels et vos indications sont transmis.' },
+    { key: 'creation', title: 'Carte en cours de création', desc: 'Notre équipe prépare une proposition adaptée à votre commerce.' },
+    { key: 'review', title: 'Carte créée', desc: 'Vous donnez votre retour avant la publication finale.' },
     { key: 'published', title: 'Carte publiée', desc: 'Votre carte est prête à partager en caisse.' },
   ];
 
@@ -423,6 +428,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const previousLabel = submitBtn.textContent;
     submitBtn.textContent = 'Envoi…';
     formFeedback.textContent = 'Préparation du brief…';
+    briefSuccess.classList.add('hidden');
 
     try {
       const uploadedLogoUrl = await uploadFile(logoFile, logoFeedback, 'logo');
@@ -454,8 +460,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const response = await res.json().catch(() => null);
       if (!res.ok) throw new Error(response?.error ?? 'Impossible d’envoyer le brief.');
       currentBrief = response?.data ?? null;
-      formFeedback.textContent = 'Brief envoyé. Notre équipe revient vers vous sous 24h ouvrées.';
       await loadAssistantStatus();
+      briefSuccess.classList.remove('hidden');
+      formFeedback.textContent = 'Brief envoyé. Notre équipe vous contactera rapidement pour la suite.';
     } catch (error) {
       formFeedback.textContent = error instanceof Error ? error.message : 'Impossible d’envoyer le brief.';
       submitBtn.disabled = false;

@@ -56,6 +56,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <p class="mt-1 text-sm text-slate-600">Statut: <span id="plans-current-status" class="font-semibold text-slate-900">Chargement…</span></p>
         <div class="mt-4 flex flex-col gap-2 sm:flex-row">
           <a id="plans-upgrade-btn" href="/abonnement/choix" class="btn-primary px-4 py-2.5 text-sm text-center">Changer de plan</a>
+          <button id="plans-downgrade-btn" type="button" class="hidden btn-secondary px-4 py-2.5 text-sm">Rétrograder en Starter</button>
           <button id="plans-cancel-btn" type="button" class="btn-secondary px-4 py-2.5 text-sm">Gérer mon abonnement</button>
         </div>
         <p id="plans-action-feedback" class="hidden mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"></p>
@@ -144,8 +145,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const plansCurrentPlan = document.getElementById('plans-current-plan') as HTMLSpanElement;
   const plansCurrentStatus = document.getElementById('plans-current-status') as HTMLSpanElement;
   const plansUpgradeBtn = document.getElementById('plans-upgrade-btn') as HTMLAnchorElement;
+  const plansDowngradeBtn = document.getElementById('plans-downgrade-btn') as HTMLButtonElement;
   const plansCancelBtn = document.getElementById('plans-cancel-btn') as HTMLButtonElement;
   const plansActionFeedback = document.getElementById('plans-action-feedback') as HTMLParagraphElement;
+  let billingHasSubscription = false;
 
   function setPlansFeedback(message = '') {
     if (!message) {
@@ -186,9 +189,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const readablePlan = planLabel(rawPlan);
       const status = String(data.billing_status ?? 'unpaid');
       const hasSubscription = Boolean(data.stripe_subscription_id);
+      billingHasSubscription = hasSubscription;
 
       plansCurrentPlan.textContent = readablePlan;
       plansCurrentStatus.textContent = status;
+      plansDowngradeBtn.classList.add('hidden');
 
       if (readablePlan === 'STARTER') {
         plansUpgradeBtn.textContent = 'Passer au plan Pro';
@@ -196,6 +201,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       } else if (readablePlan === 'PRO') {
         plansUpgradeBtn.textContent = 'Passer en Sur mesure';
         plansUpgradeBtn.href = '/contact';
+        plansDowngradeBtn.classList.remove('hidden');
       } else {
         plansUpgradeBtn.textContent = 'Contacter l’équipe';
         plansUpgradeBtn.href = '/contact';
@@ -212,6 +218,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     } catch {
       plansCurrentPlan.textContent = 'Indisponible';
       plansCurrentStatus.textContent = 'Indisponible';
+      billingHasSubscription = false;
+      plansDowngradeBtn.classList.add('hidden');
       setPlansFeedback('Impossible de charger le statut d’abonnement.');
     }
   }
@@ -247,11 +255,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   });
 
-  plansCancelBtn.addEventListener('click', async () => {
+  async function openBillingPortal(button: HTMLButtonElement, fallbackLabel: string) {
     setPlansFeedback('');
-    plansCancelBtn.disabled = true;
-    const previousLabel = plansCancelBtn.textContent;
-    plansCancelBtn.textContent = 'Ouverture...';
+    button.disabled = true;
+    const previousLabel = button.textContent;
+    button.textContent = 'Ouverture...';
     try {
       const res = await authFetch('/api/checkout/create-portal-session', { method: 'POST' });
       const payload = await res.json().catch(() => null);
@@ -259,9 +267,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       window.location.href = payload.url;
     } catch (error: unknown) {
       setPlansFeedback(error instanceof Error ? error.message : 'Impossible d’ouvrir la gestion de l’abonnement.');
-      plansCancelBtn.disabled = false;
-      plansCancelBtn.textContent = previousLabel ?? 'Gérer mon abonnement';
+      button.disabled = false;
+      button.textContent = previousLabel ?? fallbackLabel;
     }
+  }
+
+  plansCancelBtn.addEventListener('click', async () => {
+    await openBillingPortal(plansCancelBtn, 'Gérer mon abonnement');
+  });
+
+  plansDowngradeBtn.addEventListener('click', async () => {
+    if (!billingHasSubscription) {
+      window.location.href = '/abonnement/choix?plan=starter';
+      return;
+    }
+    await openBillingPortal(plansDowngradeBtn, 'Rétrograder en Starter');
   });
 
   document.getElementById('logout-btn')!.addEventListener('click', async () => {

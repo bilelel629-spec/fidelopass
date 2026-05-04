@@ -3,6 +3,7 @@ import type { Context } from 'hono';
 import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
+import { sendAssistantBriefEmail } from '../services/assistant-brief-email';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 
@@ -163,6 +164,15 @@ assistantCardRoutes.post('/brief', async (c) => {
       }, 503);
     }
     if (error) return c.json({ error: error.message }, 500);
+
+    sendAssistantBriefEmail({
+      commerceName: commerce.nom ?? parsed.data.business_name,
+      commerceEmail: commerce.email ?? null,
+      pointVenteName: pointVente.nom ?? null,
+      brief: parsed.data,
+    }).catch((emailError) => {
+      console.error('[assistant-card] brief email failed:', emailError);
+    });
 
     return c.json({ data });
   } catch (error) {

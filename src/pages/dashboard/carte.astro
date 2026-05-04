@@ -763,7 +763,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <div id="success-msg" class="hidden text-emerald-700 text-sm bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3"></div>
       <div class="hidden rounded-[1.6rem] border border-sky-100 bg-white/90 px-4 py-4 shadow-[0_18px_48px_-36px_rgba(59,130,246,0.35)] lg:flex lg:flex-col lg:gap-3 xl:flex-row xl:items-center xl:justify-between">
         <button type="button" id="prev-step-btn" class="btn-secondary py-3 px-5">Étape précédente</button>
-        <button type="button" id="save-continue-btn" class="btn-primary py-3 px-5">Enregistrer et continuer</button>
+        <div class="flex flex-col gap-2 sm:flex-row">
+          <button type="button" id="skip-next-step-btn" class="btn-secondary py-3 px-5">Étape suivante sans enregistrer</button>
+          <button type="button" id="save-continue-btn" class="btn-primary py-3 px-5">Enregistrer et continuer</button>
+        </div>
       </div>
     </div>
 
@@ -898,8 +901,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <div class="mb-2 flex justify-end">
         <button type="button" id="mobile-preview-btn" class="btn-secondary px-3 py-2 text-xs">Aperçu</button>
       </div>
-      <div class="grid grid-cols-[132px_1fr] gap-2">
+      <div class="grid grid-cols-3 gap-2">
         <button type="button" id="mobile-prev-step-btn" class="btn-secondary py-3 text-sm">Étape précédente</button>
+        <button type="button" id="mobile-skip-next-step-btn" class="btn-secondary py-3 text-sm">Suivant sans sauver</button>
         <button type="button" id="mobile-save-continue-btn" class="btn-primary py-3 text-sm">Enregistrer et continuer</button>
       </div>
     </div>
@@ -1237,6 +1241,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       document.getElementById('save-continue-btn'),
       document.getElementById('mobile-save-continue-btn'),
     ].filter(Boolean) as HTMLButtonElement[];
+    const skipNextButtons = [
+      document.getElementById('skip-next-step-btn'),
+      document.getElementById('mobile-skip-next-step-btn'),
+    ].filter(Boolean) as HTMLButtonElement[];
     const currentLabel = document.getElementById('wizard-current-label');
     if (currentLabel) currentLabel.textContent = `Étape ${currentStep} · ${WIZARD_STEP_LABELS[currentStep - 1]}`;
     const mobileCounter = document.getElementById('wizard-mobile-counter');
@@ -1260,6 +1268,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     });
     saveContinueButtons.forEach((button) => {
       button.disabled = isSaving;
+      button.classList.toggle('opacity-50', button.disabled);
+      button.classList.toggle('cursor-not-allowed', button.disabled);
+    });
+    skipNextButtons.forEach((button) => {
+      button.disabled = isSaving || currentStep === TOTAL_WIZARD_STEPS || (currentStep === TOTAL_WIZARD_STEPS - 1 && !carteId);
       button.classList.toggle('opacity-50', button.disabled);
       button.classList.toggle('cursor-not-allowed', button.disabled);
     });
@@ -2595,6 +2608,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   document.getElementById('prev-step-btn')!.addEventListener('click', goToPreviousStep);
   document.getElementById('mobile-prev-step-btn')!.addEventListener('click', goToPreviousStep);
+
+  function goToNextStepWithoutSaving() {
+    clearStepError(currentStep);
+    if (currentStep >= TOTAL_WIZARD_STEPS) return;
+    if (currentStep === TOTAL_WIZARD_STEPS - 1 && !carteId) {
+      showStepError(currentStep, "Créez d'abord votre carte avant d'accéder au scanner et au partage.");
+      return;
+    }
+    const nextStep = Math.min(TOTAL_WIZARD_STEPS, currentStep + 1) as WizardStep;
+    setMaxUnlockedStep(Math.max(maxUnlockedStep, nextStep));
+    showStep(nextStep);
+  }
+
+  document.getElementById('skip-next-step-btn')!.addEventListener('click', goToNextStepWithoutSaving);
+  document.getElementById('mobile-skip-next-step-btn')!.addEventListener('click', goToNextStepWithoutSaving);
 
   function buildPayload() {
     const getChecked = (name: string) => (document.querySelector(`input[name="${name}"]:checked`) as HTMLInputElement)?.value ?? '';

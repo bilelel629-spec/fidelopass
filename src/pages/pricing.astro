@@ -8,7 +8,7 @@ const isNew = Astro.url.searchParams.get('new') === '1';
 
 const faq = [
   { q: 'Y a-t-il un engagement minimum ?', a: "Les plans mensuels sont sans engagement, résiliables à tout moment. L'option annuelle avec engagement est sur 12 mois. Le paiement annuel en une fois est non remboursable." },
-  { q: "Comment fonctionne l'essai gratuit ?", a: "Vous créez votre compte sans carte bancaire. Pendant 14 jours, vous configurez votre carte et votre scanner librement. À la fin, votre espace passe en lecture seule tant que vous n'avez pas choisi de plan." },
+  { q: "Comment fonctionne l'essai gratuit ?", a: "L’essai gratuit nécessite une carte bancaire afin d’activer le plan choisi. Vous pouvez résilier à tout moment pendant les 14 jours d’essai. Sans résiliation, l’abonnement démarre automatiquement sur le forfait sélectionné." },
   { q: "Quelle est la différence entre les options annuelles ?", a: "Le paiement en une fois (300€ ou 588€) est facturé immédiatement. L'option mensuelle avec engagement vous débite chaque mois mais avec un engagement de 12 mois. Les deux économisent la même somme." },
   { q: 'Puis-je changer de plan ?', a: 'Oui, vous pouvez évoluer ou rétrograder à tout moment. Les changements sont effectifs immédiatement.' },
   { q: "Mes clients doivent-ils télécharger une app ?", a: "Non. Vos clients utilisent Apple Wallet ou Google Wallet, déjà installés sur leur téléphone. Aucun téléchargement supplémentaire." },
@@ -17,8 +17,8 @@ const faq = [
 
 <BaseLayout
   theme="light"
-  title="Tarifs Fidelopass — Essai gratuit 14 jours sans carte bancaire"
-  description="Plans Starter et Pro pour commerces. Essai gratuit 14 jours sans carte bancaire."
+  title="Tarifs Fidelopass — Essai gratuit 14 jours"
+  description="Plans Starter et Pro pour commerces. Essai gratuit 14 jours, résiliable à tout moment pendant l’essai."
 >
   <PublicNav currentPath="/pricing" />
 
@@ -44,7 +44,7 @@ const faq = [
         <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-500">sans mauvaise surprise.</span>
       </h1>
       <p class="text-slate-500 text-lg mt-5 max-w-xl mx-auto">
-        Essai gratuit 14 jours sur tous les plans. Aucune carte bancaire requise.
+        Essai gratuit 14 jours sur tous les plans. Carte bancaire requise, résiliable à tout moment pendant l’essai.
       </p>
 
       <!-- Toggle mensuel / annuel — annuel par défaut -->

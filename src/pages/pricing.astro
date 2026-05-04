@@ -46,6 +46,12 @@ const faq = [
       <p class="text-slate-500 text-lg mt-5 max-w-xl mx-auto">
         Essai gratuit 14 jours sur tous les plans. Carte bancaire requise, résiliable à tout moment pendant l’essai.
       </p>
+      <div class="mx-auto mt-7 max-w-2xl rounded-[1.5rem] border border-amber-200 bg-amber-50/90 px-5 py-4 text-left shadow-[0_18px_45px_rgba(245,158,11,0.12)] sm:text-center">
+        <p class="text-xs font-bold uppercase tracking-[0.22em] text-amber-700">Offre spéciale</p>
+        <p class="mt-1 text-sm leading-6 text-amber-900">
+          Les tarifs affichés sont les tarifs préférentiels actuels. Les prix publics prévus seront plus élevés pour les nouveaux commerces.
+        </p>
+      </div>
     </div>
   </section>
 
@@ -58,6 +64,9 @@ const faq = [
         <article class="rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] flex flex-col p-8">
           <div class="mb-3">
             <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Starter</span>
+          </div>
+          <div class="mb-4 inline-flex w-fit items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-amber-700">
+            Offre spéciale
           </div>
           <div class="billing-toggle mb-5 flex items-center gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-1.5" data-surface="light" aria-label="Choisir la facturation Starter">
             <button type="button" data-billing-mode="monthly" aria-pressed="false">
@@ -76,6 +85,10 @@ const faq = [
             <span class="text-sm mb-1 text-slate-400">/mois</span>
           </div>
           <p class="text-xs text-slate-400 mb-4 price-label" id="starter-label">25€/mois · économisez 120€/an</p>
+          <p class="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-500">
+            Prix public prévu :
+            <span id="starter-public-price" class="font-semibold text-slate-700">35€/mois, soit 420€/an</span>
+          </p>
 
           <!-- Badge essai gratuit (mensuel) -->
           <div class="trial-badge mb-4 inline-flex items-center gap-1.5 rounded-full bg-sky-50 border border-sky-100 px-3 py-1.5 text-xs font-semibold text-sky-700 w-fit">
@@ -132,6 +145,9 @@ const faq = [
           <div class="mb-3">
             <span class="text-xs font-bold uppercase tracking-widest text-indigo-200">Pro</span>
           </div>
+          <div class="mb-4 inline-flex w-fit items-center rounded-full border border-amber-300/40 bg-amber-300/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-amber-100">
+            Offre spéciale
+          </div>
           <div class="billing-toggle mb-5 flex items-center gap-1 rounded-2xl border border-white/20 bg-white/10 p-1.5" data-surface="dark" aria-label="Choisir la facturation Pro">
             <button type="button" data-billing-mode="monthly" aria-pressed="false">
               Mensuel
@@ -149,6 +165,10 @@ const faq = [
             <span class="text-sm mb-1 text-indigo-200">/mois</span>
           </div>
           <p class="text-xs text-indigo-300 mb-4 price-label" id="pro-label">49€/mois · économisez 192€/an</p>
+          <p class="mb-4 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-xs leading-5 text-indigo-100">
+            Prix public prévu :
+            <span id="pro-public-price" class="font-semibold text-white">65€/mois, soit 780€/an</span>
+          </p>
 
           <!-- Badge essai gratuit (mensuel) -->
           <div class="trial-badge mb-4 inline-flex items-center gap-1.5 rounded-full bg-white/15 border border-white/20 px-3 py-1.5 text-xs font-semibold text-white w-fit">
@@ -337,8 +357,12 @@ const faq = [
 
     const starterLabel = document.getElementById('starter-label');
     const proLabel = document.getElementById('pro-label');
+    const starterPublicPrice = document.getElementById('starter-public-price');
+    const proPublicPrice = document.getElementById('pro-public-price');
     if (starterLabel) starterLabel.textContent = isAnnual ? '25€/mois · économisez 120€/an' : '35€/mois sans engagement';
     if (proLabel) proLabel.textContent = isAnnual ? '49€/mois · économisez 192€/an' : '65€/mois sans engagement';
+    if (starterPublicPrice) starterPublicPrice.textContent = isAnnual ? '35€/mois, soit 420€/an' : '45€/mois sans engagement';
+    if (proPublicPrice) proPublicPrice.textContent = isAnnual ? '65€/mois, soit 780€/an' : '75€/mois sans engagement';
 
     document.querySelectorAll<HTMLElement>('.trial-note').forEach((note) => {
       note.textContent = isAnnual ? '14 jours gratuits · Engagement annuel' : '14 jours gratuits · Annuler à tout moment';

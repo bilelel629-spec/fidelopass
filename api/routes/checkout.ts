@@ -65,6 +65,29 @@ const reconcileSessionSchema = z.object({
   sessionId: z.string().min(8),
 });
 
+const whiteLabelSessionSchema = z.object({
+  plan: z.enum(['white_label_starter', 'white_label_pro']),
+});
+
+type WhiteLabelPlan = z.infer<typeof whiteLabelSessionSchema>['plan'];
+
+const WHITE_LABEL_PLAN_CONFIG: Record<WhiteLabelPlan, {
+  included_commerces: number;
+  monthly_price_cents: number;
+  label: string;
+}> = {
+  white_label_starter: {
+    included_commerces: 10,
+    monthly_price_cents: 19900,
+    label: 'White Label Starter',
+  },
+  white_label_pro: {
+    included_commerces: 25,
+    monthly_price_cents: 44900,
+    label: 'White Label Pro',
+  },
+};
+
 type PriceSlot =
   | 'starter_mensuel'
   | 'starter_annuel_once'
@@ -112,6 +135,49 @@ function loadPriceIds() {
       accompagnement: 'price_1TMlVu60FYcAjVxl8HONXsoV',
       scanner: 'price_1TMlVy60FYcAjVxl06t2Sgq1',
     } satisfies Record<string, string>;
+  }
+}
+
+function loadWhiteLabelPriceIds(): Record<WhiteLabelPlan, string | null> {
+  const envStarter = process.env.STRIPE_WHITE_LABEL_STARTER_PRICE_ID?.trim();
+  const envPro = process.env.STRIPE_WHITE_LABEL_PRO_PRICE_ID?.trim();
+
+  if (envStarter || envPro) {
+    return {
+      white_label_starter: envStarter || null,
+      white_label_pro: envPro || null,
+    };
+  }
+
+  try {
+    const raw = readFileSync(resolve(process.cwd(), 'stripe-white-label-price-ids.json'), 'utf8');
+    const parsed = JSON.parse(raw) as {
+      mode?: string;
+      white_label_starter?: { monthly_price_id?: string };
+      white_label_pro?: { monthly_price_id?: string };
+    };
+    const stripeKey = process.env.STRIPE_SECRET_KEY ?? '';
+    const fileMode = String(parsed.mode ?? '').toLowerCase();
+    const keyMode = stripeKey.startsWith('sk_test_') ? 'test' : stripeKey.startsWith('sk_live_') ? 'live' : '';
+    if (fileMode && keyMode && fileMode !== keyMode) {
+      return {
+        white_label_starter: null,
+        white_label_pro: null,
+      };
+    }
+    return {
+      white_label_starter: parsed.white_label_starter?.monthly_price_id ?? null,
+      white_label_pro: parsed.white_label_pro?.monthly_price_id ?? null,
+    };
+  } catch {
+    return {
+      white_label_starter: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
+        ? 'price_1TTrjy7qMJeoJ4Kr8BpYuf90'
+        : null,
+      white_label_pro: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
+        ? 'price_1TTrjz7qMJeoJ4KrUrF0azJc'
+        : null,
+    };
   }
 }
 
@@ -252,6 +318,120 @@ async function findCheckoutCommerceById(
   }
 
   return (result.data ?? null) as CheckoutCommerceRecord | null;
+}
+
+async function findWhiteLabelPartnerForUser(
+  db: ReturnType<typeof createServiceClient>,
+  userId: string,
+): Promise<{ id: string; stripe_customer_id: string | null } | null> {
+  const { data, error } = await db
+    .from('partner_users')
+    .select('partner_id, partners(id, stripe_customer_id)')
+    .eq('user_id', userId)
+    .eq('active', true)
+    .order('created_at', { ascending: true })
+    .limit(1);
+
+  if (error) {
+    console.warn('[checkout] white label partner lookup failed:', error.message);
+    return null;
+  }
+
+  const row = ((data as unknown[] | null) ?? [])[0] as
+    | { partner_id?: string; partners?: { id?: string; stripe_customer_id?: string | null } | Array<{ id?: string; stripe_customer_id?: string | null }> }
+    | undefined;
+  const partner = Array.isArray(row?.partners) ? row?.partners[0] : row?.partners;
+  const id = partner?.id ?? row?.partner_id;
+  if (!id) return null;
+  return {
+    id,
+    stripe_customer_id: partner?.stripe_customer_id ?? null,
+  };
+}
+
+function slugifyPartnerName(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 72) || 'partenaire';
+}
+
+function normalizeBillingStatusForWhiteLabel(status: string | null | undefined) {
+  if (status === 'active' || status === 'trialing' || status === 'past_due' || status === 'canceled') return status;
+  return 'unpaid';
+}
+
+async function syncWhiteLabelPartnerFromSession(
+  db: ReturnType<typeof createServiceClient>,
+  session: Stripe.Checkout.Session,
+  userId: string,
+  subscription: Stripe.Subscription | null,
+) {
+  const plan = whiteLabelSessionSchema.shape.plan.safeParse(session.metadata?.partner_plan).success
+    ? session.metadata?.partner_plan as WhiteLabelPlan
+    : null;
+  if (!plan) throw new Error('Plan white label introuvable dans la session Stripe.');
+
+  const config = WHITE_LABEL_PLAN_CONFIG[plan];
+  const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null;
+  const subscriptionId = subscription?.id
+    ?? (typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? null);
+  const billingStatus = subscription
+    ? normalizeBillingStatusForWhiteLabel(subscription.status)
+    : session.payment_status === 'paid'
+      ? 'active'
+      : 'unpaid';
+  const email = session.customer_details?.email ?? null;
+  const baseName = session.customer_details?.name
+    || email?.split('@')[0]
+    || 'Partenaire Fidelopass';
+  const existingPartner = await findWhiteLabelPartnerForUser(db, userId);
+
+  const updates = {
+    name: baseName,
+    plan,
+    included_commerces: config.included_commerces,
+    monthly_price_cents: config.monthly_price_cents,
+    support_email: email,
+    stripe_customer_id: customerId,
+    stripe_subscription_id: subscriptionId,
+    billing_status: billingStatus,
+    trial_ends_at: subscription?.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
+    active: ['trialing', 'active'].includes(billingStatus),
+    white_label_enabled: true,
+    hide_fidelopass_branding: true,
+  };
+
+  let partnerId = existingPartner?.id ?? null;
+  if (partnerId) {
+    const { error } = await db.from('partners').update(updates).eq('id', partnerId);
+    if (error) throw error;
+  } else {
+    const { data, error } = await db
+      .from('partners')
+      .insert({
+        ...updates,
+        slug: `${slugifyPartnerName(baseName)}-${userId.slice(0, 8)}`,
+      })
+      .select('id')
+      .single();
+    if (error) throw error;
+    partnerId = data.id;
+  }
+
+  const { error: userError } = await db
+    .from('partner_users')
+    .upsert({
+      partner_id: partnerId,
+      user_id: userId,
+      role: 'owner',
+      active: true,
+    }, { onConflict: 'partner_id,user_id' });
+  if (userError) throw userError;
+  return partnerId;
 }
 
 function normalizePlanForCheckout(plan: string | null | undefined): 'starter' | 'pro' | 'sur-mesure' | 'unknown' {
@@ -455,6 +635,112 @@ checkoutRoutes.get('/pricing-config', authMiddleware, async (c) => {
   const stripe = getStripe();
   const pricing = await resolvePricingConfig(stripe, priceIds);
   return c.json(pricing);
+});
+
+/** POST /api/checkout/white-label-session */
+checkoutRoutes.post('/white-label-session', authMiddleware, async (c) => {
+  const userId = c.get('userId') as string;
+  const body = await c.req.json().catch(() => null);
+  const parsed = whiteLabelSessionSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.errors[0]?.message ?? 'Plan white label invalide.' }, 400);
+  }
+
+  const { plan } = parsed.data;
+  const priceId = loadWhiteLabelPriceIds()[plan];
+  if (!priceId) {
+    return c.json({
+      error: 'Le tarif White Label Stripe est manquant. Ajoutez STRIPE_WHITE_LABEL_STARTER_PRICE_ID et STRIPE_WHITE_LABEL_PRO_PRICE_ID.',
+    }, 500);
+  }
+
+  const db = createServiceClient();
+  const { data: { user } } = await db.auth.admin.getUserById(userId);
+  const email = user?.email ?? undefined;
+  const existingPartner = await findWhiteLabelPartnerForUser(db, userId);
+  const stripe = getStripe();
+  const PUBLIC_SITE_URL = resolvePublicSiteUrlFromRequest(
+    c.req.header('origin') || c.req.header('referer') || null,
+  );
+  const config = WHITE_LABEL_PLAN_CONFIG[plan];
+
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    mode: 'subscription',
+    line_items: [{ price: priceId, quantity: 1 }],
+    success_url: `${PUBLIC_SITE_URL}/partner/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${PUBLIC_SITE_URL}/devenir-revendeur?checkout=cancelled`,
+    locale: 'fr',
+    allow_promotion_codes: true,
+    automatic_tax: { enabled: false },
+    metadata: {
+      checkout_type: 'white_label_partner',
+      user_id: userId,
+      partner_id: existingPartner?.id ?? '',
+      partner_plan: plan,
+      included_commerces: String(config.included_commerces),
+      monthly_price_cents: String(config.monthly_price_cents),
+    },
+    subscription_data: {
+      metadata: {
+        checkout_type: 'white_label_partner',
+        user_id: userId,
+        partner_id: existingPartner?.id ?? '',
+        partner_plan: plan,
+        included_commerces: String(config.included_commerces),
+        monthly_price_cents: String(config.monthly_price_cents),
+      },
+    },
+    ...(existingPartner?.stripe_customer_id
+      ? { customer: existingPartner.stripe_customer_id }
+      : email
+        ? { customer_email: email }
+        : {}),
+  };
+
+  try {
+    const session = await stripe.checkout.sessions.create(sessionParams);
+    return c.json({ url: session.url });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Erreur Stripe lors de la création de session White Label.';
+    console.error('[checkout] white-label-session error:', message);
+    return c.json({ error: message }, 400);
+  }
+});
+
+/** POST /api/checkout/reconcile-white-label-session */
+checkoutRoutes.post('/reconcile-white-label-session', authMiddleware, async (c) => {
+  const userId = c.get('userId') as string;
+  const body = await c.req.json().catch(() => null);
+  const parsed = reconcileSessionSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: 'Session Stripe invalide.' }, 400);
+  }
+
+  const stripe = getStripe();
+  const db = createServiceClient();
+
+  try {
+    const session = await stripe.checkout.sessions.retrieve(parsed.data.sessionId);
+    if (session.metadata?.checkout_type !== 'white_label_partner') {
+      return c.json({ error: 'Cette session ne correspond pas à un abonnement White Label.' }, 400);
+    }
+    const sessionUserId = String(session.metadata?.user_id ?? '').trim();
+    if (sessionUserId && sessionUserId !== userId) {
+      return c.json({ error: 'Session Stripe non autorisée.' }, 403);
+    }
+
+    const subscriptionId = typeof session.subscription === 'string'
+      ? session.subscription
+      : session.subscription?.id ?? null;
+    const subscription = subscriptionId ? await stripe.subscriptions.retrieve(subscriptionId) : null;
+    const partnerId = await syncWhiteLabelPartnerFromSession(db, session, userId, subscription);
+    return c.json({ ok: true, partner_id: partnerId });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Impossible de synchroniser la session White Label.';
+    console.error('[checkout] reconcile-white-label-session error:', message);
+    return c.json({ error: message }, 400);
+  }
 });
 
 /** POST /api/checkout/create-session */

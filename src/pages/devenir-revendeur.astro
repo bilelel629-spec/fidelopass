@@ -37,7 +37,7 @@ const formatEuro = (amount: number) => amount.toLocaleString('fr-FR', {
             Idéal pour agences digitales, commerciaux indépendants, consultants commerce et accompagnateurs terrain qui veulent proposer une solution fidélité Wallet sans porter toute la technique.
           </p>
           <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-            <a href="/contact" class="btn-primary px-7 py-3.5 text-center text-sm font-semibold">Devenir revendeur → Nous contacter</a>
+            <a href="#white-label-plans" class="btn-primary px-7 py-3.5 text-center text-sm font-semibold">Choisir mon offre white label</a>
             <a href="#rentabilite" class="btn-secondary px-7 py-3.5 text-center text-sm font-semibold">Voir le potentiel de marge</a>
           </div>
         </div>
@@ -63,7 +63,7 @@ const formatEuro = (amount: number) => amount.toLocaleString('fr-FR', {
     </div>
   </section>
 
-  <section class="bg-white px-4 py-16 sm:px-6">
+  <section id="white-label-plans" class="bg-white px-4 py-16 sm:px-6">
     <div class="mx-auto max-w-6xl">
       <div class="max-w-2xl">
         <p class="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-sky-700/70">Offres white label</p>
@@ -74,13 +74,28 @@ const formatEuro = (amount: number) => amount.toLocaleString('fr-FR', {
           <p class="text-sm font-semibold uppercase tracking-[0.2em] text-sky-700/70">White Label Starter</p>
           <p class="mt-4 font-display text-4xl font-bold text-slate-950">199€<span class="text-base font-semibold text-slate-500">/mois</span></p>
           <p class="mt-3 text-sm leading-relaxed text-slate-600">10 commerces inclus pour lancer votre offre revendeur avec votre marque.</p>
+          <button
+            type="button"
+            class="js-white-label-checkout mt-6 w-full rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-semibold text-white shadow-[0_18px_36px_-24px_rgba(15,23,42,0.8)] transition hover:-translate-y-0.5 hover:bg-slate-800"
+            data-plan="white_label_starter"
+          >
+            Démarrer White Label Starter
+          </button>
         </article>
         <article class="rounded-[2rem] border border-blue-200 bg-[linear-gradient(135deg,#172554_0%,#2563eb_100%)] p-6 text-white shadow-[0_28px_70px_-38px_rgba(37,99,235,0.65)]">
           <p class="text-sm font-semibold uppercase tracking-[0.2em] text-sky-100/80">White Label Pro</p>
           <p class="mt-4 font-display text-4xl font-bold">449€<span class="text-base font-semibold text-sky-100/75">/mois</span></p>
           <p class="mt-3 text-sm leading-relaxed text-sky-50/85">25 commerces inclus pour les agences et partenaires qui veulent scaler plus vite.</p>
+          <button
+            type="button"
+            class="js-white-label-checkout mt-6 w-full rounded-2xl bg-white px-5 py-3.5 text-sm font-semibold text-blue-700 shadow-[0_18px_36px_-24px_rgba(255,255,255,0.85)] transition hover:-translate-y-0.5 hover:bg-sky-50"
+            data-plan="white_label_pro"
+          >
+            Démarrer White Label Pro
+          </button>
         </article>
       </div>
+      <p id="white-label-checkout-status" class="mt-4 min-h-6 text-sm font-medium text-slate-600" aria-live="polite"></p>
     </div>
   </section>
 
@@ -214,4 +229,63 @@ const formatEuro = (amount: number) => amount.toLocaleString('fr-FR', {
   </section>
 
   <PublicFooter />
+
+  <script>
+    import { getSession } from '../lib/auth';
+    import { authFetch } from '../lib/api';
+
+    const status = document.getElementById('white-label-checkout-status');
+    const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('.js-white-label-checkout'));
+
+    function setStatus(message: string, tone: 'neutral' | 'error' = 'neutral') {
+      if (!status) return;
+      status.textContent = message;
+      status.className = `mt-4 min-h-6 text-sm font-medium ${tone === 'error' ? 'text-red-600' : 'text-slate-600'}`;
+    }
+
+    function setLoading(isLoading: boolean, activeButton?: HTMLButtonElement) {
+      buttons.forEach((button) => {
+        button.disabled = isLoading;
+        button.classList.toggle('opacity-60', isLoading);
+        button.classList.toggle('cursor-wait', isLoading);
+      });
+      if (activeButton) {
+        activeButton.textContent = isLoading ? 'Redirection vers Stripe…' : activeButton.dataset.plan === 'white_label_pro'
+          ? 'Démarrer White Label Pro'
+          : 'Démarrer White Label Starter';
+      }
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener('click', async () => {
+        const plan = button.dataset.plan;
+        if (plan !== 'white_label_starter' && plan !== 'white_label_pro') return;
+
+        setLoading(true, button);
+        setStatus('Préparation de votre checkout sécurisé…');
+
+        try {
+          const session = await getSession();
+          if (!session?.access_token) {
+            const next = encodeURIComponent('/devenir-revendeur');
+            window.location.href = `/register?next=${next}`;
+            return;
+          }
+
+          const response = await authFetch('/api/checkout/white-label-session', {
+            method: 'POST',
+            body: JSON.stringify({ plan }),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload?.url) {
+            throw new Error(payload?.error ?? 'Impossible de créer le paiement White Label.');
+          }
+          window.location.href = payload.url;
+        } catch (error) {
+          setStatus(error instanceof Error ? error.message : 'Erreur de redirection vers Stripe.', 'error');
+          setLoading(false, button);
+        }
+      });
+    });
+  </script>
 </BaseLayout>

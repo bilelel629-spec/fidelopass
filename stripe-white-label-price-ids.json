@@ -1,0 +1,11 @@
+{
+  "mode": "test",
+  "white_label_starter": {
+    "product_id": "prod_USnKz180XevgfJ",
+    "monthly_price_id": "price_1TTrjy7qMJeoJ4Kr8BpYuf90"
+  },
+  "white_label_pro": {
+    "product_id": "prod_USnKu1DvIwr3pH",
+    "monthly_price_id": "price_1TTrjz7qMJeoJ4KrUrF0azJc"
+  }
+}

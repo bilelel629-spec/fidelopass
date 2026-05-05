@@ -84,6 +84,22 @@ const navItems = [
   const session = await getSession();
   if (!session) window.location.replace('/login?next=/partner/dashboard');
 
+  async function reconcileWhiteLabelCheckoutIfNeeded() {
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('session_id');
+    if (params.get('checkout') !== 'success' || !sessionId) return;
+
+    await authFetch('/api/checkout/reconcile-white-label-session', {
+      method: 'POST',
+      body: JSON.stringify({ sessionId }),
+    }).catch(() => undefined);
+
+    params.delete('checkout');
+    params.delete('session_id');
+    const cleanUrl = `${window.location.pathname}${params.toString() ? `?${params}` : ''}`;
+    window.history.replaceState({}, '', cleanUrl);
+  }
+
   async function applyPartnerBranding() {
     try {
       const res = await authFetch('/api/partners/me');
@@ -105,5 +121,6 @@ const navItems = [
     }
   }
 
+  await reconcileWhiteLabelCheckoutIfNeeded();
   await applyPartnerBranding();
 </script>

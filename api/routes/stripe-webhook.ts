@@ -15,6 +15,21 @@ function getStripe() {
 }
 
 type PlanName = 'starter' | 'pro' | null;
+type WhiteLabelPlan = 'white_label_starter' | 'white_label_pro';
+
+const WHITE_LABEL_PLAN_CONFIG: Record<WhiteLabelPlan, {
+  included_commerces: number;
+  monthly_price_cents: number;
+}> = {
+  white_label_starter: {
+    included_commerces: 10,
+    monthly_price_cents: 19900,
+  },
+  white_label_pro: {
+    included_commerces: 25,
+    monthly_price_cents: 44900,
+  },
+};
 
 const LEGACY_PRICE_IDS = {
   starter_mensuel: ['price_1TLWbz7qMJeoJ4KrW4C8UFLr', 'price_1TMlVz60FYcAjVxl8VNyc7o6'],
@@ -88,6 +103,151 @@ function normalizeBillingStatusFromSubscription(status: string | null | undefine
   if (status === 'past_due') return 'past_due';
   if (status === 'canceled') return 'canceled';
   return 'unpaid';
+}
+
+function normalizeWhiteLabelPlan(value: string | null | undefined): WhiteLabelPlan | null {
+  return value === 'white_label_starter' || value === 'white_label_pro' ? value : null;
+}
+
+function isWhiteLabelCheckout(metadata: Stripe.Metadata | null | undefined) {
+  return metadata?.checkout_type === 'white_label_partner';
+}
+
+function slugifyPartnerName(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 72) || 'partenaire';
+}
+
+async function findPartnerIdForUser(db: ReturnType<typeof createServiceClient>, userId: string): Promise<string | null> {
+  const { data, error } = await db
+    .from('partner_users')
+    .select('partner_id')
+    .eq('user_id', userId)
+    .eq('active', true)
+    .order('created_at', { ascending: true })
+    .limit(1);
+
+  if (error) {
+    console.warn('[stripe-webhook] partner lookup failed:', error.message);
+    return null;
+  }
+
+  return (((data as Array<{ partner_id?: string }> | null) ?? [])[0]?.partner_id ?? null);
+}
+
+async function ensureWhiteLabelPartnerFromCheckout(
+  db: ReturnType<typeof createServiceClient>,
+  session: Stripe.Checkout.Session,
+  subscription: Stripe.Subscription | null,
+) {
+  const userId = String(session.metadata?.user_id ?? '').trim();
+  const plan = normalizeWhiteLabelPlan(session.metadata?.partner_plan);
+  if (!userId || !plan) {
+    console.error('[stripe-webhook] White label metadata incomplète', { session: session.id, userId, plan });
+    return;
+  }
+
+  const config = WHITE_LABEL_PLAN_CONFIG[plan];
+  const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null;
+  const subscriptionId = subscription?.id
+    ?? (typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? null);
+  const billingStatus = subscription
+    ? normalizeBillingStatusFromSubscription(subscription.status)
+    : session.payment_status === 'paid'
+      ? 'active'
+      : 'unpaid';
+  const trialEndsAt = subscription?.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null;
+  const email = session.customer_details?.email ?? null;
+  const baseName = session.customer_details?.name
+    || email?.split('@')[0]
+    || 'Partenaire Fidelopass';
+  const requestedPartnerId = String(session.metadata?.partner_id ?? '').trim();
+  const existingPartnerId = requestedPartnerId || await findPartnerIdForUser(db, userId);
+
+  const updates = {
+    name: baseName,
+    plan,
+    included_commerces: config.included_commerces,
+    monthly_price_cents: config.monthly_price_cents,
+    support_email: email,
+    stripe_customer_id: customerId,
+    stripe_subscription_id: subscriptionId,
+    billing_status: billingStatus,
+    trial_ends_at: trialEndsAt,
+    active: ['trialing', 'active'].includes(billingStatus),
+    white_label_enabled: true,
+    hide_fidelopass_branding: true,
+  };
+
+  let partnerId = existingPartnerId;
+  if (partnerId) {
+    const { error } = await db
+      .from('partners')
+      .update(updates)
+      .eq('id', partnerId);
+    if (error) throw error;
+  } else {
+    const slug = `${slugifyPartnerName(baseName)}-${userId.slice(0, 8)}`;
+    const { data, error } = await db
+      .from('partners')
+      .insert({
+        ...updates,
+        slug,
+      })
+      .select('id')
+      .single();
+    if (error) throw error;
+    partnerId = data.id;
+  }
+
+  const { error: userError } = await db
+    .from('partner_users')
+    .upsert({
+      partner_id: partnerId,
+      user_id: userId,
+      role: 'owner',
+      active: true,
+    }, { onConflict: 'partner_id,user_id' });
+  if (userError) throw userError;
+
+  console.log('[stripe-webhook] white label partner synced:', partnerId, plan, billingStatus);
+}
+
+async function updateWhiteLabelPartnerSubscription(
+  db: ReturnType<typeof createServiceClient>,
+  sub: Stripe.Subscription,
+) {
+  const plan = normalizeWhiteLabelPlan(sub.metadata?.partner_plan);
+  const partnerId = String(sub.metadata?.partner_id ?? '').trim()
+    || await findPartnerIdForUser(db, String(sub.metadata?.user_id ?? '').trim());
+  if (!partnerId) return false;
+
+  const billingStatus = normalizeBillingStatusFromSubscription(sub.status);
+  const updates: Record<string, unknown> = {
+    stripe_subscription_id: sub.id,
+    billing_status: billingStatus,
+    active: ['trialing', 'active'].includes(billingStatus),
+    trial_ends_at: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
+  };
+
+  if (plan) {
+    updates.plan = plan;
+    updates.included_commerces = WHITE_LABEL_PLAN_CONFIG[plan].included_commerces;
+    updates.monthly_price_cents = WHITE_LABEL_PLAN_CONFIG[plan].monthly_price_cents;
+  }
+
+  const { error } = await db
+    .from('partners')
+    .update(updates)
+    .eq('id', partnerId);
+  if (error) throw error;
+  console.log('[stripe-webhook] white label subscription synced:', partnerId, sub.status);
+  return true;
 }
 
 /** Retrouve commerce_id depuis une session ou subscription Stripe */
@@ -228,6 +388,18 @@ stripeWebhookRoutes.post('/', async (c) => {
 
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
+
+        if (isWhiteLabelCheckout(session.metadata)) {
+          const subscriptionId = typeof session.subscription === 'string'
+            ? session.subscription
+            : session.subscription?.id ?? null;
+          const subscription = subscriptionId
+            ? await stripe.subscriptions.retrieve(subscriptionId)
+            : null;
+          await ensureWhiteLabelPartnerFromCheckout(db, session, subscription);
+          break;
+        }
+
         const commerceId = await getCommerceIdFromMetadata(session.metadata)
           ?? await getCommerceIdFromEmail(session.customer_details?.email ?? null);
 
@@ -397,6 +569,12 @@ stripeWebhookRoutes.post('/', async (c) => {
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const sub = event.data.object as Stripe.Subscription;
+
+        if (isWhiteLabelCheckout(sub.metadata)) {
+          await updateWhiteLabelPartnerSubscription(db, sub);
+          break;
+        }
+
         const commerceId = await getCommerceIdFromMetadata(sub.metadata);
         if (!commerceId) break;
 
@@ -426,6 +604,24 @@ stripeWebhookRoutes.post('/', async (c) => {
 
       case 'customer.subscription.deleted': {
         const sub = event.data.object as Stripe.Subscription;
+        if (isWhiteLabelCheckout(sub.metadata)) {
+          const partnerId = String(sub.metadata?.partner_id ?? '').trim()
+            || await findPartnerIdForUser(db, String(sub.metadata?.user_id ?? '').trim());
+          if (partnerId) {
+            await db
+              .from('partners')
+              .update({
+                stripe_subscription_id: null,
+                billing_status: 'canceled',
+                active: false,
+                trial_ends_at: null,
+              })
+              .eq('id', partnerId);
+            console.log('[stripe-webhook] white label subscription deleted:', partnerId);
+          }
+          break;
+        }
+
         const commerceId = await getCommerceIdFromMetadata(sub.metadata);
         if (!commerceId) break;
         await db.from('commerces').update({ stripe_subscription_id: null, billing_status: 'canceled', trial_ends_at: null }).eq('id', commerceId);
@@ -439,6 +635,11 @@ stripeWebhookRoutes.post('/', async (c) => {
         const sub = typeof subscriptionValue === 'string' ? subscriptionValue : subscriptionValue?.id;
         if (!sub) break;
         const subscription = await stripe.subscriptions.retrieve(sub);
+        if (isWhiteLabelCheckout(subscription.metadata)) {
+          await updateWhiteLabelPartnerSubscription(db, subscription);
+          break;
+        }
+
         const commerceId = await getCommerceIdFromMetadata(subscription.metadata);
         if (commerceId) {
           await db.from('commerces').update({ billing_status: 'active' }).eq('id', commerceId);
@@ -454,6 +655,15 @@ stripeWebhookRoutes.post('/', async (c) => {
         let commerceId: string | null = null;
         if (sub) {
           const subscription = await stripe.subscriptions.retrieve(sub);
+          if (isWhiteLabelCheckout(subscription.metadata)) {
+            const partnerId = String(subscription.metadata?.partner_id ?? '').trim()
+              || await findPartnerIdForUser(db, String(subscription.metadata?.user_id ?? '').trim());
+            if (partnerId) {
+              await db.from('partners').update({ billing_status: 'past_due', active: false }).eq('id', partnerId);
+              console.log('[stripe-webhook] white label invoice.payment_failed:', partnerId);
+            }
+            break;
+          }
           commerceId = await getCommerceIdFromMetadata(subscription.metadata);
         }
         if (!commerceId && invoice.customer_email) {

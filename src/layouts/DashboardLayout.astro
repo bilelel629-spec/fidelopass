@@ -8,6 +8,49 @@ interface Props {
 }
 
 const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
+const contextualHelp: Record<string, { label: string; title: string; body: string }> = {
+  dashboard: {
+    label: 'À quoi ça sert ?',
+    title: 'Votre cockpit quotidien',
+    body: 'Cette page sert à voir quoi faire maintenant: créer la carte, installer le scanner, partager le QR ou suivre les premiers retours clients.',
+  },
+  carte: {
+    label: 'À quoi ça sert ?',
+    title: 'Créer et faire évoluer votre carte',
+    body: 'Chaque réglage modifie l’expérience Wallet de vos clients: identité, programme, couleurs, messages, géolocalisation et partage.',
+  },
+  notifications: {
+    label: 'À quoi ça sert ?',
+    title: 'Faire revenir vos clients',
+    body: 'Utilisez cet onglet pour envoyer une offre immédiate ou activer les automatisations Wallet comme avis Google et anniversaire.',
+  },
+  'points-vente': {
+    label: 'À quoi ça sert ?',
+    title: 'Gérer vos lieux indépendamment',
+    body: 'Chaque point de vente peut avoir sa carte, son adresse, son scanner et ses campagnes, surtout utile pour les commerces multi-sites.',
+  },
+  clients: {
+    label: 'À quoi ça sert ?',
+    title: 'Comprendre votre base fidèle',
+    body: 'Retrouvez vos clients, leurs points ou tampons, les récompenses disponibles et les profils à relancer.',
+  },
+  transactions: {
+    label: 'À quoi ça sert ?',
+    title: 'Suivre ce qui se passe en caisse',
+    body: 'L’historique permet de vérifier les scans, les ajouts de points ou tampons et les récompenses distribuées.',
+  },
+  parametres: {
+    label: 'À quoi ça sert ?',
+    title: 'Piloter votre compte commerçant',
+    body: 'Retrouvez ici vos informations, votre plan, la facturation et les paramètres d’organisation.',
+  },
+  'assistant-carte': {
+    label: 'À quoi ça sert ?',
+    title: 'Confier le design à Fidelopass',
+    body: 'Si vous prenez l’accompagnement, notre équipe prépare une carte cohérente avec votre commerce puis vous la fait valider.',
+  },
+};
+const help = contextualHelp[activeNav];
 ---
 
 <!doctype html>
@@ -42,6 +85,15 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       <DashboardNav activeNav={activeNav} />
       <main class="relative z-10 flex-1 min-w-0 overflow-y-auto pb-24 lg:pb-8">
         <div class="p-4 sm:p-6 md:p-8 pt-24 lg:pt-9 max-w-[86rem] mx-auto">
+          {help && (
+            <aside class="mb-5 rounded-[1.4rem] border border-sky-100 bg-white/82 px-4 py-3 shadow-[0_16px_38px_-34px_rgba(37,99,235,0.38)] backdrop-blur-xl sm:px-5 sm:py-4">
+              <p class="text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-sky-700/75">{help.label}</p>
+              <div class="mt-1 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-3">
+                <h2 class="font-display text-base font-bold text-slate-900">{help.title}</h2>
+                <p class="text-sm leading-6 text-slate-600">{help.body}</p>
+              </div>
+            </aside>
+          )}
           <slot />
         </div>
       </main>
@@ -65,8 +117,11 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
   const TOUR_STEPS: TourStep[] = [
     { selector: 'a[href="/dashboard"]', title: 'Dashboard', body: 'Suivez vos indicateurs clés et les actions prioritaires de la journée.' },
     { selector: 'a[href="/dashboard/carte"]', title: 'Ma carte', body: 'Personnalisez votre carte fidélité: visuel, programme, messages et options.' },
-    { selector: 'a[href="/dashboard/points-vente"]', title: 'Points de vente', body: 'Ajoutez vos lieux et passez facilement d’un point de vente à l’autre.' },
     { selector: 'a[href="/dashboard/notifications"]', title: 'Notifications push', body: 'Envoyez des messages immédiats ou activez vos automatisations clients.' },
+    { selector: 'a[href="/dashboard/points-vente"]', title: 'Points de vente', body: 'Ajoutez vos lieux et passez facilement d’un point de vente à l’autre.' },
+    { selector: 'a[href="/dashboard/clients"]', title: 'Clients', body: 'Retrouvez les clients inscrits, les récompenses disponibles et les profils à relancer.' },
+    { selector: 'a[href="/dashboard/transactions"]', title: 'Historique', body: 'Vérifiez les passages en caisse, les ajouts et les récompenses distribuées.' },
+    { selector: 'a[href="/dashboard/assistant-carte"]', title: 'Assistant carte', body: 'Confiez la création de la carte à notre équipe si vous avez pris l’accompagnement.' },
     { selector: 'a[href="/app"]', title: 'Scanner', body: 'Installez et ouvrez le scanner équipe pour valider les passages en caisse.' },
   ];
 

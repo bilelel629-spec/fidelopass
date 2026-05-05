@@ -407,7 +407,7 @@ cartesRoutes.get('/:id/public', async (c) => {
 
   const { data: carte } = await db
     .from('cartes')
-    .select('*, commerces(id, nom, logo_url), points_vente(id, nom, adresse, latitude, longitude, rayon_geo)')
+    .select('*, commerces(id, nom, logo_url, adresse, telephone, email), points_vente(id, nom, adresse, latitude, longitude, rayon_geo)')
     .eq('id', carteId)
     .eq('actif', true)
     .single();
@@ -421,7 +421,7 @@ cartesRoutes.get('/:id/public', async (c) => {
     points_vente: pointVente,
     ...carteData
   } = carte as typeof carte & {
-    commerces: { id: string; nom: string; logo_url: string | null };
+    commerces: { id: string; nom: string; logo_url: string | null; adresse?: string | null; telephone?: string | null; email?: string | null };
     points_vente: { id: string; nom: string; adresse: string | null; latitude: number | null; longitude: number | null; rayon_geo: number | null } | null;
   };
 

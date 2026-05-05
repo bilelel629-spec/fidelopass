@@ -33,8 +33,20 @@ const apiBase = (
       </div>
 
       <div class="poster-ui card mb-6 border border-slate-200/80 bg-white/95 p-5 shadow-[0_24px_56px_-34px_rgba(37,99,235,0.24)]">
-        <p class="text-[0.66rem] font-semibold uppercase tracking-[0.24em] text-sky-700/80">Personnalisation rapide</p>
-        <div class="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p class="text-[0.66rem] font-semibold uppercase tracking-[0.24em] text-sky-700/80">Personnalisation complète</p>
+            <p class="mt-1 text-sm leading-6 text-slate-500">Réglez uniquement ce qui compte pour une affiche claire, imprimable et prête pour la caisse.</p>
+          </div>
+          <div class="grid gap-2 text-xs text-slate-600 sm:min-w-[18rem]">
+            <p id="poster-safe-check" class="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700">Marges sécurisées A4 vérifiées</p>
+            <p id="poster-contrast-check" class="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">Contraste en cours de vérification...</p>
+          </div>
+        </div>
+
+        <details class="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4" open>
+          <summary class="cursor-pointer text-sm font-bold text-slate-900">Contenu principal</summary>
+          <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <div class="xl:col-span-2">
             <label for="poster-custom-title" class="text-xs font-medium text-slate-600">Titre principal</label>
             <input id="poster-custom-title" type="text" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-sky-400 focus:outline-none" />
@@ -47,6 +59,24 @@ const apiBase = (
             <label for="poster-custom-reward" class="text-xs font-medium text-slate-600">Texte récompense</label>
             <input id="poster-custom-reward" type="text" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-sky-400 focus:outline-none" />
           </div>
+          <div class="xl:col-span-2">
+            <label for="poster-custom-footer" class="text-xs font-medium text-slate-600">Footer</label>
+            <input id="poster-custom-footer" type="text" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-sky-400 focus:outline-none" />
+          </div>
+          <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-700">
+            <input id="poster-show-logo" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-sky-600" checked />
+            Afficher le logo
+          </label>
+          <div>
+            <label for="poster-banner-file" class="text-xs font-medium text-slate-600">Bannière locale</label>
+            <input id="poster-banner-file" type="file" accept="image/*" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-sky-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-sky-700" />
+          </div>
+          </div>
+        </details>
+
+        <details class="mt-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+          <summary class="cursor-pointer text-sm font-bold text-slate-900">Couleurs, fond et icônes</summary>
+          <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <div>
             <label for="poster-custom-accent" class="text-xs font-medium text-slate-600">Couleur accent</label>
             <input id="poster-custom-accent" type="color" value="#6366f1" class="mt-1 h-11 w-full cursor-pointer rounded-xl border border-slate-200 bg-white p-1" />
@@ -55,7 +85,70 @@ const apiBase = (
             <label for="poster-custom-bg" class="text-xs font-medium text-slate-600">Couleur fond</label>
             <input id="poster-custom-bg" type="color" value="#0f172a" class="mt-1 h-11 w-full cursor-pointer rounded-xl border border-slate-200 bg-white p-1" />
           </div>
-        </div>
+          <div>
+            <label for="poster-custom-text" class="text-xs font-medium text-slate-600">Couleur texte</label>
+            <input id="poster-custom-text" type="color" value="#0f172a" class="mt-1 h-11 w-full cursor-pointer rounded-xl border border-slate-200 bg-white p-1" />
+          </div>
+          <div>
+            <label for="poster-icon-style" class="text-xs font-medium text-slate-600">Icônes étapes</label>
+            <select id="poster-icon-style" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-sky-400 focus:outline-none">
+              <option value="numbers">Numéros</option>
+              <option value="icons">Pictos simples</option>
+            </select>
+          </div>
+          </div>
+        </details>
+
+        <details class="mt-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+          <summary class="cursor-pointer text-sm font-bold text-slate-900">Étapes et informations commerce</summary>
+          <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <input id="poster-step-1-title" type="text" class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900" placeholder="Étape 1" />
+            <input id="poster-step-2-title" type="text" class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900" placeholder="Étape 2" />
+            <input id="poster-step-3-title" type="text" class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900" placeholder="Étape 3" />
+            <input id="poster-step-1-desc" type="text" class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900" placeholder="Détail étape 1" />
+            <input id="poster-step-2-desc" type="text" class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900" placeholder="Détail étape 2" />
+            <input id="poster-step-3-desc" type="text" class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900" placeholder="Détail étape 3" />
+            <input id="poster-commerce-address" type="text" class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900" placeholder="Adresse" />
+            <input id="poster-commerce-phone" type="text" class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900" placeholder="Téléphone" />
+            <input id="poster-commerce-site" type="text" class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900" placeholder="Site web" />
+            <input id="poster-commerce-socials" type="text" class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900" placeholder="Réseaux sociaux" />
+            <input id="poster-commerce-hours" type="text" class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 md:col-span-2" placeholder="Horaires" />
+          </div>
+        </details>
+
+        <details class="mt-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+          <summary class="cursor-pointer text-sm font-bold text-slate-900">QR code et impression</summary>
+          <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div>
+              <label for="poster-qr-label" class="text-xs font-medium text-slate-600">Label QR</label>
+              <input id="poster-qr-label" type="text" value="Scannez-moi" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900" />
+            </div>
+            <div>
+              <label for="poster-qr-size" class="text-xs font-medium text-slate-600">Taille QR</label>
+              <input id="poster-qr-size" type="range" min="58" max="84" value="72" class="mt-3 w-full accent-sky-600" />
+            </div>
+            <div>
+              <label for="poster-qr-position" class="text-xs font-medium text-slate-600">Position QR</label>
+              <select id="poster-qr-position" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900">
+                <option value="center">Centre</option>
+                <option value="left">Gauche</option>
+                <option value="right">Droite</option>
+              </select>
+            </div>
+            <div>
+              <label for="poster-qr-frame" class="text-xs font-medium text-slate-600">Cadre QR</label>
+              <select id="poster-qr-frame" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900">
+                <option value="rounded">Arrondi</option>
+                <option value="square">Carré</option>
+                <option value="premium">Premium</option>
+              </select>
+            </div>
+            <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-700">
+              <input id="poster-show-safe-zone" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-sky-600" />
+              Afficher la zone sûre
+            </label>
+          </div>
+        </details>
       </div>
 
       <div id="poster-loading" class="text-center py-16">
@@ -96,20 +189,24 @@ const apiBase = (
                 </div>
               </div>
 
-              <div class="mt-5 grid grid-cols-[1fr_86mm_1fr] gap-4 items-center">
-                <div class="rounded-[1rem] border border-slate-200 bg-slate-50 p-4 h-[112px] flex flex-col justify-center">
-                  <p class="text-[11px] uppercase tracking-[0.24em] text-slate-500">1. Installez</p>
-                  <p class="text-sm font-semibold mt-2 leading-snug">Ajoutez votre carte en un scan, sans application.</p>
+              <div id="poster-essential-banner-wrap" class="mt-4 hidden h-[55mm] overflow-hidden rounded-[1rem] border border-white/40 bg-white/10">
+                <img id="poster-essential-banner" src="" alt="" class="h-full w-full object-cover" />
+              </div>
+
+              <div id="poster-essential-qr-grid" class="mt-5 grid grid-cols-[1fr_86mm_1fr] gap-4 items-center">
+                <div id="poster-essential-side-left" class="poster-side-card rounded-[1rem] border border-slate-200 bg-slate-50 p-4 h-[112px] flex flex-col justify-center">
+                  <p class="poster-step-title text-[11px] uppercase tracking-[0.24em] text-slate-500" data-step-title="1">1. Installez</p>
+                  <p class="poster-step-desc text-sm font-semibold mt-2 leading-snug" data-step-desc="1">Ajoutez votre carte en un scan, sans application.</p>
                 </div>
 
-                <div class="rounded-[1.1rem] border border-slate-300 bg-white p-4 text-center shadow-sm">
+                <div id="poster-essential-qr-card" class="poster-qr-card rounded-[1.1rem] border border-slate-300 bg-white p-4 text-center shadow-sm">
                   <p class="inline-flex rounded-full px-3 py-1 text-xs font-semibold text-white mb-2" id="poster-essential-scan-pill" style="background:#0f172a">Scannez-moi</p>
                   <img id="poster-essential-qr" src="" alt="QR code Fidelopass" class="w-[72mm] h-[72mm] mx-auto rounded-xl border border-slate-200" />
                 </div>
 
-                <div class="rounded-[1rem] border border-slate-200 bg-slate-50 p-4 h-[112px] flex flex-col justify-center">
-                  <p class="text-[11px] uppercase tracking-[0.24em] text-slate-500">2. Présentez</p>
-                  <p class="text-sm font-semibold mt-2 leading-snug">Montrez la carte en caisse pour valider points/tampons.</p>
+                <div id="poster-essential-side-right" class="poster-side-card rounded-[1rem] border border-slate-200 bg-slate-50 p-4 h-[112px] flex flex-col justify-center">
+                  <p class="poster-step-title text-[11px] uppercase tracking-[0.24em] text-slate-500" data-step-title="2">2. Présentez</p>
+                  <p class="poster-step-desc text-sm font-semibold mt-2 leading-snug" data-step-desc="2">Montrez la carte en caisse pour valider points/tampons.</p>
                 </div>
               </div>
 
@@ -118,17 +215,17 @@ const apiBase = (
                 <div class="mt-3 grid grid-cols-3 gap-3 text-center">
                   <div class="rounded-xl border border-slate-200 p-3">
                     <p class="mx-auto mb-2 w-6 h-6 rounded-full text-xs font-bold text-white leading-6" id="poster-essential-step-dot-1" style="background:#0f172a">1</p>
-                    <p class="text-[11px] uppercase tracking-[0.14em] text-slate-500">Téléchargez</p>
-                    <p class="text-xs text-slate-700 mt-1">Votre carte wallet en 10 sec</p>
+                    <p class="poster-step-title text-[11px] uppercase tracking-[0.14em] text-slate-500" data-step-title="1">Téléchargez</p>
+                    <p class="poster-step-desc text-xs text-slate-700 mt-1" data-step-desc="1">Votre carte wallet en 10 sec</p>
                   </div>
                   <div class="rounded-xl border border-slate-200 p-3">
                     <p class="mx-auto mb-2 w-6 h-6 rounded-full text-xs font-bold text-white leading-6" id="poster-essential-step-dot-2" style="background:#0f172a">2</p>
-                    <p class="text-[11px] uppercase tracking-[0.14em] text-slate-500">Scannez</p>
-                    <p class="text-xs text-slate-700 mt-1">En caisse à chaque achat</p>
+                    <p class="poster-step-title text-[11px] uppercase tracking-[0.14em] text-slate-500" data-step-title="2">Scannez</p>
+                    <p class="poster-step-desc text-xs text-slate-700 mt-1" data-step-desc="2">En caisse à chaque achat</p>
                   </div>
                   <div class="rounded-xl border border-slate-200 p-3">
                     <p class="mx-auto mb-2 w-6 h-6 rounded-full text-xs font-bold text-white leading-6" id="poster-essential-step-dot-3" style="background:#0f172a">3</p>
-                    <p class="text-[11px] uppercase tracking-[0.14em] text-slate-500">Cumulez</p>
+                    <p class="poster-step-title text-[11px] uppercase tracking-[0.14em] text-slate-500" data-step-title="3">Cumulez</p>
                     <p id="poster-essential-reward" class="text-xs text-slate-700 mt-1 font-semibold">Vos récompenses fidélité</p>
                   </div>
                 </div>
@@ -139,13 +236,14 @@ const apiBase = (
                   <p class="text-[10px] uppercase tracking-[0.28em] text-slate-500">Votre commerce personnalisable</p>
                   <p class="text-sm font-semibold text-slate-900 mt-1">Ajoutez logo, message et récompense</p>
                   <p id="poster-essential-subtitle-mini" class="text-xs text-slate-600 mt-1">Le client scanne et rejoint votre programme en quelques secondes.</p>
+                  <p id="poster-essential-contact" class="mt-2 text-[11px] font-semibold text-slate-500"></p>
                 </div>
                 <div class="rounded-xl border border-slate-300 bg-white px-5 py-3 text-xs font-semibold text-slate-500 text-center min-w-[145px]">
                   VOTRE LOGO ICI
                 </div>
               </div>
 
-              <p class="mt-3 text-center text-sm text-slate-600 font-medium">
+              <p id="poster-essential-footer" class="mt-3 text-center text-sm text-slate-600 font-medium">
                 Merci de soutenir le commerce local
               </p>
             </div>
@@ -171,19 +269,19 @@ const apiBase = (
                   <img id="poster-signature-logo" src="" alt="" class="hidden w-16 h-16 rounded-2xl object-cover border border-white/25" />
                 </div>
 
-                <div class="mt-5 grid grid-cols-[1fr_90mm_1fr] gap-4 items-center">
-                  <div class="rounded-[1rem] bg-white/90 border border-slate-300 p-4 text-slate-900 h-[112px] flex flex-col justify-center">
-                    <p class="text-[11px] uppercase tracking-[0.24em] text-slate-500">Plus vous venez</p>
-                    <p class="text-sm font-semibold mt-2">Plus vous gagnez d’avantages et de récompenses.</p>
+                <div id="poster-signature-qr-grid" class="mt-5 grid grid-cols-[1fr_90mm_1fr] gap-4 items-center">
+                  <div id="poster-signature-side-left" class="poster-side-card rounded-[1rem] bg-white/90 border border-slate-300 p-4 text-slate-900 h-[112px] flex flex-col justify-center">
+                    <p class="poster-step-title text-[11px] uppercase tracking-[0.24em] text-slate-500" data-step-title="1">Plus vous venez</p>
+                    <p class="poster-step-desc text-sm font-semibold mt-2" data-step-desc="1">Plus vous gagnez d’avantages et de récompenses.</p>
                   </div>
 
-                  <div class="rounded-[1.1rem] bg-white p-4 text-center border border-slate-300 shadow-xl">
+                  <div id="poster-signature-qr-card" class="poster-qr-card rounded-[1.1rem] bg-white p-4 text-center border border-slate-300 shadow-xl">
                     <p id="poster-signature-scan-pill" class="inline-flex rounded-full px-3 py-1 text-xs font-semibold text-white mb-2" style="background:#0f172a">Scannez-moi</p>
                     <img id="poster-signature-qr" src="" alt="QR code Fidelopass" class="w-[74mm] h-[74mm] mx-auto rounded-xl border border-slate-200" />
                   </div>
 
-                  <div class="rounded-[1rem] bg-white/90 border border-slate-300 p-4 text-slate-900 h-[112px] flex flex-col justify-center">
-                    <p class="text-[11px] uppercase tracking-[0.24em] text-slate-500">Récompense</p>
+                  <div id="poster-signature-side-right" class="poster-side-card rounded-[1rem] bg-white/90 border border-slate-300 p-4 text-slate-900 h-[112px] flex flex-col justify-center">
+                    <p class="poster-step-title text-[11px] uppercase tracking-[0.24em] text-slate-500" data-step-title="3">Récompense</p>
                     <p id="poster-signature-reward" class="text-sm font-semibold mt-2">Votre récompense fidélité</p>
                   </div>
                 </div>
@@ -193,17 +291,17 @@ const apiBase = (
                   <div class="mt-3 grid grid-cols-3 gap-3 text-center">
                     <div class="rounded-xl border border-slate-200 p-3">
                       <p class="mx-auto mb-2 w-6 h-6 rounded-full text-xs font-bold text-white leading-6" id="poster-signature-step-dot-1" style="background:#0f172a">1</p>
-                      <p class="text-[11px] uppercase tracking-[0.14em] text-slate-500">Téléchargez</p>
-                      <p class="text-xs text-slate-700 mt-1">La carte sur votre téléphone</p>
+                      <p class="poster-step-title text-[11px] uppercase tracking-[0.14em] text-slate-500" data-step-title="1">Téléchargez</p>
+                      <p class="poster-step-desc text-xs text-slate-700 mt-1" data-step-desc="1">La carte sur votre téléphone</p>
                     </div>
                     <div class="rounded-xl border border-slate-200 p-3">
                       <p class="mx-auto mb-2 w-6 h-6 rounded-full text-xs font-bold text-white leading-6" id="poster-signature-step-dot-2" style="background:#0f172a">2</p>
-                      <p class="text-[11px] uppercase tracking-[0.14em] text-slate-500">Scannez</p>
-                      <p class="text-xs text-slate-700 mt-1">En caisse à chaque achat</p>
+                      <p class="poster-step-title text-[11px] uppercase tracking-[0.14em] text-slate-500" data-step-title="2">Scannez</p>
+                      <p class="poster-step-desc text-xs text-slate-700 mt-1" data-step-desc="2">En caisse à chaque achat</p>
                     </div>
                     <div class="rounded-xl border border-slate-200 p-3">
                       <p class="mx-auto mb-2 w-6 h-6 rounded-full text-xs font-bold text-white leading-6" id="poster-signature-step-dot-3" style="background:#0f172a">3</p>
-                      <p class="text-[11px] uppercase tracking-[0.14em] text-slate-500">Cumulez</p>
+                      <p class="poster-step-title text-[11px] uppercase tracking-[0.14em] text-slate-500" data-step-title="3">Cumulez</p>
                       <p class="text-xs text-slate-700 mt-1">Des avantages fidélité</p>
                     </div>
                   </div>
@@ -212,8 +310,9 @@ const apiBase = (
                 <div class="mt-auto rounded-[1rem] border border-dashed border-slate-400 bg-white/95 p-4">
                   <p class="text-[10px] uppercase tracking-[0.28em] text-slate-500">Votre commerce personnalisable</p>
                   <p class="text-sm font-semibold text-slate-900 mt-1">Adresse · Téléphone · Réseaux sociaux</p>
-                  <p class="text-xs text-slate-600 mt-1">Personnalisez cette affiche pour votre point de vente.</p>
+                  <p id="poster-signature-contact" class="text-xs text-slate-600 mt-1">Personnalisez cette affiche pour votre point de vente.</p>
                 </div>
+                <p id="poster-signature-footer" class="mt-3 text-center text-sm font-medium text-slate-700">Merci de soutenir le commerce local</p>
               </div>
             </div>
           </div>
@@ -235,6 +334,11 @@ const apiBase = (
     width: 100%;
     height: 100%;
     padding: 1.2cm;
+  }
+
+  .poster-safe-zone.safe-preview {
+    outline: 2px dashed rgba(14, 165, 233, 0.55);
+    outline-offset: -8mm;
   }
 
   @page {
@@ -287,6 +391,7 @@ const apiBase = (
 
     .poster-safe-zone {
       padding: 12mm !important;
+      outline: none !important;
     }
   }
 </style>
@@ -306,9 +411,32 @@ const apiBase = (
   const customTitleInput = document.getElementById('poster-custom-title');
   const customSubtitleInput = document.getElementById('poster-custom-subtitle');
   const customRewardInput = document.getElementById('poster-custom-reward');
+  const customFooterInput = document.getElementById('poster-custom-footer');
   const customAccentInput = document.getElementById('poster-custom-accent');
   const customBgInput = document.getElementById('poster-custom-bg');
+  const customTextInput = document.getElementById('poster-custom-text');
+  const showLogoInput = document.getElementById('poster-show-logo');
+  const bannerFileInput = document.getElementById('poster-banner-file');
+  const iconStyleInput = document.getElementById('poster-icon-style');
+  const step1TitleInput = document.getElementById('poster-step-1-title');
+  const step2TitleInput = document.getElementById('poster-step-2-title');
+  const step3TitleInput = document.getElementById('poster-step-3-title');
+  const step1DescInput = document.getElementById('poster-step-1-desc');
+  const step2DescInput = document.getElementById('poster-step-2-desc');
+  const step3DescInput = document.getElementById('poster-step-3-desc');
+  const addressInput = document.getElementById('poster-commerce-address');
+  const phoneInput = document.getElementById('poster-commerce-phone');
+  const siteInput = document.getElementById('poster-commerce-site');
+  const socialsInput = document.getElementById('poster-commerce-socials');
+  const hoursInput = document.getElementById('poster-commerce-hours');
+  const qrLabelInput = document.getElementById('poster-qr-label');
+  const qrSizeInput = document.getElementById('poster-qr-size');
+  const qrPositionInput = document.getElementById('poster-qr-position');
+  const qrFrameInput = document.getElementById('poster-qr-frame');
+  const showSafeZoneInput = document.getElementById('poster-show-safe-zone');
+  const contrastCheck = document.getElementById('poster-contrast-check');
   let posterBase = null;
+  let localBannerUrl = null;
 
   function normalizeTemplate(value) {
     const key = String(value || '').trim().toLowerCase();
@@ -338,9 +466,93 @@ const apiBase = (
     img.classList.remove('hidden');
   }
 
+  function setImageVisibility(id, visible) {
+    const img = document.getElementById(id);
+    if (!img) return;
+    img.classList.toggle('hidden', !visible || !img.getAttribute('src'));
+  }
+
   function setText(id, value) {
     const node = document.getElementById(id);
     if (node) node.textContent = value;
+  }
+
+  function hexToRgb(hex) {
+    const normalized = String(hex || '').replace('#', '').trim();
+    if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return null;
+    return {
+      r: parseInt(normalized.slice(0, 2), 16),
+      g: parseInt(normalized.slice(2, 4), 16),
+      b: parseInt(normalized.slice(4, 6), 16),
+    };
+  }
+
+  function luminance(hex) {
+    const rgb = hexToRgb(hex);
+    if (!rgb) return 0;
+    const transform = (value) => {
+      const channel = value / 255;
+      return channel <= 0.03928 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * transform(rgb.r) + 0.7152 * transform(rgb.g) + 0.0722 * transform(rgb.b);
+  }
+
+  function contrastRatio(a, b) {
+    const lighter = Math.max(luminance(a), luminance(b));
+    const darker = Math.min(luminance(a), luminance(b));
+    return (lighter + 0.05) / (darker + 0.05);
+  }
+
+  function setStepText(step, title, desc) {
+    document.querySelectorAll(`[data-step-title="${step}"]`).forEach((node) => {
+      node.textContent = node.textContent?.includes('.') ? `${step}. ${title}` : title;
+    });
+    document.querySelectorAll(`[data-step-desc="${step}"]`).forEach((node) => {
+      node.textContent = desc;
+    });
+  }
+
+  function setQrPosition(position) {
+    [
+      ['poster-essential-qr-grid', 'poster-essential-qr-card', 'poster-essential-side-left', 'poster-essential-side-right'],
+      ['poster-signature-qr-grid', 'poster-signature-qr-card', 'poster-signature-side-left', 'poster-signature-side-right'],
+    ].forEach(([gridId, qrId, leftId, rightId]) => {
+      const grid = document.getElementById(gridId);
+      const qr = document.getElementById(qrId);
+      const left = document.getElementById(leftId);
+      const right = document.getElementById(rightId);
+      if (!grid || !qr || !left || !right) return;
+      grid.style.gridTemplateColumns = position === 'center' ? '1fr 86mm 1fr' : '86mm 1fr 1fr';
+      qr.style.order = position === 'right' ? '3' : '1';
+      left.style.order = position === 'left' ? '2' : '1';
+      right.style.order = position === 'left' ? '3' : '2';
+      if (position === 'center') {
+        left.style.order = '1';
+        qr.style.order = '2';
+        right.style.order = '3';
+      }
+    });
+  }
+
+  function setQrFrame(frame, accent) {
+    document.querySelectorAll('.poster-qr-card').forEach((card) => {
+      card.style.borderRadius = frame === 'square' ? '0.35rem' : '1.1rem';
+      card.style.borderColor = frame === 'premium' ? accent : '#cbd5e1';
+      card.style.boxShadow = frame === 'premium' ? `0 18px 45px ${accent}33` : '';
+    });
+    ['poster-essential-qr', 'poster-signature-qr'].forEach((id) => {
+      const img = document.getElementById(id);
+      if (!img) return;
+      img.style.borderRadius = frame === 'square' ? '0.15rem' : '0.75rem';
+      img.style.borderColor = frame === 'premium' ? accent : '#e2e8f0';
+    });
+  }
+
+  function contactLine() {
+    return [addressInput?.value, phoneInput?.value, siteInput?.value, socialsInput?.value, hoursInput?.value]
+      .map((value) => String(value || '').trim())
+      .filter(Boolean)
+      .join(' · ');
   }
 
   function applyCustomizations() {
@@ -349,19 +561,39 @@ const apiBase = (
     const title = (customTitleInput?.value || '').trim() || posterBase.defaultTitle;
     const subtitle = (customSubtitleInput?.value || '').trim() || posterBase.defaultSubtitle;
     const reward = (customRewardInput?.value || '').trim() || posterBase.defaultReward;
+    const footer = (customFooterInput?.value || '').trim() || posterBase.defaultFooter;
     const accent = (customAccentInput?.value || posterBase.defaultAccent || '#6366f1').trim();
     const background = (customBgInput?.value || posterBase.defaultBackground || '#0f172a').trim();
+    const textColor = (customTextInput?.value || posterBase.defaultText || '#0f172a').trim();
+    const qrSize = Number(qrSizeInput?.value || 72);
+    const qrLabel = (qrLabelInput?.value || 'Scannez-moi').trim();
+    const qrPosition = (qrPositionInput?.value || 'center').trim();
+    const qrFrame = (qrFrameInput?.value || 'rounded').trim();
+    const showLogo = Boolean(showLogoInput?.checked);
+    const bannerUrl = localBannerUrl || posterBase.stripUrl;
+    const iconStyle = (iconStyleInput?.value || 'numbers').trim();
 
     setText('poster-essential-title', title);
     setText('poster-essential-subtitle', subtitle);
     setText('poster-essential-subtitle-mini', subtitle);
     setText('poster-essential-reward', reward);
+    setText('poster-essential-footer', footer);
     setText('poster-signature-title', title);
     setText('poster-signature-copy', subtitle);
     setText('poster-signature-reward', reward);
+    setText('poster-signature-footer', footer);
+    setText('poster-essential-scan-pill', qrLabel);
+    setText('poster-signature-scan-pill', qrLabel);
+    setText('poster-essential-contact', contactLine());
+    setText('poster-signature-contact', contactLine() || 'Adresse · Téléphone · Réseaux sociaux');
+
+    setStepText(1, (step1TitleInput?.value || 'Téléchargez').trim(), (step1DescInput?.value || 'Votre carte wallet en 10 sec').trim());
+    setStepText(2, (step2TitleInput?.value || 'Scannez').trim(), (step2DescInput?.value || 'En caisse à chaque achat').trim());
+    setStepText(3, (step3TitleInput?.value || 'Cumulez').trim(), (step3DescInput?.value || reward).trim());
 
     const essentialHero = document.getElementById('poster-essential-hero');
     if (essentialHero) essentialHero.style.background = `linear-gradient(135deg, ${background}, ${accent})`;
+    if (essentialHero) essentialHero.style.color = '#ffffff';
 
     const essentialBadge = document.getElementById('poster-essential-badge');
     if (essentialBadge) {
@@ -380,11 +612,51 @@ const apiBase = (
       const dot = document.getElementById(id);
       if (dot) dot.style.background = accent;
     });
+    const iconValues = iconStyle === 'icons' ? ['▣', '⌁', '★'] : ['1', '2', '3'];
+    ['poster-essential-step-dot-', 'poster-signature-step-dot-'].forEach((prefix) => {
+      iconValues.forEach((value, index) => setText(`${prefix}${index + 1}`, value));
+    });
 
     const signatureBanner = document.getElementById('poster-signature-banner');
-    if (signatureBanner) signatureBanner.style.background = posterBase.stripUrl
-      ? `linear-gradient(rgba(15,23,42,0.34), rgba(15,23,42,0.55)), url("${posterBase.stripUrl}") center/cover`
+    if (signatureBanner) signatureBanner.style.background = bannerUrl
+      ? `linear-gradient(rgba(15,23,42,0.34), rgba(15,23,42,0.55)), url("${bannerUrl}") center/cover`
       : `linear-gradient(135deg, ${background}, ${accent})`;
+
+    const essentialBannerWrap = document.getElementById('poster-essential-banner-wrap');
+    const essentialBanner = document.getElementById('poster-essential-banner');
+    if (essentialBannerWrap && essentialBanner) {
+      essentialBannerWrap.classList.toggle('hidden', !bannerUrl);
+      if (bannerUrl) essentialBanner.src = bannerUrl;
+    }
+
+    ['poster-essential-qr', 'poster-signature-qr'].forEach((id) => {
+      const img = document.getElementById(id);
+      if (!img) return;
+      img.style.width = `${qrSize}mm`;
+      img.style.height = `${qrSize}mm`;
+    });
+
+    setImageVisibility('poster-essential-logo', showLogo);
+    setImageVisibility('poster-signature-logo', showLogo);
+    setQrPosition(qrPosition);
+    setQrFrame(qrFrame, accent);
+
+    document.querySelectorAll('.poster-safe-zone').forEach((node) => {
+      node.classList.toggle('safe-preview', Boolean(showSafeZoneInput?.checked));
+    });
+
+    document.querySelectorAll('.poster-side-card').forEach((node) => {
+      node.style.color = textColor;
+    });
+
+    const ratio = contrastRatio(background, textColor);
+    if (contrastCheck) {
+      const ok = ratio >= 4.5;
+      contrastCheck.textContent = ok ? 'Contraste vérifié pour impression' : 'Contraste faible: augmentez l’écart fond / texte';
+      contrastCheck.className = ok
+        ? 'rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700'
+        : 'rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800';
+    }
   }
 
   function renderTemplate(name) {
@@ -430,7 +702,9 @@ const apiBase = (
       const accent = data.carte.couleur_accent ?? '#6366f1';
       const fond = data.carte.couleur_fond ?? '#0f172a';
       const fond2 = data.carte.couleur_fond_2 ?? accent;
+      const textColor = data.carte.couleur_texte ?? '#0f172a';
       const defaultTitle = 'VOS ACHATS D’ICI RÉCOMPENSÉS !';
+      const defaultFooter = 'Merci de soutenir le commerce local';
 
       setText('poster-essential-commerce', commerceName);
       setText('poster-essential-title', defaultTitle);
@@ -479,16 +753,29 @@ const apiBase = (
         defaultTitle,
         defaultSubtitle: message,
         defaultReward: reward,
+        defaultFooter,
         defaultAccent: accent,
         defaultBackground: fond,
+        defaultText: textColor,
         stripUrl: data.carte.strip_url ?? null,
       };
 
       if (customTitleInput) customTitleInput.value = defaultTitle;
       if (customSubtitleInput) customSubtitleInput.value = message;
       if (customRewardInput) customRewardInput.value = reward;
+      if (customFooterInput) customFooterInput.value = defaultFooter;
       if (customAccentInput) customAccentInput.value = accent;
       if (customBgInput) customBgInput.value = fond;
+      if (customTextInput) customTextInput.value = textColor;
+      if (step1TitleInput) step1TitleInput.value = 'Téléchargez';
+      if (step2TitleInput) step2TitleInput.value = 'Scannez';
+      if (step3TitleInput) step3TitleInput.value = 'Cumulez';
+      if (step1DescInput) step1DescInput.value = 'Votre carte wallet en 10 sec';
+      if (step2DescInput) step2DescInput.value = 'En caisse à chaque achat';
+      if (step3DescInput) step3DescInput.value = reward;
+      if (addressInput) addressInput.value = data.point_vente?.adresse || data.commerce?.adresse || '';
+      if (phoneInput) phoneInput.value = data.commerce?.telephone || '';
+      if (siteInput) siteInput.value = data.commerce?.site_web || '';
 
       document.getElementById('poster-loading').classList.add('hidden');
       document.getElementById('poster-stage').classList.remove('hidden');
@@ -502,10 +789,24 @@ const apiBase = (
 
   document.getElementById('print-poster').addEventListener('click', () => window.print());
   document.getElementById('download-qr').addEventListener('click', downloadQr);
+  bannerFileInput?.addEventListener('change', () => {
+    const file = bannerFileInput.files?.[0];
+    if (!file) return;
+    if (localBannerUrl) URL.revokeObjectURL(localBannerUrl);
+    localBannerUrl = URL.createObjectURL(file);
+    applyCustomizations();
+  });
   document.querySelectorAll('.poster-template-btn').forEach((button) => {
     button.addEventListener('click', () => renderTemplate(button.dataset.template || 'essential'));
   });
-  [customTitleInput, customSubtitleInput, customRewardInput, customAccentInput, customBgInput]
+  [
+    customTitleInput, customSubtitleInput, customRewardInput, customFooterInput,
+    customAccentInput, customBgInput, customTextInput, showLogoInput,
+    iconStyleInput, step1TitleInput, step2TitleInput, step3TitleInput,
+    step1DescInput, step2DescInput, step3DescInput, addressInput,
+    phoneInput, siteInput, socialsInput, hoursInput, qrLabelInput,
+    qrSizeInput, qrPositionInput, qrFrameInput, showSafeZoneInput,
+  ]
     .filter(Boolean)
     .forEach((field) => field.addEventListener('input', applyCustomizations));
 

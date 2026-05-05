@@ -6,6 +6,9 @@ interface Props {
 }
 const { activeNav = '' } = Astro.props;
 const navItems = DASHBOARD_NAV_ITEMS;
+const mobilePrimaryNavIds = ['dashboard', 'carte', 'notifications', 'clients'];
+const mobilePrimaryNavItems = navItems.filter((item) => mobilePrimaryNavIds.includes(item.id));
+const mobileMoreNavItems = navItems.filter((item) => !mobilePrimaryNavIds.includes(item.id));
 ---
 
 <aside class="hidden lg:flex w-[17.5rem] shrink-0 h-full min-h-0 flex-col border-r border-slate-200/60 bg-white/88 backdrop-blur-2xl shadow-[0_18px_42px_-30px_rgba(15,23,42,0.28)]">
@@ -93,7 +96,7 @@ const navItems = DASHBOARD_NAV_ITEMS;
 
 <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-slate-200/70 bg-white/94 backdrop-blur-2xl px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.55rem)] shadow-[0_-12px_26px_-22px_rgba(15,23,42,0.5)]">
   <div class="grid grid-cols-5 gap-1">
-    {navItems.filter((item) => item.id !== 'points-vente').slice(0, 5).map(({ href, id, label, paths }) => (
+    {mobilePrimaryNavItems.map(({ href, id, label, paths }) => (
       <a
         href={href}
         class={`min-w-0 flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[0.68rem] transition-all
@@ -108,8 +111,66 @@ const navItems = DASHBOARD_NAV_ITEMS;
         <span class="truncate max-w-full">{label}</span>
       </a>
     ))}
+    <button
+      id="dashboard-mobile-more-btn"
+      type="button"
+      class={`min-w-0 flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[0.68rem] transition-all
+        ${mobileMoreNavItems.some((item) => item.id === activeNav)
+          ? 'bg-gradient-to-r from-blue-600 to-indigo-500 text-white font-semibold shadow-[0_10px_18px_-16px_rgba(37,99,235,0.7)]'
+          : 'text-slate-500 hover:text-slate-800'
+        }`}
+      aria-expanded="false"
+      aria-controls="dashboard-mobile-more-panel"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 leading-none">
+        <path d="M4 7h16"></path>
+        <path d="M4 12h16"></path>
+        <path d="M4 17h16"></path>
+      </svg>
+      <span>Plus</span>
+    </button>
   </div>
 </nav>
+
+<div id="dashboard-mobile-more-backdrop" class="hidden lg:hidden fixed inset-0 z-50 bg-slate-950/35 backdrop-blur-[2px]"></div>
+<section
+  id="dashboard-mobile-more-panel"
+  class="hidden lg:hidden fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+5.35rem)] z-50 rounded-[1.55rem] border border-slate-200/80 bg-white/96 p-3 shadow-[0_28px_70px_-28px_rgba(15,23,42,0.45)] backdrop-blur-2xl"
+  aria-label="Menu complet espace commerçant"
+>
+  <div class="mb-2 flex items-center justify-between px-1">
+    <div>
+      <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-sky-700/75">Menu</p>
+      <p class="text-sm font-semibold text-slate-900">Espace commerçant</p>
+    </div>
+    <button id="dashboard-mobile-more-close" type="button" class="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500">
+      Fermer
+    </button>
+  </div>
+  <div class="grid gap-1.5">
+    {mobileMoreNavItems.map(({ href, id, label, paths }) => (
+      <a
+        href={href}
+        class={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm transition-all
+          ${activeNav === id
+            ? 'bg-gradient-to-r from-blue-600 to-indigo-500 text-white font-semibold shadow-[0_12px_24px_-18px_rgba(37,99,235,0.8)]'
+            : 'text-slate-600 hover:bg-sky-50 hover:text-slate-900'
+          }`}
+      >
+        <span class={`flex h-9 w-9 items-center justify-center rounded-2xl border ${activeNav === id ? 'border-white/25 bg-white/15' : 'border-slate-200 bg-white text-sky-600'}`}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+            {paths.map((path) => <path d={path}></path>)}
+          </svg>
+        </span>
+        <span>{label}</span>
+      </a>
+    ))}
+    <a href="/app/install" class="mt-1 flex items-center justify-between rounded-2xl border border-sky-200 bg-sky-50 px-3 py-3 text-sm font-semibold text-sky-800">
+      <span>Installer un scanner équipe</span>
+      <span aria-hidden="true">→</span>
+    </a>
+  </div>
+</section>
 
 <script>
   import { ACTIVE_POINT_VENTE_STORAGE_KEY, authFetch } from '../../lib/api';
@@ -130,6 +191,26 @@ const navItems = DASHBOARD_NAV_ITEMS;
   const mobilePlanBadge = document.getElementById('dashboard-plan-badge-mobile');
   const pointVenteSelect = document.getElementById('dashboard-point-vente-select') as HTMLSelectElement | null;
   const pointVenteUsage = document.getElementById('dashboard-point-vente-usage');
+  const mobileMoreBtn = document.getElementById('dashboard-mobile-more-btn');
+  const mobileMoreClose = document.getElementById('dashboard-mobile-more-close');
+  const mobileMoreBackdrop = document.getElementById('dashboard-mobile-more-backdrop');
+  const mobileMorePanel = document.getElementById('dashboard-mobile-more-panel');
+
+  function setMobileMoreOpen(isOpen: boolean) {
+    mobileMorePanel?.classList.toggle('hidden', !isOpen);
+    mobileMoreBackdrop?.classList.toggle('hidden', !isOpen);
+    mobileMoreBtn?.setAttribute('aria-expanded', String(isOpen));
+  }
+
+  mobileMoreBtn?.addEventListener('click', () => {
+    const isOpen = mobileMoreBtn.getAttribute('aria-expanded') === 'true';
+    setMobileMoreOpen(!isOpen);
+  });
+  mobileMoreClose?.addEventListener('click', () => setMobileMoreOpen(false));
+  mobileMoreBackdrop?.addEventListener('click', () => setMobileMoreOpen(false));
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') setMobileMoreOpen(false);
+  });
 
   function emitPointVenteReady(pointVenteId: string | null) {
     window.dispatchEvent(new CustomEvent('fidelopass:point-vente-ready', {

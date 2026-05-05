@@ -108,11 +108,22 @@ export function buildBillingStatusPayload(record: BillingRecord | null): Billing
 
 export async function getBillingStatusForUser(userId: string): Promise<BillingStatusPayload> {
   const db = createServiceClient();
-  const { data, error } = await db
+  let result = await db
     .from('commerces')
     .select('id, plan, billing_status, stripe_subscription_id, trial_ends_at, onboarding_completed')
     .eq('user_id', userId)
-    .single();
+    .order('created_at', { ascending: true })
+    .limit(1);
+
+  if (result.error && /created_at/i.test(result.error.message ?? '')) {
+    result = await db
+      .from('commerces')
+      .select('id, plan, billing_status, stripe_subscription_id, trial_ends_at, onboarding_completed')
+      .eq('user_id', userId)
+      .limit(1);
+  }
+
+  const { data, error } = result;
 
   if (error) {
     // Cas normal: aucun commerce encore créé pour cet utilisateur.
@@ -123,5 +134,6 @@ export async function getBillingStatusForUser(userId: string): Promise<BillingSt
     throw error;
   }
 
-  return buildBillingStatusPayload((data as BillingRecord | null) ?? null);
+  const record = Array.isArray(data) ? (data[0] ?? null) : data;
+  return buildBillingStatusPayload((record as BillingRecord | null) ?? null);
 }

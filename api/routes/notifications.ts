@@ -18,6 +18,7 @@ const BIRTHDAY_SEND_HOUR = 10;
 const DEFAULT_BIRTHDAY_PUSH_TITLE = 'Joyeux anniversaire 🎉';
 const DEFAULT_BIRTHDAY_PUSH_MESSAGE = 'Votre bonus anniversaire est disponible sur votre carte Fidelopass.';
 const DEBUG_REVIEW_CAMPAIGN = process.env.DEBUG_REVIEW_CAMPAIGN === '1';
+const SMS_FEATURE_ENABLED = process.env.SMS_FEATURE_ENABLED === 'true';
 
 function reviewDebug(...args: unknown[]) {
   if (!DEBUG_REVIEW_CAMPAIGN) return;
@@ -971,7 +972,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
 
   // 4. SMS (si toggle activé et crédits disponibles)
   let nbSmsEnvoyes = 0;
-  if (Boolean(flags?.sms_review_enabled) && Number(flags?.sms_credits ?? 0) > 0) {
+  if (SMS_FEATURE_ENABLED && Boolean(flags?.sms_review_enabled) && Number(flags?.sms_credits ?? 0) > 0) {
     const lienAvis = (carte as { google_maps_url?: string | null }).google_maps_url ?? '';
     const smsEligibles = eligibles.filter((cl) => !!(cl as { telephone?: string | null }).telephone);
     reviewDebug('[review-campaign] SMS éligibles:', smsEligibles.length);

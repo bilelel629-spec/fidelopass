@@ -61,6 +61,10 @@ const createSessionSchema = z.object({
   dryRun: z.boolean().optional().default(false),
 });
 
+const reconcileSessionSchema = z.object({
+  sessionId: z.string().min(8),
+});
+
 type PriceSlot =
   | 'starter_mensuel'
   | 'starter_annuel_once'
@@ -151,10 +155,23 @@ function resolveCommitmentLabelFromSlot(slot: PriceSlot) {
   return 'unknown';
 }
 
+function normalizeBillingStatusFromSubscription(status: string | null | undefined) {
+  if (!status) return 'unpaid';
+  if (status === 'active') return 'active';
+  if (status === 'trialing') return 'trialing';
+  if (status === 'past_due') return 'past_due';
+  if (status === 'canceled') return 'canceled';
+  return 'unpaid';
+}
+
 function resolvePlanFromSlot(slot: PriceSlot): 'starter' | 'pro' | null {
   if (slot.startsWith('starter_')) return 'starter';
   if (slot.startsWith('pro_')) return 'pro';
   return null;
+}
+
+function isAnnualOnceSlot(slot: PriceSlot | null | undefined) {
+  return slot === 'starter_annuel_once' || slot === 'pro_annuel_once';
 }
 
 type CheckoutCommerceRecord = {
@@ -646,6 +663,106 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erreur Stripe lors de la création de session.';
     console.error('[checkout] create-session error:', message);
+    return c.json({ error: message }, 400);
+  }
+});
+
+/** POST /api/checkout/reconcile-session
+ * Fallback immédiat après Stripe Checkout: si le webhook est en retard,
+ * on synchronise l'état minimal du commerce depuis la session Stripe.
+ */
+checkoutRoutes.post('/reconcile-session', authMiddleware, async (c) => {
+  const userId = c.get('userId') as string;
+  const body = await c.req.json().catch(() => null);
+  const parsed = reconcileSessionSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: 'Session Stripe invalide.' }, 400);
+  }
+
+  const stripe = getStripe();
+  const db = createServiceClient();
+  const priceIds = loadPriceIds();
+  const { sessionId } = parsed.data;
+
+  try {
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const sessionUserId = String(session.metadata?.user_id ?? '');
+    if (sessionUserId && sessionUserId !== userId) {
+      return c.json({ error: 'Session Stripe non autorisée.' }, 403);
+    }
+
+    let commerce = await findCheckoutCommerceById(db, session.metadata?.commerce_id);
+    if (!commerce) commerce = await findCheckoutCommerceForUser(db, userId);
+    if (!commerce) {
+      return c.json({ error: 'Commerce introuvable pour cette session.' }, 404);
+    }
+
+    const lineItems = await stripe.checkout.sessions.listLineItems(sessionId, { limit: 20 });
+    const purchasedPriceIds = lineItems.data
+      .map((item) => item.price?.id)
+      .filter((id): id is string => Boolean(id));
+    const slotFromMetadataRaw = String(session.metadata?.selected_price_slot ?? '').trim();
+    const selectedSlot = (
+      slotFromMetadataRaw && PRICE_SLOTS.includes(slotFromMetadataRaw as PriceSlot)
+        ? slotFromMetadataRaw as PriceSlot
+        : purchasedPriceIds
+          .map((id) => resolvePriceSlot(id, priceIds))
+          .find((slot): slot is PriceSlot => Boolean(slot))
+    ) ?? null;
+
+    const selectedPlanFromMetadata = (() => {
+      const plan = String(session.metadata?.selected_plan ?? '').toLowerCase();
+      return (plan === 'starter' || plan === 'pro') ? plan : null;
+    })();
+    const selectedPlan = selectedPlanFromMetadata ?? (selectedSlot ? resolvePlanFromSlot(selectedSlot) : null);
+    const updates: Record<string, unknown> = {};
+
+    if (session.customer && typeof session.customer === 'string') {
+      updates.stripe_customer_id = session.customer;
+    }
+
+    if (selectedPlan) {
+      updates.plan = selectedPlan;
+      if (session.mode === 'subscription' && session.subscription) {
+        const subscriptionId = typeof session.subscription === 'string'
+          ? session.subscription
+          : session.subscription.id;
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        updates.stripe_subscription_id = subscription.id;
+        updates.billing_status = normalizeBillingStatusFromSubscription(subscription.status);
+        updates.trial_ends_at = subscription.trial_end
+          ? new Date(subscription.trial_end * 1000).toISOString()
+          : null;
+      } else if (session.mode === 'payment' && isAnnualOnceSlot(selectedSlot)) {
+        // Compatibilité avec le modèle actuel: l'accès annuel payé en une fois
+        // expire via trial_ends_at, même si le nom du champ est historique.
+        updates.billing_status = 'trialing';
+        updates.trial_ends_at = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+      } else if (session.payment_status === 'paid') {
+        updates.billing_status = 'active';
+      }
+    }
+
+    const hasAccompagnement = String(session.metadata?.onboarding_addon ?? '') === 'true'
+      || purchasedPriceIds.some((id) => resolvePriceSlot(id, priceIds) === 'accompagnement');
+    if (hasAccompagnement) {
+      updates.onboarding_purchased = true;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      const { error } = await db
+        .from('commerces')
+        .update(updates)
+        .eq('id', commerce.id)
+        .eq('user_id', userId);
+      if (error) throw error;
+    }
+
+    const billing = await getBillingStatusForUser(userId);
+    return c.json({ ok: true, data: billing });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Impossible de synchroniser la session Stripe.';
+    console.error('[checkout] reconcile-session error:', message);
     return c.json({ error: message }, 400);
   }
 });

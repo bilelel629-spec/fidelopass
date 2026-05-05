@@ -15,6 +15,7 @@ const BIRTHDAY_SEND_HOUR = 10;
 const BIRTHDAY_WINDOW_MAX_MINUTE = 5;
 const DEFAULT_BIRTHDAY_PUSH_TITLE = 'Joyeux anniversaire 🎉';
 const DEFAULT_BIRTHDAY_PUSH_MESSAGE = 'Votre bonus anniversaire est disponible sur votre carte Fidelopass.';
+const SMS_FEATURE_ENABLED = process.env.SMS_FEATURE_ENABLED === 'true';
 
 type CronCarteRow = {
   id: string;
@@ -603,7 +604,7 @@ cronRoutes.get('/send-scheduled-sms', async (c) => {
   let sent = 0;
   let failed = 0;
 
-  if (pending?.length) {
+  if (SMS_FEATURE_ENABLED && pending?.length) {
     for (const sms of pending) {
       const result = await sendSMS(
         sms.telephone,

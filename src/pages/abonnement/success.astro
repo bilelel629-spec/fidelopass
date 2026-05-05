@@ -75,6 +75,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 1200);
   const POLL_INTERVAL_MS = 1800;
   const MAX_ATTEMPTS = 14;
+  const checkoutSessionId = new URLSearchParams(window.location.search).get('session_id');
 
   const copy = document.getElementById('success-copy') as HTMLParagraphElement;
   const progress = document.getElementById('progress-bar') as HTMLDivElement;
@@ -105,6 +106,21 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     return response.json().catch(() => null);
   }
 
+  async function reconcileCheckoutSession(token: string) {
+    if (!checkoutSessionId) return null;
+    const response = await fetch(`${API}/api/checkout/reconcile-session`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+      body: JSON.stringify({ sessionId: checkoutSessionId }),
+    });
+    if (!response.ok) return null;
+    return response.json().catch(() => null);
+  }
+
   function markActive() {
     progress.style.width = '100%';
     stepWebhook.className = 'rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3';
@@ -121,8 +137,27 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       return;
     }
 
+    const reconciledPayload = await reconcileCheckoutSession(token);
+    if (reconciledPayload?.data?.has_access) {
+      markActive();
+      window.setTimeout(() => {
+        window.location.replace(reconciledPayload.data.onboarding_completed ? '/dashboard' : '/onboarding');
+      }, 650);
+      return;
+    }
+
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
       progress.style.width = `${Math.min(92, 18 + attempt * 6)}%`;
+      if (attempt === 4 || attempt === 8) {
+        const retryReconcile = await reconcileCheckoutSession(token);
+        if (retryReconcile?.data?.has_access) {
+          markActive();
+          window.setTimeout(() => {
+            window.location.replace(retryReconcile.data.onboarding_completed ? '/dashboard' : '/onboarding');
+          }, 650);
+          return;
+        }
+      }
       const payload = await readBillingStatus(token);
       const billing = payload?.data;
       if (billing?.has_access) {

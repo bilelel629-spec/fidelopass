@@ -12,6 +12,7 @@ import { getEffectivePlanRaw } from '../utils/effective-plan';
 import { getPublicSiteUrl } from '../utils/public-site-url';
 
 const PUBLIC_SITE_URL = getPublicSiteUrl();
+const SMS_FEATURE_ENABLED = process.env.SMS_FEATURE_ENABLED === 'true';
 
 export const clientsRoutes = new Hono();
 
@@ -277,7 +278,7 @@ clientsRoutes.post('/', async (c) => {
   if (error) return c.json({ error: 'Erreur lors de la création du client' }, 500);
 
   // SMS bienvenue planifié 60 min après l'inscription
-  if (commerce && commerce.sms_welcome_enabled && (commerce.sms_credits ?? 0) > 0 && data.telephone) {
+  if (SMS_FEATURE_ENABLED && commerce && commerce.sms_welcome_enabled && (commerce.sms_credits ?? 0) > 0 && data.telephone) {
     const { data: pointVenteData } = await db
       .from('points_vente')
       .select('nom')

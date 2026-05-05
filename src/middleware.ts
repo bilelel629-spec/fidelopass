@@ -1,9 +1,14 @@
 import { defineMiddleware } from 'astro:middleware';
 
 const PROTECTED_PREFIXES = ['/dashboard', '/admin', '/onboarding', '/app'];
+const BILLING_GATE_PREFIXES = ['/abonnement/choix', '/abonnement/setup'];
 
 function isProtectedPath(pathname: string) {
   return PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
+function isBillingGatePath(pathname: string) {
+  return BILLING_GATE_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
 function getSessionTokenFromCookie(cookieHeader: string | null) {
@@ -82,12 +87,18 @@ export const onRequest = defineMiddleware(async (context, next) => {
   };
 
   const pathname = context.url.pathname;
-  if (!isProtectedPath(pathname)) {
+  const isProtected = isProtectedPath(pathname);
+  const isBillingGate = isBillingGatePath(pathname);
+
+  if (!isProtected && !isBillingGate) {
     return withSecurityHeaders(await next());
   }
 
   const token = getSessionTokenFromCookie(context.request.headers.get('cookie'));
   if (!token) {
+    if (isBillingGate) {
+      return withSecurityHeaders(Response.redirect(buildExternalRedirectUrl(context, '/register'), 302));
+    }
     const loginUrl = buildExternalRedirectUrl(context, '/login');
     loginUrl.searchParams.set('next', `${context.url.pathname}${context.url.search}`);
     return withSecurityHeaders(Response.redirect(loginUrl, 302));
@@ -112,7 +123,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }).finally(() => clearTimeout(timeoutId));
 
     if (billingResponse.status === 401) {
-      return withSecurityHeaders(redirectWithCookieClear(buildExternalRedirectUrl(context, '/login'), context.url));
+      return withSecurityHeaders(redirectWithCookieClear(
+        buildExternalRedirectUrl(context, isBillingGate ? '/register' : '/login'),
+        context.url,
+      ));
     }
 
     if (!billingResponse.ok) {
@@ -131,6 +145,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
 
     if (!billing?.has_access) {
+      if (isBillingGate) {
+        return withSecurityHeaders(await next());
+      }
       if (pathname.startsWith('/dashboard') || pathname === '/onboarding') {
         return withSecurityHeaders(Response.redirect(buildExternalRedirectUrl(context, '/abonnement/choix'), 302));
       }
@@ -143,6 +160,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
     if (pathname === '/onboarding' && billing?.onboarding_completed) {
       return withSecurityHeaders(Response.redirect(buildExternalRedirectUrl(context, '/dashboard'), 302));
+    }
+
+    if (isBillingGate) {
+      return withSecurityHeaders(Response.redirect(
+        buildExternalRedirectUrl(context, billing?.onboarding_completed ? '/dashboard' : '/onboarding'),
+        302,
+      ));
     }
   } catch {
     // En cas de timeout/réseau, on laisse passer et on délègue le contrôle d'accès aux APIs protégées.

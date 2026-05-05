@@ -169,7 +169,21 @@ const stripPositionSchema = z.string().default('50:50').refine((value) => {
   return Number.isFinite(x) && Number.isFinite(y) && x >= 0 && x <= 100 && y >= 0 && y <= 100;
 }, { message: 'Position de bannière invalide' });
 
-const mediaUrlSchema = z.string().trim().refine((value) => {
+function normalizeMediaInput(value: unknown) {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  if (!trimmed) return trimmed;
+  if (trimmed.startsWith('/') || /^https?:\/\//i.test(trimmed)) return trimmed;
+
+  const withoutDotSlash = trimmed.replace(/^\.\//, '');
+  const isSafeRelativePath = /^[a-zA-Z0-9/_\-.%]+$/.test(withoutDotSlash)
+    && !withoutDotSlash.split('/').includes('..');
+  if (isSafeRelativePath) return `/${withoutDotSlash}`;
+
+  return trimmed;
+}
+
+const mediaUrlSchema = z.preprocess(normalizeMediaInput, z.string().trim().refine((value) => {
   if (value.startsWith('/')) return true;
   try {
     const url = new URL(value);
@@ -177,7 +191,7 @@ const mediaUrlSchema = z.string().trim().refine((value) => {
   } catch {
     return false;
   }
-}, { message: 'URL média invalide' });
+}, { message: 'URL média invalide' }));
 
 const carteSchema = z.object({
   nom: z.string().min(2).max(255),

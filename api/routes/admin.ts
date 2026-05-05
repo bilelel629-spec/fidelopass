@@ -186,6 +186,7 @@ adminRoutes.patch('/commerces/:id/plan', async (c) => {
   if (updateResult.error) {
     const message = updateResult.error.message ?? '';
     const missingPlanOverrideColumn = updateResult.error.code === '42703'
+      || updateResult.error.code === 'PGRST204'
       || /plan_override/i.test(message)
       || /schema cache/i.test(message);
 

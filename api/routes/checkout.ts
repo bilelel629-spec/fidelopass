@@ -170,6 +170,13 @@ type CheckoutCommerceRecord = {
 const CHECKOUT_COMMERCE_SELECT = 'id, stripe_customer_id, stripe_subscription_id, plan, plan_override, billing_status, trial_ends_at';
 const CHECKOUT_COMMERCE_SELECT_FALLBACK = 'id, stripe_customer_id, stripe_subscription_id, plan, billing_status, trial_ends_at';
 
+function isMissingPlanOverrideLookupError(error: { code?: string; message?: string } | null | undefined) {
+  const message = error?.message ?? '';
+  return error?.code === '42703'
+    || error?.code === 'PGRST204'
+    || (/plan_override/i.test(message) && /schema cache|does not exist|could not find/i.test(message));
+}
+
 async function findCheckoutCommerceForUser(
   db: ReturnType<typeof createServiceClient>,
   userId: string,
@@ -188,8 +195,8 @@ async function findCheckoutCommerceForUser(
     result = await buildQuery().limit(1);
   }
 
-  if (result.error && /plan_override|schema cache|does not exist/i.test(result.error.message ?? '')) {
-    console.warn('[checkout] commerce lookup fallback without plan_override:', result.error.message);
+  if (isMissingPlanOverrideLookupError(result.error)) {
+    console.warn('[checkout] commerce lookup fallback without plan_override:', result.error?.message);
     result = await buildQuery(CHECKOUT_COMMERCE_SELECT_FALLBACK).limit(1);
   }
 
@@ -213,8 +220,8 @@ async function findCheckoutCommerceById(
     .eq('id', commerceId)
     .maybeSingle();
 
-  if (result.error && /plan_override|schema cache|does not exist/i.test(result.error.message ?? '')) {
-    console.warn('[checkout] commerce by id fallback without plan_override:', result.error.message);
+  if (isMissingPlanOverrideLookupError(result.error)) {
+    console.warn('[checkout] commerce by id fallback without plan_override:', result.error?.message);
     result = await db
       .from('commerces')
       .select(CHECKOUT_COMMERCE_SELECT_FALLBACK)

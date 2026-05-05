@@ -69,7 +69,8 @@ export async function resolveCommerceAndPointVente<T extends CommerceRow = Comme
     commerce = (commerceWithOverride as unknown as T | null) ?? null;
   } else {
     commerceErrorMessage = commerceWithOverrideError.message ?? '';
-    const missingOverrideColumn = /plan_override/i.test(commerceErrorMessage)
+    const missingOverrideColumn = (commerceWithOverrideError.code === '42703' || commerceWithOverrideError.code === 'PGRST204')
+      || /plan_override/i.test(commerceErrorMessage)
       && (/does not exist/i.test(commerceErrorMessage) || /schema cache/i.test(commerceErrorMessage));
 
     if (!missingOverrideColumn) {
@@ -150,10 +151,20 @@ export async function resolveCommerceAndPointVente<T extends CommerceRow = Comme
       .single();
 
     if (createPointError) {
-      throw createPointError;
-    }
+      // Si deux requêtes initialisent le même commerce en parallèle, on relit avant de bloquer.
+      const retry = await db
+        .from('points_vente')
+        .select(pointVenteFallbackSelect)
+        .eq('commerce_id', commerce.id)
+        .eq('actif', true)
+        .order('principal', { ascending: false })
+        .order('created_at', { ascending: true });
 
-    if (createdPoint) {
+      if (retry.error) throw createPointError;
+      const recoveredPoints = (retry.data ?? []) as PointVenteRow[];
+      if (recoveredPoints.length === 0) throw createPointError;
+      points = recoveredPoints;
+    } else if (createdPoint) {
       points = [createdPoint as PointVenteRow];
     }
   }

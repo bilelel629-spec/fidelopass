@@ -209,6 +209,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   let accompagnementPriceId: string | null = null;
   let currentBrief: AssistantBrief | null = null;
+  const assistantParams = new URLSearchParams(window.location.search);
+  const checkoutSuccess = assistantParams.get('checkout') === 'success';
 
   const steps = [
     { key: 'brief', title: 'Éléments envoyés', desc: 'Votre brief, vos visuels et vos indications sont transmis.' },
@@ -296,6 +298,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       : 'Remplissez le brief design pour que notre équipe démarre la création.';
 
     successBox.classList.remove('hidden');
+    successBox.textContent = currentBrief?.id
+      ? 'Accompagnement activé. Votre brief est bien pris en compte et reste modifiable tant que la carte n’est pas publiée.'
+      : 'Accompagnement activé. Remplissez le brief ci-dessous pour que notre équipe puisse démarrer.';
     workflow.classList.remove('hidden');
     briefCard.classList.remove('hidden');
     nextAction.classList.remove('hidden');
@@ -305,6 +310,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     readyBox.classList.toggle('hidden', status !== 'ready_for_review');
     renderTimeline(status);
     fillForm(currentBrief, fallbackName);
+
+    if (checkoutSuccess && !currentBrief?.id) {
+      window.setTimeout(() => briefCard.scrollIntoView({ behavior: 'smooth', block: 'start' }), 250);
+    }
 
     if (status === 'published') {
       submitBtn.disabled = true;
@@ -346,17 +355,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     nextAction.classList.add('hidden');
 
     try {
-      const [assistantRes, pricingRes] = await Promise.all([
-        authFetch('/api/assistant-card/brief'),
-        authFetch('/api/checkout/pricing-config'),
-      ]);
-
-      const assistantPayload = await assistantRes.json().catch(() => null);
+      const pricingRes = await authFetch('/api/checkout/pricing-config');
       const pricingPayload = await pricingRes.json().catch(() => null);
-      if (!assistantRes.ok) throw new Error(assistantPayload?.error ?? 'Impossible de charger votre accompagnement.');
-
       const addonPricing = pricingPayload?.data?.addons?.accompagnement ?? null;
-      accompagnementPriceId = addonPricing?.available ? String(addonPricing?.priceId ?? '') : null;
+      accompagnementPriceId = pricingRes.ok && addonPricing?.available ? String(addonPricing?.priceId ?? '') : null;
+
+      const assistantRes = await authFetch('/api/assistant-card/brief');
+      const assistantPayload = await assistantRes.json().catch(() => null);
+      if (!assistantRes.ok) throw new Error(assistantPayload?.error ?? 'Impossible de charger votre accompagnement.');
 
       const data = assistantPayload?.data ?? {};
       const hasAddon = Boolean(data?.purchased);
@@ -385,7 +391,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       statusTitle.textContent = 'Statut indisponible';
       statusDesc.textContent = 'Impossible de récupérer les informations pour le moment.';
       purchaseBox.classList.remove('hidden');
-      buyBtn.disabled = true;
+      buyBtn.disabled = !accompagnementPriceId;
       setError(error instanceof Error ? error.message : 'Impossible de charger le statut d’accompagnement.');
     }
   }

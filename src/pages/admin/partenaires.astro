@@ -74,6 +74,23 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       <button id="attach-commerce-btn" type="button" class="btn-primary px-5 py-3 text-sm">Rattacher</button>
     </div>
   </section>
+
+  <section class="card dashboard-panel mt-6 p-6">
+    <h2 class="font-display text-xl font-bold text-slate-900">Donner accès à un partenaire</h2>
+    <p class="mt-1 text-sm text-slate-500">
+      Rattachez un utilisateur Supabase existant à un partenaire. L’utilisateur pourra se connecter sur l’espace partenaire.
+    </p>
+    <div class="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_0.7fr_auto]">
+      <select id="partner-user-select" class="input"><option>Chargement...</option></select>
+      <input id="partner-user-email" class="input" placeholder="Email du compte partenaire" />
+      <select id="partner-user-role" class="input">
+        <option value="owner">Owner</option>
+        <option value="manager">Manager</option>
+        <option value="viewer">Viewer lecture seule</option>
+      </select>
+      <button id="attach-user-btn" type="button" class="btn-primary px-5 py-3 text-sm">Ajouter l’accès</button>
+    </div>
+  </section>
 </AdminLayout>
 
 <script>
@@ -128,6 +145,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
           </div>
           <div class="flex flex-wrap gap-2 text-xs">
             <span class="rounded-full bg-sky-50 px-3 py-1 font-semibold text-sky-700">${partner.commerces_count ?? 0}/${partner.included_commerces ?? 0} commerces</span>
+            <span class="rounded-full bg-indigo-50 px-3 py-1 font-semibold text-indigo-700">${partner.users_count ?? 0} accès</span>
             <span class="rounded-full ${partner.active === false ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'} px-3 py-1 font-semibold">${partner.active === false ? 'Inactif' : 'Actif'}</span>
           </div>
         </div>
@@ -136,6 +154,11 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
     const partnerSelect = document.getElementById('partner-select') as HTMLSelectElement;
     partnerSelect.innerHTML = '<option value="">Aucun partenaire</option>' + partners
+      .map((partner) => `<option value="${partner.id}">${partner.name}</option>`)
+      .join('');
+
+    const partnerUserSelect = document.getElementById('partner-user-select') as HTMLSelectElement;
+    partnerUserSelect.innerHTML = partners
       .map((partner) => `<option value="${partner.id}">${partner.name}</option>`)
       .join('');
   }
@@ -195,6 +218,28 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       return;
     }
     feedback(partnerId ? 'Commerce rattaché au partenaire.' : 'Rattachement retiré.');
+    await loadAll();
+  });
+
+  document.getElementById('attach-user-btn')?.addEventListener('click', async () => {
+    const partnerId = (document.getElementById('partner-user-select') as HTMLSelectElement).value;
+    const email = (document.getElementById('partner-user-email') as HTMLInputElement).value.trim();
+    const role = (document.getElementById('partner-user-role') as HTMLSelectElement).value;
+    if (!partnerId || !email) {
+      feedback('Choisissez un partenaire et renseignez l’email utilisateur.', 'error');
+      return;
+    }
+    const res = await adminFetch(`/api/admin/partners/${partnerId}/users`, {
+      method: 'POST',
+      body: JSON.stringify({ email, role, active: true }),
+    });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) {
+      feedback(payload?.error ?? 'Impossible de rattacher cet utilisateur.', 'error');
+      return;
+    }
+    (document.getElementById('partner-user-email') as HTMLInputElement).value = '';
+    feedback('Accès partenaire ajouté.');
     await loadAll();
   });
 

@@ -36,6 +36,15 @@ const commercePartnerSchema = z.object({
   white_label_enabled: z.boolean().optional(),
 });
 
+const partnerUserSchema = z.object({
+  user_id: z.string().uuid().optional(),
+  email: z.string().trim().email().optional(),
+  role: z.enum(['owner', 'manager', 'viewer']).default('owner'),
+  active: z.boolean().optional().default(true),
+}).refine((value) => Boolean(value.user_id || value.email), {
+  message: 'Renseignez l’email ou l’UUID utilisateur.',
+});
+
 function whiteLabelPlanDefaults(plan: string) {
   if (plan === 'white_label_pro') {
     return { included_commerces: 25, monthly_price_cents: 44900 };
@@ -44,6 +53,17 @@ function whiteLabelPlanDefaults(plan: string) {
     return { included_commerces: 0, monthly_price_cents: 0 };
   }
   return { included_commerces: 10, monthly_price_cents: 19900 };
+}
+
+async function findAdminUserIdByEmail(db: ReturnType<typeof createServiceClient>, email: string): Promise<string | null> {
+  const normalized = email.trim().toLowerCase();
+  const { data, error } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  if (error) {
+    console.warn('[admin] auth user lookup failed:', error.message);
+    return null;
+  }
+  const user = data.users.find((candidate) => candidate.email?.toLowerCase() === normalized);
+  return user?.id ?? null;
 }
 
 adminRoutes.get('/audit-logs', async (c) => {
@@ -240,6 +260,63 @@ adminRoutes.patch('/partners/:id', async (c) => {
     targetType: 'partner',
     targetId: partnerId,
     payload: { changed_fields: Object.keys(parsed.data) },
+  });
+
+  return c.json({ data });
+});
+
+/** POST /api/admin/partners/:id/users — Rattache un utilisateur Supabase à un partenaire */
+adminRoutes.post('/partners/:id/users', async (c) => {
+  const partnerId = c.req.param('id');
+  const body = await c.req.json().catch(() => null);
+  const parsed = partnerUserSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.errors[0]?.message ?? 'Utilisateur partenaire invalide.' }, 400);
+  }
+
+  const adminUser = c.get('user');
+  const adminUserId = c.get('userId') as string;
+  const db = createServiceClient();
+
+  const { data: partner, error: partnerError } = await db
+    .from('partners')
+    .select('id, name')
+    .eq('id', partnerId)
+    .single();
+  if (partnerError || !partner) return c.json({ error: 'Partenaire introuvable.' }, 404);
+
+  const partnerUserId = parsed.data.user_id
+    ?? (parsed.data.email ? await findAdminUserIdByEmail(db, parsed.data.email) : null);
+  if (!partnerUserId) {
+    return c.json({ error: 'Utilisateur introuvable. Le partenaire doit d’abord créer son compte.' }, 404);
+  }
+
+  const { data, error } = await db
+    .from('partner_users')
+    .upsert({
+      partner_id: partnerId,
+      user_id: partnerUserId,
+      role: parsed.data.role,
+      active: parsed.data.active,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'partner_id,user_id' })
+    .select('id, partner_id, user_id, role, active')
+    .single();
+
+  if (error) return c.json({ error: error.message }, 500);
+
+  await appendAdminAuditLog({
+    adminUserId,
+    adminEmail: adminUser?.email ?? null,
+    action: 'partner.user.upserted',
+    targetType: 'partner',
+    targetId: partnerId,
+    payload: {
+      user_id: partnerUserId,
+      email: parsed.data.email ?? null,
+      role: parsed.data.role,
+      active: parsed.data.active,
+    },
   });
 
   return c.json({ data });

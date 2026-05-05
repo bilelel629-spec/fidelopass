@@ -6,13 +6,11 @@ interface Props {
   activeNav?: string;
 }
 
-const { title = 'Admin — Fidelopass', activeNav = '' } = Astro.props;
-
+const { title = 'Partenaire — Fidelopass', activeNav = '' } = Astro.props;
 const navItems = [
-  { href: '/admin', id: 'overview', label: 'Vue globale', paths: ['M4 13h6V4H4zm10 7h6v-9h-6zm0-11h6V4h-6zM4 20h6v-5H4z'] },
-  { href: '/admin/commerces', id: 'commerces', label: 'Commerces', paths: ['M3 21h18', 'M5 21V7l7-4 7 4v14', 'M9 9h.01', 'M15 9h.01'] },
-  { href: '/admin/partenaires', id: 'partenaires', label: 'Partenaires', paths: ['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2', 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8', 'M22 21v-2a4 4 0 0 0-3-3.87', 'M16 3.13a4 4 0 0 1 0 7.75'] },
-  { href: '/admin/cartes', id: 'cartes', label: 'Assistance cartes', paths: ['M4 6h16v12H4z', 'M8 10h8', 'M8 14h5'] },
+  { href: '/partner/dashboard', id: 'dashboard', label: 'Vue partenaire', paths: ['M4 13h6V4H4zm10 7h6v-9h-6zm0-11h6V4h-6zM4 20h6v-5H4z'] },
+  { href: '/partner/commerces', id: 'commerces', label: 'Commerces clients', paths: ['M3 21h18', 'M5 21V7l7-4 7 4v14', 'M9 9h.01', 'M15 9h.01'] },
+  { href: '/partner/branding', id: 'branding', label: 'White label', paths: ['M12 3l7 4v6c0 5-3.5 8-7 8s-7-3-7-8V7z', 'M9 12l2 2 4-4'] },
 ];
 ---
 
@@ -21,33 +19,24 @@ const navItems = [
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f5f9ff" />
+    <meta name="theme-color" content="#f8fafc" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <title>{title}</title>
-    <script is:inline>
-      (() => {
-        const KEY = 'fidelopass-theme';
-        try {
-          localStorage.removeItem(KEY);
-        } catch {}
-        document.documentElement.dataset.theme = 'light';
-        document.documentElement.classList.remove('dark');
-      })();
-    </script>
   </head>
   <body class="min-h-screen bg-transparent text-slate-900 antialiased">
     <div class="pointer-events-none fixed inset-0 overflow-hidden">
-      <div class="absolute -top-28 right-[-8rem] h-[28rem] w-[28rem] rounded-full bg-cyan-200/45 blur-3xl"></div>
-      <div class="absolute top-1/3 left-[-9rem] h-[24rem] w-[24rem] rounded-full bg-blue-100/80 blur-3xl"></div>
+      <div class="absolute -top-36 right-[-9rem] h-[32rem] w-[32rem] rounded-full bg-blue-200/40 blur-3xl"></div>
+      <div class="absolute top-[22%] left-[-11rem] h-[28rem] w-[28rem] rounded-full bg-indigo-200/25 blur-3xl"></div>
+      <div class="absolute bottom-[-9rem] right-[14%] h-[20rem] w-[20rem] rounded-full bg-cyan-200/25 blur-3xl"></div>
     </div>
 
     <div class="flex min-h-screen overflow-hidden">
-      <aside class="hidden lg:flex w-72 shrink-0 h-full flex-col border-r border-sky-100/90 bg-white/82 backdrop-blur-2xl shadow-[0_18px_50px_-30px_rgba(37,99,235,0.25)]">
+      <aside class="hidden lg:flex w-72 shrink-0 h-screen flex-col border-r border-sky-100/90 bg-white/86 backdrop-blur-2xl shadow-[0_18px_50px_-30px_rgba(37,99,235,0.25)]">
         <div class="px-6 py-6 border-b border-sky-100/90">
-          <a href="/admin" class="flex flex-col gap-2">
-            <img src="/logo-premium.png" alt="Fidelopass" class="h-14 w-48 object-cover object-center" />
-            <span class="w-fit rounded-full border border-red-200 bg-red-50 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-red-600">Admin</span>
+          <a href="/partner/dashboard" class="flex flex-col gap-2">
+            <img id="partner-layout-logo" src="/logo-premium.png" alt="Fidelopass" class="h-14 w-48 object-contain object-left" />
+            <span class="w-fit rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-sky-700">Partenaire white label</span>
           </a>
         </div>
         <nav class="flex-1 px-4 py-5 flex flex-col gap-1.5">
@@ -80,7 +69,7 @@ const navItems = [
       </aside>
 
       <main class="relative z-10 flex-1 overflow-y-auto">
-        <div class="p-4 sm:p-6 md:p-8 pt-24 lg:pt-8 max-w-7xl mx-auto">
+        <div class="p-4 sm:p-6 md:p-8 pt-8 max-w-7xl mx-auto">
           <slot />
         </div>
       </main>
@@ -89,7 +78,32 @@ const navItems = [
 </html>
 
 <script>
+  import { authFetch } from '../lib/api';
   import { getSession } from '../lib/auth';
+
   const session = await getSession();
-  if (!session) window.location.replace('/login');
+  if (!session) window.location.replace('/login?next=/partner/dashboard');
+
+  async function applyPartnerBranding() {
+    try {
+      const res = await authFetch('/api/partners/me');
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        if (res.status === 403) window.location.replace('/dashboard');
+        return;
+      }
+      const partner = payload?.data;
+      if (!partner) return;
+      document.title = document.title.replace('Fidelopass', partner.name ?? 'Partenaire');
+      const logo = document.getElementById('partner-layout-logo') as HTMLImageElement | null;
+      if (logo && partner.logo_url) {
+        logo.src = partner.logo_url;
+        logo.alt = partner.name ?? 'Partenaire';
+      }
+    } catch {
+      // best effort
+    }
+  }
+
+  await applyPartnerBranding();
 </script>

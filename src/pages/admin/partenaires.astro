@@ -1,0 +1,202 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Partenaires — Admin Fidelopass" activeNav="partenaires">
+  <div class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div>
+      <p class="dashboard-kicker">White label</p>
+      <h1 class="dashboard-title">Partenaires</h1>
+      <p class="dashboard-subtitle">Créez les offres white label, suivez les quotas et rattachez les commerces à un partenaire.</p>
+    </div>
+  </div>
+
+  <p id="partner-admin-feedback" class="mb-4 hidden rounded-xl border px-4 py-3 text-sm"></p>
+
+  <div class="grid gap-6 xl:grid-cols-[0.75fr_1.25fr]">
+    <section class="card dashboard-panel p-6">
+      <h2 class="font-display text-xl font-bold text-slate-900">Créer un partenaire</h2>
+      <form id="admin-partner-form" class="mt-5 space-y-4">
+        <label class="block">
+          <span class="label mb-2 block">Nom</span>
+          <input name="name" class="input" placeholder="Agence Dupont" required />
+        </label>
+        <label class="block">
+          <span class="label mb-2 block">Slug</span>
+          <input name="slug" class="input" placeholder="agence-dupont" required />
+        </label>
+        <label class="block">
+          <span class="label mb-2 block">Plan</span>
+          <select name="plan" class="input">
+            <option value="white_label_starter">White Label Starter — 199€/mois, 10 commerces</option>
+            <option value="white_label_pro">White Label Pro — 449€/mois, 25 commerces</option>
+            <option value="custom">Sur mesure</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="label mb-2 block">Logo URL</span>
+          <input name="logo_url" class="input" placeholder="https://..." />
+        </label>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="block">
+            <span class="label mb-2 block">Couleur 1</span>
+            <input name="primary_color" type="color" value="#2563eb" class="h-12 w-full rounded-xl border border-slate-200 bg-white" />
+          </label>
+          <label class="block">
+            <span class="label mb-2 block">Couleur 2</span>
+            <input name="secondary_color" type="color" value="#4f46e5" class="h-12 w-full rounded-xl border border-slate-200 bg-white" />
+          </label>
+        </div>
+        <button type="submit" class="btn-primary w-full px-4 py-3 text-sm">Créer le partenaire</button>
+      </form>
+    </section>
+
+    <section class="card dashboard-panel p-6">
+      <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h2 class="font-display text-xl font-bold text-slate-900">Partenaires existants</h2>
+          <p class="mt-1 text-sm text-slate-500">Utilisez ensuite la liste des commerces pour rattacher un commerce à un partenaire.</p>
+        </div>
+        <button id="refresh-partners" type="button" class="btn-secondary px-4 py-2.5 text-sm">Actualiser</button>
+      </div>
+      <div id="admin-partners-list" class="mt-5 space-y-3">
+        <p class="text-sm text-slate-500">Chargement...</p>
+      </div>
+    </section>
+  </div>
+
+  <section class="card dashboard-panel mt-6 p-6">
+    <h2 class="font-display text-xl font-bold text-slate-900">Rattacher un commerce</h2>
+    <p class="mt-1 text-sm text-slate-500">Sélectionnez un commerce et le partenaire qui doit porter son branding.</p>
+    <div class="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
+      <select id="commerce-select" class="input"><option>Chargement...</option></select>
+      <select id="partner-select" class="input"><option>Chargement...</option></select>
+      <button id="attach-commerce-btn" type="button" class="btn-primary px-5 py-3 text-sm">Rattacher</button>
+    </div>
+  </section>
+</AdminLayout>
+
+<script>
+  import { withTimeout } from '../../lib/utils/with-timeout';
+
+  const API_BASE = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
+  const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
+  let partners: any[] = [];
+  let commerces: any[] = [];
+
+  function feedback(message: string, tone: 'success' | 'error' = 'success') {
+    const el = document.getElementById('partner-admin-feedback')!;
+    el.textContent = message;
+    el.className = tone === 'success'
+      ? 'mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700'
+      : 'mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700';
+  }
+
+  async function getAccessTokenFast() {
+    const { supabase } = await import('../../lib/supabase');
+    const sessionResult = await withTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
+    const sessionToken = sessionResult?.data?.session?.access_token;
+    if (sessionToken) return sessionToken;
+    const refreshResult = await withTimeout(supabase.auth.refreshSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
+    return refreshResult?.data?.session?.access_token ?? '';
+  }
+
+  async function adminFetch(path: string, opts: RequestInit = {}) {
+    const accessToken = await getAccessTokenFast();
+    return fetch(`${API_BASE}${path}`, {
+      ...opts,
+      headers: {
+        ...(opts.headers ?? {}),
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+  }
+
+  function renderPartners() {
+    const list = document.getElementById('admin-partners-list')!;
+    if (!partners.length) {
+      list.innerHTML = '<p class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">Aucun partenaire white label.</p>';
+      return;
+    }
+    list.innerHTML = partners.map((partner) => `
+      <article class="rounded-2xl border border-slate-200 bg-white p-4">
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="font-semibold text-slate-950">${partner.name}</p>
+            <p class="text-xs text-slate-500">${partner.slug} · ${partner.plan_label ?? partner.plan}</p>
+          </div>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <span class="rounded-full bg-sky-50 px-3 py-1 font-semibold text-sky-700">${partner.commerces_count ?? 0}/${partner.included_commerces ?? 0} commerces</span>
+            <span class="rounded-full ${partner.active === false ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'} px-3 py-1 font-semibold">${partner.active === false ? 'Inactif' : 'Actif'}</span>
+          </div>
+        </div>
+      </article>
+    `).join('');
+
+    const partnerSelect = document.getElementById('partner-select') as HTMLSelectElement;
+    partnerSelect.innerHTML = '<option value="">Aucun partenaire</option>' + partners
+      .map((partner) => `<option value="${partner.id}">${partner.name}</option>`)
+      .join('');
+  }
+
+  function renderCommerces() {
+    const select = document.getElementById('commerce-select') as HTMLSelectElement;
+    select.innerHTML = commerces
+      .map((commerce) => `<option value="${commerce.id}">${commerce.nom} · ${commerce.email ?? ''}</option>`)
+      .join('');
+  }
+
+  async function loadAll() {
+    const [partnersRes, commercesRes] = await Promise.all([
+      adminFetch('/api/admin/partners'),
+      adminFetch('/api/admin/commerces'),
+    ]);
+    const partnersPayload = await partnersRes.json().catch(() => null);
+    const commercesPayload = await commercesRes.json().catch(() => null);
+    partners = Array.isArray(partnersPayload?.data) ? partnersPayload.data : [];
+    commerces = Array.isArray(commercesPayload?.data) ? commercesPayload.data : [];
+    renderPartners();
+    renderCommerces();
+  }
+
+  document.getElementById('admin-partner-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget as HTMLFormElement;
+    const data = new FormData(form);
+    const body = Object.fromEntries(data.entries());
+    if (!String(body.logo_url ?? '').trim()) delete body.logo_url;
+    const res = await adminFetch('/api/admin/partners', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) {
+      feedback(payload?.error ?? 'Impossible de créer le partenaire.', 'error');
+      return;
+    }
+    form.reset();
+    feedback('Partenaire créé.');
+    await loadAll();
+  });
+
+  document.getElementById('refresh-partners')?.addEventListener('click', () => loadAll());
+  document.getElementById('attach-commerce-btn')?.addEventListener('click', async () => {
+    const commerceId = (document.getElementById('commerce-select') as HTMLSelectElement).value;
+    const partnerId = (document.getElementById('partner-select') as HTMLSelectElement).value || null;
+    if (!commerceId) return;
+    const res = await adminFetch(`/api/admin/commerces/${commerceId}/partner`, {
+      method: 'PATCH',
+      body: JSON.stringify({ partner_id: partnerId, white_label_enabled: Boolean(partnerId) }),
+    });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) {
+      feedback(payload?.error ?? 'Impossible de rattacher le commerce.', 'error');
+      return;
+    }
+    feedback(partnerId ? 'Commerce rattaché au partenaire.' : 'Rattachement retiré.');
+    await loadAll();
+  });
+
+  await loadAll().catch((error) => feedback(error.message ?? 'Chargement impossible.', 'error'));
+</script>

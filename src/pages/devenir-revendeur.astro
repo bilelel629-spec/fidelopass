@@ -55,10 +55,31 @@ const formatEuro = (amount: number) => amount.toLocaleString('fr-FR', {
             </div>
             <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <p class="text-sm font-semibold text-slate-900">Modèle simple</p>
-              <p class="mt-1 text-sm text-slate-600">Abonnement fixe, jusqu’à 15 commerces inclus, puis add-ons selon le volume.</p>
+              <p class="mt-1 text-sm text-slate-600">Abonnement fixe: 10 commerces inclus en Starter, 25 commerces inclus en Pro, puis add-ons selon le volume.</p>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white px-4 py-16 sm:px-6">
+    <div class="mx-auto max-w-6xl">
+      <div class="max-w-2xl">
+        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-sky-700/70">Offres white label</p>
+        <h2 class="mt-4 font-display text-3xl font-bold text-slate-900 sm:text-4xl">Deux niveaux pour structurer votre activité partenaire</h2>
+      </div>
+      <div class="mt-10 grid gap-5 md:grid-cols-2">
+        <article class="rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-6 shadow-[0_22px_58px_-42px_rgba(59,130,246,0.35)]">
+          <p class="text-sm font-semibold uppercase tracking-[0.2em] text-sky-700/70">White Label Starter</p>
+          <p class="mt-4 font-display text-4xl font-bold text-slate-950">199€<span class="text-base font-semibold text-slate-500">/mois</span></p>
+          <p class="mt-3 text-sm leading-relaxed text-slate-600">10 commerces inclus pour lancer votre offre revendeur avec votre marque.</p>
+        </article>
+        <article class="rounded-[2rem] border border-blue-200 bg-[linear-gradient(135deg,#172554_0%,#2563eb_100%)] p-6 text-white shadow-[0_28px_70px_-38px_rgba(37,99,235,0.65)]">
+          <p class="text-sm font-semibold uppercase tracking-[0.2em] text-sky-100/80">White Label Pro</p>
+          <p class="mt-4 font-display text-4xl font-bold">449€<span class="text-base font-semibold text-sky-100/75">/mois</span></p>
+          <p class="mt-3 text-sm leading-relaxed text-sky-50/85">25 commerces inclus pour les agences et partenaires qui veulent scaler plus vite.</p>
+        </article>
       </div>
     </div>
   </section>
@@ -97,7 +118,7 @@ const formatEuro = (amount: number) => amount.toLocaleString('fr-FR', {
               'Dashboard revendeur pour gérer tous vos commerces',
               'Interface white-label : vos clients ne voient pas Fidelopass',
               'Suivi de vos revenus et commerces actifs en temps réel',
-              'Jusqu’à 15 commerces inclus + add-ons disponibles',
+              '10 commerces inclus en Starter, 25 en Pro + add-ons disponibles',
               'Support dédié Fidelopass',
             ].map((item) => (
               <div class="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-medium text-slate-700 shadow-sm">{item}</div>
@@ -125,9 +146,9 @@ const formatEuro = (amount: number) => amount.toLocaleString('fr-FR', {
             ))}
           </div>
           <div class="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
-            <p class="text-sm font-semibold text-slate-900">Votre abonnement : montant fixe mensuel</p>
+            <p class="text-sm font-semibold text-slate-900">Votre abonnement : 199€/mois ou 449€/mois selon le volume</p>
             <p class="mt-2 text-sm leading-relaxed text-slate-600">
-              Le calcul exact dépendra du modèle revendeur retenu ensemble. L’objectif est simple : vous garder une marge claire sur chaque commerce actif.
+              Le modèle est simple : Starter inclut 10 commerces, Pro inclut 25 commerces. L’objectif est de vous garder une marge claire sur chaque commerce actif.
             </p>
           </div>
         </div>

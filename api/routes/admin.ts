@@ -11,6 +11,41 @@ export const adminRoutes = new Hono();
 adminRoutes.use('*', authMiddleware);
 adminRoutes.use('*', adminMiddleware);
 
+const whiteLabelPartnerSchema = z.object({
+  name: z.string().trim().min(2).max(255),
+  slug: z.string().trim().min(2).max(120).regex(/^[a-z0-9-]+$/),
+  plan: z.enum(['white_label_starter', 'white_label_pro', 'custom']).default('white_label_starter'),
+  included_commerces: z.number().int().min(0).optional(),
+  monthly_price_cents: z.number().int().min(0).optional(),
+  logo_url: z.string().trim().max(1000).nullable().optional(),
+  primary_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  secondary_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  support_email: z.string().trim().email().nullable().optional(),
+  support_phone: z.string().trim().max(50).nullable().optional(),
+  website_url: z.string().trim().max(1000).nullable().optional(),
+  custom_domain: z.string().trim().max(255).nullable().optional(),
+  white_label_enabled: z.boolean().optional(),
+  hide_fidelopass_branding: z.boolean().optional(),
+  active: z.boolean().optional(),
+});
+
+const whiteLabelPartnerPatchSchema = whiteLabelPartnerSchema.partial();
+
+const commercePartnerSchema = z.object({
+  partner_id: z.string().uuid().nullable().optional(),
+  white_label_enabled: z.boolean().optional(),
+});
+
+function whiteLabelPlanDefaults(plan: string) {
+  if (plan === 'white_label_pro') {
+    return { included_commerces: 25, monthly_price_cents: 44900 };
+  }
+  if (plan === 'custom') {
+    return { included_commerces: 0, monthly_price_cents: 0 };
+  }
+  return { included_commerces: 10, monthly_price_cents: 19900 };
+}
+
 adminRoutes.get('/audit-logs', async (c) => {
   const limitRaw = Number(c.req.query('limit') ?? 20);
   const data = await listAdminAuditLogs(limitRaw);
@@ -102,6 +137,160 @@ adminRoutes.get('/stats', async (c) => {
       average_per_commerce: pointsVenteAverage,
     },
   });
+});
+
+/** GET /api/admin/partners — Liste des partenaires white label */
+adminRoutes.get('/partners', async (c) => {
+  const db = createServiceClient();
+  const { data, error } = await db
+    .from('partners')
+    .select('*, partner_users(id, role, active), commerces(id, nom, actif, white_label_enabled)')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    const missingMigration = error.code === '42P01' || error.code === '42703' || /partners|partner_users/i.test(error.message ?? '');
+    if (missingMigration) {
+      return c.json({ data: [], table_ready: false, warning: 'Migration white label à exécuter.' });
+    }
+    return c.json({ error: 'Impossible de charger les partenaires.' }, 500);
+  }
+
+  return c.json({
+    table_ready: true,
+    data: (data ?? []).map((partner) => ({
+      ...partner,
+      commerces_count: partner.commerces?.length ?? 0,
+      active_commerces_count: partner.commerces?.filter((commerce: { actif?: boolean }) => commerce.actif !== false).length ?? 0,
+      users_count: partner.partner_users?.filter((user: { active?: boolean }) => user.active !== false).length ?? 0,
+    })),
+  });
+});
+
+/** POST /api/admin/partners — Création partenaire white label */
+adminRoutes.post('/partners', async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const parsed = whiteLabelPartnerSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.errors[0]?.message ?? 'Données partenaire invalides.' }, 400);
+  }
+
+  const adminUser = c.get('user');
+  const adminUserId = c.get('userId') as string;
+  const defaults = whiteLabelPlanDefaults(parsed.data.plan);
+  const db = createServiceClient();
+  const { data, error } = await db
+    .from('partners')
+    .insert({
+      ...parsed.data,
+      included_commerces: parsed.data.included_commerces ?? defaults.included_commerces,
+      monthly_price_cents: parsed.data.monthly_price_cents ?? defaults.monthly_price_cents,
+    })
+    .select('*')
+    .single();
+
+  if (error) return c.json({ error: error.message }, 500);
+
+  await appendAdminAuditLog({
+    adminUserId,
+    adminEmail: adminUser?.email ?? null,
+    action: 'partner.created',
+    targetType: 'partner',
+    targetId: data.id,
+    payload: { plan: data.plan, included_commerces: data.included_commerces },
+  });
+
+  return c.json({ data });
+});
+
+/** PATCH /api/admin/partners/:id — Mise à jour partenaire white label */
+adminRoutes.patch('/partners/:id', async (c) => {
+  const partnerId = c.req.param('id');
+  const body = await c.req.json().catch(() => null);
+  const parsed = whiteLabelPartnerPatchSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.errors[0]?.message ?? 'Données partenaire invalides.' }, 400);
+  }
+
+  const adminUser = c.get('user');
+  const adminUserId = c.get('userId') as string;
+  const updates: Record<string, unknown> = {
+    ...parsed.data,
+    updated_at: new Date().toISOString(),
+  };
+  if (parsed.data.plan && (parsed.data.included_commerces === undefined || parsed.data.monthly_price_cents === undefined)) {
+    const defaults = whiteLabelPlanDefaults(parsed.data.plan);
+    if (parsed.data.included_commerces === undefined) updates.included_commerces = defaults.included_commerces;
+    if (parsed.data.monthly_price_cents === undefined) updates.monthly_price_cents = defaults.monthly_price_cents;
+  }
+
+  const db = createServiceClient();
+  const { data, error } = await db
+    .from('partners')
+    .update(updates)
+    .eq('id', partnerId)
+    .select('*')
+    .single();
+
+  if (error) return c.json({ error: error.message }, 500);
+
+  await appendAdminAuditLog({
+    adminUserId,
+    adminEmail: adminUser?.email ?? null,
+    action: 'partner.updated',
+    targetType: 'partner',
+    targetId: partnerId,
+    payload: { changed_fields: Object.keys(parsed.data) },
+  });
+
+  return c.json({ data });
+});
+
+/** PATCH /api/admin/commerces/:id/partner — Affectation white label d'un commerce */
+adminRoutes.patch('/commerces/:id/partner', async (c) => {
+  const commerceId = c.req.param('id');
+  const body = await c.req.json().catch(() => null);
+  const parsed = commercePartnerSchema.safeParse(body);
+  if (!parsed.success) return c.json({ error: 'Données white label invalides.' }, 400);
+
+  const adminUser = c.get('user');
+  const adminUserId = c.get('userId') as string;
+  const db = createServiceClient();
+
+  if (parsed.data.partner_id) {
+    const { data: partner, error: partnerError } = await db
+      .from('partners')
+      .select('id')
+      .eq('id', parsed.data.partner_id)
+      .single();
+    if (partnerError || !partner) return c.json({ error: 'Partenaire introuvable.' }, 404);
+  }
+
+  const { data, error } = await db
+    .from('commerces')
+    .update({
+      partner_id: parsed.data.partner_id ?? null,
+      white_label_enabled: parsed.data.white_label_enabled ?? Boolean(parsed.data.partner_id),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', commerceId)
+    .select('id, nom, partner_id, white_label_enabled')
+    .single();
+
+  if (error) return c.json({ error: error.message }, 500);
+
+  await appendAdminAuditLog({
+    adminUserId,
+    adminEmail: adminUser?.email ?? null,
+    action: 'commerce.partner.updated',
+    targetType: 'commerce',
+    targetId: commerceId,
+    payload: {
+      partner_id: data.partner_id,
+      white_label_enabled: data.white_label_enabled,
+    },
+  });
+
+  return c.json({ data });
 });
 
 /** PATCH /api/admin/commerces/:id — Active/désactive un commerce */

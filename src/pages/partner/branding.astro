@@ -1,0 +1,135 @@
+---
+import PartnerLayout from '../../layouts/PartnerLayout.astro';
+---
+
+<PartnerLayout title="White label — Fidelopass" activeNav="branding">
+  <section class="space-y-6">
+    <div>
+      <p class="text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-sky-700/75">Image de marque</p>
+      <h1 class="mt-2 font-display text-4xl font-bold tracking-tight text-slate-950">White label</h1>
+      <p class="mt-3 max-w-2xl text-base leading-7 text-slate-600">
+        Configurez le logo, les couleurs et les coordonnées que vos commerces clients verront dans leur espace.
+      </p>
+    </div>
+
+    <form id="partner-branding-form" class="grid gap-5 rounded-[1.6rem] border border-sky-100 bg-white/88 p-5 shadow-[0_22px_52px_-38px_rgba(37,99,235,0.45)] lg:grid-cols-2">
+      <label class="space-y-2">
+        <span class="text-sm font-semibold text-slate-700">Nom de marque</span>
+        <input name="name" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
+      </label>
+      <label class="space-y-2">
+        <span class="text-sm font-semibold text-slate-700">Logo URL</span>
+        <input name="logo_url" placeholder="https://..." class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
+      </label>
+      <label class="space-y-2">
+        <span class="text-sm font-semibold text-slate-700">Couleur principale</span>
+        <input name="primary_color" type="color" class="h-12 w-full rounded-2xl border border-slate-200 bg-white px-2 py-2" />
+      </label>
+      <label class="space-y-2">
+        <span class="text-sm font-semibold text-slate-700">Couleur secondaire</span>
+        <input name="secondary_color" type="color" class="h-12 w-full rounded-2xl border border-slate-200 bg-white px-2 py-2" />
+      </label>
+      <label class="space-y-2">
+        <span class="text-sm font-semibold text-slate-700">Email support</span>
+        <input name="support_email" type="email" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
+      </label>
+      <label class="space-y-2">
+        <span class="text-sm font-semibold text-slate-700">Téléphone support</span>
+        <input name="support_phone" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
+      </label>
+      <label class="space-y-2">
+        <span class="text-sm font-semibold text-slate-700">Site web</span>
+        <input name="website_url" placeholder="https://..." class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
+      </label>
+      <label class="space-y-2">
+        <span class="text-sm font-semibold text-slate-700">Domaine personnalisé</span>
+        <input name="custom_domain" placeholder="dashboard.votre-marque.com" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
+      </label>
+      <div class="lg:col-span-2 grid gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 md:grid-cols-2">
+        <label class="flex items-center justify-between gap-4 rounded-2xl bg-white px-4 py-3">
+          <span class="text-sm font-semibold text-slate-700">Activer le white label</span>
+          <input name="white_label_enabled" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-blue-600" />
+        </label>
+        <label class="flex items-center justify-between gap-4 rounded-2xl bg-white px-4 py-3">
+          <span class="text-sm font-semibold text-slate-700">Masquer Fidelopass</span>
+          <input name="hide_fidelopass_branding" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-blue-600" />
+        </label>
+      </div>
+      <div class="lg:col-span-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p id="partner-branding-status" class="text-sm text-slate-500">Chargement...</p>
+        <button type="submit" class="rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_36px_-24px_rgba(37,99,235,0.8)] transition hover:-translate-y-0.5">
+          Enregistrer le branding
+        </button>
+      </div>
+    </form>
+  </section>
+</PartnerLayout>
+
+<script>
+  import { authFetch } from '../../lib/api';
+
+  const form = document.getElementById('partner-branding-form') as HTMLFormElement | null;
+  const status = document.getElementById('partner-branding-status');
+
+  function setStatus(message: string, tone: 'neutral' | 'success' | 'error' = 'neutral') {
+    if (!status) return;
+    status.textContent = message;
+    status.className = tone === 'success'
+      ? 'text-sm font-semibold text-emerald-700'
+      : tone === 'error'
+        ? 'text-sm font-semibold text-red-600'
+        : 'text-sm text-slate-500';
+  }
+
+  function setFormValue(name: string, value: unknown) {
+    const field = form?.elements.namedItem(name) as HTMLInputElement | null;
+    if (!field) return;
+    if (field.type === 'checkbox') {
+      field.checked = Boolean(value);
+    } else {
+      field.value = value == null ? '' : String(value);
+    }
+  }
+
+  async function loadBranding() {
+    const res = await authFetch('/api/partners/branding');
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(payload?.error ?? 'Chargement impossible');
+    const partner = payload?.data;
+    for (const key of ['name', 'logo_url', 'primary_color', 'secondary_color', 'support_email', 'support_phone', 'website_url', 'custom_domain', 'white_label_enabled', 'hide_fidelopass_branding']) {
+      setFormValue(key, partner?.[key]);
+    }
+    setStatus('Branding chargé.');
+  }
+
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const body = {
+      name: String(formData.get('name') ?? '').trim(),
+      logo_url: String(formData.get('logo_url') ?? '').trim() || null,
+      primary_color: String(formData.get('primary_color') ?? '#2563eb'),
+      secondary_color: String(formData.get('secondary_color') ?? '#4f46e5'),
+      support_email: String(formData.get('support_email') ?? '').trim() || null,
+      support_phone: String(formData.get('support_phone') ?? '').trim() || null,
+      website_url: String(formData.get('website_url') ?? '').trim() || null,
+      custom_domain: String(formData.get('custom_domain') ?? '').trim() || null,
+      white_label_enabled: formData.has('white_label_enabled'),
+      hide_fidelopass_branding: formData.has('hide_fidelopass_branding'),
+    };
+
+    setStatus('Enregistrement...');
+    const res = await authFetch('/api/partners/branding', {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) {
+      setStatus(payload?.error ?? 'Impossible d’enregistrer le branding.', 'error');
+      return;
+    }
+    setStatus('Branding enregistré.', 'success');
+  });
+
+  await loadBranding().catch((error) => setStatus(error.message, 'error'));
+</script>

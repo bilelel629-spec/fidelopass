@@ -1,6 +1,6 @@
 import { defineMiddleware } from 'astro:middleware';
 
-const PROTECTED_PREFIXES = ['/dashboard', '/admin', '/onboarding', '/app'];
+const PROTECTED_PREFIXES = ['/dashboard', '/admin', '/onboarding', '/app', '/partner'];
 const BILLING_GATE_PREFIXES = ['/abonnement/choix', '/abonnement/setup'];
 
 function isProtectedPath(pathname: string) {

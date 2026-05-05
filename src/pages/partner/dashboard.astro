@@ -1,0 +1,119 @@
+---
+import PartnerLayout from '../../layouts/PartnerLayout.astro';
+---
+
+<PartnerLayout title="Vue partenaire — Fidelopass" activeNav="dashboard">
+  <section class="space-y-8">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <p class="text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-sky-700/75">Programme partenaire</p>
+        <h1 id="partner-title" class="mt-2 font-display text-4xl font-bold tracking-tight text-slate-950">Vue partenaire</h1>
+        <p class="mt-3 max-w-2xl text-base leading-7 text-slate-600">
+          Pilotez vos commerces clients, votre offre white label et votre image de marque depuis un seul espace.
+        </p>
+      </div>
+      <a href="/partner/branding" class="inline-flex w-fit items-center rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_36px_-24px_rgba(37,99,235,0.8)] transition hover:-translate-y-0.5">
+        Personnaliser le white label
+      </a>
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <article class="rounded-[1.4rem] border border-sky-100 bg-white/88 p-5 shadow-[0_18px_42px_-34px_rgba(37,99,235,0.42)]">
+        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Plan</p>
+        <p id="partner-plan" class="mt-3 text-2xl font-bold text-slate-950">Chargement...</p>
+        <p id="partner-price" class="mt-1 text-sm text-slate-500"></p>
+      </article>
+      <article class="rounded-[1.4rem] border border-sky-100 bg-white/88 p-5 shadow-[0_18px_42px_-34px_rgba(37,99,235,0.42)]">
+        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Commerces inclus</p>
+        <p id="partner-quota" class="mt-3 text-2xl font-bold text-slate-950">-</p>
+        <p class="mt-1 text-sm text-slate-500">Quota de votre abonnement.</p>
+      </article>
+      <article class="rounded-[1.4rem] border border-sky-100 bg-white/88 p-5 shadow-[0_18px_42px_-34px_rgba(37,99,235,0.42)]">
+        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Commerces actifs</p>
+        <p id="partner-active-commerces" class="mt-3 text-2xl font-bold text-slate-950">-</p>
+        <p class="mt-1 text-sm text-slate-500">Clients actuellement rattachés.</p>
+      </article>
+      <article class="rounded-[1.4rem] border border-sky-100 bg-white/88 p-5 shadow-[0_18px_42px_-34px_rgba(37,99,235,0.42)]">
+        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Branding</p>
+        <p id="partner-branding-status" class="mt-3 text-2xl font-bold text-slate-950">-</p>
+        <p class="mt-1 text-sm text-slate-500">Logo, couleurs et support.</p>
+      </article>
+    </div>
+
+    <div class="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
+      <section class="rounded-[1.6rem] border border-sky-100 bg-white/88 p-5 shadow-[0_22px_52px_-38px_rgba(37,99,235,0.45)]">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <h2 class="font-display text-xl font-bold text-slate-950">Commerces récents</h2>
+            <p class="mt-1 text-sm text-slate-500">Les derniers commerces associés à votre compte partenaire.</p>
+          </div>
+          <a href="/partner/commerces" class="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-800">Voir tout</a>
+        </div>
+        <div id="partner-recent-commerces" class="mt-5 space-y-2"></div>
+      </section>
+
+      <section class="rounded-[1.6rem] border border-indigo-100 bg-gradient-to-br from-indigo-600 to-blue-600 p-6 text-white shadow-[0_24px_60px_-38px_rgba(37,99,235,0.75)]">
+        <p class="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-white/70">Offre white label</p>
+        <h2 class="mt-3 font-display text-2xl font-bold">Votre marque devant. Fidelopass derrière.</h2>
+        <p class="mt-3 text-sm leading-6 text-white/78">
+          Vos clients commerçants peuvent utiliser l’outil avec votre logo, vos couleurs et vos coordonnées de support.
+        </p>
+        <div class="mt-5 grid gap-3 text-sm">
+          <div class="rounded-2xl bg-white/12 p-3">Starter: 199€/mois, 10 commerces inclus</div>
+          <div class="rounded-2xl bg-white/12 p-3">Pro: 449€/mois, 25 commerces inclus</div>
+        </div>
+      </section>
+    </div>
+  </section>
+</PartnerLayout>
+
+<script>
+  import { authFetch } from '../../lib/api';
+
+  const formatEuro = (cents: number) => `${Math.round(cents / 100)}€/mois`;
+  const recentContainer = document.getElementById('partner-recent-commerces');
+
+  function renderCommerces(commerces: any[]) {
+    if (!recentContainer) return;
+    if (!commerces.length) {
+      recentContainer.innerHTML = '<div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">Aucun commerce rattaché pour le moment.</div>';
+      return;
+    }
+    recentContainer.innerHTML = commerces.slice(0, 5).map((commerce) => `
+      <div class="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white px-4 py-3">
+        <div>
+          <p class="font-semibold text-slate-900">${commerce.nom ?? 'Commerce'}</p>
+          <p class="text-xs text-slate-500">${commerce.email ?? ''}</p>
+        </div>
+        <span class="rounded-full ${commerce.actif === false ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'} px-3 py-1 text-xs font-semibold">
+          ${commerce.actif === false ? 'Inactif' : 'Actif'}
+        </span>
+      </div>
+    `).join('');
+  }
+
+  async function loadPartnerDashboard() {
+    const [partnerRes, commercesRes] = await Promise.all([
+      authFetch('/api/partners/me'),
+      authFetch('/api/partners/commerces'),
+    ]);
+    const partnerPayload = await partnerRes.json().catch(() => null);
+    const commercesPayload = await commercesRes.json().catch(() => null);
+    const partner = partnerPayload?.data;
+    const commerces = Array.isArray(commercesPayload?.data) ? commercesPayload.data : [];
+
+    if (partner) {
+      document.getElementById('partner-title')!.textContent = partner.name;
+      document.getElementById('partner-plan')!.textContent = partner.plan_label;
+      document.getElementById('partner-price')!.textContent = formatEuro(Number(partner.monthly_price_cents ?? 0));
+      document.getElementById('partner-quota')!.textContent = String(partner.included_commerces ?? '-');
+      document.getElementById('partner-branding-status')!.textContent = partner.logo_url ? 'Configuré' : 'À compléter';
+    }
+    document.getElementById('partner-active-commerces')!.textContent = String(commerces.filter((commerce: any) => commerce.actif !== false).length);
+    renderCommerces(commerces);
+  }
+
+  await loadPartnerDashboard().catch(() => {
+    renderCommerces([]);
+  });
+</script>

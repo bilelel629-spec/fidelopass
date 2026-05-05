@@ -10,6 +10,17 @@ export type BillingRecord = {
 };
 
 export type BillingStatusPayload = {
+  access_state:
+    | 'no_commerce'
+    | 'account_created_no_subscription'
+    | 'checkout_pending'
+    | 'trial_active'
+    | 'subscription_active'
+    | 'subscription_past_due'
+    | 'subscription_cancelled'
+    | 'onboarding_not_completed'
+    | 'dashboard_ready';
+  recommended_redirect: '/abonnement/choix' | '/onboarding' | '/dashboard';
   has_commerce: boolean;
   commerce_id: string | null;
   plan: string | null;
@@ -38,6 +49,8 @@ function isTrialActive(trialEndsAt: string | null | undefined) {
 export function buildBillingStatusPayload(record: BillingRecord | null): BillingStatusPayload {
   if (!record) {
     return {
+      access_state: 'no_commerce',
+      recommended_redirect: '/abonnement/choix',
       has_commerce: false,
       commerce_id: null,
       plan: null,
@@ -57,8 +70,29 @@ export function buildBillingStatusPayload(record: BillingRecord | null): Billing
   // Compat: some legacy rows can be trialing without explicit trial_ends_at.
   const trialingWithUnknownEnd = isTrialing && !record.trial_ends_at;
   const hasAccess = ACTIVE_BILLING_STATUSES.has(billingStatus) || trialActive || trialingWithUnknownEnd;
+  const onboardingCompleted = Boolean(record.onboarding_completed);
+
+  const accessState: BillingStatusPayload['access_state'] = (() => {
+    if (!hasAccess) {
+      if (billingStatus === 'past_due') return 'subscription_past_due';
+      if (billingStatus === 'canceled' || billingStatus === 'cancelled') return 'subscription_cancelled';
+      if (billingStatus === 'unpaid' && record.stripe_subscription_id) return 'checkout_pending';
+      return 'account_created_no_subscription';
+    }
+    if (!onboardingCompleted) return 'onboarding_not_completed';
+    if (trialActive || isTrialing || trialingWithUnknownEnd) return 'trial_active';
+    return 'dashboard_ready';
+  })();
+
+  const recommendedRedirect: BillingStatusPayload['recommended_redirect'] = !hasAccess
+    ? '/abonnement/choix'
+    : onboardingCompleted
+      ? '/dashboard'
+      : '/onboarding';
 
   return {
+    access_state: accessState,
+    recommended_redirect: recommendedRedirect,
     has_commerce: true,
     commerce_id: record.id,
     plan: record.plan,
@@ -68,7 +102,7 @@ export function buildBillingStatusPayload(record: BillingRecord | null): Billing
     trial_active: trialActive,
     has_access: hasAccess,
     needs_payment: !hasAccess,
-    onboarding_completed: Boolean(record.onboarding_completed),
+    onboarding_completed: onboardingCompleted,
   };
 }
 

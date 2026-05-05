@@ -1,0 +1,145 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  theme="light"
+  title="Activation en cours — Fidelopass"
+  description="Confirmation de votre abonnement Fidelopass."
+>
+  <section class="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f4f8ff_58%,#ffffff_100%)] px-4 py-10 sm:py-14">
+    <div class="pointer-events-none absolute -top-24 right-[-10rem] h-[28rem] w-[28rem] rounded-full bg-cyan-200/35 blur-3xl"></div>
+    <div class="pointer-events-none absolute bottom-[-8rem] left-[-8rem] h-[24rem] w-[24rem] rounded-full bg-blue-100/80 blur-3xl"></div>
+
+    <div class="mx-auto max-w-2xl">
+      <a href="/" class="mb-8 inline-flex items-center">
+        <img src="/logo-premium-cropped.png" alt="Fidelopass" class="h-16 w-auto object-contain" />
+      </a>
+
+      <div class="rounded-[2rem] border border-slate-200 bg-white/92 p-6 shadow-[0_24px_70px_rgba(37,99,235,0.12)] backdrop-blur sm:p-8">
+        <p class="text-[0.7rem] font-semibold uppercase tracking-[0.26em] text-sky-700/75">Activation abonnement</p>
+        <h1 class="mt-3 font-display text-3xl font-bold leading-tight text-slate-950 sm:text-4xl">
+          Paiement reçu, on active votre espace.
+        </h1>
+        <p id="success-copy" class="mt-4 text-base leading-7 text-slate-600">
+          Stripe confirme votre abonnement. Cela prend généralement quelques secondes.
+        </p>
+
+        <div class="mt-7 overflow-hidden rounded-2xl border border-sky-100 bg-sky-50/70">
+          <div id="progress-bar" class="h-2 w-1/4 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 transition-all duration-500"></div>
+        </div>
+
+        <div class="mt-6 grid gap-3 sm:grid-cols-3">
+          <div id="step-payment" class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">1. Paiement</p>
+            <p class="mt-1 text-sm text-emerald-800">Validé</p>
+          </div>
+          <div id="step-webhook" class="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3">
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-sky-700">2. Activation</p>
+            <p class="mt-1 text-sm text-sky-800">En cours</p>
+          </div>
+          <div id="step-next" class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">3. Suite</p>
+            <p class="mt-1 text-sm text-slate-600">Onboarding</p>
+          </div>
+        </div>
+
+        <div id="success-error" class="mt-6 hidden rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
+          Votre paiement est bien lancé mais la confirmation met plus de temps que prévu. Rechargez la page dans quelques secondes ou contactez-nous si le message persiste.
+        </div>
+
+        <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+          <a id="manual-next" href="/abonnement/success" class="btn-primary hidden flex-1 px-5 py-3 text-center text-sm">
+            Revérifier l’activation
+          </a>
+          <a href="/contact" class="btn-secondary flex-1 px-5 py-3 text-center text-sm">
+            Besoin d’aide ?
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  import { createClient } from '@supabase/supabase-js';
+  import { setSessionCookie } from '../../lib/session-cookie';
+  import { withTimeout } from '../../lib/utils/with-timeout';
+
+  const supabase = createClient(
+    import.meta.env.PUBLIC_SUPABASE_URL,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+  );
+
+  const API = (import.meta.env.PUBLIC_API_URL || 'https://api.fidelopass.com').replace(/\/$/, '');
+  const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 1200);
+  const POLL_INTERVAL_MS = 1800;
+  const MAX_ATTEMPTS = 14;
+
+  const copy = document.getElementById('success-copy') as HTMLParagraphElement;
+  const progress = document.getElementById('progress-bar') as HTMLDivElement;
+  const errorBox = document.getElementById('success-error') as HTMLDivElement;
+  const manualNext = document.getElementById('manual-next') as HTMLAnchorElement;
+  const stepWebhook = document.getElementById('step-webhook') as HTMLDivElement;
+  const stepNext = document.getElementById('step-next') as HTMLDivElement;
+
+  async function getSessionToken() {
+    const sessionResult = await withTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
+    const session = sessionResult?.data?.session ?? null;
+    if (session?.access_token) {
+      setSessionCookie(session.access_token);
+      return session.access_token;
+    }
+    return null;
+  }
+
+  async function readBillingStatus(token: string) {
+    const response = await fetch(`${API}/api/billing/status`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
+    if (response.status === 401) return null;
+    return response.json().catch(() => null);
+  }
+
+  function markActive() {
+    progress.style.width = '100%';
+    stepWebhook.className = 'rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3';
+    stepWebhook.querySelector('p:last-child')!.textContent = 'Validée';
+    stepNext.className = 'rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3';
+    copy.textContent = 'Votre abonnement est activé. Redirection vers la configuration de votre commerce...';
+  }
+
+  async function pollActivation() {
+    manualNext.href = window.location.href;
+    const token = await getSessionToken();
+    if (!token) {
+      window.location.replace('/login?next=/abonnement/success');
+      return;
+    }
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+      progress.style.width = `${Math.min(92, 18 + attempt * 6)}%`;
+      const payload = await readBillingStatus(token);
+      const billing = payload?.data;
+      if (billing?.has_access) {
+        markActive();
+        window.setTimeout(() => {
+          window.location.replace(billing.onboarding_completed ? '/dashboard' : '/onboarding');
+        }, 650);
+        return;
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, POLL_INTERVAL_MS));
+    }
+
+    progress.style.width = '96%';
+    errorBox.classList.remove('hidden');
+    manualNext.classList.remove('hidden');
+    copy.textContent = 'La confirmation Stripe prend plus de temps que prévu. Votre paiement est lancé: dès réception du webhook, l’accès sera activé automatiquement.';
+  }
+
+  void pollActivation();
+</script>

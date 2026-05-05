@@ -15,20 +15,18 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <section class="rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] p-6 sm:p-8">
         <div class="flex items-center justify-between gap-3 mb-5">
           <div>
-            <p class="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-sky-700/75">Étape 1 sur 2</p>
+            <p class="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-sky-700/75">Configuration rapide</p>
             <h1 class="font-display text-3xl sm:text-4xl font-bold text-slate-900 mt-2">
               Configurez votre commerce
             </h1>
           </div>
           <div class="hidden sm:flex items-center gap-2">
             <span class="w-9 h-9 rounded-full bg-indigo-600 text-white text-sm font-bold flex items-center justify-center">1</span>
-            <span class="w-7 h-px bg-slate-200"></span>
-            <span class="w-9 h-9 rounded-full border border-slate-200 text-slate-400 text-sm font-bold flex items-center justify-center">2</span>
           </div>
         </div>
 
         <p class="text-slate-500 leading-relaxed mb-6">
-          Enregistrez les informations de base, puis passez directement à l’éditeur de carte complet.
+          Enregistrez les informations de base. La création de carte se fait ensuite uniquement dans l’onglet Ma carte.
         </p>
 
         <form id="commerce-form" class="flex flex-col gap-4">
@@ -55,13 +53,13 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           </div>
 
           <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            Après validation, vous pourrez personnaliser le logo, les couleurs, la bannière, le programme points/tampons et les messages client.
+            Après validation, vous serez redirigé vers l’onglet Ma carte pour personnaliser le logo, les couleurs, la bannière, le programme points/tampons et les messages client.
           </div>
 
           <div id="error-commerce" class="hidden text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3"></div>
 
           <button type="submit" id="btn-commerce" class="btn-primary w-full py-3 mt-1">
-            Continuer
+            Enregistrer et ouvrir Ma carte
           </button>
         </form>
       </section>

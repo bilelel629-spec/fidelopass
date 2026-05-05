@@ -569,7 +569,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
     c.req.header('origin') || c.req.header('referer') || null,
   );
   const successUrl = isPlanCheckout
-    ? `${PUBLIC_SITE_URL}/onboarding?paid=1`
+    ? `${PUBLIC_SITE_URL}/abonnement/success?session_id={CHECKOUT_SESSION_ID}`
     : isAccompagnementOnly
       ? `${PUBLIC_SITE_URL}/dashboard/assistant-carte?checkout=success`
     : `${PUBLIC_SITE_URL}/dashboard/parametres?tab=plans&checkout=success`;

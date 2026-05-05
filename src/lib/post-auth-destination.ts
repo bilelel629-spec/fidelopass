@@ -4,6 +4,7 @@ type BillingStatusResponse = {
   data?: {
     has_access?: boolean;
     onboarding_completed?: boolean;
+    recommended_redirect?: '/abonnement/choix' | '/onboarding' | '/dashboard';
   };
 };
 
@@ -61,7 +62,7 @@ export async function resolvePostAuthDestination(
 
     const preferred = normalizePreferredDestination(preferredDestination);
     if (!data?.onboarding_completed) return '/onboarding';
-    return preferred ?? '/dashboard';
+    return preferred ?? data.recommended_redirect ?? '/dashboard';
   } catch {
     return '/dashboard';
   }

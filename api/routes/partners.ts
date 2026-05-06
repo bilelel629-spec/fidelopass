@@ -14,7 +14,6 @@ const partnerBrandingSchema = z.object({
   support_email: z.string().trim().email().nullable().optional(),
   support_phone: z.string().trim().max(50).nullable().optional(),
   website_url: z.string().trim().max(1000).nullable().optional(),
-  custom_domain: z.string().trim().max(255).nullable().optional(),
   white_label_enabled: z.boolean().optional(),
   hide_fidelopass_branding: z.boolean().optional(),
 });

@@ -1,6 +1,6 @@
 import { PKPass } from 'passkit-generator';
 import { readFileSync, mkdirSync, writeFileSync, rmSync, existsSync } from 'fs';
-import { resolve } from 'path';
+import { normalize, resolve } from 'path';
 import { tmpdir } from 'os';
 import { randomUUID } from 'crypto';
 import { connect } from 'http2';
@@ -92,6 +92,33 @@ function readAsset(filename: string): Buffer {
   return readFileSync(path);
 }
 
+const PUBLIC_DIR = resolve(process.cwd(), 'public');
+
+function getPublicAppUrl(): string {
+  return (process.env.APP_URL ?? process.env.PUBLIC_APP_URL ?? 'https://www.fidelopass.com').replace(/\/+$/, '');
+}
+
+function normalizePublicAssetPath(value: string): string | null {
+  const pathOnly = value.split('?')[0]?.split('#')[0] ?? '';
+  if (!pathOnly.startsWith('/') || pathOnly.includes('\0')) return null;
+  const normalized = normalize(pathOnly).replace(/^[/\\]+/, '');
+  if (!normalized || normalized.startsWith('..')) return null;
+  return normalized;
+}
+
+function readPublicAssetBuffer(value: string): Buffer | null {
+  const relativePath = normalizePublicAssetPath(value);
+  if (!relativePath) return null;
+  const filePath = resolve(PUBLIC_DIR, relativePath);
+  if (!filePath.startsWith(PUBLIC_DIR) || !existsSync(filePath)) return null;
+
+  try {
+    return readFileSync(filePath);
+  } catch {
+    return null;
+  }
+}
+
 function readSecretFileOrEnv(filename: string, envName: string): Buffer {
   const envValue = process.env[envName];
   if (envValue) {
@@ -115,8 +142,17 @@ function getAppleWebServiceUrl(): string | null {
 }
 
 async function fetchImageBuffer(url: string): Promise<Buffer | null> {
+  const trimmed = String(url ?? '').trim();
+  if (!trimmed) return null;
+
+  if (trimmed.startsWith('/')) {
+    const localAsset = readPublicAssetBuffer(trimmed);
+    if (localAsset) return localAsset;
+    return fetchImageBuffer(`${getPublicAppUrl()}${trimmed}`);
+  }
+
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    const res = await fetch(trimmed, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) return null;
     return Buffer.from(await res.arrayBuffer());
   } catch { return null; }

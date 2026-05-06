@@ -70,6 +70,18 @@ function getIssuerId(): string {
   return id;
 }
 
+function getPublicAppUrl(): string {
+  return (process.env.APP_URL ?? process.env.PUBLIC_APP_URL ?? 'https://www.fidelopass.com').replace(/\/+$/, '');
+}
+
+function toPublicMediaUrl(value: string | null | undefined): string | null {
+  const trimmed = String(value ?? '').trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith('/')) return `${getPublicAppUrl()}${trimmed}`;
+  return trimmed;
+}
+
 function getRewardsText(carte: CarteData): string | null {
   const rewards = (carte.rewards_config ?? [])
     .filter((reward) => reward?.seuil && reward?.recompense)
@@ -111,7 +123,7 @@ export async function upsertLoyaltyClass(carte: CarteData): Promise<string> {
   const classId = `${issuerId}.carte_${carte.id}`;
   const authClient = await getAuthClient();
 
-  const logoUri = carte.logo_url ?? carte.commerces.logo_url
+  const logoUri = toPublicMediaUrl(carte.logo_url) ?? toPublicMediaUrl(carte.commerces.logo_url)
     ?? `${process.env.SUPABASE_URL}/storage/v1/object/public/assets/logo-default.png`;
 
   const classData: Record<string, unknown> = {
@@ -134,9 +146,10 @@ export async function upsertLoyaltyClass(carte: CarteData): Promise<string> {
   }
 
   // Image bannière (hero image)
-  if (carte.strip_url) {
+  const stripUri = toPublicMediaUrl(carte.strip_url);
+  if (stripUri) {
     classData.heroImage = {
-      sourceUri: { uri: carte.strip_url },
+      sourceUri: { uri: stripUri },
       contentDescription: { defaultValue: { language: 'fr-FR', value: carte.nom } },
     };
   }

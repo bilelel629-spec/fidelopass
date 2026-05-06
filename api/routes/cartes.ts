@@ -9,6 +9,19 @@ import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../util
 import { getEffectivePlanRaw } from '../utils/effective-plan';
 
 export const cartesRoutes = new Hono();
+const WALLET_SYNC_WAIT_MS = 4500;
+
+async function triggerWalletSyncForPointVente(pointVenteId: string, source: string) {
+  const syncTask = syncWalletForPointVente(pointVenteId).catch((err) => {
+    console.error(`[${source} wallet-sync]`, err);
+    return null;
+  });
+  const timeout = new Promise<null>((resolve) => {
+    setTimeout(() => resolve(null), WALLET_SYNC_WAIT_MS);
+  });
+
+  return Promise.race([syncTask, timeout]);
+}
 
 const proposalPayloadKeys = [
   'nom',
@@ -389,6 +402,8 @@ cartesRoutes.post('/admin-proposal/decision', authMiddleware, paidMiddleware, as
       payload,
     });
 
+    await triggerWalletSyncForPointVente(pointVente.id, 'cartes proposal');
+
     const { data: approved, error: approvedError } = await db
       .from('admin_card_proposals')
       .update({
@@ -588,9 +603,7 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   }
 
   const savedPointVenteId = (result.data as { point_vente_id?: string | null } | null)?.point_vente_id ?? pointVente.id;
-  void syncWalletForPointVente(savedPointVenteId).catch((err) => {
-    console.error('[cartes POST wallet-sync]', err);
-  });
+  await triggerWalletSyncForPointVente(savedPointVenteId, 'cartes POST');
 
   return c.json({ data: result.data }, 201);
 });
@@ -742,9 +755,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
     if (!updatedCarte) return c.json({ data: result.data });
     const pointVenteId = (updatedCarte as { point_vente_id?: string | null }).point_vente_id ?? null;
     if (!pointVenteId) return c.json({ data: result.data });
-    void syncWalletForPointVente(pointVenteId).catch((err) => {
-      console.error('[cartes PATCH wallet-sync]', err);
-    });
+    await triggerWalletSyncForPointVente(pointVenteId, 'cartes PATCH');
   } catch (err) {
     console.error('[cartes PATCH wallet-sync]', err);
   }

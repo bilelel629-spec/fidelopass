@@ -30,6 +30,7 @@ interface CarteData {
 
 interface ClientData {
   id: string;
+  wallet_code?: string | null;
   nom: string | null;
   points_actuels: number;
   tampons_actuels: number;
@@ -47,6 +48,12 @@ function isProPlan(plan: string | null | undefined): boolean {
 }
 
 const GOOGLE_WALLET_API = 'https://walletobjects.googleapis.com/walletobjects/v1';
+const GOOGLE_BARCODE_MAP: Record<string, string> = {
+  QR: 'QR_CODE',
+  PDF417: 'PDF_417',
+  AZTEC: 'AZTEC',
+  CODE128: 'CODE_128',
+};
 
 function getCredentials() {
   if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
@@ -107,6 +114,10 @@ function getMerchantLocations(carte: CarteData): Array<{ latitude: number; longi
   }
 
   return [{ latitude, longitude }];
+}
+
+function getWalletScanCode(client: ClientData): string {
+  return String(client.wallet_code ?? client.id).trim() || client.id;
 }
 
 async function getAuthClient() {
@@ -189,10 +200,8 @@ export async function generateGooglePass(
     ? `${client.tampons_actuels}/${carte.tampons_total}`
     : String(client.points_actuels);
 
-  const GOOGLE_BARCODE_MAP: Record<string, string> = {
-    QR: 'QR_CODE', PDF417: 'PDF_417', AZTEC: 'AZTEC', CODE128: 'CODE_128',
-  };
   const barcodeType = carte.barcode_type ?? 'QR';
+  const barcodeValue = getWalletScanCode(client);
 
   const loyaltyObject: Record<string, unknown> = {
     id: objectId,
@@ -246,7 +255,7 @@ export async function generateGooglePass(
   if (barcodeType !== 'NONE') {
     loyaltyObject.barcode = {
       type: GOOGLE_BARCODE_MAP[barcodeType] ?? 'QR_CODE',
-      value: client.id,
+      value: barcodeValue,
     };
   }
 
@@ -278,6 +287,8 @@ export async function updateGooglePassObject(
   const requester = authClient as unknown as {
     request: (opts: { url: string; method: string; data?: unknown }) => Promise<unknown>;
   };
+  const barcodeType = carte.barcode_type ?? 'QR';
+  const barcodeValue = getWalletScanCode(client);
 
   await requester.request({
     url: `${GOOGLE_WALLET_API}/loyaltyObject/${objectId}`,
@@ -316,6 +327,14 @@ export async function updateGooglePassObject(
             id: 'branding_fidelopass',
           }]),
       ],
+      ...(barcodeType !== 'NONE'
+        ? {
+          barcode: {
+            type: GOOGLE_BARCODE_MAP[barcodeType] ?? 'QR_CODE',
+            value: barcodeValue,
+          },
+        }
+        : {}),
       ...(getMerchantLocations(carte) ? { merchantLocations: getMerchantLocations(carte) } : {}),
     },
   });

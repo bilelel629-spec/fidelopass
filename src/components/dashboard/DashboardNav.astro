@@ -6,7 +6,7 @@ interface Props {
 }
 const { activeNav = '' } = Astro.props;
 const navItems = DASHBOARD_NAV_ITEMS;
-const mobilePrimaryNavIds = ['dashboard', 'carte', 'notifications', 'clients'];
+const mobilePrimaryNavIds = ['dashboard', 'scan', 'carte', 'notifications'];
 const mobilePrimaryNavItems = navItems.filter((item) => mobilePrimaryNavIds.includes(item.id));
 const mobileMoreNavItems = navItems.filter((item) => !mobilePrimaryNavIds.includes(item.id));
 ---

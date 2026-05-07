@@ -51,6 +51,7 @@ type CronCarteRow = {
 
 type CronClientRow = {
   id: string;
+  wallet_code: string | null;
   nom: string | null;
   date_naissance: string | null;
   fcm_token: string | null;
@@ -350,7 +351,7 @@ async function sendScheduledBirthdayPushes(db: ReturnType<typeof createServiceCl
 
         const { data: clients, error: clientsError } = await db
           .from('clients')
-          .select('id, nom, date_naissance, fcm_token, push_enabled, google_pass_id, apple_pass_serial, points_actuels, tampons_actuels, recompenses_obtenues')
+          .select('id, wallet_code, nom, date_naissance, fcm_token, push_enabled, google_pass_id, apple_pass_serial, points_actuels, tampons_actuels, recompenses_obtenues')
           .eq('commerce_id', commerce.id)
           .eq('point_vente_id', carte.point_vente_id)
           .eq('carte_id', carte.id)
@@ -508,6 +509,7 @@ async function sendScheduledBirthdayPushes(db: ReturnType<typeof createServiceCl
             carteForWallet,
             {
               id: client.id,
+              wallet_code: client.wallet_code ?? null,
               nom: client.nom,
               points_actuels: client.points_actuels,
               tampons_actuels: client.tampons_actuels,

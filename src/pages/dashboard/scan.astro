@@ -1,0 +1,305 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Scan caisse — Fidelopass" activeNav="scan">
+  <section class="space-y-6">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.26em] text-sky-700/75">Mode caisse</p>
+        <h1 class="font-display text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">Scan scannette</h1>
+        <p class="mt-2 max-w-2xl text-base leading-7 text-slate-600">
+          Branchez une scannette USB/Bluetooth. Elle écrit le code client ici, puis valide automatiquement avec Entrée.
+        </p>
+      </div>
+      <button id="new-scan-top" type="button" class="rounded-2xl border border-sky-200 bg-white px-5 py-3 text-sm font-semibold text-sky-800 shadow-[0_12px_28px_-24px_rgba(37,99,235,0.5)] transition hover:border-sky-300 hover:bg-sky-50">
+        Nouveau scan
+      </button>
+    </div>
+
+    <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_26rem]">
+      <div class="rounded-[1.75rem] border border-slate-200/70 bg-white/92 p-5 shadow-[0_24px_70px_-50px_rgba(15,23,42,0.28)] sm:p-7">
+        <label for="scan-input" class="mb-3 block text-sm font-semibold text-slate-700">Champ de scan</label>
+        <div class="relative">
+          <span class="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-sky-600">
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 7V5a1 1 0 0 1 1-1h2"></path>
+              <path d="M17 4h2a1 1 0 0 1 1 1v2"></path>
+              <path d="M20 17v2a1 1 0 0 1-1 1h-2"></path>
+              <path d="M7 20H5a1 1 0 0 1-1-1v-2"></path>
+              <path d="M7 12h10"></path>
+            </svg>
+          </span>
+          <input
+            id="scan-input"
+            type="text"
+            inputmode="text"
+            autocomplete="off"
+            autocapitalize="characters"
+            spellcheck="false"
+            autofocus
+            placeholder="Scannez le pass client"
+            class="w-full rounded-[1.35rem] border-2 border-sky-100 bg-sky-50/55 py-5 pl-14 pr-5 font-mono text-2xl font-bold uppercase tracking-[0.08em] text-slate-950 outline-none transition focus:border-sky-400 focus:bg-white focus:shadow-[0_0_0_6px_rgba(14,165,233,0.12)]"
+          />
+        </div>
+        <div class="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-500">
+          <span class="rounded-full bg-slate-100 px-3 py-1 font-medium">Exemple: FID-8H72K9</span>
+          <button id="demo-scan" type="button" class="rounded-full border border-slate-200 bg-white px-3 py-1 font-semibold text-slate-700 transition hover:bg-slate-50">
+            Tester FID-DEMO123
+          </button>
+        </div>
+        <p id="scan-feedback" class="mt-5 hidden rounded-2xl border px-4 py-3 text-sm font-semibold"></p>
+
+        <div id="client-card" class="mt-7 hidden rounded-[1.6rem] border border-slate-200 bg-gradient-to-br from-white to-sky-50/50 p-5 shadow-[0_20px_55px_-42px_rgba(37,99,235,0.45)]">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-sky-700/75">Client trouvé</p>
+              <h2 id="client-name" class="mt-1 font-display text-3xl font-bold text-slate-950">—</h2>
+              <p id="client-contact" class="mt-1 text-sm text-slate-500">—</p>
+            </div>
+            <span id="wallet-code-badge" class="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1.5 font-mono text-xs font-bold text-slate-600">—</span>
+          </div>
+
+          <div class="mt-5 grid gap-3 sm:grid-cols-3">
+            <div class="rounded-2xl border border-white bg-white/82 p-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Progression</p>
+              <p id="client-progress" class="mt-2 text-2xl font-bold text-slate-950">—</p>
+            </div>
+            <div class="rounded-2xl border border-white bg-white/82 p-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Récompense</p>
+              <p id="client-reward" class="mt-2 text-base font-bold text-slate-950">—</p>
+            </div>
+            <div class="rounded-2xl border border-white bg-white/82 p-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Disponible</p>
+              <p id="client-reward-count" class="mt-2 text-2xl font-bold text-emerald-600">0</p>
+            </div>
+          </div>
+
+          <div class="mt-6 grid gap-3 sm:grid-cols-2">
+            <button id="add-point-btn" type="button" class="rounded-[1.2rem] bg-gradient-to-r from-blue-600 to-indigo-500 px-5 py-5 text-lg font-bold text-white shadow-[0_18px_34px_-22px_rgba(37,99,235,0.9)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_42px_-24px_rgba(37,99,235,0.95)]">
+              +1 point
+            </button>
+            <button id="use-reward-btn" type="button" class="rounded-[1.2rem] border border-emerald-200 bg-white px-5 py-5 text-lg font-bold text-emerald-700 shadow-[0_16px_30px_-26px_rgba(16,185,129,0.65)] transition hover:-translate-y-0.5 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400 disabled:hover:translate-y-0 disabled:hover:bg-white">
+              Utiliser récompense
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <aside class="rounded-[1.75rem] border border-slate-200/70 bg-white/92 p-5 shadow-[0_24px_70px_-50px_rgba(15,23,42,0.28)] sm:p-6">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-sky-700/75">Historique récent</p>
+            <h2 class="mt-1 font-display text-xl font-bold text-slate-950">Derniers passages</h2>
+          </div>
+          <button id="new-scan-side" type="button" class="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50">Nouveau</button>
+        </div>
+        <div id="history-list" class="mt-5 space-y-2 text-sm text-slate-500">
+          <p class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center">
+            Scannez un client pour afficher son historique.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </section>
+</DashboardLayout>
+
+<script>
+  import { authFetch } from '../../lib/api';
+
+  type ScanPayload = {
+    demo?: boolean;
+    client: {
+      id: string;
+      wallet_code: string;
+      nom: string;
+      telephone: string | null;
+      email: string | null;
+      points_actuels: number;
+      tampons_actuels: number;
+      recompenses_obtenues: number;
+    };
+    carte: {
+      id: string;
+      nom: string;
+      type: 'points' | 'tampons';
+      reward_description: string;
+    };
+    progress: {
+      current: number;
+      goal: number;
+      label: string;
+      addType: 'ajout_points' | 'ajout_tampon';
+    };
+    can_use_reward: boolean;
+    history: Array<{ id: string; type: string; valeur: number; created_at: string; note?: string | null }>;
+  };
+
+  const input = document.getElementById('scan-input') as HTMLInputElement;
+  const feedback = document.getElementById('scan-feedback')!;
+  const clientCard = document.getElementById('client-card')!;
+  const historyList = document.getElementById('history-list')!;
+  const addPointBtn = document.getElementById('add-point-btn') as HTMLButtonElement;
+  const useRewardBtn = document.getElementById('use-reward-btn') as HTMLButtonElement;
+
+  let currentPayload: ScanPayload | null = null;
+  let busy = false;
+
+  function normalizeScanCode(value: string): string {
+    return value.replace(/\s+/g, '').trim().toUpperCase();
+  }
+
+  function focusInput() {
+    window.setTimeout(() => input.focus(), 40);
+  }
+
+  function showFeedback(message: string, tone: 'success' | 'error' | 'info' = 'info') {
+    feedback.textContent = message;
+    feedback.className = 'mt-5 rounded-2xl border px-4 py-3 text-sm font-semibold';
+    if (tone === 'success') feedback.classList.add('border-emerald-200', 'bg-emerald-50', 'text-emerald-700');
+    else if (tone === 'error') feedback.classList.add('border-red-200', 'bg-red-50', 'text-red-700');
+    else feedback.classList.add('border-sky-200', 'bg-sky-50', 'text-sky-700');
+    feedback.classList.remove('hidden');
+  }
+
+  function clearFeedback() {
+    feedback.classList.add('hidden');
+  }
+
+  function escapeHtml(value: unknown): string {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function renderHistory(history: ScanPayload['history']) {
+    if (!history.length) {
+      historyList.innerHTML = '<p class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center">Aucun passage récent.</p>';
+      return;
+    }
+
+    historyList.innerHTML = history.map((item) => {
+      const label = item.type === 'ajout_tampon'
+        ? '+ tampon'
+        : item.type === 'ajout_points'
+          ? '+ points'
+          : item.type === 'recompense'
+            ? 'Récompense utilisée'
+            : item.type;
+      const date = new Date(item.created_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+      return `
+        <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+          <div class="flex items-center justify-between gap-3">
+            <span class="font-semibold text-slate-800">${escapeHtml(label)}</span>
+            <span class="text-xs text-slate-400">${escapeHtml(date)}</span>
+          </div>
+          <p class="mt-1 text-xs text-slate-500">${escapeHtml(item.note ?? `Valeur: ${item.valeur}`)}</p>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderClient(payload: ScanPayload) {
+    currentPayload = payload;
+    const contact = payload.client.telephone || payload.client.email || 'Contact non renseigné';
+    const rewardCount = payload.client.recompenses_obtenues ?? 0;
+    const actionLabel = payload.carte.type === 'points' ? '+1 point' : '+1 tampon';
+
+    document.getElementById('client-name')!.textContent = payload.client.nom || 'Client anonyme';
+    document.getElementById('client-contact')!.textContent = contact;
+    document.getElementById('wallet-code-badge')!.textContent = payload.client.wallet_code;
+    document.getElementById('client-progress')!.textContent = `${payload.progress.current}/${payload.progress.goal} ${payload.progress.label}`;
+    document.getElementById('client-reward')!.textContent = payload.carte.reward_description || 'Récompense';
+    document.getElementById('client-reward-count')!.textContent = String(rewardCount);
+    addPointBtn.textContent = actionLabel;
+    addPointBtn.disabled = Boolean(payload.demo);
+    useRewardBtn.disabled = Boolean(payload.demo) || !payload.can_use_reward;
+    clientCard.classList.remove('hidden');
+    renderHistory(payload.history);
+  }
+
+  async function readJson(res: Response) {
+    return res.json().catch(() => null);
+  }
+
+  async function runScan(codeRaw: string) {
+    const code = normalizeScanCode(codeRaw);
+    if (!code) {
+      showFeedback('Scan vide, veuillez réessayer.', 'error');
+      focusInput();
+      return;
+    }
+
+    busy = true;
+    showFeedback('Recherche du client...', 'info');
+    input.value = '';
+
+    try {
+      const res = await authFetch(`/api/merchant/scan?code=${encodeURIComponent(code)}`);
+      const payload = await readJson(res);
+      if (!res.ok || !payload?.success) throw new Error(payload?.error ?? 'Erreur serveur, veuillez réessayer.');
+      renderClient(payload.data);
+      showFeedback('Client trouvé. Vous pouvez ajouter un passage ou utiliser une récompense.', 'success');
+    } catch (error) {
+      currentPayload = null;
+      clientCard.classList.add('hidden');
+      historyList.innerHTML = '<p class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center">Scannez un client pour afficher son historique.</p>';
+      showFeedback(error instanceof Error ? error.message : 'Erreur serveur, veuillez réessayer.', 'error');
+    } finally {
+      busy = false;
+      focusInput();
+    }
+  }
+
+  async function runAction(action: 'add-point' | 'use-reward') {
+    if (!currentPayload || busy || currentPayload.demo) return;
+    busy = true;
+    showFeedback(action === 'add-point' ? 'Ajout du passage...' : 'Utilisation de la récompense...', 'info');
+
+    try {
+      const path = action === 'add-point'
+        ? `/api/merchant/customers/${currentPayload.client.id}/add-point`
+        : `/api/merchant/customers/${currentPayload.client.id}/use-reward`;
+      const res = await authFetch(path, { method: 'POST', body: JSON.stringify({}) });
+      const payload = await readJson(res);
+      if (!res.ok || !payload?.success) throw new Error(payload?.error ?? 'Erreur serveur, veuillez réessayer.');
+      renderClient(payload.data);
+      showFeedback(payload.message ?? 'Action enregistrée.', 'success');
+      if (navigator.vibrate) navigator.vibrate([45, 35, 80]);
+    } catch (error) {
+      showFeedback(error instanceof Error ? error.message : 'Erreur serveur, veuillez réessayer.', 'error');
+    } finally {
+      busy = false;
+      focusInput();
+    }
+  }
+
+  function resetScan() {
+    currentPayload = null;
+    input.value = '';
+    clientCard.classList.add('hidden');
+    clearFeedback();
+    historyList.innerHTML = '<p class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center">Scannez un client pour afficher son historique.</p>';
+    focusInput();
+  }
+
+  input.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' || busy) return;
+    event.preventDefault();
+    runScan(input.value);
+  });
+  document.getElementById('demo-scan')?.addEventListener('click', () => runScan('FID-DEMO123'));
+  document.getElementById('new-scan-top')?.addEventListener('click', resetScan);
+  document.getElementById('new-scan-side')?.addEventListener('click', resetScan);
+  addPointBtn.addEventListener('click', () => runAction('add-point'));
+  useRewardBtn.addEventListener('click', () => runAction('use-reward'));
+
+  document.addEventListener('click', () => {
+    if (!busy) focusInput();
+  });
+  window.addEventListener('focus', focusInput);
+  focusInput();
+</script>

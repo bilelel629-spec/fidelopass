@@ -118,7 +118,7 @@ async function syncWalletForCarteId(carteId: string): Promise<WalletSyncResult> 
 
   const { data: clients, error: clientsError } = await db
     .from('clients')
-    .select('id, nom, points_actuels, tampons_actuels, recompenses_obtenues, google_pass_id, apple_pass_serial')
+    .select('id, wallet_code, nom, points_actuels, tampons_actuels, recompenses_obtenues, google_pass_id, apple_pass_serial')
     .eq('carte_id', carteId);
 
   if (clientsError) {
@@ -142,6 +142,7 @@ async function syncWalletForCarteId(carteId: string): Promise<WalletSyncResult> 
       googleClients.map((client) =>
         updateGooglePassObject(client.google_pass_id as string, carteForWallet as Parameters<typeof updateGooglePassObject>[1], {
           id: client.id,
+          wallet_code: client.wallet_code ?? null,
           nom: client.nom ?? null,
           points_actuels: client.points_actuels,
           tampons_actuels: client.tampons_actuels,

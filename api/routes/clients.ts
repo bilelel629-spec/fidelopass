@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
+import { randomBytes } from 'crypto';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
@@ -18,6 +19,15 @@ export const clientsRoutes = new Hono();
 
 function normalizePhone(phone: string): string {
   return phone.replace(/[^\d+]/g, '');
+}
+
+function generateWalletCode(): string {
+  return `FID-${randomBytes(4).toString('hex').toUpperCase()}`;
+}
+
+function errorMentionsColumn(error: { message?: string | null; details?: string | null } | null | undefined, column: string): boolean {
+  const haystack = `${error?.message ?? ''} ${error?.details ?? ''}`.toLowerCase();
+  return haystack.includes(column.toLowerCase());
 }
 
 /** GET /api/clients/public/:id — État minimal du client pour la page carte publique */
@@ -196,6 +206,7 @@ clientsRoutes.post('/', async (c) => {
   if (existingClient) {
     const nextFcmToken = parsed.data.fcm_token ?? existingClient.fcm_token;
     const pushEnabled = Boolean(nextFcmToken) && (parsed.data.push_consent || existingClient.push_enabled);
+    const nextWalletCode = (existingClient as { wallet_code?: string | null }).wallet_code ?? generateWalletCode();
 
     const { data: updatedClient, error: updateError } = await db
       .from('clients')
@@ -204,6 +215,7 @@ clientsRoutes.post('/', async (c) => {
         telephone: normalizedPhone,
         email: parsed.data.email ?? existingClient.email,
         date_naissance: parsed.data.date_naissance ?? existingClient.date_naissance ?? null,
+        wallet_code: nextWalletCode,
         fcm_token: nextFcmToken,
         push_enabled: pushEnabled,
         updated_at: new Date().toISOString(),
@@ -212,17 +224,26 @@ clientsRoutes.post('/', async (c) => {
       .select()
       .single();
 
-    if (updateError && updateError.message?.includes('date_naissance')) {
+    if (updateError && (errorMentionsColumn(updateError, 'date_naissance') || errorMentionsColumn(updateError, 'wallet_code'))) {
+      const fallbackPayload: Record<string, unknown> = {
+        nom: parsed.data.nom,
+        telephone: normalizedPhone,
+        email: parsed.data.email ?? existingClient.email,
+        fcm_token: nextFcmToken,
+        push_enabled: pushEnabled,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (!errorMentionsColumn(updateError, 'date_naissance')) {
+        fallbackPayload.date_naissance = parsed.data.date_naissance ?? existingClient.date_naissance ?? null;
+      }
+      if (!errorMentionsColumn(updateError, 'wallet_code')) {
+        fallbackPayload.wallet_code = nextWalletCode;
+      }
+
       const { data: fallbackUpdatedClient, error: fallbackUpdateError } = await db
         .from('clients')
-        .update({
-          nom: parsed.data.nom,
-          telephone: normalizedPhone,
-          email: parsed.data.email ?? existingClient.email,
-          fcm_token: nextFcmToken,
-          push_enabled: pushEnabled,
-          updated_at: new Date().toISOString(),
-        })
+        .update(fallbackPayload)
         .eq('id', existingClient.id)
         .select()
         .single();
@@ -241,12 +262,14 @@ clientsRoutes.post('/', async (c) => {
     return c.json({ data: updatedClient, existing: true });
   }
 
+  const walletCode = generateWalletCode();
   let insertResult = await db
     .from('clients')
     .insert({
       carte_id: parsed.data.carte_id,
       commerce_id: carte.commerce_id,
       point_vente_id: carte.point_vente_id,
+      wallet_code: walletCode,
       nom: parsed.data.nom,
       telephone: normalizedPhone,
       email: parsed.data.email ?? null,
@@ -257,19 +280,28 @@ clientsRoutes.post('/', async (c) => {
     .select()
     .single();
 
-  if (insertResult.error?.message?.includes('date_naissance')) {
+  if (errorMentionsColumn(insertResult.error, 'date_naissance') || errorMentionsColumn(insertResult.error, 'wallet_code')) {
+    const fallbackPayload: Record<string, unknown> = {
+      carte_id: parsed.data.carte_id,
+      commerce_id: carte.commerce_id,
+      point_vente_id: carte.point_vente_id,
+      nom: parsed.data.nom,
+      telephone: normalizedPhone,
+      email: parsed.data.email ?? null,
+      fcm_token: parsed.data.fcm_token ?? null,
+      push_enabled: parsed.data.push_consent && Boolean(parsed.data.fcm_token),
+    };
+
+    if (!errorMentionsColumn(insertResult.error, 'date_naissance')) {
+      fallbackPayload.date_naissance = parsed.data.date_naissance ?? null;
+    }
+    if (!errorMentionsColumn(insertResult.error, 'wallet_code')) {
+      fallbackPayload.wallet_code = walletCode;
+    }
+
     insertResult = await db
       .from('clients')
-      .insert({
-        carte_id: parsed.data.carte_id,
-        commerce_id: carte.commerce_id,
-        point_vente_id: carte.point_vente_id,
-        nom: parsed.data.nom,
-        telephone: normalizedPhone,
-        email: parsed.data.email ?? null,
-        fcm_token: parsed.data.fcm_token ?? null,
-        push_enabled: parsed.data.push_consent && Boolean(parsed.data.fcm_token),
-      })
+      .insert(fallbackPayload)
       .select()
       .single();
   }
@@ -407,6 +439,7 @@ clientsRoutes.patch('/:id/adjust', authMiddleware, paidMiddleware, async (c) => 
 
       updateGooglePassObject(clientFull.google_pass_id, carteForWallet, {
         id: clientId,
+        wallet_code: (client as { wallet_code?: string | null }).wallet_code ?? null,
         nom: client.nom ?? null,
         points_actuels: isPoints ? finalScore : client.points_actuels,
         tampons_actuels: isPoints ? client.tampons_actuels : finalScore,

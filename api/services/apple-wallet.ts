@@ -48,6 +48,7 @@ interface CarteData {
 
 interface ClientData {
   id: string;
+  wallet_code?: string | null;
   nom: string | null;
   points_actuels: number;
   tampons_actuels: number;
@@ -199,12 +200,17 @@ const BARCODE_FORMAT_MAP: Record<string, string> = {
   CODE128: 'PKBarcodeFormatCode128',
 };
 
+function getWalletScanCode(client: ClientData): string {
+  return String(client.wallet_code ?? client.id).trim() || client.id;
+}
+
 export async function generateApplePass(
   carte: CarteData,
   client: ClientData,
   walletMessage?: WalletMessage | null,
 ): Promise<Buffer> {
   const barcodeType = carte.barcode_type ?? 'QR';
+  const barcodeValue = getWalletScanCode(client);
   const labelClient = carte.label_client ?? 'Client';
 
   const soldeLabel = carte.type === 'tampons' ? 'Tampons' : 'Points';
@@ -320,13 +326,13 @@ export async function generateApplePass(
     const format = BARCODE_FORMAT_MAP[barcodeType] ?? 'PKBarcodeFormatQR';
     const brandingAltText = showBranding ? 'Powered by Fidelopass' : undefined;
     passJson.barcode = {
-      message: client.id,
+      message: barcodeValue,
       format,
       messageEncoding: 'iso-8859-1',
       ...(brandingAltText ? { altText: brandingAltText } : {}),
     };
     passJson.barcodes = [{
-      message: client.id,
+      message: barcodeValue,
       format,
       messageEncoding: 'iso-8859-1',
       ...(brandingAltText ? { altText: brandingAltText } : {}),

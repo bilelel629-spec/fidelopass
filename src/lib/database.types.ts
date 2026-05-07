@@ -151,6 +151,7 @@ export interface Database {
           telephone: string | null;
           email: string | null;
           date_naissance: string | null;
+          wallet_code: string | null;
           points_actuels: number;
           tampons_actuels: number;
           recompenses_obtenues: number;
@@ -168,6 +169,7 @@ export interface Database {
           tampons_actuels?: number;
           recompenses_obtenues?: number;
           push_enabled?: boolean;
+          wallet_code?: string | null;
         };
         Update: Partial<Database['public']['Tables']['clients']['Insert']>;
       };

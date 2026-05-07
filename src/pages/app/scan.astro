@@ -485,15 +485,20 @@ import AppLayout from '../../layouts/AppLayout.astro';
     playBeep('scan');
 
     try {
-      // Le QR contient l'ID client
+      // Les anciennes cartes contiennent l'UUID client, les nouvelles un code FID-XXXX scannable en caisse.
       const normalized = decodedText.trim();
       const fromUrl = normalized.match(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i);
-      const clientId = fromUrl?.[0] ?? normalized;
-      const res = await authFetchWithTimeout(`/api/clients/${clientId}`);
+      const scannedCode = fromUrl?.[0] ?? normalized.replace(/\s+/g, '').toUpperCase();
+      const res = fromUrl
+        ? await authFetchWithTimeout(`/api/clients/${scannedCode}`)
+        : await authFetchWithTimeout(`/api/merchant/scan?code=${encodeURIComponent(scannedCode)}`);
       if (!res.ok) throw new Error('Client introuvable');
 
-      const { data } = await res.json();
-      currentClientId = clientId;
+      const payload = await res.json();
+      const data = payload?.data?.client ?? payload?.data;
+      if (!data?.id) throw new Error('Client introuvable');
+
+      currentClientId = data.id;
       currentClientRecompenses = data.recompenses_obtenues ?? 0;
 
       document.getElementById('result-nom')!.textContent = data.nom ?? 'Client anonyme';

@@ -19,6 +19,11 @@ const contextualHelp: Record<string, { label: string; title: string; body: strin
     title: 'Créer et faire évoluer votre carte',
     body: 'Chaque réglage modifie l’expérience Wallet de vos clients: identité, programme, couleurs, messages, géolocalisation et partage.',
   },
+  scan: {
+    label: 'À quoi ça sert ?',
+    title: 'Scanner vite en caisse',
+    body: 'Cette page est prévue pour une scannette USB/Bluetooth: scannez le pass, ajoutez un point ou tampon, puis gardez le champ prêt pour le client suivant.',
+  },
   notifications: {
     label: 'À quoi ça sert ?',
     title: 'Faire revenir vos clients',
@@ -117,6 +122,7 @@ const help = contextualHelp[activeNav];
   const TOUR_STEPS: TourStep[] = [
     { selector: 'a[href="/dashboard"]', title: 'Dashboard', body: 'Suivez vos indicateurs clés et les actions prioritaires de la journée.' },
     { selector: 'a[href="/dashboard/carte"]', title: 'Ma carte', body: 'Personnalisez votre carte fidélité: visuel, programme, messages et options.' },
+    { selector: 'a[href="/dashboard/scan"]', title: 'Scan caisse', body: 'Utilisez une scannette qui agit comme un clavier pour valider les passages encore plus vite.' },
     { selector: 'a[href="/dashboard/notifications"]', title: 'Notifications push', body: 'Envoyez des messages immédiats ou activez vos automatisations clients.' },
     { selector: 'a[href="/dashboard/points-vente"]', title: 'Points de vente', body: 'Ajoutez vos lieux et passez facilement d’un point de vente à l’autre.' },
     { selector: 'a[href="/dashboard/clients"]', title: 'Clients', body: 'Retrouvez les clients inscrits, les récompenses disponibles et les profils à relancer.' },

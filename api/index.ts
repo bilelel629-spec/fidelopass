@@ -24,6 +24,7 @@ import { scannersRoutes } from './routes/scanners';
 import { geocodingRoutes } from './routes/geocoding';
 import { assistantCardRoutes } from './routes/assistant-card';
 import { partnerRoutes } from './routes/partners';
+import { merchantScanRoutes } from './routes/merchant-scan';
 import { createRateLimitMiddleware } from './middleware/rate-limit';
 import { createServiceClient } from '../src/lib/supabase';
 
@@ -115,6 +116,7 @@ app.route('/api/scanners', scannersRoutes);
 app.route('/api/geocoding', geocodingRoutes);
 app.route('/api/assistant-card', assistantCardRoutes);
 app.route('/api/partners', partnerRoutes);
+app.route('/api/merchant', merchantScanRoutes);
 
 app.get('/api/health', (c) => c.json({ ok: true, ts: new Date().toISOString() }));
 app.get('/api/health/deps', async (c) => {
@@ -153,6 +155,7 @@ app.get('/api/health/deps', async (c) => {
     probeColumn('partners', 'id'),
     probeColumn('partner_users', 'id'),
     probeColumn('commerces', 'partner_id'),
+    probeColumn('clients', 'wallet_code'),
   ]);
 
   const migrations = {
@@ -166,6 +169,7 @@ app.get('/api/health/deps', async (c) => {
     partners_table: migrationProbes[7],
     partner_users_table: migrationProbes[8],
     commerces_partner_column: migrationProbes[9],
+    clients_wallet_code_column: migrationProbes[10],
   };
   const migrationsOk = Object.values(migrations).every((entry) => entry.ok);
 

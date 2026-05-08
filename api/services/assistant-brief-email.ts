@@ -250,5 +250,14 @@ export async function sendAssistantBriefEmail(input: AssistantBriefEmailInput) {
     return { ok: false, skipped: false, ...normalizedError };
   }
 
-  return { ok: true, skipped: false, recipients: recipients.map((recipient) => recipient.email) };
+  const body = await response.json().catch(() => null) as { messageId?: string; messageIds?: string[] } | null;
+  const messageId = body?.messageId ?? body?.messageIds?.[0] ?? null;
+  const recipientEmails = recipients.map((recipient) => recipient.email);
+  console.log('[assistant-brief-email] sent:', {
+    recipients: recipientEmails,
+    messageId,
+    subject: `Nouveau brief design — ${input.brief.business_name || input.commerceName}`,
+  });
+
+  return { ok: true, skipped: false, recipients: recipientEmails, messageId };
 }

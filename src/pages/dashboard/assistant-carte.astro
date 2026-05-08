@@ -151,7 +151,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
 
       <div id="assistant-brief-success" class="hidden lg:col-span-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-800">
-        Brief envoyé avec succès. Notre équipe a bien reçu vos éléments et vous contactera rapidement pour la suite.
+        Brief enregistré.
       </div>
 
       <div class="lg:col-span-2 flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
@@ -239,6 +239,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     if (reason === 'sender_not_verified') return 'L’adresse expéditrice Brevo n’est pas validée.';
     if (reason === 'quota_or_payment') return 'Brevo bloque l’envoi à cause d’un quota ou d’un paramètre de compte.';
     return 'La notification email équipe n’a pas pu être confirmée.';
+  }
+
+  function setBriefNotice(kind: 'success' | 'warning', message: string) {
+    briefSuccess.className = [
+      'lg:col-span-2 rounded-2xl px-4 py-3 text-sm leading-6',
+      kind === 'success'
+        ? 'border border-emerald-200 bg-emerald-50 text-emerald-800'
+        : 'border border-amber-200 bg-amber-50 text-amber-900',
+    ].join(' ');
+    briefSuccess.textContent = message;
+    briefSuccess.classList.remove('hidden');
   }
 
   function statusIndex(status?: string | null) {
@@ -479,11 +490,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (!res.ok) throw new Error(response?.error ?? 'Impossible d’envoyer le brief.');
       currentBrief = response?.data ?? null;
       await loadAssistantStatus();
-      briefSuccess.classList.remove('hidden');
       if (response?.email?.ok === false) {
-        formFeedback.textContent = `Brief enregistré. Email équipe non envoyé: ${assistantEmailFailureMessage(response.email)} Le brief reste disponible dans l’espace admin.`;
+        const failureMessage = assistantEmailFailureMessage(response.email);
+        setBriefNotice('warning', `Brief enregistré, mais l’email équipe n’a pas été envoyé: ${failureMessage}`);
+        formFeedback.textContent = 'Le brief reste disponible dans l’espace admin.';
       } else {
-        formFeedback.textContent = 'Brief envoyé. Notre équipe vous contactera rapidement pour la suite.';
+        const recipients = Array.isArray(response?.email?.recipients) ? response.email.recipients.join(', ') : 'bilelel629@gmail.com';
+        const messageId = response?.email?.messageId ? ` · ID Brevo: ${response.email.messageId}` : '';
+        setBriefNotice('success', `Brief enregistré et email envoyé à ${recipients}${messageId}.`);
+        formFeedback.textContent = 'Notre équipe vous contactera rapidement pour la suite.';
       }
     } catch (error) {
       formFeedback.textContent = error instanceof Error ? error.message : 'Impossible d’envoyer le brief.';

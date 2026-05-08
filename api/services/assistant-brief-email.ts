@@ -33,6 +33,7 @@ type AssistantBriefEmailFailureReason =
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 const DEFAULT_CONTACT_EMAIL = 'contact@duo-agency.com';
 const DEFAULT_BRIEF_RECIPIENT = 'bilelel629@gmail.com';
+const DEFAULT_BRIEF_BACKUP_RECIPIENT = 'contact@duo-agency.com';
 
 function buildRecipients() {
   const configuredRecipients = String(process.env.ASSISTANT_BRIEF_RECIPIENT_EMAIL ?? '')
@@ -40,7 +41,7 @@ function buildRecipients() {
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean);
 
-  const recipients = [DEFAULT_BRIEF_RECIPIENT, ...configuredRecipients];
+  const recipients = [DEFAULT_BRIEF_RECIPIENT, DEFAULT_BRIEF_BACKUP_RECIPIENT, ...configuredRecipients];
   return Array.from(new Set(recipients)).map((email, index) => ({
     email,
     name: index === 0 ? 'Fidelopass Admin' : 'Fidelopass Équipe',

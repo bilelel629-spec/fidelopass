@@ -66,11 +66,8 @@ const firebasePushConfig = {
             <div id="preview-stamps" class="w-full"></div>
           </div>
           <!-- Points -->
-          <div id="preview-points-wrap" class="hidden mb-4">
-            <div class="h-1.5 rounded-full" style="background:rgba(255,255,255,0.15)">
-              <div id="preview-bar" class="h-full rounded-full w-0" style="background:#6366f1"></div>
-            </div>
-            <p id="preview-pts-txt" class="text-xs opacity-50 mt-1">0 pts</p>
+          <div id="preview-points-wrap" class="hidden mb-4 text-center">
+            <p id="preview-pts-txt" class="inline-flex rounded-full border border-white/15 bg-black/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] opacity-70">0 pts</p>
           </div>
           <div class="rounded-xl border border-white/10 bg-black/10 px-3 py-2.5">
             <p class="text-xs opacity-60 mb-0.5">Récompense</p>
@@ -600,7 +597,6 @@ const firebasePushConfig = {
         document.getElementById('preview-solde').textContent = '0';
         document.getElementById('preview-stamps-wrap').classList.add('hidden');
         document.getElementById('preview-points-wrap').classList.remove('hidden');
-        document.getElementById('preview-bar').style.background = accent;
         document.getElementById('preview-pts-txt').textContent = `0 / ${pts} pts`;
       }
 
@@ -646,13 +642,10 @@ const firebasePushConfig = {
 
     const target = carteData.carte.points_recompense ?? 100;
     const current = client.points_actuels ?? 0;
-    const ratio = Math.max(0, Math.min(100, Math.round((current / target) * 100)));
     document.getElementById('preview-type-lbl').textContent = 'Points';
     document.getElementById('preview-solde').textContent = String(current);
     document.getElementById('preview-stamps-wrap').classList.add('hidden');
     document.getElementById('preview-points-wrap').classList.remove('hidden');
-    document.getElementById('preview-bar').style.background = accent;
-    document.getElementById('preview-bar').style.width = `${ratio}%`;
     document.getElementById('preview-pts-txt').textContent = `${current} / ${target} pts`;
   }
 

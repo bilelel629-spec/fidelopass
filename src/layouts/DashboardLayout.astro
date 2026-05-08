@@ -89,12 +89,14 @@ const help = contextualHelp[activeNav];
     <div class="flex min-h-screen lg:h-screen overflow-hidden">
       <DashboardNav activeNav={activeNav} />
       <main class="relative z-10 flex-1 min-w-0 overflow-y-auto pb-24 lg:pb-8">
-        <div class="p-4 sm:p-6 md:p-8 pt-24 lg:pt-9 max-w-[86rem] mx-auto">
+        <div class="p-4 sm:p-6 md:p-7 pt-24 lg:pt-7 max-w-[88rem] mx-auto">
           {help && (
-            <aside class="mb-5 rounded-[1.4rem] border border-sky-100 bg-white/82 px-4 py-3 shadow-[0_16px_38px_-34px_rgba(37,99,235,0.38)] backdrop-blur-xl sm:px-5 sm:py-4">
-              <p class="text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-sky-700/75">{help.label}</p>
-              <div class="mt-1 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-3">
-                <h2 class="font-display text-base font-bold text-slate-900">{help.title}</h2>
+            <aside class="mb-4 rounded-[1.25rem] border border-sky-100/80 bg-white/78 px-4 py-3 shadow-[0_14px_34px_-32px_rgba(37,99,235,0.34)] backdrop-blur-xl sm:px-5">
+              <div class="grid gap-2 lg:grid-cols-[14rem_1fr] lg:items-center">
+                <div>
+                  <p class="text-[0.58rem] font-semibold uppercase tracking-[0.24em] text-sky-700/70">{help.label}</p>
+                  <h2 class="mt-1 font-display text-[0.98rem] font-bold leading-snug text-slate-900">{help.title}</h2>
+                </div>
                 <p class="text-sm leading-6 text-slate-600">{help.body}</p>
               </div>
             </aside>

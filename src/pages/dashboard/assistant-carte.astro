@@ -497,7 +497,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       } else {
         const recipients = Array.isArray(response?.email?.recipients) ? response.email.recipients.join(', ') : 'bilelel629@gmail.com, contact@duo-agency.com';
         const messageId = response?.email?.messageId ? ` · ID Brevo: ${response.email.messageId}` : '';
-        setBriefNotice('success', `Brief enregistré et email envoyé à ${recipients}${messageId}.`);
+        setBriefNotice('success', `Brief enregistré et transmis à Brevo pour ${recipients}${messageId}. Si vous ne le recevez pas, vérifiez que l’expéditeur Brevo est validé.`);
         formFeedback.textContent = 'Notre équipe vous contactera rapidement pour la suite.';
       }
     } catch (error) {

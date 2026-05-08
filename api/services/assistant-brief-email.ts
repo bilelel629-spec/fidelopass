@@ -254,7 +254,7 @@ export async function sendAssistantBriefEmail(input: AssistantBriefEmailInput) {
   const body = await response.json().catch(() => null) as { messageId?: string; messageIds?: string[] } | null;
   const messageId = body?.messageId ?? body?.messageIds?.[0] ?? null;
   const recipientEmails = recipients.map((recipient) => recipient.email);
-  console.log('[assistant-brief-email] sent:', {
+  console.log('[assistant-brief-email] accepted by Brevo:', {
     recipients: recipientEmails,
     messageId,
     subject: `Nouveau brief design — ${input.brief.business_name || input.commerceName}`,

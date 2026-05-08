@@ -48,6 +48,30 @@ import AppLayout from '../../layouts/AppLayout.astro';
         </div>
       </div>
 
+      <div class="mt-6 grid gap-5 lg:grid-cols-2">
+        <div class="rounded-[1.5rem] border border-sky-100 bg-white p-5 shadow-[0_18px_48px_-36px_rgba(37,99,235,0.35)]">
+          <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-sky-700/75">Option 1</p>
+          <h2 class="mt-2 font-display text-xl font-bold text-slate-900">Scanner avec le téléphone</h2>
+          <p class="mt-2 text-sm leading-6 text-slate-600">
+            Idéal pour démarrer vite: le téléphone ouvre la caméra, scanne le QR client, puis ajoute les points ou tampons.
+          </p>
+          <a href="/app/scan" class="mt-4 inline-flex rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-slate-800">
+            Ouvrir le scanner caméra
+          </a>
+        </div>
+
+        <div class="rounded-[1.5rem] border border-emerald-100 bg-emerald-50/70 p-5 shadow-[0_18px_48px_-36px_rgba(16,185,129,0.35)]">
+          <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-emerald-700/75">Option 2</p>
+          <h2 class="mt-2 font-display text-xl font-bold text-slate-900">Scanner avec une scannette caisse</h2>
+          <p class="mt-2 text-sm leading-6 text-slate-600">
+            Pour une caisse plus fluide: branchez une scannette USB/Bluetooth sur un ordinateur ou une tablette. Elle écrit le code client et valide avec Entrée.
+          </p>
+          <a href="/dashboard/scan" class="mt-4 inline-flex rounded-2xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-bold text-emerald-800 transition hover:-translate-y-0.5 hover:bg-emerald-50">
+            Ouvrir le mode caisse scannette
+          </a>
+        </div>
+      </div>
+
       <div class="mt-6 grid gap-3 sm:grid-cols-3">
         <div class="rounded-2xl border border-slate-200 bg-white p-4">
           <p class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">1. Scanner</p>

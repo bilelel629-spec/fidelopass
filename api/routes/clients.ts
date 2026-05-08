@@ -126,10 +126,22 @@ clientsRoutes.get('/', authMiddleware, paidMiddleware, async (c) => {
     .order('derniere_visite', { ascending: false, nullsFirst: false });
 
   if (search) {
-    query = query.or(`nom.ilike.%${search}%,email.ilike.%${search}%,telephone.ilike.%${search}%`);
+    query = query.or(`nom.ilike.%${search}%,email.ilike.%${search}%,telephone.ilike.%${search}%,wallet_code.ilike.%${search}%`);
   }
 
-  const { data, error } = await query.limit(100);
+  let { data, error } = await query.limit(100);
+  if (errorMentionsColumn(error, 'wallet_code') && search) {
+    const fallbackQuery = db
+      .from('clients')
+      .select('*')
+      .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id)
+      .or(`nom.ilike.%${search}%,email.ilike.%${search}%,telephone.ilike.%${search}%`)
+      .order('derniere_visite', { ascending: false, nullsFirst: false });
+    const fallback = await fallbackQuery.limit(100);
+    data = fallback.data;
+    error = fallback.error;
+  }
   if (error) return c.json({ error: 'Erreur lors de la récupération' }, 500);
 
   return c.json({ data });

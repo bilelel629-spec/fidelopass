@@ -33,7 +33,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         id="search"
         type="search"
         class="input"
-        placeholder="Rechercher un client..."
+        placeholder="Rechercher un client, téléphone ou code FID..."
       />
       <p class="mt-2 text-xs leading-5 text-slate-500">Cliquez sur une ligne pour ajouter ou retirer des points/tampons.</p>
     </div>
@@ -80,6 +80,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <p class="text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-sky-600/70 mb-1">Client sélectionné</p>
       <h3 id="modal-nom" class="text-lg font-bold text-slate-900">—</h3>
       <p id="modal-contact" class="text-slate-500 text-xs mt-0.5 mb-4">—</p>
+      <p id="modal-wallet-code" class="mb-4 inline-flex rounded-full border border-sky-100 bg-sky-50 px-3 py-1.5 font-mono text-xs font-bold text-sky-800">—</p>
 
       <div class="rounded-2xl border border-sky-100 bg-sky-50/40 p-4 mb-4">
         <div class="flex items-center justify-between">
@@ -121,6 +122,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     nom: string | null;
     email: string | null;
     telephone: string | null;
+    wallet_code: string | null;
     points_actuels: number;
     tampons_actuels: number;
     recompenses_obtenues: number;
@@ -166,6 +168,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <thead class="border-b border-slate-200">
             <tr class="text-left">
               <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Client</th>
+              <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Code client</th>
               <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Points / Tampons</th>
               <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Récompenses dispo</th>
               <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Dernière visite</th>
@@ -180,6 +183,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                 <td class="px-6 py-4">
                   <div class="font-medium text-slate-900 text-sm">${escapeHtml(c.nom ?? 'Anonyme')}</div>
                   <div class="text-slate-500 text-xs">${escapeHtml(c.email ?? c.telephone ?? '—')}</div>
+                </td>
+                <td class="px-6 py-4">
+                  <button
+                    type="button"
+                    class="copy-wallet-code inline-flex items-center rounded-full border border-sky-100 bg-sky-50 px-3 py-1.5 font-mono text-xs font-bold text-sky-800 transition hover:border-sky-200 hover:bg-sky-100"
+                    data-wallet-code="${escapeHtml(c.wallet_code ?? '')}"
+                    ${c.wallet_code ? '' : 'disabled'}
+                  >
+                    ${escapeHtml(c.wallet_code ?? 'À générer')}
+                  </button>
                 </td>
                 <td class="px-6 py-4">
                   <span class="font-mono text-sm text-sky-700">${c.points_actuels || c.tampons_actuels}</span>
@@ -197,6 +210,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       `;
 
       // Attacher les listeners sur chaque ligne
+      container.querySelectorAll('.copy-wallet-code').forEach((button) => {
+        button.addEventListener('click', async (event) => {
+          event.stopPropagation();
+          const target = event.currentTarget as HTMLButtonElement;
+          const code = target.dataset.walletCode?.trim();
+          if (!code) return;
+          await navigator.clipboard.writeText(code).catch(() => null);
+          const previous = target.textContent;
+          target.textContent = 'Copié';
+          window.setTimeout(() => {
+            target.textContent = previous;
+          }, 1200);
+        });
+      });
+
       container.querySelectorAll('tr[data-client-id]').forEach((row) => {
         row.addEventListener('click', () => {
           const id = (row as HTMLElement).dataset.clientId;
@@ -255,6 +283,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     (document.getElementById('modal-nom') as HTMLElement).textContent = client.nom ?? 'Anonyme';
     (document.getElementById('modal-contact') as HTMLElement).textContent = client.email ?? client.telephone ?? '—';
+    (document.getElementById('modal-wallet-code') as HTMLElement).textContent = client.wallet_code ?? 'Code client à générer';
     (document.getElementById('modal-unit-label') as HTMLElement).textContent = unit;
     (document.getElementById('modal-score') as HTMLElement).textContent = String(score);
     (document.getElementById('modal-valeur-unit') as HTMLElement).textContent = unitShort;
@@ -378,11 +407,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   document.getElementById('export-csv-btn')!.addEventListener('click', () => {
     const rows = [
-      ['Nom', 'Email', 'Téléphone', 'Points ou tampons', 'Récompenses disponibles', 'Dernière visite'],
+      ['Nom', 'Email', 'Téléphone', 'Code client', 'Points ou tampons', 'Récompenses disponibles', 'Dernière visite'],
       ...currentClients.map((client) => [
         client.nom ?? 'Anonyme',
         client.email ?? '',
         client.telephone ?? '',
+        client.wallet_code ?? '',
         String(client.points_actuels || client.tampons_actuels || 0),
         String(client.recompenses_obtenues ?? 0),
         client.derniere_visite ? new Date(client.derniere_visite).toLocaleDateString('fr-FR') : '',

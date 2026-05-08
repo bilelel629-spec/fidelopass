@@ -12,14 +12,24 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           Branchez une scannette USB/Bluetooth. Elle écrit le code client ici, puis valide automatiquement avec Entrée.
         </p>
       </div>
-      <button id="new-scan-top" type="button" class="rounded-2xl border border-sky-200 bg-white px-5 py-3 text-sm font-semibold text-sky-800 shadow-[0_12px_28px_-24px_rgba(37,99,235,0.5)] transition hover:border-sky-300 hover:bg-sky-50">
-        Nouveau scan
-      </button>
+      <div class="flex flex-wrap gap-2">
+        <button id="fullscreen-btn" type="button" class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.35)] transition hover:border-slate-300 hover:bg-slate-50">
+          Plein écran caisse
+        </button>
+        <button id="new-scan-top" type="button" class="rounded-2xl border border-sky-200 bg-white px-5 py-3 text-sm font-semibold text-sky-800 shadow-[0_12px_28px_-24px_rgba(37,99,235,0.5)] transition hover:border-sky-300 hover:bg-sky-50">
+          Nouveau scan
+        </button>
+      </div>
     </div>
 
     <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_26rem]">
       <div class="rounded-[1.75rem] border border-slate-200/70 bg-white/92 p-5 shadow-[0_24px_70px_-50px_rgba(15,23,42,0.28)] sm:p-7">
-        <label for="scan-input" class="mb-3 block text-sm font-semibold text-slate-700">Champ de scan</label>
+        <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <label for="scan-input" class="block text-sm font-semibold text-slate-700">Champ de scan</label>
+          <span id="scan-status-pill" class="inline-flex w-fit items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-sky-700">
+            Prêt à scanner
+          </span>
+        </div>
         <div class="relative">
           <span class="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-sky-600">
             <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
@@ -39,7 +49,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             spellcheck="false"
             autofocus
             placeholder="Scannez le pass client"
-            class="w-full rounded-[1.35rem] border-2 border-sky-100 bg-sky-50/55 py-5 pl-14 pr-5 font-mono text-2xl font-bold uppercase tracking-[0.08em] text-slate-950 outline-none transition focus:border-sky-400 focus:bg-white focus:shadow-[0_0_0_6px_rgba(14,165,233,0.12)]"
+            class="w-full rounded-[1.5rem] border-2 border-sky-100 bg-sky-50/55 py-7 pl-14 pr-5 font-mono text-3xl font-bold uppercase tracking-[0.08em] text-slate-950 outline-none transition focus:border-sky-400 focus:bg-white focus:shadow-[0_0_0_6px_rgba(14,165,233,0.12)]"
           />
         </div>
         <div class="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-500">
@@ -49,6 +59,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           </button>
         </div>
         <p id="scan-feedback" class="mt-5 hidden rounded-2xl border px-4 py-3 text-sm font-semibold"></p>
+
+        <div class="mt-6 grid gap-3 md:grid-cols-3">
+          <div class="rounded-2xl border border-sky-100 bg-sky-50/65 p-4">
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-sky-700">1. Brancher</p>
+            <p class="mt-2 text-sm leading-6 text-slate-600">Connectez la scannette USB/Bluetooth à l’ordinateur ou tablette de caisse.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-white p-4">
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">2. Scanner</p>
+            <p class="mt-2 text-sm leading-6 text-slate-600">Scannez le QR/code-barres du Wallet. La scannette écrit le code automatiquement.</p>
+          </div>
+          <div class="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">3. Valider</p>
+            <p class="mt-2 text-sm leading-6 text-slate-600">Ajoutez un passage ou utilisez une récompense. Le champ se remet prêt tout seul.</p>
+          </div>
+        </div>
 
         <div id="client-card" class="mt-7 hidden rounded-[1.6rem] border border-slate-200 bg-gradient-to-br from-white to-sky-50/50 p-5 shadow-[0_20px_55px_-42px_rgba(37,99,235,0.45)]">
           <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -137,13 +162,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   const input = document.getElementById('scan-input') as HTMLInputElement;
   const feedback = document.getElementById('scan-feedback')!;
+  const statusPill = document.getElementById('scan-status-pill')!;
   const clientCard = document.getElementById('client-card')!;
   const historyList = document.getElementById('history-list')!;
   const addPointBtn = document.getElementById('add-point-btn') as HTMLButtonElement;
   const useRewardBtn = document.getElementById('use-reward-btn') as HTMLButtonElement;
+  const fullscreenBtn = document.getElementById('fullscreen-btn') as HTMLButtonElement | null;
 
   let currentPayload: ScanPayload | null = null;
   let busy = false;
+  let audioContext: AudioContext | null = null;
 
   function normalizeScanCode(value: string): string {
     return value.replace(/\s+/g, '').trim().toUpperCase();
@@ -153,6 +181,40 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     window.setTimeout(() => input.focus(), 40);
   }
 
+  function setScanState(message: string, tone: 'success' | 'error' | 'info' = 'info') {
+    statusPill.textContent = message;
+    statusPill.className = 'inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.14em]';
+    if (tone === 'success') statusPill.classList.add('border-emerald-200', 'bg-emerald-50', 'text-emerald-700');
+    else if (tone === 'error') statusPill.classList.add('border-red-200', 'bg-red-50', 'text-red-700');
+    else statusPill.classList.add('border-sky-200', 'bg-sky-50', 'text-sky-700');
+  }
+
+  function playBeep(tone: 'success' | 'error' | 'info' = 'info') {
+    try {
+      audioContext ??= new AudioContext();
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.value = tone === 'success' ? 880 : tone === 'error' ? 220 : 520;
+      gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.08, audioContext.currentTime + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + (tone === 'error' ? 0.24 : 0.13));
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + (tone === 'error' ? 0.25 : 0.14));
+    } catch {
+      // Les navigateurs peuvent bloquer l'audio tant qu'il n'y a pas eu d'interaction utilisateur.
+    }
+  }
+
+  function signal(tone: 'success' | 'error' | 'info') {
+    playBeep(tone);
+    if (!navigator.vibrate) return;
+    if (tone === 'success') navigator.vibrate([45, 30, 80]);
+    else if (tone === 'error') navigator.vibrate([120, 45, 120]);
+  }
+
   function showFeedback(message: string, tone: 'success' | 'error' | 'info' = 'info') {
     feedback.textContent = message;
     feedback.className = 'mt-5 rounded-2xl border px-4 py-3 text-sm font-semibold';
@@ -160,10 +222,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     else if (tone === 'error') feedback.classList.add('border-red-200', 'bg-red-50', 'text-red-700');
     else feedback.classList.add('border-sky-200', 'bg-sky-50', 'text-sky-700');
     feedback.classList.remove('hidden');
+    setScanState(tone === 'success' ? 'Client prêt' : tone === 'error' ? 'À vérifier' : 'Recherche...', tone);
   }
 
   function clearFeedback() {
     feedback.classList.add('hidden');
+    setScanState('Prêt à scanner', 'info');
   }
 
   function escapeHtml(value: unknown): string {
@@ -229,6 +293,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const code = normalizeScanCode(codeRaw);
     if (!code) {
       showFeedback('Scan vide, veuillez réessayer.', 'error');
+      signal('error');
       focusInput();
       return;
     }
@@ -243,11 +308,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (!res.ok || !payload?.success) throw new Error(payload?.error ?? 'Erreur serveur, veuillez réessayer.');
       renderClient(payload.data);
       showFeedback('Client trouvé. Vous pouvez ajouter un passage ou utiliser une récompense.', 'success');
+      signal('success');
     } catch (error) {
       currentPayload = null;
       clientCard.classList.add('hidden');
       historyList.innerHTML = '<p class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center">Scannez un client pour afficher son historique.</p>';
       showFeedback(error instanceof Error ? error.message : 'Erreur serveur, veuillez réessayer.', 'error');
+      signal('error');
     } finally {
       busy = false;
       focusInput();
@@ -268,9 +335,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (!res.ok || !payload?.success) throw new Error(payload?.error ?? 'Erreur serveur, veuillez réessayer.');
       renderClient(payload.data);
       showFeedback(payload.message ?? 'Action enregistrée.', 'success');
-      if (navigator.vibrate) navigator.vibrate([45, 35, 80]);
+      signal('success');
     } catch (error) {
       showFeedback(error instanceof Error ? error.message : 'Erreur serveur, veuillez réessayer.', 'error');
+      signal('error');
     } finally {
       busy = false;
       focusInput();
@@ -286,6 +354,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     focusInput();
   }
 
+  function updateFullscreenButton() {
+    if (!fullscreenBtn) return;
+    fullscreenBtn.textContent = document.fullscreenElement ? 'Quitter le plein écran' : 'Plein écran caisse';
+  }
+
   input.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter' || busy) return;
     event.preventDefault();
@@ -294,6 +367,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   document.getElementById('demo-scan')?.addEventListener('click', () => runScan('FID-DEMO123'));
   document.getElementById('new-scan-top')?.addEventListener('click', resetScan);
   document.getElementById('new-scan-side')?.addEventListener('click', resetScan);
+  fullscreenBtn?.addEventListener('click', async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen();
+      updateFullscreenButton();
+    } catch {
+      showFeedback('Le plein écran n’est pas disponible sur ce navigateur.', 'error');
+    } finally {
+      focusInput();
+    }
+  });
+  document.addEventListener('fullscreenchange', updateFullscreenButton);
   addPointBtn.addEventListener('click', () => runAction('add-point'));
   useRewardBtn.addEventListener('click', () => runAction('use-reward'));
 

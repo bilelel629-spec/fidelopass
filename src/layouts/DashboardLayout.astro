@@ -91,13 +91,32 @@ const help = contextualHelp[activeNav];
       <main class="relative z-10 flex-1 min-w-0 overflow-y-auto pb-24 lg:pb-8">
         <div class="p-4 sm:p-6 md:p-7 pt-24 lg:pt-7 max-w-[88rem] mx-auto">
           {help && (
-            <aside class="mb-4 rounded-[1.25rem] border border-sky-100/80 bg-white/78 px-4 py-3 shadow-[0_14px_34px_-32px_rgba(37,99,235,0.34)] backdrop-blur-xl sm:px-5">
-              <div class="grid gap-2 lg:grid-cols-[14rem_1fr] lg:items-center">
-                <div>
-                  <p class="text-[0.58rem] font-semibold uppercase tracking-[0.24em] text-sky-700/70">{help.label}</p>
-                  <h2 class="mt-1 font-display text-[0.98rem] font-bold leading-snug text-slate-900">{help.title}</h2>
-                </div>
-                <p class="text-sm leading-6 text-slate-600">{help.body}</p>
+            <aside class="mb-4">
+              <button
+                id="dashboard-context-help-trigger"
+                type="button"
+                class="inline-flex items-center gap-2 rounded-full border border-sky-100/90 bg-white/85 px-3.5 py-2 text-xs font-bold text-sky-800 shadow-[0_14px_32px_-28px_rgba(37,99,235,0.45)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white"
+                aria-expanded="false"
+                aria-controls="dashboard-context-help-panel"
+              >
+                <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-sky-50 text-[11px] text-sky-700">?</span>
+                <span>{help.label}</span>
+                <svg
+                  id="dashboard-context-help-icon"
+                  class="h-3.5 w-3.5 transition-transform"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+              </button>
+              <div
+                id="dashboard-context-help-panel"
+                class="mt-3 hidden max-w-3xl rounded-[1.25rem] border border-sky-100/80 bg-white/88 px-4 py-3 shadow-[0_18px_42px_-32px_rgba(37,99,235,0.38)] backdrop-blur-xl sm:px-5"
+              >
+                <h2 class="font-display text-[0.98rem] font-bold leading-snug text-slate-900">{help.title}</h2>
+                <p class="mt-1 text-sm leading-6 text-slate-600">{help.body}</p>
               </div>
             </aside>
           )}
@@ -120,6 +139,34 @@ const help = contextualHelp[activeNav];
 
   type SessionLike = { access_token: string };
   type TourStep = { selector: string; title: string; body: string };
+
+  const contextHelpTrigger = document.getElementById('dashboard-context-help-trigger');
+  const contextHelpPanel = document.getElementById('dashboard-context-help-panel');
+  const contextHelpIcon = document.getElementById('dashboard-context-help-icon');
+
+  function setContextHelpOpen(open: boolean) {
+    if (!contextHelpTrigger || !contextHelpPanel) return;
+    contextHelpTrigger.setAttribute('aria-expanded', String(open));
+    contextHelpPanel.classList.toggle('hidden', !open);
+    contextHelpIcon?.classList.toggle('rotate-180', open);
+  }
+
+  contextHelpTrigger?.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const isOpen = contextHelpTrigger.getAttribute('aria-expanded') === 'true';
+    setContextHelpOpen(!isOpen);
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!contextHelpTrigger || !contextHelpPanel) return;
+    const target = event.target as Node | null;
+    if (target && (contextHelpTrigger.contains(target) || contextHelpPanel.contains(target))) return;
+    setContextHelpOpen(false);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') setContextHelpOpen(false);
+  });
 
   const TOUR_STEPS: TourStep[] = [
     { selector: 'a[href="/dashboard"]', title: 'Dashboard', body: 'Suivez vos indicateurs clés et les actions prioritaires de la journée.' },

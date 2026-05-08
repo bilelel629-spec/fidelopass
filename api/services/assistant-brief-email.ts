@@ -27,6 +27,19 @@ const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 const DEFAULT_CONTACT_EMAIL = 'contact@duo-agency.com';
 const DEFAULT_BRIEF_RECIPIENT = 'bilelel629@gmail.com';
 
+function buildRecipients() {
+  const configuredRecipients = String(process.env.ASSISTANT_BRIEF_RECIPIENT_EMAIL ?? '')
+    .split(',')
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+
+  const recipients = [DEFAULT_BRIEF_RECIPIENT, ...configuredRecipients];
+  return Array.from(new Set(recipients)).map((email, index) => ({
+    email,
+    name: index === 0 ? 'Fidelopass Admin' : 'Fidelopass Équipe',
+  }));
+}
+
 function htmlEscape(value: string) {
   return value
     .replaceAll('&', '&amp;')
@@ -159,9 +172,9 @@ export async function sendAssistantBriefEmail(input: AssistantBriefEmailInput) {
     return { ok: false, skipped: true, reason: 'missing_api_key' as const };
   }
 
-  const recipient = process.env.ASSISTANT_BRIEF_RECIPIENT_EMAIL || DEFAULT_BRIEF_RECIPIENT;
   const senderEmail = process.env.BREVO_SENDER_EMAIL || DEFAULT_CONTACT_EMAIL;
   const senderName = process.env.BREVO_SENDER_NAME || 'Fidelopass';
+  const recipients = buildRecipients();
 
   const response = await fetch(BREVO_API_URL, {
     method: 'POST',
@@ -172,7 +185,7 @@ export async function sendAssistantBriefEmail(input: AssistantBriefEmailInput) {
     },
     body: JSON.stringify({
       sender: { email: senderEmail, name: senderName },
-      to: [{ email: recipient, name: 'Fidelopass Admin' }],
+      to: recipients,
       replyTo: input.commerceEmail ? { email: input.commerceEmail, name: input.commerceName } : undefined,
       subject: `Nouveau brief design — ${input.brief.business_name || input.commerceName}`,
       htmlContent: buildHtml(input),
@@ -187,5 +200,5 @@ export async function sendAssistantBriefEmail(input: AssistantBriefEmailInput) {
     return { ok: false, skipped: false, reason: 'provider_error' as const };
   }
 
-  return { ok: true, skipped: false };
+  return { ok: true, skipped: false, recipients: recipients.map((recipient) => recipient.email) };
 }

@@ -23,6 +23,13 @@ type AssistantBriefEmailInput = {
   };
 };
 
+type AssistantBriefEmailFailureReason =
+  | 'missing_api_key'
+  | 'unauthorized'
+  | 'sender_not_verified'
+  | 'quota_or_payment'
+  | 'provider_error';
+
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 const DEFAULT_CONTACT_EMAIL = 'contact@duo-agency.com';
 const DEFAULT_BRIEF_RECIPIENT = 'bilelel629@gmail.com';
@@ -38,6 +45,43 @@ function buildRecipients() {
     email,
     name: index === 0 ? 'Fidelopass Admin' : 'Fidelopass Équipe',
   }));
+}
+
+function normalizeProviderError(status: number, body: string): {
+  reason: AssistantBriefEmailFailureReason;
+  message: string;
+  status: number;
+} {
+  const lowerBody = body.toLowerCase();
+  if (status === 401 || status === 403) {
+    return {
+      reason: 'unauthorized',
+      message: 'Clé Brevo invalide ou non autorisée sur Railway.',
+      status,
+    };
+  }
+
+  if (lowerBody.includes('sender') || lowerBody.includes('verified') || lowerBody.includes('not valid')) {
+    return {
+      reason: 'sender_not_verified',
+      message: 'Adresse expéditrice Brevo non validée. Vérifiez BREVO_SENDER_EMAIL ou validez contact@duo-agency.com dans Brevo.',
+      status,
+    };
+  }
+
+  if (status === 402 || lowerBody.includes('credit') || lowerBody.includes('quota') || lowerBody.includes('limit')) {
+    return {
+      reason: 'quota_or_payment',
+      message: 'Brevo bloque l’envoi à cause d’un quota, crédit ou paramètre de compte.',
+      status,
+    };
+  }
+
+  return {
+    reason: 'provider_error',
+    message: 'Brevo a refusé l’email. Consultez les logs Railway pour le détail provider.',
+    status,
+  };
 }
 
 function htmlEscape(value: string) {
@@ -169,7 +213,12 @@ export async function sendAssistantBriefEmail(input: AssistantBriefEmailInput) {
   const apiKey = process.env.BREVO_API_KEY;
   if (!apiKey) {
     console.warn('[assistant-brief-email] BREVO_API_KEY manquant, email ignoré');
-    return { ok: false, skipped: true, reason: 'missing_api_key' as const };
+    return {
+      ok: false,
+      skipped: true,
+      reason: 'missing_api_key' as const,
+      message: 'BREVO_API_KEY est manquant sur le service fidelopass-api.',
+    };
   }
 
   const senderEmail = process.env.BREVO_SENDER_EMAIL || DEFAULT_CONTACT_EMAIL;
@@ -196,8 +245,9 @@ export async function sendAssistantBriefEmail(input: AssistantBriefEmailInput) {
 
   if (!response.ok) {
     const body = await response.text().catch(() => '');
-    console.error('[assistant-brief-email] Brevo error:', response.status, body);
-    return { ok: false, skipped: false, reason: 'provider_error' as const };
+    const normalizedError = normalizeProviderError(response.status, body);
+    console.error('[assistant-brief-email] Brevo error:', response.status, normalizedError.reason, body);
+    return { ok: false, skipped: false, ...normalizedError };
   }
 
   return { ok: true, skipped: false, recipients: recipients.map((recipient) => recipient.email) };

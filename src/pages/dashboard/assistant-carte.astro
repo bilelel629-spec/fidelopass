@@ -229,6 +229,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     errorBox.classList.remove('hidden');
   }
 
+  function assistantEmailFailureMessage(emailResult: unknown) {
+    const result = (emailResult && typeof emailResult === 'object') ? emailResult as Record<string, unknown> : {};
+    const reason = String(result.reason ?? '');
+    const providerMessage = String(result.message ?? '').trim();
+    if (providerMessage) return providerMessage;
+    if (reason === 'missing_api_key') return 'BREVO_API_KEY est manquant sur le service API.';
+    if (reason === 'unauthorized') return 'La clé Brevo configurée sur Railway est invalide ou non autorisée.';
+    if (reason === 'sender_not_verified') return 'L’adresse expéditrice Brevo n’est pas validée.';
+    if (reason === 'quota_or_payment') return 'Brevo bloque l’envoi à cause d’un quota ou d’un paramètre de compte.';
+    return 'La notification email équipe n’a pas pu être confirmée.';
+  }
+
   function statusIndex(status?: string | null) {
     if (status === 'published') return 3;
     if (status === 'approved' || status === 'ready_for_review') return 2;
@@ -469,7 +481,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       await loadAssistantStatus();
       briefSuccess.classList.remove('hidden');
       if (response?.email?.ok === false) {
-        formFeedback.textContent = 'Brief enregistré. Attention : la notification email équipe n’a pas pu être confirmée, mais le brief est bien disponible dans l’espace admin.';
+        formFeedback.textContent = `Brief enregistré. Email équipe non envoyé: ${assistantEmailFailureMessage(response.email)} Le brief reste disponible dans l’espace admin.`;
       } else {
         formFeedback.textContent = 'Brief envoyé. Notre équipe vous contactera rapidement pour la suite.';
       }

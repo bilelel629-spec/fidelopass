@@ -175,6 +175,15 @@ assistantCardRoutes.post('/brief', async (c) => {
       return { ok: false, skipped: false, reason: 'send_exception' as const };
     });
 
+    if (!emailResult.ok) {
+      console.warn('[assistant-card] brief saved but email not sent:', {
+        reason: emailResult.reason,
+        message: 'message' in emailResult ? emailResult.message : undefined,
+        commerce_id: commerce.id,
+        point_vente_id: pointVente.id,
+      });
+    }
+
     return c.json({ data, email: emailResult });
   } catch (error) {
     console.error('[assistant-card] brief save failed:', error);

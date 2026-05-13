@@ -25,18 +25,6 @@ const {
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <title>{title}</title>
-    <script is:inline>
-      (() => {
-        const KEY = 'fidelopass-theme';
-        try {
-          localStorage.removeItem(KEY);
-        } catch {
-          // ignore
-        }
-        document.documentElement.dataset.theme = 'light';
-        document.documentElement.classList.remove('dark');
-      })();
-    </script>
   </head>
   <body class:list={[
     "min-h-screen antialiased overflow-x-hidden bg-transparent text-slate-900",

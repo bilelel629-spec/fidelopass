@@ -698,6 +698,50 @@ const firebasePushConfig = {
     }
   }
 
+  function safePreviewImageUrl(value) {
+    if (!value) return '';
+    try {
+      const url = new URL(String(value), window.location.origin);
+      if (!['http:', 'https:'].includes(url.protocol)) return '';
+      return url.href;
+    } catch {
+      return '';
+    }
+  }
+
+  function appendStampImage(dot, source, iconSize, opacity) {
+    const safeUrl = safePreviewImageUrl(source);
+    if (!safeUrl) return false;
+
+    const img = document.createElement('img');
+    img.src = safeUrl;
+    img.alt = '';
+    img.style.width = `${iconSize}px`;
+    img.style.height = `${iconSize}px`;
+    img.style.objectFit = 'contain';
+    img.style.borderRadius = '50%';
+    if (typeof opacity === 'number') img.style.opacity = String(opacity);
+    dot.appendChild(img);
+    return true;
+  }
+
+  function appendCheckIcon(dot, color) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 12 12');
+    svg.style.width = '14px';
+    svg.style.height = '14px';
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M2 6l3 3 5-5');
+    path.setAttribute('stroke', String(color || '#ffffff'));
+    path.setAttribute('stroke-width', '1.8');
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
+    svg.appendChild(path);
+    dot.appendChild(svg);
+  }
+
   function renderStamps(current, total, accent, texte, iconUrl, emoji, iconScale = 1) {
     const container = document.getElementById('preview-stamps');
     container.innerHTML = '';
@@ -719,9 +763,9 @@ const firebasePushConfig = {
           dot.textContent = emoji;
         } else if (iconUrl) {
           const iconSize = Math.max(12, Math.round(28 * Math.max(0.6, Math.min(1.5, Number(iconScale || 1)))));
-          dot.innerHTML = `<img src="${iconUrl}" style="width:${iconSize}px;height:${iconSize}px;object-fit:contain;border-radius:50%;" />`;
+          if (!appendStampImage(dot, iconUrl, iconSize)) appendCheckIcon(dot, texte);
         } else {
-          dot.innerHTML = `<svg viewBox="0 0 12 12" style="width:14px;height:14px"><path d="M2 6l3 3 5-5" stroke="${texte}" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+          appendCheckIcon(dot, texte);
         }
       } else {
         dot.style.border = `2px solid rgba(255,255,255,0.25)`;
@@ -731,7 +775,7 @@ const firebasePushConfig = {
           dot.textContent = emoji;
         } else if (iconUrl) {
           const iconSize = Math.max(12, Math.round(28 * Math.max(0.6, Math.min(1.5, Number(iconScale || 1)))));
-          dot.innerHTML = `<img src="${iconUrl}" style="width:${iconSize}px;height:${iconSize}px;object-fit:contain;border-radius:50%;opacity:0.3;" />`;
+          appendStampImage(dot, iconUrl, iconSize, 0.3);
         }
       }
       container.appendChild(dot);

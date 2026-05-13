@@ -230,6 +230,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }[char] ?? char));
   }
 
+  function toNonNegativeNumber(value: unknown) {
+    const numberValue = Number(value ?? 0);
+    return Number.isFinite(numberValue) ? Math.max(0, numberValue) : 0;
+  }
+
   function getStoredPointVenteId(): string | null {
     try {
       const value = window.localStorage.getItem(ACTIVE_POINT_VENTE_STORAGE_KEY)?.trim() ?? '';
@@ -398,9 +403,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const res = await pointAwareFetch('/api/dashboard/stats');
       if (!res.ok) return;
       const data = await res.json();
-      dashboardState.totalClients = Number(data.totalClients ?? 0);
-      dashboardState.scansAujourdhui = Number(data.scansAujourdhui ?? 0);
-      dashboardState.totalRecompenses = Number(data.totalRecompenses ?? 0);
+      dashboardState.totalClients = toNonNegativeNumber(data.totalClients);
+      dashboardState.scansAujourdhui = toNonNegativeNumber(data.scansAujourdhui);
+      dashboardState.totalRecompenses = toNonNegativeNumber(data.totalRecompenses);
       document.getElementById('stat-clients')!.textContent = String(dashboardState.totalClients);
       document.getElementById('stat-scans')!.textContent = String(dashboardState.scansAujourdhui);
       document.getElementById('stat-recompenses')!.textContent = String(dashboardState.totalRecompenses);
@@ -415,17 +420,23 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     try {
       const res = await pointAwareFetch('/api/dashboard/weekly-scans');
       if (!res.ok) throw new Error();
-      const { data } = await res.json();
+      const payload = await res.json().catch(() => null);
+      const data = Array.isArray(payload?.data) ? payload.data : [];
 
-      if (!data?.length) {
+      if (!data.length) {
         container.innerHTML = '<p class="text-slate-400 text-sm m-auto">Aucune activité cette semaine.</p>';
         const insight = document.getElementById('chart-insight');
         if (insight) insight.textContent = 'Aucun passage enregistré cette semaine.';
         return;
       }
 
-      const totalScans = data.reduce((acc: number, d: { scans: number }) => acc + Number(d.scans ?? 0), 0);
-      const totalRewards = data.reduce((acc: number, d: { recompenses: number }) => acc + Number(d.recompenses ?? 0), 0);
+      const normalized = data.map((d: { date?: string; scans?: number; recompenses?: number }) => ({
+        date: String(d.date ?? ''),
+        scans: toNonNegativeNumber(d.scans),
+        recompenses: toNonNegativeNumber(d.recompenses),
+      }));
+      const totalScans = normalized.reduce((acc: number, d: { scans: number }) => acc + d.scans, 0);
+      const totalRewards = normalized.reduce((acc: number, d: { recompenses: number }) => acc + d.recompenses, 0);
       const insight = document.getElementById('chart-insight');
       if (insight) {
         insight.textContent = totalScans > 0
@@ -433,14 +444,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           : 'Aucun scan cette semaine: pensez à garder le scanner ouvert en caisse.';
       }
 
-      const maxVal = Math.max(...data.map((d: { scans: number; recompenses: number }) => d.scans + d.recompenses), 1);
+      const maxVal = Math.max(...normalized.map((d: { scans: number; recompenses: number }) => d.scans + d.recompenses), 1);
       const containerHeight = Math.max(container.clientHeight || 200, 180);
       const chartHeight = Math.max(120, containerHeight - 36);
 
-      container.innerHTML = data.map((d: { date: string; scans: number; recompenses: number }) => {
+      container.innerHTML = normalized.map((d: { date: string; scans: number; recompenses: number }) => {
         const scansH = Math.round((d.scans / maxVal) * chartHeight);
         const recH = Math.round((d.recompenses / maxVal) * chartHeight);
-        const label = new Date(d.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
+        const labelDate = new Date(`${d.date}T12:00:00`);
+        const label = Number.isNaN(labelDate.getTime())
+          ? '—'
+          : labelDate.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
         return `
           <div class="flex min-w-0 flex-1 flex-col items-center gap-1.5 self-stretch">
             <div class="w-full max-w-[58px] flex flex-1 flex-col-reverse items-center gap-0.5 rounded-xl bg-slate-100/70 p-1.5" style="height:${chartHeight}px">
@@ -460,10 +474,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     try {
       const res = await pointAwareFetch('/api/transactions?limit=5');
       if (!res.ok) return;
-      const { data } = await res.json();
+      const payload = await res.json().catch(() => null);
+      const data = Array.isArray(payload?.data) ? payload.data : [];
       const container = document.getElementById('recent-transactions')!;
 
-      if (!data?.length) {
+      if (!data.length) {
         container.innerHTML = `
           <div class="rounded-3xl border border-dashed border-slate-200 bg-slate-50/70 p-5 text-sm text-slate-600">
             Aucune transaction pour le moment. Dès que le scanner sera utilisé, les passages clients apparaîtront ici.
@@ -486,7 +501,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       );
       const transactionLabel = (transaction: RecentTransaction) => {
         const type = transaction.type;
-        const value = Number(transaction.valeur ?? 0);
+        const value = toNonNegativeNumber(transaction.valeur);
         const label = clientLabel(transaction);
         if (type === 'ajout_tampon') return `${label} a reçu ${value} tampon${value > 1 ? 's' : ''}`;
         if (type === 'ajout_points') return `${label} a reçu ${value} point${value > 1 ? 's' : ''}`;
@@ -495,7 +510,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         return type.replace('_', ' ');
       };
       const transactionBadge = (transaction: RecentTransaction) => {
-        const value = Number(transaction.valeur ?? 0);
+        const value = toNonNegativeNumber(transaction.valeur);
         if (transaction.type === 'ajout_tampon' || transaction.type === 'ajout_points') return `+${value}`;
         if (transaction.type === 'recompense') return 'Offerte';
         if (transaction.type === 'reset') return 'Reset';
@@ -509,6 +524,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       };
       const relativeDate = (date: string) => {
         const createdAt = new Date(date).getTime();
+        if (!Number.isFinite(createdAt)) return '—';
         const diffMinutes = Math.max(0, Math.round((Date.now() - createdAt) / 60000));
         if (diffMinutes < 1) return 'À l’instant';
         if (diffMinutes < 60) return `Il y a ${diffMinutes} min`;
@@ -546,12 +562,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const summary = payload?.summary ?? {};
       const weekly = Array.isArray(payload?.data) ? payload.data : [];
 
-      rate.textContent = `${summary?.rate_30d ?? 0}%`;
+      const rate30d = Math.min(100, toNonNegativeNumber(summary?.rate_30d));
+      const repeat30d = toNonNegativeNumber(summary?.repeat_30d);
+      const active30d = toNonNegativeNumber(summary?.active_30d);
+
+      rate.textContent = `${rate30d}%`;
       const retentionCard = document.getElementById('stat-retention-card');
       const retentionDetail = document.getElementById('stat-retention-detail');
-      if (retentionCard) retentionCard.textContent = `${summary?.rate_30d ?? 0}%`;
+      if (retentionCard) retentionCard.textContent = `${rate30d}%`;
       if (retentionDetail) {
-        retentionDetail.textContent = `${summary?.repeat_30d ?? 0}/${summary?.active_30d ?? 0} client${Number(summary?.active_30d ?? 0) > 1 ? 's' : ''} revenu${Number(summary?.repeat_30d ?? 0) > 1 ? 's' : ''}`;
+        retentionDetail.textContent = `${repeat30d}/${active30d} client${active30d > 1 ? 's' : ''} revenu${repeat30d > 1 ? 's' : ''}`;
       }
 
       if (!weekly.length) {
@@ -559,15 +579,22 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         return;
       }
 
-      const maxRate = Math.max(...weekly.map((item: { retention_rate?: number }) => Number(item.retention_rate ?? 0)), 1);
-      chart.innerHTML = weekly.map((item: { week_start: string; retention_rate: number }) => {
-        const ratio = Math.round((Number(item.retention_rate ?? 0) / maxRate) * 100);
-        const label = new Date(`${item.week_start}T12:00:00`).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+      const normalizedWeekly = weekly.map((item: { week_start?: string; retention_rate?: number }) => ({
+        week_start: String(item.week_start ?? ''),
+        retention_rate: Math.min(100, toNonNegativeNumber(item.retention_rate)),
+      }));
+      const maxRate = Math.max(...normalizedWeekly.map((item: { retention_rate: number }) => item.retention_rate), 1);
+      chart.innerHTML = normalizedWeekly.map((item: { week_start: string; retention_rate: number }) => {
+        const ratio = Math.max(0, Math.min(100, Math.round((item.retention_rate / maxRate) * 100)));
+        const labelDate = new Date(`${item.week_start}T12:00:00`);
+        const label = Number.isNaN(labelDate.getTime())
+          ? '—'
+          : labelDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
         return `
           <div class="min-w-0 flex-1">
             <div class="group relative h-16 rounded-lg bg-slate-200/70">
               <div class="absolute inset-x-0 bottom-0 rounded-lg bg-gradient-to-t from-sky-600 to-cyan-500 transition-all" style="height:${ratio}%"></div>
-              <span class="pointer-events-none absolute -top-6 left-1/2 hidden -translate-x-1/2 rounded-md bg-slate-900 px-2 py-1 text-[10px] text-white group-hover:block">${Number(item.retention_rate ?? 0)}%</span>
+              <span class="pointer-events-none absolute -top-6 left-1/2 hidden -translate-x-1/2 rounded-md bg-slate-900 px-2 py-1 text-[10px] text-white group-hover:block">${item.retention_rate}%</span>
             </div>
             <p class="mt-1 truncate text-center text-[0.62rem] text-slate-500">${escapeHtml(label)}</p>
           </div>

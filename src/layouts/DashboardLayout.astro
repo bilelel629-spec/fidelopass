@@ -180,6 +180,15 @@ const help = contextualHelp[activeNav];
     { selector: 'a[href="/app"]', title: 'Scanner', body: 'Installez et ouvrez le scanner équipe pour valider les passages en caisse.' },
   ];
 
+  function escapeHtml(value: unknown) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
   function getVisibleTarget(selector: string): HTMLElement | null {
     const nodes = Array.from(document.querySelectorAll<HTMLElement>(selector));
     return nodes.find((node) => node.offsetParent !== null) ?? nodes[0] ?? null;
@@ -243,15 +252,15 @@ const help = contextualHelp[activeNav];
       activeTarget?.classList.add('dashboard-tour-highlight');
 
       card.innerHTML = `
-        <p class="text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-sky-700/75">Guide rapide (${index + 1}/${TOUR_STEPS.length})</p>
-        <h3 class="mt-2 text-lg font-display font-bold text-slate-900">${step.title}</h3>
-        <p class="mt-2 text-sm text-slate-600">${step.body}</p>
+        <p class="text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-sky-700/75">Guide rapide (${escapeHtml(index + 1)}/${escapeHtml(TOUR_STEPS.length)})</p>
+        <h3 class="mt-2 text-lg font-display font-bold text-slate-900">${escapeHtml(step.title)}</h3>
+        <p class="mt-2 text-sm text-slate-600">${escapeHtml(step.body)}</p>
         <div class="mt-4 flex items-center justify-between gap-2">
           <button type="button" id="tour-skip" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
             Passer
           </button>
           <button type="button" id="tour-next" class="rounded-xl bg-sky-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-sky-700">
-            ${index === TOUR_STEPS.length - 1 ? 'Terminer' : 'Suivant'}
+            ${escapeHtml(index === TOUR_STEPS.length - 1 ? 'Terminer' : 'Suivant')}
           </button>
         </div>
       `;

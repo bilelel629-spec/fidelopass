@@ -230,6 +230,18 @@ function normalizeBillingStatusFromSubscription(status: string | null | undefine
   return 'unpaid';
 }
 
+function isSubscriptionAccessReady(subscription: Stripe.Subscription) {
+  const status = normalizeBillingStatusFromSubscription(subscription.status);
+  if (status === 'active') return true;
+  if (status !== 'trialing') return false;
+  if (!subscription.trial_end) return false;
+  return subscription.trial_end * 1000 > Date.now();
+}
+
+function isPaymentCheckoutSettled(session: Stripe.Checkout.Session) {
+  return session.status === 'complete' && session.payment_status === 'paid';
+}
+
 function resolvePlanFromSlot(slot: PriceSlot): 'starter' | 'pro' | null {
   if (slot.startsWith('starter_')) return 'starter';
   if (slot.startsWith('pro_')) return 'pro';
@@ -882,12 +894,12 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
     ? `${PUBLIC_SITE_URL}/abonnement/success?session_id={CHECKOUT_SESSION_ID}`
     : isAccompagnementOnly
       ? `${PUBLIC_SITE_URL}/dashboard/assistant-carte?checkout=success`
-    : `${PUBLIC_SITE_URL}/dashboard/parametres?tab=plans&checkout=success`;
+    : `${PUBLIC_SITE_URL}/dashboard/parametres?tab=abonnement&checkout=success`;
   const cancelUrl = isPlanCheckout
     ? `${PUBLIC_SITE_URL}/abonnement/choix?cancelled=1`
     : isAccompagnementOnly
       ? `${PUBLIC_SITE_URL}/dashboard/assistant-carte?checkout=cancelled`
-    : `${PUBLIC_SITE_URL}/dashboard/parametres?tab=plans&checkout=cancelled`;
+    : `${PUBLIC_SITE_URL}/dashboard/parametres?tab=abonnement&checkout=cancelled`;
   console.info('[checkout] redirect urls', {
     publicSiteUrl: PUBLIC_SITE_URL,
     successUrl,
@@ -977,6 +989,20 @@ checkoutRoutes.post('/reconcile-session', authMiddleware, async (c) => {
       return c.json({ error: 'Session Stripe non autorisée.' }, 403);
     }
 
+    if (session.status !== 'complete') {
+      return c.json({
+        error: 'Le paiement Stripe n’est pas encore finalisé.',
+        code: 'CHECKOUT_NOT_COMPLETE',
+      }, 409);
+    }
+
+    if (session.mode === 'payment' && !isPaymentCheckoutSettled(session)) {
+      return c.json({
+        error: 'Le paiement Stripe n’a pas encore été confirmé.',
+        code: 'PAYMENT_NOT_CONFIRMED',
+      }, 409);
+    }
+
     let commerce = await findCheckoutCommerceById(db, session.metadata?.commerce_id);
     if (!commerce) commerce = await findCheckoutCommerceForUser(db, userId);
     if (!commerce) {
@@ -1014,11 +1040,22 @@ checkoutRoutes.post('/reconcile-session', authMiddleware, async (c) => {
           ? session.subscription
           : session.subscription.id;
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        if (!isSubscriptionAccessReady(subscription)) {
+          return c.json({
+            error: 'L’abonnement Stripe n’est pas encore actif.',
+            code: 'SUBSCRIPTION_NOT_READY',
+          }, 409);
+        }
         updates.stripe_subscription_id = subscription.id;
         updates.billing_status = normalizeBillingStatusFromSubscription(subscription.status);
         updates.trial_ends_at = subscription.trial_end
           ? new Date(subscription.trial_end * 1000).toISOString()
           : null;
+      } else if (session.mode === 'subscription') {
+        return c.json({
+          error: 'Abonnement Stripe introuvable sur cette session.',
+          code: 'SUBSCRIPTION_MISSING',
+        }, 409);
       } else if (session.mode === 'payment' && isAnnualOnceSlot(selectedSlot)) {
         // Compatibilité avec le modèle actuel: l'accès annuel payé en une fois
         // expire via trial_ends_at, même si le nom du champ est historique.
@@ -1098,7 +1135,7 @@ checkoutRoutes.post('/create-portal-session', authMiddleware, async (c) => {
     c.req.header('origin') || c.req.header('referer') || null,
   );
   try {
-    const returnUrl = `${PUBLIC_SITE_URL}/dashboard/parametres?tab=plans`;
+    const returnUrl = `${PUBLIC_SITE_URL}/dashboard/parametres?tab=abonnement`;
     const subscriptionId = commerce.stripe_subscription_id;
     let session: Stripe.BillingPortal.Session;
 

@@ -51,16 +51,6 @@ function iconSvg(path: string) {
   return `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="${path}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
 
-function escapeHtml(value: unknown) {
-  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;',
-  }[char] ?? char));
-}
-
 function setAddressDataset(input: HTMLInputElement, suggestion: AddressSuggestion) {
   input.dataset.latitude = String(suggestion.latitude);
   input.dataset.longitude = String(suggestion.longitude);
@@ -148,25 +138,47 @@ export function initAddressAutocomplete({ input, currentLocationLabel = 'Utilise
   }
 
   function render(extraMessage = '') {
-    const suggestionHtml = suggestions.map((suggestion, index) => {
-      const detail = [suggestion.rue, suggestion.code_postal, suggestion.ville, suggestion.pays].filter(Boolean).join(' · ');
-      return `
-        <button type="button" class="fp-address-option" role="option" data-index="${index}" data-active="${index === activeIndex ? 'true' : 'false'}">
-          <span class="fp-address-pin">${iconSvg('M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z M12 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z')}</span>
-          <span><strong>${escapeHtml(suggestion.label)}</strong><span>${escapeHtml(detail || 'Adresse détectée')}</span></span>
-        </button>
-      `;
-    }).join('');
+    menu.textContent = '';
 
-    menu.innerHTML = `
-      ${suggestionHtml || (extraMessage ? `<div class="fp-address-empty">${extraMessage}</div>` : '')}
-      <button type="button" class="fp-address-current">${iconSvg('M12 3v3 M12 18v3 M3 12h3 M18 12h3 M7.8 7.8l-2.1-2.1 M18.3 18.3l-2.1-2.1 M16.2 7.8l2.1-2.1 M5.7 18.3l2.1-2.1 M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z')} ${currentLocationLabel}</button>
-    `;
+    if (suggestions.length) {
+      suggestions.forEach((suggestion, index) => {
+        const detail = [suggestion.rue, suggestion.code_postal, suggestion.ville, suggestion.pays].filter(Boolean).join(' · ');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'fp-address-option';
+        button.setAttribute('role', 'option');
+        button.dataset.index = String(index);
+        button.dataset.active = index === activeIndex ? 'true' : 'false';
+        button.addEventListener('click', () => selectSuggestion(index));
 
-    menu.querySelectorAll<HTMLButtonElement>('.fp-address-option').forEach((button) => {
-      button.addEventListener('click', () => selectSuggestion(Number(button.dataset.index)));
-    });
-    menu.querySelector<HTMLButtonElement>('.fp-address-current')?.addEventListener('click', useCurrentPosition);
+        const pin = document.createElement('span');
+        pin.className = 'fp-address-pin';
+        pin.innerHTML = iconSvg('M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z M12 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z');
+
+        const text = document.createElement('span');
+        const label = document.createElement('strong');
+        label.textContent = suggestion.label;
+        const meta = document.createElement('span');
+        meta.textContent = detail || 'Adresse détectée';
+        text.append(label, meta);
+        button.append(pin, text);
+        menu.appendChild(button);
+      });
+    } else if (extraMessage) {
+      const empty = document.createElement('div');
+      empty.className = 'fp-address-empty';
+      empty.textContent = extraMessage;
+      menu.appendChild(empty);
+    }
+
+    const currentButton = document.createElement('button');
+    currentButton.type = 'button';
+    currentButton.className = 'fp-address-current';
+    const currentIcon = document.createElement('span');
+    currentIcon.innerHTML = iconSvg('M12 3v3 M12 18v3 M3 12h3 M18 12h3 M7.8 7.8l-2.1-2.1 M18.3 18.3l-2.1-2.1 M16.2 7.8l2.1-2.1 M5.7 18.3l2.1-2.1 M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z');
+    currentButton.append(currentIcon, document.createTextNode(` ${currentLocationLabel}`));
+    currentButton.addEventListener('click', useCurrentPosition);
+    menu.appendChild(currentButton);
     menu.dataset.open = 'true';
   }
 

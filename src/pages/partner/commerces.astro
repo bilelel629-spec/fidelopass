@@ -72,6 +72,20 @@ import PartnerLayout from '../../layouts/PartnerLayout.astro';
       : 'mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700';
   }
 
+  function escapeHtml(value: unknown) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function toNonNegativeNumber(value: unknown, fallback = 0) {
+    const number = Number(value);
+    return Number.isFinite(number) && number >= 0 ? number : fallback;
+  }
+
   function renderRows(commerces: any[]) {
     if (!list) return;
     if (!commerces.length) {
@@ -83,17 +97,21 @@ import PartnerLayout from '../../layouts/PartnerLayout.astro';
       <div class="hidden grid-cols-[1.3fr_0.8fr_0.7fr_0.7fr] gap-4 bg-slate-50 px-5 py-3 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-slate-500 md:grid">
         <span>Commerce</span><span>Carte</span><span>Clients</span><span>Statut</span>
       </div>
-      ${commerces.map((commerce) => `
+      ${commerces.map((commerce) => {
+        const cardCount = Array.isArray(commerce.cartes) ? commerce.cartes.length : toNonNegativeNumber(commerce.cartes_count);
+        const clientCount = Array.isArray(commerce.clients) ? commerce.clients.length : toNonNegativeNumber(commerce.clients_count);
+        return `
         <div class="grid gap-3 border-t border-slate-100 bg-white px-5 py-4 md:grid-cols-[1.3fr_0.8fr_0.7fr_0.7fr] md:items-center">
           <div>
-            <p class="font-semibold text-slate-950">${commerce.nom ?? 'Commerce'}</p>
-            <p class="text-sm text-slate-500">${commerce.email ?? ''}</p>
+            <p class="font-semibold text-slate-950">${escapeHtml(commerce.nom ?? 'Commerce')}</p>
+            <p class="text-sm text-slate-500">${escapeHtml(commerce.email ?? '')}</p>
           </div>
-          <span class="w-fit rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">${commerce.cartes?.length ? 'Configurée' : 'À créer'}</span>
-          <span class="text-sm font-semibold text-slate-800">${commerce.clients?.length ?? 0}</span>
+          <span class="w-fit rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">${cardCount > 0 ? 'Configurée' : 'À créer'}</span>
+          <span class="text-sm font-semibold text-slate-800">${clientCount}</span>
           <span class="w-fit rounded-full ${commerce.actif === false ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'} px-3 py-1 text-xs font-semibold">${commerce.actif === false ? 'Inactif' : 'Actif'}</span>
         </div>
-      `).join('')}
+      `;
+      }).join('')}
     `;
   }
 
@@ -104,14 +122,14 @@ import PartnerLayout from '../../layouts/PartnerLayout.astro';
     const commerces = Array.isArray(payload?.data) ? payload.data : [];
     const quotaPayload = payload?.quota;
     if (quota && quotaPayload) {
-      quota.textContent = `${quotaPayload.used}/${quotaPayload.included} commerces inclus utilisés`;
+      quota.textContent = `${toNonNegativeNumber(quotaPayload.used)}/${toNonNegativeNumber(quotaPayload.included)} commerces inclus utilisés`;
     }
     renderRows(commerces);
   }
 
   await loadCommerces().catch((error) => {
     if (quota) quota.textContent = 'Impossible de charger les commerces.';
-    if (list) list.innerHTML = `<div class="bg-red-50 px-5 py-5 text-sm text-red-600">${error.message}</div>`;
+    if (list) list.innerHTML = `<div class="bg-red-50 px-5 py-5 text-sm text-red-600">${escapeHtml(error.message)}</div>`;
   });
 
   document.getElementById('partner-commerce-form')?.addEventListener('submit', async (event) => {

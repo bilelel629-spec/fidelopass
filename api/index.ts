@@ -26,6 +26,8 @@ import { assistantCardRoutes } from './routes/assistant-card';
 import { partnerRoutes } from './routes/partners';
 import { merchantScanRoutes } from './routes/merchant-scan';
 import { createRateLimitMiddleware } from './middleware/rate-limit';
+import { authMiddleware } from './middleware/auth';
+import { adminMiddleware } from './middleware/admin';
 import { createServiceClient } from '../src/lib/supabase';
 
 const app = new Hono();
@@ -119,7 +121,7 @@ app.route('/api/partners', partnerRoutes);
 app.route('/api/merchant', merchantScanRoutes);
 
 app.get('/api/health', (c) => c.json({ ok: true, ts: new Date().toISOString() }));
-app.get('/api/health/deps', async (c) => {
+app.get('/api/health/deps', authMiddleware, adminMiddleware, async (c) => {
   const db = createServiceClient();
   const startedAt = Date.now();
   const timeoutMs = Number(process.env.HEALTH_DB_TIMEOUT_MS ?? 2000);

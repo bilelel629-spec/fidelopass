@@ -17,6 +17,8 @@ const SMS_FEATURE_ENABLED = process.env.SMS_FEATURE_ENABLED === 'true';
 
 export const clientsRoutes = new Hono();
 
+const uuidSchema = z.string().uuid();
+
 function normalizePhone(phone: string): string {
   return phone.replace(/[^\d+]/g, '');
 }
@@ -32,8 +34,15 @@ function errorMentionsColumn(error: { message?: string | null; details?: string 
 
 /** GET /api/clients/public/:id — État minimal du client pour la page carte publique */
 clientsRoutes.get('/public/:id', async (c) => {
-  const clientId = c.req.param('id');
-  const carteId = c.req.query('carte_id');
+  const clientIdResult = uuidSchema.safeParse(c.req.param('id'));
+  if (!clientIdResult.success) return c.json({ error: 'Client introuvable' }, 404);
+
+  const carteIdParam = c.req.query('carte_id');
+  const carteIdResult = carteIdParam ? uuidSchema.safeParse(carteIdParam) : null;
+  if (carteIdResult && !carteIdResult.success) return c.json({ error: 'Client introuvable' }, 404);
+
+  const clientId = clientIdResult.data;
+  const carteId = carteIdResult?.data;
   const db = createServiceClient();
 
   const { data, error } = await db
@@ -87,7 +96,10 @@ clientsRoutes.get('/public/:id', async (c) => {
 
 /** GET /api/clients/:id — Récupère un client (utilisé par le scanner) */
 clientsRoutes.get('/:id', authMiddleware, paidMiddleware, async (c) => {
-  const clientId = c.req.param('id');
+  const clientIdResult = uuidSchema.safeParse(c.req.param('id'));
+  if (!clientIdResult.success) return c.json({ error: 'Client introuvable' }, 404);
+
+  const clientId = clientIdResult.data;
   const userId = c.get('userId') as string;
   const db = createServiceClient();
   const requestedPointVenteId = readRequestedPointVenteId(c);
@@ -347,8 +359,10 @@ clientsRoutes.post('/', async (c) => {
 
 /** PATCH /api/clients/:id/adjust — Ajustement manuel du score (+ ou -) par le commerçant */
 clientsRoutes.patch('/:id/adjust', authMiddleware, paidMiddleware, async (c) => {
-  const clientId = c.req.param('id') ?? '';
-  if (!clientId) return c.json({ error: 'Client introuvable' }, 404);
+  const clientIdResult = uuidSchema.safeParse(c.req.param('id'));
+  if (!clientIdResult.success) return c.json({ error: 'Client introuvable' }, 404);
+
+  const clientId = clientIdResult.data;
   const userId = c.get('userId') as string;
   const body = await c.req.json().catch(() => null);
   const requestedPointVenteId = readRequestedPointVenteId(c);
@@ -487,7 +501,10 @@ clientsRoutes.patch('/:id/adjust', authMiddleware, paidMiddleware, async (c) => 
 
 /** POST /api/clients/:id/claim-review — Réclame la récompense avis Google */
 clientsRoutes.post('/:id/claim-review', async (c) => {
-  const clientId = c.req.param('id');
+  const clientIdResult = uuidSchema.safeParse(c.req.param('id'));
+  if (!clientIdResult.success) return c.json({ error: 'Client introuvable' }, 404);
+
+  const clientId = clientIdResult.data;
   const body = await c.req.json().catch(() => null);
 
   const schema = z.object({ carte_id: z.string().uuid() });
@@ -496,7 +513,28 @@ clientsRoutes.post('/:id/claim-review', async (c) => {
 
   const db = createServiceClient();
 
-  // Anti-double-claim
+  const { data: client } = await db
+    .from('clients')
+    .select('id, nom, commerce_id, carte_id, points_actuels, tampons_actuels')
+    .eq('id', clientId)
+    .single();
+
+  if (!client) return c.json({ error: 'Client introuvable' }, 404);
+
+  const { data: carte } = await db
+    .from('cartes')
+    .select('id, commerce_id, type, review_reward_enabled, review_reward_value')
+    .eq('id', parsed.data.carte_id)
+    .eq('actif', true)
+    .single();
+
+  if (!carte) return c.json({ error: 'Carte introuvable' }, 404);
+  if (client.carte_id !== carte.id || client.commerce_id !== carte.commerce_id) {
+    return c.json({ error: 'Client introuvable' }, 404);
+  }
+  if (!carte.review_reward_enabled) return c.json({ error: 'Récompense avis non activée' }, 403);
+
+  // Anti-double-claim après validation de rattachement client/carte.
   const { data: existing } = await db
     .from('review_rewards')
     .select('id')
@@ -505,24 +543,6 @@ clientsRoutes.post('/:id/claim-review', async (c) => {
     .maybeSingle();
 
   if (existing) return c.json({ error: 'Récompense déjà réclamée' }, 409);
-
-  const { data: client } = await db
-    .from('clients')
-    .select('id, nom, commerce_id, points_actuels, tampons_actuels')
-    .eq('id', clientId)
-    .single();
-
-  if (!client) return c.json({ error: 'Client introuvable' }, 404);
-
-  const { data: carte } = await db
-    .from('cartes')
-    .select('id, type, review_reward_enabled, review_reward_value')
-    .eq('id', parsed.data.carte_id)
-    .eq('actif', true)
-    .single();
-
-  if (!carte) return c.json({ error: 'Carte introuvable' }, 404);
-  if (!carte.review_reward_enabled) return c.json({ error: 'Récompense avis non activée' }, 403);
 
   // Insérer la réclamation
   await db.from('review_rewards').insert({
@@ -547,7 +567,10 @@ clientsRoutes.post('/:id/claim-review', async (c) => {
 
 /** PATCH /api/clients/:id/fcm — Met à jour le token FCM */
 clientsRoutes.patch('/:id/fcm', async (c) => {
-  const clientId = c.req.param('id');
+  const clientIdResult = uuidSchema.safeParse(c.req.param('id'));
+  if (!clientIdResult.success) return c.json({ error: 'Client introuvable' }, 404);
+
+  const clientId = clientIdResult.data;
   const body = await c.req.json().catch(() => null);
 
   const schema = z.object({ fcm_token: z.string() });

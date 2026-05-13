@@ -105,6 +105,18 @@ function normalizeBillingStatusFromSubscription(status: string | null | undefine
   return 'unpaid';
 }
 
+function isSubscriptionAccessReady(subscription: Stripe.Subscription) {
+  const status = normalizeBillingStatusFromSubscription(subscription.status);
+  if (status === 'active') return true;
+  if (status !== 'trialing') return false;
+  if (!subscription.trial_end) return false;
+  return subscription.trial_end * 1000 > Date.now();
+}
+
+function isPaymentCheckoutSettled(session: Stripe.Checkout.Session) {
+  return session.status === 'complete' && session.payment_status === 'paid';
+}
+
 function normalizeWhiteLabelPlan(value: string | null | undefined): WhiteLabelPlan | null {
   return value === 'white_label_starter' || value === 'white_label_pro' ? value : null;
 }
@@ -389,6 +401,16 @@ stripeWebhookRoutes.post('/', async (c) => {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
 
+        if (session.status !== 'complete') {
+          console.warn('[stripe-webhook] checkout.session.completed ignoré: session non finalisée', session.id, session.status);
+          break;
+        }
+
+        if (session.mode === 'payment' && !isPaymentCheckoutSettled(session)) {
+          console.warn('[stripe-webhook] checkout.session.completed ignoré: paiement non confirmé', session.id, session.payment_status);
+          break;
+        }
+
         if (isWhiteLabelCheckout(session.metadata)) {
           const subscriptionId = typeof session.subscription === 'string'
             ? session.subscription
@@ -396,6 +418,15 @@ stripeWebhookRoutes.post('/', async (c) => {
           const subscription = subscriptionId
             ? await stripe.subscriptions.retrieve(subscriptionId)
             : null;
+          if (session.mode === 'subscription' && (!subscription || !isSubscriptionAccessReady(subscription))) {
+            console.warn(
+              '[stripe-webhook] white label checkout ignoré: abonnement non prêt',
+              session.id,
+              subscription?.id ?? '(missing)',
+              subscription?.status ?? '(missing)',
+            );
+            break;
+          }
           await ensureWhiteLabelPartnerFromCheckout(db, session, subscription);
           break;
         }
@@ -449,15 +480,45 @@ stripeWebhookRoutes.post('/', async (c) => {
         console.log('[stripe-webhook] checkout.session.completed | commerce:', commerceId, '| prices:', purchasedPriceIds);
 
         if (matchedPlan) {
-          const billingStatus = session.mode === 'subscription'
-            ? 'trialing'
-            : (annualOnceEndsAt ? 'trialing' : 'active');
+          let billingStatus: 'trialing' | 'active' = annualOnceEndsAt ? 'trialing' : 'active';
+          let trialEndsAt: string | null = annualOnceEndsAt;
+          let stripeSubscriptionId: string | null = null;
+
+          if (session.mode === 'subscription') {
+            const subscriptionId = typeof session.subscription === 'string'
+              ? session.subscription
+              : session.subscription?.id ?? null;
+            if (!subscriptionId) {
+              console.warn('[stripe-webhook] checkout.session.completed ignoré: abonnement manquant', session.id);
+              break;
+            }
+
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+            if (!isSubscriptionAccessReady(subscription)) {
+              console.warn(
+                '[stripe-webhook] checkout.session.completed ignoré: abonnement non prêt',
+                session.id,
+                subscription.id,
+                subscription.status,
+              );
+              break;
+            }
+
+            const normalizedStatus = normalizeBillingStatusFromSubscription(subscription.status);
+            billingStatus = normalizedStatus === 'active' ? 'active' : 'trialing';
+            trialEndsAt = subscription.trial_end
+              ? new Date(subscription.trial_end * 1000).toISOString()
+              : null;
+            stripeSubscriptionId = subscription.id;
+          }
+
           await db
             .from('commerces')
             .update({
               plan: matchedPlan,
               billing_status: billingStatus,
-              trial_ends_at: annualOnceEndsAt,
+              trial_ends_at: trialEndsAt,
+              ...(stripeSubscriptionId ? { stripe_subscription_id: stripeSubscriptionId } : {}),
             })
             .eq('id', commerceId);
           console.log('[stripe-webhook] → plan =', matchedPlan);
@@ -491,15 +552,21 @@ stripeWebhookRoutes.post('/', async (c) => {
           const action = price?.metadata?.action;
           const plan = price?.metadata?.plan;
           if (plan === 'starter') {
-            const billingStatus = session.mode === 'subscription' ? 'trialing' : 'active';
-            await db.from('commerces').update({ plan: 'starter', billing_status: billingStatus }).eq('id', commerceId);
-            activationPlanForEmail = 'starter';
-            activationBillingStatusForEmail = billingStatus;
+            if (session.mode === 'subscription') {
+              console.warn('[stripe-webhook] fallback starter ignoré pour session abonnement; attente de subscription.created/updated');
+            } else {
+              await db.from('commerces').update({ plan: 'starter', billing_status: 'active', trial_ends_at: null }).eq('id', commerceId);
+              activationPlanForEmail = 'starter';
+              activationBillingStatusForEmail = 'active';
+            }
           } else if (plan === 'pro') {
-            const billingStatus = session.mode === 'subscription' ? 'trialing' : 'active';
-            await db.from('commerces').update({ plan: 'pro', billing_status: billingStatus }).eq('id', commerceId);
-            activationPlanForEmail = 'pro';
-            activationBillingStatusForEmail = billingStatus;
+            if (session.mode === 'subscription') {
+              console.warn('[stripe-webhook] fallback pro ignoré pour session abonnement; attente de subscription.created/updated');
+            } else {
+              await db.from('commerces').update({ plan: 'pro', billing_status: 'active', trial_ends_at: null }).eq('id', commerceId);
+              activationPlanForEmail = 'pro';
+              activationBillingStatusForEmail = 'active';
+            }
           } else if (action === 'onboarding_purchased') {
             await db.from('commerces').update({ onboarding_purchased: true }).eq('id', commerceId);
             shouldSendSetupAssistanceEmail = true;

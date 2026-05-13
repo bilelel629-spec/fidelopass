@@ -179,7 +179,9 @@ const mobileMoreNavItems = navItems.filter((item) => !mobilePrimaryNavIds.includ
   import { withTimeout } from '../../lib/utils/with-timeout';
   import { createClient } from '@supabase/supabase-js';
 
-  const API_URL = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
+  const API_URL =
+    import.meta.env.PUBLIC_API_URL
+    ?? (import.meta.env.PROD ? 'https://api.fidelopass.com' : 'http://localhost:3001');
   const supabase = createClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
@@ -255,11 +257,33 @@ const mobileMoreNavItems = navItems.filter((item) => !mobilePrimaryNavIds.includ
     return withTimeout(authFetch(path, init), API_FETCH_TIMEOUT_MS);
   }
 
+  function escapeHtml(value: unknown) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  function safeImageUrl(value: unknown) {
+    const rawValue = String(value ?? '').trim();
+    if (!rawValue) return '';
+    try {
+      const url = new URL(rawValue, window.location.origin);
+      if (url.protocol === 'http:' || url.protocol === 'https:') return url.toString();
+    } catch {
+      return '';
+    }
+    return '';
+  }
+
   function applyPartnerBranding(branding: any) {
     if (!branding) return;
-    if (branding.logo_url) {
+    const partnerLogoUrl = safeImageUrl(branding.logo_url);
+    if (partnerLogoUrl) {
       for (const logo of brandLogos) {
-        logo.src = branding.logo_url;
+        logo.src = partnerLogoUrl;
         logo.alt = branding.name ?? 'Partenaire';
       }
     }
@@ -316,7 +340,7 @@ const mobileMoreNavItems = navItems.filter((item) => !mobilePrimaryNavIds.includ
     }
 
     pointVenteSelect.innerHTML = points.map((point: { id: string; nom: string }) => (
-      `<option value="${point.id}">${point.nom}</option>`
+      `<option value="${escapeHtml(point.id)}">${escapeHtml(point.nom)}</option>`
     )).join('');
 
     if (selectedId && points.some((point: { id: string }) => point.id === selectedId)) {

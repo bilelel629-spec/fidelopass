@@ -75,8 +75,22 @@ import PartnerLayout from '../../layouts/PartnerLayout.astro';
 <script>
   import { authFetch } from '../../lib/api';
 
-  const formatEuro = (cents: number) => `${Math.round(cents / 100)}€/mois`;
+  function toNonNegativeNumber(value: unknown, fallback = 0) {
+    const number = Number(value);
+    return Number.isFinite(number) && number >= 0 ? number : fallback;
+  }
+
+  const formatEuro = (cents: unknown) => `${Math.round(toNonNegativeNumber(cents) / 100)}€/mois`;
   const recentContainer = document.getElementById('partner-recent-commerces');
+
+  function escapeHtml(value: unknown) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
 
   function renderCommerces(commerces: any[]) {
     if (!recentContainer) return;
@@ -87,8 +101,8 @@ import PartnerLayout from '../../layouts/PartnerLayout.astro';
     recentContainer.innerHTML = commerces.slice(0, 5).map((commerce) => `
       <div class="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white px-4 py-3">
         <div>
-          <p class="font-semibold text-slate-900">${commerce.nom ?? 'Commerce'}</p>
-          <p class="text-xs text-slate-500">${commerce.email ?? ''}</p>
+          <p class="font-semibold text-slate-900">${escapeHtml(commerce.nom ?? 'Commerce')}</p>
+          <p class="text-xs text-slate-500">${escapeHtml(commerce.email ?? '')}</p>
         </div>
         <span class="rounded-full ${commerce.actif === false ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'} px-3 py-1 text-xs font-semibold">
           ${commerce.actif === false ? 'Inactif' : 'Actif'}
@@ -110,8 +124,8 @@ import PartnerLayout from '../../layouts/PartnerLayout.astro';
     if (partner) {
       document.getElementById('partner-title')!.textContent = partner.name;
       document.getElementById('partner-plan')!.textContent = partner.plan_label;
-      document.getElementById('partner-price')!.textContent = formatEuro(Number(partner.monthly_price_cents ?? 0));
-      document.getElementById('partner-quota')!.textContent = String(partner.included_commerces ?? '-');
+      document.getElementById('partner-price')!.textContent = formatEuro(partner.monthly_price_cents);
+      document.getElementById('partner-quota')!.textContent = String(toNonNegativeNumber(partner.included_commerces));
       document.getElementById('partner-branding-status')!.textContent = partner.logo_url ? 'Configuré' : 'À compléter';
     }
     document.getElementById('partner-active-commerces')!.textContent = String(commerces.filter((commerce: any) => commerce.actif !== false).length);

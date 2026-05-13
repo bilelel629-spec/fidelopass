@@ -219,6 +219,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     { key: 'published', title: 'Carte publiée', desc: 'Votre carte est prête à partager en caisse.' },
   ];
 
+  function escapeHtml(value: unknown) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
   function setError(message = '') {
     if (!message) {
       errorBox.classList.add('hidden');
@@ -274,10 +283,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       return `
         <div class="rounded-2xl border ${classes} p-4">
           <div class="flex items-center justify-between gap-3">
-            <p class="text-sm font-bold">${index + 1}. ${step.title}</p>
-            <span class="rounded-full bg-white/70 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em]">${badge}</span>
+            <p class="text-sm font-bold">${escapeHtml(index + 1)}. ${escapeHtml(step.title)}</p>
+            <span class="rounded-full bg-white/70 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em]">${escapeHtml(badge)}</span>
           </div>
-          <p class="mt-2 text-xs leading-5 opacity-80">${step.desc}</p>
+          <p class="mt-2 text-xs leading-5 opacity-80">${escapeHtml(step.desc)}</p>
         </div>
       `;
     }).join('');

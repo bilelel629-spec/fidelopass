@@ -29,6 +29,7 @@ function withEffectiveCommerceLogo<
 const bodySchema = z.object({
   client_id: z.string().uuid(),
 });
+const uuidSchema = z.string().uuid();
 
 async function parseClientId(c: Context) {
   if (c.req.method === 'GET') {
@@ -63,6 +64,14 @@ async function loadWalletContext(
     .eq('id', clientId)
     .single();
 
+  const clientBelongsToCarte =
+    client?.carte_id === carte.id &&
+    client?.commerce_id === carte.commerce_id;
+
+  if (!clientBelongsToCarte) {
+    return { db, carte: withEffectiveCommerceLogo(carte), client: null, latestNotification: null } as const;
+  }
+
   const { data: latestNotification } = await db
     .from('notifications')
     .select('titre, message, created_at')
@@ -82,6 +91,11 @@ function isValidApplePassAuth(c: Context, serialNumber: string) {
 }
 
 async function loadApplePassByClient(serialNumber: string) {
+  if (!uuidSchema.safeParse(serialNumber).success) {
+    const db = createServiceClient() as any;
+    return { db, client: null, carte: null, latestNotification: null } as const;
+  }
+
   const db = createServiceClient() as any;
   const { data: client } = await db
     .from('clients')
@@ -106,6 +120,7 @@ async function loadApplePassByClient(serialNumber: string) {
 walletRoutes.post('/apple/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber', async (c) => {
   const serialNumber = c.req.param('serialNumber') ?? '';
   if (!isValidApplePassAuth(c, serialNumber)) return c.body(null, 401);
+  if (!uuidSchema.safeParse(serialNumber).success) return c.body(null, 404);
   const deviceLibraryIdentifier = c.req.param('deviceLibraryIdentifier') ?? '';
   const passTypeIdentifier = c.req.param('passTypeIdentifier') ?? '';
   const body = await c.req.json().catch(() => ({}));
@@ -134,6 +149,7 @@ walletRoutes.post('/apple/v1/devices/:deviceLibraryIdentifier/registrations/:pas
 walletRoutes.delete('/apple/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber', async (c) => {
   const serialNumber = c.req.param('serialNumber') ?? '';
   if (!isValidApplePassAuth(c, serialNumber)) return c.body(null, 401);
+  if (!uuidSchema.safeParse(serialNumber).success) return c.body(null, 404);
   const deviceLibraryIdentifier = c.req.param('deviceLibraryIdentifier') ?? '';
   const passTypeIdentifier = c.req.param('passTypeIdentifier') ?? '';
 
@@ -171,6 +187,7 @@ walletRoutes.get('/apple/v1/devices/:deviceLibraryIdentifier/registrations/:pass
 walletRoutes.get('/apple/v1/passes/:passTypeIdentifier/:serialNumber', async (c) => {
   const serialNumber = c.req.param('serialNumber') ?? '';
   if (!isValidApplePassAuth(c, serialNumber)) return c.body(null, 401);
+  if (!uuidSchema.safeParse(serialNumber).success) return c.body(null, 404);
 
   const { carte, client, latestNotification } = await loadApplePassByClient(serialNumber);
   if (!carte || !client) return c.json({ error: 'Pass introuvable' }, 404);
@@ -198,7 +215,11 @@ walletRoutes.get('/apple/v1/passes/:passTypeIdentifier/:serialNumber', async (c)
 
 /** POST /api/wallet/apple/:carteId — Génère un .pkpass Apple Wallet */
 const appleWalletHandler = async (c: Context) => {
-  const carteId = c.req.param('carteId') ?? '';
+  const parsedCarteId = uuidSchema.safeParse(c.req.param('carteId') ?? '');
+  if (!parsedCarteId.success) {
+    return c.json({ error: 'Carte introuvable' }, 404);
+  }
+
   const parsed = await parseClientId(c);
 
   if (!parsed.success) {
@@ -206,7 +227,7 @@ const appleWalletHandler = async (c: Context) => {
   }
 
   const { db, carte, client, latestNotification } = await loadWalletContext(
-    carteId,
+    parsedCarteId.data,
     parsed.data.client_id,
     'id, nom, logo_url, latitude, longitude, rayon_geo, plan',
   );
@@ -242,7 +263,11 @@ walletRoutes.post('/apple/:carteId', appleWalletHandler);
 
 /** POST /api/wallet/google/:carteId — Génère l'URL d'ajout Google Wallet */
 walletRoutes.post('/google/:carteId', async (c) => {
-  const carteId = c.req.param('carteId');
+  const parsedCarteId = uuidSchema.safeParse(c.req.param('carteId') ?? '');
+  if (!parsedCarteId.success) {
+    return c.json({ error: 'Carte introuvable' }, 404);
+  }
+
   const parsed = await parseClientId(c);
 
   if (!parsed.success) {
@@ -250,7 +275,7 @@ walletRoutes.post('/google/:carteId', async (c) => {
   }
 
   const { db, carte, client, latestNotification } = await loadWalletContext(
-    carteId,
+    parsedCarteId.data,
     parsed.data.client_id,
     'id, nom, logo_url, latitude, longitude, rayon_geo, plan',
   );

@@ -57,7 +57,9 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
   let allCommerces: AdminCommerce[] = [];
   const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
-  const API_BASE = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
+  const API_BASE =
+    import.meta.env.PUBLIC_API_URL
+    ?? (import.meta.env.PROD ? 'https://api.fidelopass.com' : 'http://localhost:3001');
 
   function normalizePlan(planRaw: unknown) {
     return String(planRaw ?? 'starter').trim().toLowerCase();
@@ -83,9 +85,33 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   }
 
   function getOnboardingState(commerce: AdminCommerce) {
-    if (!commerce.cartes.length) return { label: 'Compte créé', badge: 'badge-warning' };
-    if (!commerce.clients.length) return { label: 'Carte prête', badge: 'badge-info' };
+    if (!safeArrayLength(commerce.cartes)) return { label: 'Compte créé', badge: 'badge-warning' };
+    if (!safeArrayLength(commerce.clients)) return { label: 'Carte prête', badge: 'badge-info' };
     return { label: 'Carte partagée', badge: 'badge-success' };
+  }
+
+  function escapeHtml(value: unknown) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function toNonNegativeNumber(value: unknown, fallback = 0) {
+    const number = Number(value);
+    return Number.isFinite(number) && number >= 0 ? number : fallback;
+  }
+
+  function safeArrayLength(value: unknown) {
+    return Array.isArray(value) ? value.length : toNonNegativeNumber(value);
+  }
+
+  function formatDate(value: unknown) {
+    if (!value) return '—';
+    const date = new Date(String(value));
+    return Number.isFinite(date.getTime()) ? date.toLocaleDateString('fr-FR') : '—';
   }
 
   function setActionFeedback(message: string, tone: 'success' | 'error') {
@@ -125,13 +151,13 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         commerce.email ?? '',
         commerce.telephone ?? '',
         commerce.adresse ?? '',
-        commerce.cartes.length > 0 ? 'Oui' : 'Non',
-        String(commerce.clients.length),
+        safeArrayLength(commerce.cartes) > 0 ? 'Oui' : 'Non',
+        String(safeArrayLength(commerce.clients)),
         planLabel(commerce.effective_plan ?? commerce.plan),
         commerce.plan_override ? `Override: ${planLabel(commerce.plan_override)}` : planLabel(commerce.plan),
         getOnboardingState(commerce).label,
         commerce.actif ? 'Actif' : 'Inactif',
-        new Date(commerce.created_at).toLocaleDateString('fr-FR'),
+        formatDate(commerce.created_at),
       ]),
     ];
 
@@ -172,28 +198,38 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
             </tr>
           </thead>
           <tbody>
-            ${data.map((commerce) => `
+            ${data.map((commerce) => {
+              const commerceId = String(commerce.id ?? '');
+              const escapedCommerceId = escapeHtml(commerceId);
+              const encodedCommerceId = encodeURIComponent(commerceId);
+              const effectivePlanLabel = escapeHtml(planLabel(commerce.effective_plan ?? commerce.plan));
+              const basePlanLabel = escapeHtml(planLabel(commerce.plan));
+              const overridePlanLabel = escapeHtml(planLabel(commerce.plan_override));
+              const onboarding = getOnboardingState(commerce);
+              const cardCount = safeArrayLength(commerce.cartes);
+              const clientCount = safeArrayLength(commerce.clients);
+              return `
               <tr class="border-b border-slate-100 last:border-0 hover:bg-sky-50/70 transition-colors">
                 <td class="px-6 py-4">
-                  <p class="text-sm font-semibold text-slate-900">${commerce.nom}</p>
-                  <p class="mt-1 text-xs text-slate-500">${commerce.adresse ?? 'Adresse non renseignée'}</p>
+                  <p class="text-sm font-semibold text-slate-900">${escapeHtml(commerce.nom)}</p>
+                  <p class="mt-1 text-xs text-slate-500">${escapeHtml(commerce.adresse ?? 'Adresse non renseignée')}</p>
                 </td>
                 <td class="px-6 py-4 text-sm text-slate-600">
-                  <p>${commerce.email ?? '—'}</p>
-                  <p class="text-xs text-slate-400">${commerce.telephone ?? 'Pas de téléphone'}</p>
+                  <p>${escapeHtml(commerce.email ?? '—')}</p>
+                  <p class="text-xs text-slate-400">${escapeHtml(commerce.telephone ?? 'Pas de téléphone')}</p>
                 </td>
                 <td class="px-6 py-4">
-                  ${commerce.cartes.length > 0
+                  ${cardCount > 0
                     ? '<span class="badge badge-success">Configurée</span>'
                     : '<span class="badge bg-slate-100 text-slate-500 border border-slate-200">À faire</span>'}
                 </td>
-                <td class="px-6 py-4 font-mono text-sm text-sky-700">${commerce.clients.length}</td>
+                <td class="px-6 py-4 font-mono text-sm text-sky-700">${clientCount}</td>
                 <td class="px-6 py-4">
                   <div class="space-y-2">
-                    <span class="badge bg-slate-100 text-slate-700 border border-slate-200">${planLabel(commerce.effective_plan ?? commerce.plan)}</span>
+                    <span class="badge bg-slate-100 text-slate-700 border border-slate-200">${effectivePlanLabel}</span>
                     <div class="flex items-center gap-2">
                       <select
-                        data-plan-select="${commerce.id}"
+                        data-plan-select="${escapedCommerceId}"
                         class="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700"
                       >
                         <option value="auto" ${planOverrideSelectValue(commerce) === 'auto' ? 'selected' : ''}>Auto (Stripe)</option>
@@ -202,7 +238,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
                         <option value="sur-mesure" ${planOverrideSelectValue(commerce) === 'sur-mesure' ? 'selected' : ''}>Forcer Sur mesure</option>
                       </select>
                       <button
-                        data-plan-apply="${commerce.id}"
+                        data-plan-apply="${escapedCommerceId}"
                         class="rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-[0.7rem] font-semibold text-sky-700 transition hover:border-sky-300 hover:bg-sky-100"
                         type="button"
                       >
@@ -211,32 +247,33 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
                     </div>
                     <p class="text-[0.68rem] text-slate-500">
                       ${commerce.plan_override
-                        ? `Source: override admin (${planLabel(commerce.plan_override)}). Base Stripe: ${planLabel(commerce.plan)}`
-                        : `Source: Stripe (${planLabel(commerce.plan)})`}
+                        ? `Source: override admin (${overridePlanLabel}). Base Stripe: ${basePlanLabel}`
+                        : `Source: Stripe (${basePlanLabel})`}
                     </p>
                   </div>
                 </td>
                 <td class="px-6 py-4">
-                  <span class="badge ${getOnboardingState(commerce).badge}">${getOnboardingState(commerce).label}</span>
+                  <span class="badge ${escapeHtml(onboarding.badge)}">${escapeHtml(onboarding.label)}</span>
                 </td>
                 <td class="px-6 py-4">
                   ${commerce.actif
                     ? '<span class="badge badge-success">Actif</span>'
                     : '<span class="badge badge-danger">Inactif</span>'}
                 </td>
-                <td class="px-6 py-4 text-sm text-slate-600">${new Date(commerce.created_at).toLocaleDateString('fr-FR')}</td>
+                <td class="px-6 py-4 text-sm text-slate-600">${escapeHtml(formatDate(commerce.created_at))}</td>
                 <td class="px-6 py-4">
                   <div class="flex flex-col gap-2">
-                    <a href="/admin/cartes?commerce=${commerce.id}" class="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-center text-xs font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-100">
+                    <a href="/admin/cartes?commerce=${encodedCommerceId}" class="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-center text-xs font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-100">
                       Personnaliser carte
                     </a>
-                    <button onclick="toggleCommerce('${commerce.id}', ${!commerce.actif})" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50">
+                    <button data-toggle-commerce="${escapedCommerceId}" data-next-active="${commerce.actif ? 'false' : 'true'}" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50">
                       ${commerce.actif ? 'Désactiver' : 'Activer'}
                     </button>
                   </div>
                 </td>
               </tr>
-            `).join('')}
+            `;
+            }).join('')}
           </tbody>
         </table>
       </div>
@@ -257,10 +294,14 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   }
 
   async function toggleCommerce(id: string, actif: boolean) {
-    await authFetch(`${API_BASE}/api/admin/commerces/${id}`, {
+    const response = await authFetch(`${API_BASE}/api/admin/commerces/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ actif }),
     });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      throw new Error(payload?.error ?? 'Impossible de modifier le statut du commerce.');
+    }
     await loadCommerces();
   }
 
@@ -281,7 +322,8 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       button.addEventListener('click', async () => {
         const id = button.dataset.planApply;
         if (!id) return;
-        const select = document.querySelector<HTMLSelectElement>(`[data-plan-select="${id}"]`);
+        const select = Array.from(document.querySelectorAll<HTMLSelectElement>('[data-plan-select]'))
+          .find((node) => node.dataset.planSelect === id);
         if (!select) return;
 
         const nextPlan = select.value as 'auto' | 'starter' | 'pro' | 'sur-mesure';
@@ -301,6 +343,25 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         }
       });
     });
+
+    document.querySelectorAll<HTMLButtonElement>('[data-toggle-commerce]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const id = button.dataset.toggleCommerce;
+        if (!id) return;
+        const nextActive = button.dataset.nextActive === 'true';
+        const initialLabel = button.textContent ?? '';
+        button.disabled = true;
+        button.textContent = '...';
+        try {
+          await toggleCommerce(id, nextActive);
+          setActionFeedback(nextActive ? 'Commerce réactivé.' : 'Commerce désactivé.', 'success');
+        } catch {
+          setActionFeedback('Impossible de modifier le statut du commerce.', 'error');
+          button.disabled = false;
+          button.textContent = initialLabel;
+        }
+      });
+    });
   }
 
   function applyFilters() {
@@ -309,24 +370,23 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     const carte = (document.getElementById('filter-carte') as HTMLSelectElement).value;
 
     const filtered = allCommerces.filter((commerce) => {
+      const cardCount = safeArrayLength(commerce.cartes);
       const matchesSearch = !search
-        || commerce.nom.toLowerCase().includes(search)
+        || String(commerce.nom ?? '').toLowerCase().includes(search)
         || (commerce.email ?? '').toLowerCase().includes(search)
         || (commerce.telephone ?? '').toLowerCase().includes(search);
       const matchesStatus = !statut
         || (statut === 'actif' && commerce.actif)
         || (statut === 'inactif' && !commerce.actif);
       const matchesCard = !carte
-        || (carte === 'configured' && commerce.cartes.length > 0)
-        || (carte === 'missing' && commerce.cartes.length === 0);
+        || (carte === 'configured' && cardCount > 0)
+        || (carte === 'missing' && cardCount === 0);
       return matchesSearch && matchesStatus && matchesCard;
     });
 
     renderTable(filtered);
     bindPlanActions();
   }
-
-  (window as unknown as Record<string, unknown>).toggleCommerce = toggleCommerce;
 
   document.getElementById('search')!.addEventListener('input', applyFilters);
   document.getElementById('filter-statut')!.addEventListener('change', applyFilters);

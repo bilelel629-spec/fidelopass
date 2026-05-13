@@ -147,6 +147,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }[char] ?? char));
   }
 
+  function toNonNegativeNumber(value: unknown, fallback = 0) {
+    const number = Number(value);
+    return Number.isFinite(number) && number >= 0 ? number : fallback;
+  }
+
+  function formatDate(value: unknown) {
+    if (!value) return '—';
+    const date = new Date(String(value));
+    return Number.isFinite(date.getTime()) ? date.toLocaleDateString('fr-FR') : '—';
+  }
+
   async function loadClients(search = '') {
     const container = document.getElementById('clients-list')!;
     try {
@@ -155,10 +166,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const res = await authFetch(`/api/clients?${params}`);
       if (!res.ok) throw new Error();
       const { data } = await res.json();
-      currentClients = data ?? [];
+      const clients = Array.isArray(data) ? data : [];
+      currentClients = clients;
       updateClientSegments();
 
-      if (!data?.length) {
+      if (!clients.length) {
         container.innerHTML = '<p class="text-slate-500 text-sm p-6">Aucun client trouvé.</p>';
         return;
       }
@@ -175,7 +187,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             </tr>
           </thead>
           <tbody>
-            ${data.map((c: Client) => `
+            ${clients.map((c: Client) => {
+              const balance = toNonNegativeNumber(c.points_actuels || c.tampons_actuels);
+              const rewards = toNonNegativeNumber(c.recompenses_obtenues);
+              return `
               <tr
                 class="border-b border-slate-200 last:border-0 hover:bg-sky-50 transition-colors cursor-pointer"
                 data-client-id="${escapeHtml(c.id)}"
@@ -195,16 +210,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                   </button>
                 </td>
                 <td class="px-6 py-4">
-                  <span class="font-mono text-sm text-sky-700">${c.points_actuels || c.tampons_actuels}</span>
+                  <span class="font-mono text-sm text-sky-700">${balance}</span>
                 </td>
                 <td class="px-6 py-4">
-                  <span class="font-mono text-sm ${c.recompenses_obtenues > 0 ? 'text-emerald-600' : 'text-slate-500'}">${c.recompenses_obtenues ?? 0}</span>
+                  <span class="font-mono text-sm ${rewards > 0 ? 'text-emerald-600' : 'text-slate-500'}">${rewards}</span>
                 </td>
                 <td class="px-6 py-4 text-slate-600 text-sm">
-                  ${c.derniere_visite ? new Date(c.derniere_visite).toLocaleDateString('fr-FR') : '—'}
+                  ${escapeHtml(formatDate(c.derniere_visite))}
                 </td>
               </tr>
-            `).join('')}
+            `;
+            }).join('')}
           </tbody>
         </table>
       `;

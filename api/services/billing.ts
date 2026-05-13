@@ -67,9 +67,7 @@ export function buildBillingStatusPayload(record: BillingRecord | null): Billing
   const billingStatus = normalizeBillingStatus(record.billing_status);
   const trialActive = isTrialActive(record.trial_ends_at);
   const isTrialing = billingStatus === 'trialing';
-  // Compat: some legacy rows can be trialing without explicit trial_ends_at.
-  const trialingWithUnknownEnd = isTrialing && !record.trial_ends_at;
-  const hasAccess = ACTIVE_BILLING_STATUSES.has(billingStatus) || trialActive || trialingWithUnknownEnd;
+  const hasAccess = ACTIVE_BILLING_STATUSES.has(billingStatus) || trialActive;
   const onboardingCompleted = Boolean(record.onboarding_completed);
 
   const accessState: BillingStatusPayload['access_state'] = (() => {
@@ -80,7 +78,7 @@ export function buildBillingStatusPayload(record: BillingRecord | null): Billing
       return 'account_created_no_subscription';
     }
     if (!onboardingCompleted) return 'onboarding_not_completed';
-    if (trialActive || isTrialing || trialingWithUnknownEnd) return 'trial_active';
+    if (trialActive || isTrialing) return 'trial_active';
     return 'dashboard_ready';
   })();
 

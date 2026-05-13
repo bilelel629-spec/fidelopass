@@ -196,6 +196,16 @@ async function updateWalletsAfterScan(
   await Promise.allSettled(walletUpdates);
 }
 
+function applyClientStateGuard<T extends { eq: (column: string, value: unknown) => T }>(
+  query: T,
+  client: ScanClient,
+): T {
+  return query
+    .eq('points_actuels', client.points_actuels ?? 0)
+    .eq('tampons_actuels', client.tampons_actuels ?? 0)
+    .eq('recompenses_obtenues', client.recompenses_obtenues ?? 0);
+}
+
 async function assertClientScope(
   c: Context,
   client: ScanClient | null,
@@ -291,28 +301,43 @@ async function handleAddPoint(c: Context) {
   }
 
   const updatedAt = new Date().toISOString();
-  const [updateResult, transactionResult] = await Promise.all([
-    db.from('clients').update({
+  const updateQuery = db.from('clients').update({
       points_actuels: nextPoints,
       tampons_actuels: nextTampons,
       recompenses_obtenues: nextRewards,
       derniere_visite: updatedAt,
       updated_at: updatedAt,
-    }).eq('id', safeClient.id),
-    db.from('transactions').insert({
-      client_id: safeClient.id,
-      commerce_id: commerce.id,
-      point_vente_id: pointVente.id,
-      type: progress.addType,
-      valeur: 1,
-      points_avant: before,
-      points_apres: safeClient.cartes.type === 'points' ? nextPoints : nextTampons,
-      note: 'Scan caisse scannette',
-    }),
-  ]);
+    })
+    .eq('id', safeClient.id)
+    .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id);
 
-  if (updateResult.error || transactionResult.error) {
+  const updateResult = await applyClientStateGuard(updateQuery, safeClient).select('id').maybeSingle();
+
+  if (updateResult.error) {
     return c.json({ success: false, error: 'Erreur serveur, veuillez réessayer.' }, 500);
+  }
+
+  if (!updateResult.data) {
+    return c.json({
+      success: false,
+      error: 'La fiche client vient déjà d’être modifiée. Scannez à nouveau pour voir le solde à jour.',
+    }, 409);
+  }
+
+  const transactionResult = await db.from('transactions').insert({
+    client_id: safeClient.id,
+    commerce_id: commerce.id,
+    point_vente_id: pointVente.id,
+    type: progress.addType,
+    valeur: 1,
+    points_avant: before,
+    points_apres: safeClient.cartes.type === 'points' ? nextPoints : nextTampons,
+    note: 'Scan caisse scannette',
+  });
+
+  if (transactionResult.error) {
+    return c.json({ success: false, error: 'Passage ajouté, mais historique non enregistré. Rechargez la fiche client.' }, 202);
   }
 
   const updatedClient = {
@@ -359,28 +384,43 @@ async function handleUseReward(c: Context) {
   const nextTampons = safeClient.cartes.type === 'tampons' ? 0 : safeClient.tampons_actuels;
   const updatedAt = new Date().toISOString();
 
-  const [updateResult, transactionResult] = await Promise.all([
-    db.from('clients').update({
+  const updateQuery = db.from('clients').update({
       points_actuels: nextPoints,
       tampons_actuels: nextTampons,
       recompenses_obtenues: nextRewards,
       derniere_visite: updatedAt,
       updated_at: updatedAt,
-    }).eq('id', safeClient.id),
-    db.from('transactions').insert({
-      client_id: safeClient.id,
-      commerce_id: commerce.id,
-      point_vente_id: pointVente.id,
-      type: 'recompense',
-      valeur: 1,
-      points_avant: progress.current,
-      points_apres: 0,
-      note: 'Récompense utilisée via scan caisse scannette',
-    }),
-  ]);
+    })
+    .eq('id', safeClient.id)
+    .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id);
 
-  if (updateResult.error || transactionResult.error) {
+  const updateResult = await applyClientStateGuard(updateQuery, safeClient).select('id').maybeSingle();
+
+  if (updateResult.error) {
     return c.json({ success: false, error: 'Erreur serveur, veuillez réessayer.' }, 500);
+  }
+
+  if (!updateResult.data) {
+    return c.json({
+      success: false,
+      error: 'La fiche client vient déjà d’être modifiée. Scannez à nouveau pour voir le solde à jour.',
+    }, 409);
+  }
+
+  const transactionResult = await db.from('transactions').insert({
+    client_id: safeClient.id,
+    commerce_id: commerce.id,
+    point_vente_id: pointVente.id,
+    type: 'recompense',
+    valeur: 1,
+    points_avant: progress.current,
+    points_apres: 0,
+    note: 'Récompense utilisée via scan caisse scannette',
+  });
+
+  if (transactionResult.error) {
+    return c.json({ success: false, error: 'Récompense utilisée, mais historique non enregistré. Rechargez la fiche client.' }, 202);
   }
 
   const updatedClient = {

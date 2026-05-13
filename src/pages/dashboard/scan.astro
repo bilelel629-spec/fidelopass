@@ -239,13 +239,22 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       .replaceAll("'", '&#039;');
   }
 
-  function renderHistory(history: ScanPayload['history']) {
-    if (!history.length) {
+  function formatDateTime(value: unknown): string {
+    if (!value) return '—';
+    const date = new Date(String(value));
+    return Number.isFinite(date.getTime())
+      ? date.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })
+      : '—';
+  }
+
+  function renderHistory(history: ScanPayload['history'] | unknown) {
+    const items = Array.isArray(history) ? history : [];
+    if (!items.length) {
       historyList.innerHTML = '<p class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center">Aucun passage récent.</p>';
       return;
     }
 
-    historyList.innerHTML = history.map((item) => {
+    historyList.innerHTML = items.map((item) => {
       const label = item.type === 'ajout_tampon'
         ? '+ tampon'
         : item.type === 'ajout_points'
@@ -253,7 +262,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           : item.type === 'recompense'
             ? 'Récompense utilisée'
             : item.type;
-      const date = new Date(item.created_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+      const date = formatDateTime(item.created_at);
       return `
         <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
           <div class="flex items-center justify-between gap-3">

@@ -986,7 +986,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   import { withTimeout } from '../../lib/utils/with-timeout';
 
   const supabase = createClient(import.meta.env.PUBLIC_SUPABASE_URL, import.meta.env.PUBLIC_SUPABASE_ANON_KEY);
-  const API = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
+  const API =
+    import.meta.env.PUBLIC_API_URL
+    ?? (import.meta.env.PROD ? 'https://api.fidelopass.com' : 'http://localhost:3001');
   const PUBLIC_SITE_URL = (import.meta.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
   const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
   const setupMode = new URLSearchParams(window.location.search).get('setup') === '1';
@@ -1865,8 +1867,40 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     setMultiRewardsEnabled(!multiRewardsEnabled);
   });
 
-  function escapeAttr(value: string) {
-    return value.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+  function escapeAttr(value: unknown) {
+    return String(value ?? '')
+      .replaceAll('&','&amp;')
+      .replaceAll('"','&quot;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll("'", '&#39;');
+  }
+
+  function safePreviewImageUrl(value: unknown) {
+    const rawValue = String(value ?? '').trim();
+    if (!rawValue) return '';
+    try {
+      const url = new URL(rawValue, window.location.origin);
+      if (url.protocol === 'http:' || url.protocol === 'https:') return url.toString();
+    } catch {
+      return '';
+    }
+    return '';
+  }
+
+  function appendStampImage(dot: HTMLElement, source: string, iconSize: number, opacity?: number) {
+    const safeUrl = safePreviewImageUrl(source);
+    if (!safeUrl) return false;
+    const img = document.createElement('img');
+    img.src = safeUrl;
+    img.alt = '';
+    img.style.width = `${iconSize}px`;
+    img.style.height = `${iconSize}px`;
+    img.style.objectFit = 'contain';
+    img.style.borderRadius = '50%';
+    if (typeof opacity === 'number') img.style.opacity = String(opacity);
+    dot.appendChild(img);
+    return true;
   }
 
   function renderRewardTiers(tiers: RewardTier[]=[]) {
@@ -2312,15 +2346,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           if(tamponEmoji){dot.style.fontSize=`${Math.round(dotSize*0.55)}px`;dot.style.lineHeight='1';dot.textContent=tamponEmoji;}
           else if(tamponIconUrl){
             const iconSize = Math.max(12, Math.round(dotSize * tamponIconScale));
-            dot.innerHTML=`<img src="${tamponIconUrl}" style="width:${iconSize}px;height:${iconSize}px;object-fit:contain;border-radius:50%;"/>`;
+            if (!appendStampImage(dot, tamponIconUrl, iconSize)) {
+              const sw=Math.max(1.5,dotSize*0.07);dot.innerHTML=`<svg viewBox="0 0 12 12" style="width:${Math.round(dotSize*0.55)}px;height:${Math.round(dotSize*0.55)}px"><path d="M2 6l3 3 5-5" stroke="${escapeAttr(texte)}" stroke-width="${sw}" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+            }
           }
-          else{const sw=Math.max(1.5,dotSize*0.07);dot.innerHTML=`<svg viewBox="0 0 12 12" style="width:${Math.round(dotSize*0.55)}px;height:${Math.round(dotSize*0.55)}px"><path d="M2 6l3 3 5-5" stroke="${texte}" stroke-width="${sw}" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;}
+          else{const sw=Math.max(1.5,dotSize*0.07);dot.innerHTML=`<svg viewBox="0 0 12 12" style="width:${Math.round(dotSize*0.55)}px;height:${Math.round(dotSize*0.55)}px"><path d="M2 6l3 3 5-5" stroke="${escapeAttr(texte)}" stroke-width="${sw}" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;}
         }else{
           dot.style.border='2px solid rgba(255,255,255,0.25)';dot.style.background='rgba(255,255,255,0.05)';
           if(tamponEmoji){dot.style.fontSize=`${Math.round(dotSize*0.5)}px`;dot.style.opacity='0.3';dot.textContent=tamponEmoji;}
           else if(tamponIconUrl){
             const iconSize = Math.max(12, Math.round(dotSize * tamponIconScale));
-            dot.innerHTML=`<img src="${tamponIconUrl}" style="width:${iconSize}px;height:${iconSize}px;object-fit:contain;border-radius:50%;opacity:0.3;"/>`;
+            appendStampImage(dot, tamponIconUrl, iconSize, 0.3);
           }
         }
         rowEl.appendChild(dot);
@@ -2451,9 +2487,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     container.innerHTML = cards.map((card) => `
       <div class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm">
-        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-sky-600/70">${card.title}</p>
-        <p class="mt-2 text-sm font-semibold text-slate-900">${card.value}</p>
-        <p class="mt-1 text-xs leading-relaxed text-slate-500">${card.detail}</p>
+        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-sky-600/70">${escapeAttr(card.title)}</p>
+        <p class="mt-2 text-sm font-semibold text-slate-900">${escapeAttr(card.value)}</p>
+        <p class="mt-1 text-xs leading-relaxed text-slate-500">${escapeAttr(card.detail)}</p>
       </div>
     `).join('');
   }

@@ -159,7 +159,9 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
   let allCommerces: AdminCommerce[] = [];
   const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
-  const API_BASE = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
+  const API_BASE =
+    import.meta.env.PUBLIC_API_URL
+    ?? (import.meta.env.PROD ? 'https://api.fidelopass.com' : 'http://localhost:3001');
 
   function normalizePlan(planRaw: unknown) {
     return String(planRaw ?? 'starter').trim().toLowerCase();
@@ -185,9 +187,39 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   }
 
   function getOnboardingState(commerce: AdminCommerce) {
-    if (!commerce.cartes.length) return { label: 'Compte créé', badge: 'badge-warning' };
-    if (!commerce.clients.length) return { label: 'Carte prête', badge: 'badge-info' };
+    if (!safeArrayLength(commerce.cartes)) return { label: 'Compte créé', badge: 'badge-warning' };
+    if (!safeArrayLength(commerce.clients)) return { label: 'Carte prête', badge: 'badge-info' };
     return { label: 'Carte partagée', badge: 'badge-success' };
+  }
+
+  function escapeHtml(value: unknown) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function toNonNegativeNumber(value: unknown, fallback = 0) {
+    const number = Number(value);
+    return Number.isFinite(number) && number >= 0 ? number : fallback;
+  }
+
+  function safeArrayLength(value: unknown) {
+    return Array.isArray(value) ? value.length : toNonNegativeNumber(value);
+  }
+
+  function formatDate(value: unknown) {
+    if (!value) return '—';
+    const date = new Date(String(value));
+    return Number.isFinite(date.getTime()) ? date.toLocaleDateString('fr-FR') : '—';
+  }
+
+  function formatDateTime(value: unknown) {
+    if (!value) return '—';
+    const date = new Date(String(value));
+    return Number.isFinite(date.getTime()) ? date.toLocaleString('fr-FR') : '—';
   }
 
   function setActionFeedback(message: string, tone: 'success' | 'error') {
@@ -227,10 +259,10 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         commerce.email ?? '',
         commerce.telephone ?? '',
         commerce.adresse ?? '',
-        commerce.cartes.length > 0 ? 'Oui' : 'Non',
-        String(commerce.clients.length),
+        safeArrayLength(commerce.cartes) > 0 ? 'Oui' : 'Non',
+        String(safeArrayLength(commerce.clients)),
         commerce.actif ? 'Actif' : 'Inactif',
-        new Date(commerce.created_at).toLocaleDateString('fr-FR'),
+        formatDate(commerce.created_at),
       ]),
     ];
 
@@ -252,19 +284,19 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       const res = await authFetch(`${API_BASE}/api/admin/stats`);
       if (!res.ok) return;
       const data = await res.json();
-      document.getElementById('stat-commerces')!.textContent = String(data.totalCommerces ?? 0);
-      document.getElementById('stat-commerces-actifs')!.textContent = String(data.totalCommercesActifs ?? 0);
-      document.getElementById('stat-cartes')!.textContent = String(data.totalCartes ?? 0);
-      document.getElementById('stat-clients')!.textContent = String(data.totalClients ?? 0);
-      document.getElementById('stat-transactions')!.textContent = String(data.totalTransactions ?? 0);
-      document.getElementById('stat-nouveaux-30j')!.textContent = String(data.nouveaux30J ?? 0);
-      document.getElementById('stat-plan-starter')!.textContent = String(data.plans?.starter ?? 0);
-      document.getElementById('stat-points-vente')!.textContent = String(data.points_vente?.total ?? 0);
+      document.getElementById('stat-commerces')!.textContent = String(toNonNegativeNumber(data.totalCommerces));
+      document.getElementById('stat-commerces-actifs')!.textContent = String(toNonNegativeNumber(data.totalCommercesActifs));
+      document.getElementById('stat-cartes')!.textContent = String(toNonNegativeNumber(data.totalCartes));
+      document.getElementById('stat-clients')!.textContent = String(toNonNegativeNumber(data.totalClients));
+      document.getElementById('stat-transactions')!.textContent = String(toNonNegativeNumber(data.totalTransactions));
+      document.getElementById('stat-nouveaux-30j')!.textContent = String(toNonNegativeNumber(data.nouveaux30J));
+      document.getElementById('stat-plan-starter')!.textContent = String(toNonNegativeNumber(data.plans?.starter));
+      document.getElementById('stat-points-vente')!.textContent = String(toNonNegativeNumber(data.points_vente?.total));
       const helper = document.getElementById('admin-onboarding-helper');
       const onboarding = data.onboarding ?? {};
       const billing = data.billing ?? {};
       if (helper) {
-        helper.textContent = `${onboarding.sansCarte ?? 0} comptes créés, ${onboarding.cartePrete ?? 0} cartes prêtes, ${onboarding.cartePartagee ?? 0} cartes déjà partagées. Facturation: ${billing.active ?? 0} actifs, ${billing.trialing ?? 0} en essai.`;
+        helper.textContent = `${toNonNegativeNumber(onboarding.sansCarte)} comptes créés, ${toNonNegativeNumber(onboarding.cartePrete)} cartes prêtes, ${toNonNegativeNumber(onboarding.cartePartagee)} cartes déjà partagées. Facturation: ${toNonNegativeNumber(billing.active)} actifs, ${toNonNegativeNumber(billing.trialing)} en essai.`;
       }
     } catch {}
   }
@@ -275,7 +307,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       const res = await authFetch(`${API_BASE}/api/admin/commerces`);
       if (!res.ok) throw new Error();
       const { data } = await res.json();
-      allCommerces = data ?? [];
+      allCommerces = Array.isArray(data) ? data : [];
 
       if (!allCommerces.length) {
         container.innerHTML = '<p class="text-sm text-slate-500">Aucun commerce inscrit.</p>';
@@ -298,56 +330,66 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
               </tr>
             </thead>
             <tbody>
-              ${allCommerces.slice(0, 12).map((commerce) => `
+              ${allCommerces.slice(0, 12).map((commerce) => {
+                const commerceId = String(commerce.id ?? '');
+                const cardCount = safeArrayLength(commerce.cartes);
+                const clientCount = safeArrayLength(commerce.clients);
+                const onboarding = getOnboardingState(commerce);
+                const planOverrideValue = planOverrideSelectValue(commerce);
+                const effectivePlanLabel = escapeHtml(planLabel(commerce.effective_plan ?? commerce.plan));
+                const basePlanLabel = escapeHtml(planLabel(commerce.plan));
+                const overridePlanLabel = escapeHtml(planLabel(commerce.plan_override));
+                return `
                 <tr class="border-b border-slate-100 last:border-0 hover:bg-sky-50/70 transition-colors">
                   <td class="px-4 py-4">
-                    <p class="text-sm font-semibold text-slate-900">${commerce.nom}</p>
-                    <p class="mt-1 text-xs text-slate-500">${commerce.email ?? 'Pas d’email de contact'}</p>
+                    <p class="text-sm font-semibold text-slate-900">${escapeHtml(commerce.nom)}</p>
+                    <p class="mt-1 text-xs text-slate-500">${escapeHtml(commerce.email ?? 'Pas d’email de contact')}</p>
                   </td>
                   <td class="px-4 py-4">
-                    ${commerce.cartes.length > 0
+                    ${cardCount > 0
                       ? '<span class="badge badge-success">Configurée</span>'
                       : '<span class="badge bg-slate-100 text-slate-500 border border-slate-200">À faire</span>'}
                   </td>
-                  <td class="px-4 py-4 font-mono text-sm text-sky-700">${commerce.clients.length}</td>
+                  <td class="px-4 py-4 font-mono text-sm text-sky-700">${clientCount}</td>
                   <td class="px-4 py-4">
                     <div class="space-y-2">
-                      <span class="badge bg-slate-100 text-slate-700 border border-slate-200">${planLabel(commerce.effective_plan ?? commerce.plan)}</span>
+                      <span class="badge bg-slate-100 text-slate-700 border border-slate-200">${effectivePlanLabel}</span>
                       <div class="flex items-center gap-2">
                         <select
-                          data-admin-plan-select="${commerce.id}"
+                          data-admin-plan-select="${escapeHtml(commerceId)}"
                           class="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[0.72rem] font-medium text-slate-700"
                         >
-                          <option value="auto" ${planOverrideSelectValue(commerce) === 'auto' ? 'selected' : ''}>Auto (Stripe)</option>
-                          <option value="starter" ${planOverrideSelectValue(commerce) === 'starter' ? 'selected' : ''}>Forcer Starter</option>
-                          <option value="pro" ${planOverrideSelectValue(commerce) === 'pro' ? 'selected' : ''}>Forcer Pro</option>
-                          <option value="sur-mesure" ${planOverrideSelectValue(commerce) === 'sur-mesure' ? 'selected' : ''}>Forcer Sur mesure</option>
+                          <option value="auto" ${planOverrideValue === 'auto' ? 'selected' : ''}>Auto (Stripe)</option>
+                          <option value="starter" ${planOverrideValue === 'starter' ? 'selected' : ''}>Forcer Starter</option>
+                          <option value="pro" ${planOverrideValue === 'pro' ? 'selected' : ''}>Forcer Pro</option>
+                          <option value="sur-mesure" ${planOverrideValue === 'sur-mesure' ? 'selected' : ''}>Forcer Sur mesure</option>
                         </select>
-                        <button data-admin-plan-apply="${commerce.id}" class="rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-[0.68rem] font-semibold text-sky-700 transition hover:border-sky-300 hover:bg-sky-100" type="button">OK</button>
+                        <button data-admin-plan-apply="${escapeHtml(commerceId)}" class="rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-[0.68rem] font-semibold text-sky-700 transition hover:border-sky-300 hover:bg-sky-100" type="button">OK</button>
                       </div>
                       <p class="text-[0.68rem] text-slate-500">
                         ${commerce.plan_override
-                          ? `Source: override admin (${planLabel(commerce.plan_override)}). Base Stripe: ${planLabel(commerce.plan)}`
-                          : `Source: Stripe (${planLabel(commerce.plan)})`}
+                          ? `Source: override admin (${overridePlanLabel}). Base Stripe: ${basePlanLabel}`
+                          : `Source: Stripe (${basePlanLabel})`}
                       </p>
                     </div>
                   </td>
                   <td class="px-4 py-4">
-                    <span class="badge ${getOnboardingState(commerce).badge}">${getOnboardingState(commerce).label}</span>
+                    <span class="badge ${onboarding.badge}">${escapeHtml(onboarding.label)}</span>
                   </td>
                   <td class="px-4 py-4">
                     ${commerce.actif
                       ? '<span class="badge badge-success">Actif</span>'
                       : '<span class="badge badge-danger">Inactif</span>'}
                   </td>
-                  <td class="px-4 py-4 text-sm text-slate-600">${new Date(commerce.created_at).toLocaleDateString('fr-FR')}</td>
+                  <td class="px-4 py-4 text-sm text-slate-600">${escapeHtml(formatDate(commerce.created_at))}</td>
                   <td class="px-4 py-4">
-                    <button onclick="toggleCommerce('${commerce.id}', ${!commerce.actif})" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50">
+                    <button data-admin-toggle-commerce="${escapeHtml(commerceId)}" data-next-active="${commerce.actif ? 'false' : 'true'}" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50">
                       ${commerce.actif ? 'Désactiver' : 'Activer'}
                     </button>
                   </td>
                 </tr>
-              `).join('')}
+              `;
+              }).join('')}
             </tbody>
           </table>
         </div>
@@ -359,14 +401,16 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   }
 
   async function toggleCommerce(id: string, actif: boolean) {
-    try {
-      await authFetch(`${API_BASE}/api/admin/commerces/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ actif }),
-      });
-      await loadStats();
-      await loadRecentCommerces();
-    } catch {}
+    const response = await authFetch(`${API_BASE}/api/admin/commerces/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ actif }),
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      throw new Error(payload?.error ?? 'Erreur lors de la mise à jour du commerce.');
+    }
+    await loadStats();
+    await loadRecentCommerces();
   }
 
   async function updatePlan(id: string, planOverride: 'auto' | 'starter' | 'pro' | 'sur-mesure') {
@@ -386,7 +430,8 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       button.addEventListener('click', async () => {
         const id = button.dataset.adminPlanApply;
         if (!id) return;
-        const select = document.querySelector<HTMLSelectElement>(`[data-admin-plan-select="${id}"]`);
+        const select = Array.from(document.querySelectorAll<HTMLSelectElement>('[data-admin-plan-select]'))
+          .find((node) => node.dataset.adminPlanSelect === id);
         if (!select) return;
         button.disabled = true;
         const previous = button.textContent ?? 'OK';
@@ -400,6 +445,25 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
             : 'Plan forcé mis à jour avec succès.', 'success');
         } catch (error) {
           setActionFeedback(error instanceof Error ? error.message : 'Erreur de mise à jour du plan.', 'error');
+          button.disabled = false;
+          button.textContent = previous;
+        }
+      });
+    });
+
+    document.querySelectorAll<HTMLButtonElement>('[data-admin-toggle-commerce]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const id = button.dataset.adminToggleCommerce;
+        if (!id) return;
+        const nextActive = button.dataset.nextActive === 'true';
+        button.disabled = true;
+        const previous = button.textContent ?? '';
+        button.textContent = '...';
+        try {
+          await toggleCommerce(id, nextActive);
+          setActionFeedback(nextActive ? 'Commerce réactivé avec succès.' : 'Commerce désactivé avec succès.', 'success');
+        } catch (error) {
+          setActionFeedback(error instanceof Error ? error.message : 'Erreur lors de la mise à jour du commerce.', 'error');
           button.disabled = false;
           button.textContent = previous;
         }
@@ -434,11 +498,11 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       }
 
       container.innerHTML = logs.map((log: any) => {
-        const when = new Date(log.created_at).toLocaleString('fr-FR');
-        const actor = String(log.admin_email ?? 'admin');
-        const action = String(log.action ?? 'action');
-        const target = String(log.target_type ?? '');
-        const targetId = String(log.target_id ?? '').slice(0, 8);
+        const when = escapeHtml(formatDateTime(log.created_at));
+        const actor = escapeHtml(String(log.admin_email ?? 'admin'));
+        const action = escapeHtml(String(log.action ?? 'action'));
+        const target = escapeHtml(String(log.target_type ?? ''));
+        const targetId = escapeHtml(String(log.target_id ?? '').slice(0, 8));
         return `
           <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
             <p class="text-xs font-semibold text-slate-800">${action}</p>
@@ -456,7 +520,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     try {
       const [apiRes, depsRes] = await Promise.all([
         fetch(`${API_BASE}/api/health`).catch(() => null),
-        fetch(`${API_BASE}/api/health/deps`).catch(() => null),
+        authFetch(`${API_BASE}/api/health/deps`).catch(() => null),
       ]);
 
       if (!apiRes) {
@@ -512,8 +576,6 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       setHealthStatus('health-migrations-status', 'Vérification indisponible', false);
     }
   }
-
-  (window as unknown as Record<string, unknown>).toggleCommerce = toggleCommerce;
 
   document.getElementById('export-admin-csv')!.addEventListener('click', exportCsv);
 

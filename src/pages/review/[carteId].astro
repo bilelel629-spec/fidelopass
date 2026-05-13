@@ -120,6 +120,17 @@ const { carteId } = Astro.params;
     });
   };
 
+  function safeHttpUrl(value) {
+    if (!value) return '';
+    try {
+      const url = new URL(String(value), window.location.origin);
+      if (!['http:', 'https:'].includes(url.protocol)) return '';
+      return url.href;
+    } catch {
+      return '';
+    }
+  }
+
   async function init() {
     if (!clientId) {
       show('error');
@@ -154,12 +165,21 @@ const { carteId } = Astro.params;
         `Laissez un avis 5 étoiles sur Google Maps et recevez immédiatement ${unit} sur votre carte "${carte.nom}".`;
 
       if (carte.commerce_logo) {
+        const safeLogo = safeHttpUrl(carte.commerce_logo);
         const logoWrap = document.getElementById('invite-logo-wrap');
-        logoWrap.innerHTML = `<img src="${carte.commerce_logo}" alt="${carte.commerce_nom}" class="w-full h-full object-cover" />`;
+        if (safeLogo && logoWrap) {
+          logoWrap.textContent = '';
+          const img = document.createElement('img');
+          img.src = safeLogo;
+          img.alt = carte.commerce_nom ?? '';
+          img.className = 'w-full h-full object-cover';
+          logoWrap.appendChild(img);
+        }
       }
 
       if (carte.google_maps_url) {
-        document.getElementById('google-maps-btn').href = carte.google_maps_url;
+        const safeMapsUrl = safeHttpUrl(carte.google_maps_url);
+        if (safeMapsUrl) document.getElementById('google-maps-btn').href = safeMapsUrl;
       }
 
       show('invite');

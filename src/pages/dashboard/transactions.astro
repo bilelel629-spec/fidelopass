@@ -29,14 +29,25 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }[char] ?? char));
   }
 
+  function toFiniteNumber(value: unknown) {
+    const numberValue = Number(value ?? 0);
+    return Number.isFinite(numberValue) ? numberValue : 0;
+  }
+
+  function formatDate(value: unknown) {
+    const date = new Date(String(value ?? ''));
+    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('fr-FR');
+  }
+
   async function loadTransactions() {
     const container = document.getElementById('transactions-list')!;
     try {
       const res = await authFetch('/api/transactions?limit=50');
       if (!res.ok) throw new Error();
       const { data } = await res.json();
+      const rows = Array.isArray(data) ? data : [];
 
-      if (!data?.length) {
+      if (!rows.length) {
         container.innerHTML = '<p class="text-slate-500 text-sm p-6">Aucune transaction pour le moment.</p>';
         return;
       }
@@ -66,21 +77,27 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             </tr>
           </thead>
           <tbody>
-            ${data.map((t: { type: string; valeur: number; points_avant: number | null; points_apres: number | null; note: string | null; created_at: string }) => `
-              <tr class="border-b border-slate-200 last:border-0 hover:bg-sky-50 transition-colors">
-                <td class="px-6 py-4">
-                  <span class="badge ${typeBadge[t.type] ?? 'badge-info'}">${typeLabel[t.type] ?? t.type}</span>
-                </td>
-                <td class="px-6 py-4 font-mono text-slate-900 text-sm">+${t.valeur}</td>
-                <td class="px-6 py-4 font-mono text-slate-600 text-sm">
-                  ${t.points_avant ?? '—'} → ${t.points_apres ?? '—'}
-                </td>
-                <td class="px-6 py-4 text-slate-600 text-sm">${escapeHtml(t.note ?? '—')}</td>
-                <td class="px-6 py-4 text-slate-600 text-sm">
-                  ${new Date(t.created_at).toLocaleString('fr-FR')}
-                </td>
-              </tr>
-            `).join('')}
+            ${rows.map((t: { type?: string; valeur?: number; points_avant?: number | null; points_apres?: number | null; note?: string | null; created_at?: string }) => {
+              const type = String(t.type ?? '');
+              const valeur = toFiniteNumber(t.valeur);
+              const pointsAvant = t.points_avant === null || t.points_avant === undefined ? '—' : String(toFiniteNumber(t.points_avant));
+              const pointsApres = t.points_apres === null || t.points_apres === undefined ? '—' : String(toFiniteNumber(t.points_apres));
+              return `
+                <tr class="border-b border-slate-200 last:border-0 hover:bg-sky-50 transition-colors">
+                  <td class="px-6 py-4">
+                    <span class="badge ${typeBadge[type] ?? 'badge-info'}">${escapeHtml(typeLabel[type] ?? type)}</span>
+                  </td>
+                  <td class="px-6 py-4 font-mono text-slate-900 text-sm">${valeur >= 0 ? '+' : ''}${escapeHtml(valeur)}</td>
+                  <td class="px-6 py-4 font-mono text-slate-600 text-sm">
+                    ${escapeHtml(pointsAvant)} → ${escapeHtml(pointsApres)}
+                  </td>
+                  <td class="px-6 py-4 text-slate-600 text-sm">${escapeHtml(t.note ?? '—')}</td>
+                  <td class="px-6 py-4 text-slate-600 text-sm">
+                    ${escapeHtml(formatDate(t.created_at))}
+                  </td>
+                </tr>
+              `;
+            }).join('')}
           </tbody>
         </table>
       `;

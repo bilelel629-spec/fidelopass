@@ -18,12 +18,23 @@ function normalizePreferredDestination(value?: string | null) {
   try {
     const url = new URL(raw, 'https://www.fidelopass.com');
     const path = `${url.pathname}${url.search}`;
+    const allowedExactDestinations = new Set([
+      '/onboarding',
+      '/app',
+      '/dashboard',
+      '/admin',
+      '/partner',
+      '/devenir-revendeur',
+    ]);
+    const allowedDestinationPrefixes = [
+      '/app/',
+      '/dashboard/',
+      '/admin/',
+      '/partner/',
+    ];
     const isAllowed =
-      url.pathname === '/onboarding'
-      || url.pathname === '/app'
-      || url.pathname.startsWith('/app/')
-      || url.pathname === '/dashboard'
-      || url.pathname.startsWith('/dashboard/');
+      allowedExactDestinations.has(url.pathname)
+      || allowedDestinationPrefixes.some((prefix) => url.pathname.startsWith(prefix));
 
     return isAllowed ? path : null;
   } catch {

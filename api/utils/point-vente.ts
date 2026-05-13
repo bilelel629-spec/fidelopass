@@ -171,12 +171,12 @@ export async function resolveCommerceAndPointVente<T extends CommerceRow = Comme
 
   const fallbackPoint = points.find((point) => point.principal) ?? points[0] ?? null;
   const selectedPoint = requestedPointVenteId
-    ? points.find((point) => point.id === requestedPointVenteId) ?? fallbackPoint
+    ? points.find((point) => point.id === requestedPointVenteId) ?? null
     : fallbackPoint;
 
   return {
     commerce: commerce as T,
-    pointVente: selectedPoint ?? fallbackPoint,
+    pointVente: selectedPoint,
     pointsVente: points,
   };
 }

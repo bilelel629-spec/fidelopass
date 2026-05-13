@@ -10,6 +10,7 @@ import { getEffectivePlanRaw } from '../utils/effective-plan';
 
 export const cartesRoutes = new Hono();
 const WALLET_SYNC_WAIT_MS = 4500;
+const uuidSchema = z.string().uuid();
 
 async function triggerWalletSyncForPointVente(pointVenteId: string, source: string) {
   const syncTask = syncWalletForPointVente(pointVenteId).catch((err) => {
@@ -431,7 +432,10 @@ cartesRoutes.post('/admin-proposal/decision', authMiddleware, paidMiddleware, as
 
 /** GET /api/cartes/:id/public — Infos publiques pour la page d'ajout au Wallet */
 cartesRoutes.get('/:id/public', async (c) => {
-  const carteId = c.req.param('id');
+  const parsedCarteId = uuidSchema.safeParse(c.req.param('id') ?? '');
+  if (!parsedCarteId.success) return c.json({ error: 'Carte introuvable' }, 404);
+
+  const carteId = parsedCarteId.data;
   const db = createServiceClient();
 
   const { data: carte } = await db
@@ -610,7 +614,10 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
 
 /** PATCH /api/cartes/:id — Met à jour une carte */
 cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
-  const carteId = c.req.param('id');
+  const parsedCarteId = uuidSchema.safeParse(c.req.param('id') ?? '');
+  if (!parsedCarteId.success) return c.json({ error: 'Carte introuvable' }, 404);
+
+  const carteId = parsedCarteId.data;
   const userId = c.get('userId') as string;
   const body = await c.req.json().catch(() => null);
   const parsed = carteSchema.partial().safeParse(body);

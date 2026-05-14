@@ -90,6 +90,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       | 'pro_annuel_mensuel'
       | 'pro_annuel_once';
     priceId: string;
+    setupRequested?: boolean;
     selectedAt: number;
   };
 
@@ -148,6 +149,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     window.location.replace('/abonnement/choix');
   } else {
     describeSelection(initialSelection);
+    if (initialSelection.setupRequested) {
+      setupAddon.checked = true;
+    }
   }
 
   void requireSessionAndBilling();

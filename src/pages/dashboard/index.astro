@@ -3,13 +3,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 ---
 
 <DashboardLayout title="Dashboard — Fidelopass" activeNav="dashboard">
-  <div class="mb-4 flex items-start justify-between gap-3">
+  <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
     <div>
       <p class="dashboard-kicker">Pilotage</p>
       <h1 class="dashboard-title">Tableau de bord</h1>
       <p class="dashboard-subtitle">Tout ce qui compte aujourd’hui: scanner, partager la carte, suivre l’activité.</p>
     </div>
-    <button id="refresh-btn" type="button" class="ghost-button">
+    <button id="refresh-btn" type="button" class="ghost-button self-start sm:self-auto">
       <svg id="refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
         <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
         <path d="M21 3v5h-5"></path>

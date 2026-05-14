@@ -37,8 +37,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       </div>
 
       <div class="mt-4 rounded-xl border border-slate-200 bg-white/90 px-4 py-3 text-sm text-slate-600">
-        <p><strong>Mensuel :</strong> résiliable à tout moment.</p>
-        <p class="mt-1"><strong>Annuel :</strong> engagement de 12 mois (paiement mensuel ou en une fois).</p>
+        <p><strong>Essai gratuit :</strong> 14 jours avec carte bancaire, aucun prélèvement aujourd’hui, résiliable pendant l’essai.</p>
+        <p class="mt-1"><strong>Mensuel :</strong> après l’essai, résiliable à tout moment.</p>
+        <p class="mt-1"><strong>Annuel :</strong> après l’essai, engagement de 12 mois (paiement mensuel ou en une fois).</p>
       </div>
 
       <div id="annual-payment-mode" class="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-3">
@@ -57,7 +58,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <div id="choice-warning" class="hidden mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"></div>
 
       <div class="grid lg:grid-cols-2 gap-6 mt-8">
-        <article class="rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] p-8">
+        <article data-plan-card="starter" class="rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] p-8">
           <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Starter</p>
           <div class="flex items-end gap-1 mt-3">
             <span
@@ -100,7 +101,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
           </button>
         </article>
 
-        <article class="rounded-[2rem] border border-indigo-400 bg-[linear-gradient(155deg,#1e1b4b_0%,#312e81_62%,#0284c7_100%)] shadow-[0_30px_80px_rgba(49,46,129,0.24)] p-8 text-white">
+        <article data-plan-card="pro" class="rounded-[2rem] border border-indigo-400 bg-[linear-gradient(155deg,#1e1b4b_0%,#312e81_62%,#0284c7_100%)] shadow-[0_30px_80px_rgba(49,46,129,0.24)] p-8 text-white">
           <div class="inline-flex rounded-full bg-amber-400 px-3 py-1 text-[0.7rem] font-bold uppercase tracking-[0.16em] text-amber-900">
             Le plus choisi
           </div>
@@ -163,6 +164,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   const STORAGE_KEY = 'fidelopass.checkout.selection';
   const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
   const BILLING_CHECK_TIMEOUT_MS = Number(import.meta.env.PUBLIC_BILLING_CHECK_TIMEOUT_MS ?? 2200);
+  const queryParams = new URLSearchParams(window.location.search);
+  const requestedPlanParam = queryParams.get('plan');
+  const preselectedPlan = requestedPlanParam === 'starter' || requestedPlanParam === 'pro' ? requestedPlanParam : null;
+  const setupRequested = ['1', 'true', 'yes'].includes((queryParams.get('setup') ?? '').toLowerCase());
   const monthlyBtn = document.getElementById('toggle-monthly') as HTMLButtonElement;
   const annualBtn = document.getElementById('toggle-annual') as HTMLButtonElement;
   const annualPaymentMode = document.getElementById('annual-payment-mode') as HTMLDivElement;
@@ -205,6 +210,21 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     return button.dataset.availabilityAnnualSubscription === '1';
   }
 
+  function planBaseLabel(plan?: string) {
+    const normalizedPlan = plan === 'pro' ? 'pro' : 'starter';
+    const baseLabel = normalizedPlan === 'pro' ? 'Continuer avec Pro' : 'Continuer avec Starter';
+    return setupRequested && (!preselectedPlan || preselectedPlan === normalizedPlan)
+      ? `${baseLabel} + Setup`
+      : baseLabel;
+  }
+
+  function applyPreselection() {
+    if (!preselectedPlan) return;
+    document
+      .querySelector<HTMLElement>(`[data-plan-card="${preselectedPlan}"]`)
+      ?.classList.add('ring-2', 'ring-indigo-300', 'ring-offset-2', 'ring-offset-white');
+  }
+
   function refreshPlanButtonsState() {
     const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('.plan-select-btn'));
     const unavailableCount = buttons.reduce((acc, button) => (
@@ -212,7 +232,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     ), 0);
 
     buttons.forEach((button) => {
-      const baseLabel = button.dataset.plan === 'pro' ? 'Continuer avec Pro' : 'Continuer avec Starter';
+      const baseLabel = planBaseLabel(button.dataset.plan);
       const available = pricingLoaded && resolveButtonPriceAvailability(button);
       button.disabled = !available;
       button.classList.toggle('opacity-50', !available);
@@ -401,6 +421,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       checkoutMode,
       priceSlot,
       priceId,
+      setupRequested: setupRequested && (!preselectedPlan || preselectedPlan === btn.dataset.plan),
       selectedAt: Date.now(),
     };
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(selection));
@@ -415,9 +436,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   setAnnualPaymentType('subscription');
   setMode('annual');
 
-  const cancelled = new URLSearchParams(window.location.search).get('cancelled');
-  const guard = new URLSearchParams(window.location.search).get('guard');
-  const priceUnavailable = new URLSearchParams(window.location.search).get('price_unavailable');
+  const cancelled = queryParams.get('cancelled');
+  const guard = queryParams.get('guard');
+  const priceUnavailable = queryParams.get('price_unavailable');
   if (cancelled === '1') {
     errorEl.textContent = 'Paiement annulé. Vous pouvez reprendre votre sélection.';
     errorEl.classList.remove('hidden');
@@ -436,6 +457,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     btn.addEventListener('click', () => choosePlan(btn));
   });
 
+  applyPreselection();
   refreshPlanButtonsState();
   void requireSessionAndBilling();
 </script>

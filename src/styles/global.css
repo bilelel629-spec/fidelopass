@@ -2,6 +2,10 @@
 
 @import "tailwindcss";
 
+/* Fidelopass reste volontairement en thème clair pour l'instant.
+   Les anciennes classes dark: ne doivent plus s'activer via les préférences système. */
+@custom-variant dark (&:where(.fidelopass-never-dark, .fidelopass-never-dark *));
+
 @theme {
   /* Couleurs */
   --color-navy-950: #0a0f1e;

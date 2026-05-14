@@ -10,6 +10,7 @@ type BillingStatusResponse = {
 
 const API_BASE = (import.meta.env.PUBLIC_API_URL || 'https://api.fidelopass.com').replace(/\/$/, '');
 const BILLING_CHECK_TIMEOUT_MS = Number(import.meta.env.PUBLIC_BILLING_CHECK_TIMEOUT_MS ?? 2200);
+const ACCESS_CHECK_UNCERTAIN_DESTINATION = '/abonnement/choix?verification=1';
 
 function normalizePreferredDestination(value?: string | null) {
   const raw = String(value ?? '').trim();
@@ -65,8 +66,8 @@ export async function resolvePostAuthDestination(
     );
 
     if ('__unauthorized' in billing) return '/login';
-    // En cas d'incident API transitoire, éviter la fausse redirection "abonnement requis".
-    if ((billing.__status ?? 500) >= 500) return '/dashboard';
+    // En cas d'incident API transitoire, ne jamais ouvrir le dashboard par défaut.
+    if ((billing.__status ?? 500) >= 500) return ACCESS_CHECK_UNCERTAIN_DESTINATION;
 
     const data = billing.payload?.data;
     if (!data?.has_access) return '/abonnement/choix';
@@ -75,6 +76,6 @@ export async function resolvePostAuthDestination(
     if (!data?.onboarding_completed) return '/onboarding';
     return preferred ?? data.recommended_redirect ?? '/dashboard';
   } catch {
-    return '/dashboard';
+    return ACCESS_CHECK_UNCERTAIN_DESTINATION;
   }
 }

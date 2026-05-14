@@ -180,6 +180,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
   let currentClientId: string | null = null;
   let currentClientRecompenses = 0;
+  let currentProgramType: 'tampons' | 'points' = 'tampons';
   let scannerPaused = false;
   let audioContext: AudioContext | null = null;
   let confettiPromise: Promise<any> | null = null;
@@ -495,18 +496,26 @@ import AppLayout from '../../layouts/AppLayout.astro';
       if (!res.ok) throw new Error('Client introuvable');
 
       const payload = await res.json();
-      const data = payload?.data?.client ?? payload?.data;
+      const scanPayload = payload?.data ?? payload;
+      const data = scanPayload?.client ?? scanPayload;
+      const carte = scanPayload?.carte ?? data?.carte ?? null;
       if (!data?.id) throw new Error('Client introuvable');
 
       currentClientId = data.id;
       currentClientRecompenses = data.recompenses_obtenues ?? 0;
+      const rawCardType = String(carte?.type ?? data?.type ?? '').toLowerCase();
+      currentProgramType = rawCardType.includes('point') || (data.points_actuels !== undefined && data.tampons_actuels === undefined)
+        ? 'points'
+        : 'tampons';
 
       document.getElementById('result-nom')!.textContent = data.nom ?? 'Client anonyme';
       document.getElementById('result-solde')!.textContent =
-        data.tampons_actuels !== undefined
-          ? `${data.tampons_actuels} tampons — ${data.recompenses_obtenues} récompense(s)`
-          : `${data.points_actuels} points`;
+        currentProgramType === 'points'
+          ? `${data.points_actuels ?? 0} point(s)`
+          : `${data.tampons_actuels ?? 0} tampon(s) — ${data.recompenses_obtenues ?? 0} récompense(s)`;
       document.getElementById('result-rewards')!.textContent = `Récompenses disponibles: ${data.recompenses_obtenues ?? 0}`;
+      document.getElementById('btn-tampon')!.classList.toggle('hidden', currentProgramType !== 'tampons');
+      document.getElementById('btn-points')!.classList.toggle('hidden', currentProgramType !== 'points');
       const rewardBtn = document.getElementById('btn-reward')!;
       rewardBtn.classList.toggle('hidden', currentClientRecompenses <= 0);
 
@@ -623,6 +632,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
     document.getElementById('scan-result')!.classList.add('hidden');
     currentClientId = null;
     currentClientRecompenses = 0;
+    currentProgramType = 'tampons';
     resumeScanner();
   }
 

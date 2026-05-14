@@ -148,7 +148,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
       if (isBillingGate) {
         return withSecurityHeaders(await next());
       }
-      if (pathname.startsWith('/dashboard') || pathname === '/onboarding') {
+      if (pathname.startsWith('/dashboard') || pathname.startsWith('/app') || pathname === '/onboarding') {
         return withSecurityHeaders(Response.redirect(buildExternalRedirectUrl(context, '/abonnement/choix'), 302));
       }
       return withSecurityHeaders(await next());

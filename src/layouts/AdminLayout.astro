@@ -79,7 +79,18 @@ const navItems = [
 </html>
 
 <script>
+  import { authFetch } from '../lib/api';
   import { getSession } from '../lib/auth';
+
   const session = await getSession();
-  if (!session) window.location.replace('/login');
+  if (!session) {
+    window.location.replace('/login?next=/admin');
+  } else {
+    const adminProbe = await authFetch('/api/admin/stats').catch(() => null);
+    if (adminProbe?.status === 401) {
+      window.location.replace('/login?next=/admin');
+    } else if (adminProbe?.status === 403) {
+      window.location.replace('/dashboard');
+    }
+  }
 </script>

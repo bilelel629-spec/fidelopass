@@ -181,6 +181,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   const API = (import.meta.env.PUBLIC_API_URL || '').trim();
   const PENDING_KEY = 'fidelopass.pending-registration';
+  const NEXT_STORAGE_KEY = 'fidelopass.register-next';
 
   const methodStep = document.getElementById('method-step') as HTMLDivElement;
   const emailStep = document.getElementById('email-step') as HTMLDivElement;
@@ -210,6 +211,31 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 1800);
 
   const apiUrl = (path: string) => `${API}${path}`;
+  function getSafeNextFrom(value: string | null) {
+    const raw = String(value ?? '').trim();
+    if (!raw.startsWith('/') || raw.startsWith('//')) return null;
+    return raw;
+  }
+
+  function rememberNextParam() {
+    const next = getSafeNextFrom(new URLSearchParams(window.location.search).get('next'));
+    if (next) sessionStorage.setItem(NEXT_STORAGE_KEY, next);
+  }
+
+  function getPreferredNext() {
+    return getSafeNextFrom(new URLSearchParams(window.location.search).get('next'))
+      ?? getSafeNextFrom(sessionStorage.getItem(NEXT_STORAGE_KEY));
+  }
+
+  function buildAuthRedirect(pathname: string) {
+    const url = new URL(pathname, window.location.origin);
+    const next = getPreferredNext();
+    if (next) url.searchParams.set('next', next);
+    return url.toString();
+  }
+
+  rememberNextParam();
+
   const setProgress = (step: 1 | 2) => {
     const active = 'background:#4f46e5;color:white;border:none';
     const idle = 'background:transparent;color:#94a3b8;border:1px solid #e2e8f0';
@@ -332,7 +358,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       setSessionCookie(activeSession.access_token);
       showProgress('Compte prêt, redirection...');
 
-      const target = await resolvePostAuthDestination(activeSession.access_token);
+      const target = await resolvePostAuthDestination(activeSession.access_token, getPreferredNext());
       if (target === '/login') {
         clearSessionCookie();
         await supabase.auth.signOut().catch(() => undefined);
@@ -340,6 +366,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         return;
       }
 
+      sessionStorage.removeItem(NEXT_STORAGE_KEY);
       window.location.replace(target);
     } finally {
       redirectInFlight = false;
@@ -385,7 +412,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
-        options: { redirectTo: `${window.location.origin}/auth/confirm` },
+        options: { redirectTo: buildAuthRedirect('/auth/confirm') },
       });
       if (error) throw error;
       if (!data.url) throw new Error('URL Apple indisponible.');
@@ -405,7 +432,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: `${window.location.origin}/register`, skipBrowserRedirect: true },
+        options: { redirectTo: buildAuthRedirect('/register'), skipBrowserRedirect: true },
       });
       if (error) throw error;
       if (!data.url) throw new Error('URL Google indisponible.');

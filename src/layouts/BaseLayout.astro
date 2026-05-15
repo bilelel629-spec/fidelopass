@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import LanguageSwitcher from '../components/LanguageSwitcher.astro';
 
 interface Props {
   title?: string;
@@ -25,11 +26,13 @@ const {
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <title>{title}</title>
+    <script src="/i18n.js" defer></script>
   </head>
   <body class:list={[
     "min-h-screen antialiased overflow-x-hidden bg-transparent text-slate-900",
     theme === 'dashboard' ? 'dashboard-theme' : 'light-theme'
   ]}>
     <slot />
+    <LanguageSwitcher />
   </body>
 </html>

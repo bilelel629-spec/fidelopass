@@ -40,13 +40,39 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
 
 <script>
   import { createClient } from '@supabase/supabase-js';
-  import { requireFreshSession, showSessionOverlay } from '../lib/session-guard';
+  import {
+    bindSessionActivityTracking,
+    requireFreshSession,
+    shouldShowSessionRefreshOverlay,
+    showSessionOverlay,
+  } from '../lib/session-guard';
 
   const supabase = createClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
   );
   const API = (import.meta.env.PUBLIC_API_URL ?? 'https://api.fidelopass.com').replace(/\/$/, '');
+
+  bindSessionActivityTracking();
+
+  let idleRefreshPromise: Promise<void> | null = null;
+
+  function refreshSessionAfterInactivity() {
+    if (!shouldShowSessionRefreshOverlay() || idleRefreshPromise) return;
+
+    idleRefreshPromise = (async () => {
+      const overlay = showSessionOverlay('Reconnexion en cours...', 'Votre session est rafraîchie après une période d’inactivité.');
+      const session = await requireFreshSession(supabase, { overlay });
+      if (session) overlay.remove();
+    })().finally(() => {
+      idleRefreshPromise = null;
+    });
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refreshSessionAfterInactivity();
+  });
+  window.addEventListener('focus', refreshSessionAfterInactivity);
 
   type SessionLike = { access_token: string };
   type TourStep = {
@@ -375,7 +401,9 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
   }
 
   async function initDashboardGuard() {
-    const overlay = showSessionOverlay('Vérification de la session...', 'Un instant, nous gardons votre espace commerçant prêt.');
+    let overlay = shouldShowSessionRefreshOverlay()
+      ? showSessionOverlay('Reconnexion en cours...', 'Votre session est rafraîchie après une période d’inactivité.')
+      : undefined;
     const session = await requireFreshSession(supabase, { overlay });
     if (!session) {
       return;
@@ -389,6 +417,7 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
     }).then(async (r) => ({ ok: r.ok, status: r.status, payload: await r.json().catch(() => ({})) })).catch(() => null);
 
     if (!billing) {
+      overlay = overlay ?? showSessionOverlay('Connexion instable', 'Impossible de vérifier votre accès pour le moment.');
       overlay.setText('Connexion instable', 'Impossible de vérifier votre accès pour le moment.');
       window.setTimeout(() => window.location.reload(), 1200);
       return;
@@ -410,7 +439,7 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       return;
     }
 
-    overlay.remove();
+    overlay?.remove();
     maybeShowTour(session as SessionLike);
   }
 

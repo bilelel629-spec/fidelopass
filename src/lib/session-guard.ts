@@ -16,6 +16,15 @@ type SessionOverlay = {
 };
 
 const SESSION_REFRESH_LEEWAY_SECONDS = 90;
+const SESSION_IDLE_REFRESH_MS = 8 * 60 * 1000;
+const SESSION_LAST_ACTIVITY_KEY = 'fidelopass:last-activity-at';
+const SESSION_TRACKING_FLAG = '__fidelopassSessionActivityTracking';
+
+declare global {
+  interface Window {
+    __fidelopassSessionActivityTracking?: boolean;
+  }
+}
 
 export function currentPathWithSearch() {
   return `${window.location.pathname}${window.location.search}`;
@@ -64,6 +73,47 @@ export function showSessionOverlay(
   };
 }
 
+function readLastActivityAt() {
+  try {
+    const value = window.localStorage.getItem(SESSION_LAST_ACTIVITY_KEY);
+    const timestamp = value ? Number(value) : 0;
+    return Number.isFinite(timestamp) && timestamp > 0 ? timestamp : null;
+  } catch {
+    return null;
+  }
+}
+
+export function markSessionActivity(now = Date.now()) {
+  try {
+    window.localStorage.setItem(SESSION_LAST_ACTIVITY_KEY, String(now));
+  } catch {
+    // localStorage can be unavailable in strict privacy contexts.
+  }
+}
+
+export function shouldShowSessionRefreshOverlay(thresholdMs = SESSION_IDLE_REFRESH_MS) {
+  const lastActivityAt = readLastActivityAt();
+  if (!lastActivityAt) return false;
+  return Date.now() - lastActivityAt > thresholdMs;
+}
+
+export function bindSessionActivityTracking() {
+  if (window[SESSION_TRACKING_FLAG]) return;
+  window[SESSION_TRACKING_FLAG] = true;
+
+  let lastWriteAt = 0;
+  const recordActivity = () => {
+    const now = Date.now();
+    if (now - lastWriteAt < 2000) return;
+    lastWriteAt = now;
+    markSessionActivity(now);
+  };
+
+  ['pointerdown', 'keydown', 'touchstart', 'scroll'].forEach((eventName) => {
+    window.addEventListener(eventName, recordActivity, { passive: true });
+  });
+}
+
 function sessionNeedsRefresh(session: SupabaseSession | null) {
   if (!session?.access_token) return true;
   if (!session.expires_at) return false;
@@ -72,12 +122,23 @@ function sessionNeedsRefresh(session: SupabaseSession | null) {
 
 export async function getFreshSession(supabase: SupabaseLike): Promise<SupabaseSession | null> {
   const { data: { session } } = await supabase.auth.getSession();
-  if (session && !sessionNeedsRefresh(session)) return session;
+  if (session && !sessionNeedsRefresh(session)) {
+    markSessionActivity();
+    return session;
+  }
 
   const { data, error } = await supabase.auth.refreshSession();
-  if (!error && data.session?.access_token) return data.session;
+  if (!error && data.session?.access_token) {
+    markSessionActivity();
+    return data.session;
+  }
 
-  return session?.access_token ? session : null;
+  if (session?.access_token) {
+    markSessionActivity();
+    return session;
+  }
+
+  return null;
 }
 
 export async function requireFreshSession(

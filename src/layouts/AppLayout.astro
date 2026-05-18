@@ -32,15 +32,43 @@ const { title = 'Fidelopass Scanner' } = Astro.props;
 
 <script>
   import { createClient } from '@supabase/supabase-js';
-  import { requireFreshSession, showSessionOverlay } from '../lib/session-guard';
+  import {
+    bindSessionActivityTracking,
+    requireFreshSession,
+    shouldShowSessionRefreshOverlay,
+    showSessionOverlay,
+  } from '../lib/session-guard';
   const supabase = createClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
   );
 
-  const overlay = showSessionOverlay('Ouverture du scanner...', 'Nous vérifions la session avant d’activer la caméra.');
+  bindSessionActivityTracking();
+
+  let idleRefreshPromise: Promise<void> | null = null;
+
+  function refreshSessionAfterInactivity() {
+    if (!shouldShowSessionRefreshOverlay() || idleRefreshPromise) return;
+
+    idleRefreshPromise = (async () => {
+      const overlay = showSessionOverlay('Ouverture du scanner...', 'Votre session est rafraîchie avant d’activer la caméra.');
+      const session = await requireFreshSession(supabase, { overlay });
+      if (session) overlay.remove();
+    })().finally(() => {
+      idleRefreshPromise = null;
+    });
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refreshSessionAfterInactivity();
+  });
+  window.addEventListener('focus', refreshSessionAfterInactivity);
+
+  const overlay = shouldShowSessionRefreshOverlay()
+    ? showSessionOverlay('Ouverture du scanner...', 'Votre session est rafraîchie avant d’activer la caméra.')
+    : undefined;
   const session = await requireFreshSession(supabase, { overlay });
-  if (session) overlay.remove();
+  if (session) overlay?.remove();
 
   // Enregistrement du Service Worker
   if ('serviceWorker' in navigator) {

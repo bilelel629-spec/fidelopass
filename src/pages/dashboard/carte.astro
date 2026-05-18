@@ -3,7 +3,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 ---
 
 <DashboardLayout title="Ma carte — Fidelopass" activeNav="carte">
-  <div id="wizard-top-anchor" class="mb-5 rounded-[1.4rem] border border-slate-200/70 bg-white/95 px-6 py-5 shadow-[0_16px_32px_-24px_rgba(15,23,42,0.2)] sm:mb-6">
+  <div id="wizard-top-anchor" data-tour="card-editor-intro" class="mb-4 rounded-[1.6rem] border border-sky-100 bg-white/90 px-5 py-4 shadow-[0_24px_50px_-38px_rgba(59,130,246,0.35)] sm:mb-5 sm:py-5">
     <p class="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-sky-600/70">Éditeur de carte</p>
     <div class="mt-2 flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
       <div>
@@ -12,7 +12,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
     </div>
   </div>
-  <div id="active-point-banner" class="mb-5 rounded-[1.2rem] border border-slate-200/70 bg-white/90 px-4 py-3 shadow-[0_12px_24px_-20px_rgba(59,130,246,0.24)] sm:mb-6">
+  <div id="active-point-banner" class="mb-4 rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3 sm:mb-5">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div class="text-sm text-sky-800">
         <p class="font-medium">Point de vente actif: <span id="active-point-name" class="font-semibold">Chargement...</span></p>
@@ -21,32 +21,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <a href="/dashboard/points-vente" class="rounded-xl border border-sky-200 bg-white px-3.5 py-2 text-xs font-semibold text-sky-700 transition hover:border-sky-300 hover:bg-sky-50">
         Gérer les points de vente
       </a>
-    </div>
-  </div>
-  <div class="mb-5 rounded-[1.4rem] border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-indigo-50/70 p-5 shadow-[0_18px_44px_-34px_rgba(37,99,235,0.35)] sm:mb-6">
-    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <div>
-        <p class="text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-sky-700/70">Mode simple recommandé</p>
-        <h2 class="mt-2 font-display text-xl font-bold text-slate-900">Avancez étape par étape, sans tout régler d’un coup.</h2>
-        <p class="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
-          Choisissez un modèle ou partez de zéro, validez les éléments essentiels, puis revenez modifier une étape quand vous voulez.
-        </p>
-      </div>
-      <a href="#preview-panel" class="btn-secondary px-4 py-2.5 text-sm md:hidden">Voir l’aperçu</a>
-    </div>
-  </div>
-  <div id="admin-proposal-banner" class="mb-5 hidden rounded-[1.2rem] border border-indigo-200 bg-indigo-50/65 px-4 py-3 shadow-[0_14px_34px_-26px_rgba(79,70,229,0.45)] sm:mb-6">
-    <div class="flex flex-col gap-3">
-      <div>
-        <p class="text-sm font-semibold text-indigo-900">Proposition d’amélioration prête</p>
-        <p id="admin-proposal-meta" class="mt-1 text-xs text-indigo-800/85">Votre équipe Fidelopass a préparé une mise à jour de carte pour ce point de vente.</p>
-      </div>
-      <label class="text-xs text-indigo-800/90" for="admin-proposal-comment">Commentaire (optionnel)</label>
-      <textarea id="admin-proposal-comment" rows="2" class="input text-sm" placeholder="Votre retour avant validation..."></textarea>
-      <div class="flex flex-wrap items-center gap-2">
-        <button id="admin-proposal-approve-btn" type="button" class="btn-primary px-4 py-2 text-xs">Appliquer la proposition</button>
-        <button id="admin-proposal-reject-btn" type="button" class="btn-secondary px-4 py-2 text-xs">Refuser</button>
-      </div>
     </div>
   </div>
 
@@ -65,7 +39,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </div>
   </div>
 
-  <div class="mb-7 hidden rounded-[1.4rem] border border-slate-200/70 bg-white/95 shadow-[0_18px_38px_-28px_rgba(15,23,42,0.2)] lg:sticky lg:top-5 lg:block z-20">
+  <div data-tour="card-editor-steps" class="mb-6 hidden rounded-[1.6rem] border border-sky-100 bg-white/95 shadow-[0_18px_48px_-36px_rgba(59,130,246,0.4)] lg:sticky lg:top-4 lg:block z-20">
     <div class="flex items-center justify-between px-4 py-3 border-b border-sky-50">
       <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-600/70">Parcours guidé</p>
       <div class="flex items-center gap-2">
@@ -143,7 +117,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     <div class="flex flex-col gap-5 pb-40 lg:pb-0">
 
       <!-- Étape 1 : Type de programme -->
-      <div class="card wizard-section step-1 p-6">
+      <div class="card wizard-section step-1 p-6" data-tour="card-program">
         <div class="mb-5">
           <h2 class="font-display font-bold text-slate-900">Type de programme</h2>
           <p class="mt-1 text-sm leading-6 text-slate-500">Choisissez d'abord la mécanique de fidélité — tampons ou points. Tout le reste s'adapte à ce choix.</p>
@@ -185,34 +159,31 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           </label>
         </div>
 
-          <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">
           <div>
             <h2 class="font-display font-bold text-slate-900">Modèles rapides</h2>
-            <p class="mt-1 text-sm leading-6 text-slate-500">Optionnel. Vous pouvez choisir une base prête à l’emploi, ou continuer sans modèle et tout personnaliser manuellement.</p>
+            <p class="mt-1 text-sm leading-6 text-slate-500">Choisissez une base prête à l'emploi. Le modèle remplit les couleurs, le programme et le ton général, puis vous l'affinez à votre rythme.</p>
           </div>
-          <span class="w-fit rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-700">Optionnel · Recommandé pour démarrer</span>
+          <span class="w-fit rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-700">Recommandé pour démarrer</span>
         </div>
         <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {[
-            {name:'Pizzeria', fond:'#590306', texte:'#ffffff', accent:'#fc851d', fond2:'#590306', gradient:'false', pattern:'waves', layout:'top', stamp:'🍕', type:'tampons', total:'10', reward:'1 pizza offerte', label:'Client', desc:'10 passages = 1 pizza offerte', message:'Votre carte fidélité est prête. Une pizza offerte vous attend bientôt.', banner:'/banner-templates/template-01.png'},
-            {name:'Restaurant', fond:'#064e3b', texte:'#ffffff', accent:'#34d399', fond2:'#064e3b', gradient:'false', pattern:'dots', layout:'top', stamp:'🍽️', type:'tampons', total:'10', reward:'1 plat offert', label:'Client', desc:'10 passages = 1 plat offert', message:'Votre carte fidélité est prête. Présentez-la à chaque passage.', banner:'/banner-templates/restaurant.png'},
-            {name:'Patisserie', fond:'#e4e2fd', texte:'#000000', accent:'#bbf2d8', fond2:'#e4e2fd', gradient:'false', pattern:'waves', layout:'top', stamp:'🧁', type:'tampons', total:'10', reward:'1 pâtisserie offerte', label:'Client', desc:'10 tampons = 1 pâtisserie offerte', message:'Une douceur vous attend bientôt. Présentez votre carte à chaque passage.', banner:'/banner-templates/patisserie.png'},
-            {name:'Fleuriste', fond:'#f7f2ec', texte:'#1f2937', accent:'#bc85bf', fond2:'#f7f2ec', gradient:'false', pattern:'dots', layout:'bottom', stamp:'🌸', type:'tampons', total:'8', reward:'1 bouquet offert', label:'Client', desc:'Votre programme floral tout en douceur', message:'Votre carte fleurie est prête. Cumulez vos passages et profitez de vos avantages.', banner:'/banner-templates/template-02.png'},
-            {name:'Boucherie', fond:'#111827', texte:'#fff3d1', accent:'#ffe7bd', fond2:'#111827', gradient:'false', pattern:'grid', layout:'top', stamp:'🥩', type:'tampons', total:'10', reward:'-10% sur votre prochain achat', label:'Client', desc:'10 passages = -10% sur votre prochain achat', message:'Votre avantage fidélité est prêt. Présentez votre carte à chaque passage.', banner:'/banner-templates/template-03.png'},
-            {name:'Café', fond:'#3B2416', texte:'#FFF7ED', accent:'#D6A15D', fond2:'#3B2416', gradient:'false', pattern:'waves', layout:'top', stamp:'☕', type:'tampons', total:'8', reward:'1 café offert', label:'Client', desc:'8 passages = 1 café offert', message:'Votre carte café est prête. Encore quelques passages avant votre boisson offerte.', banner:'/banner-templates/template-05.png'},
-            {name:'Coiffeur', fond:'#1d1f1e', texte:'#f8fafc', accent:'#f8fafc', fond2:'#1d1f1e', gradient:'false', pattern:'diagonal', layout:'top', stamp:'✂️', type:'tampons', total:'10', reward:'-20% sur une prestation', label:'Client', desc:'10 passages = -20% sur une prestation', message:'Votre carte beauté est prête. Présentez-la lors de votre prochain rendez-vous.', banner:'/banner-templates/template-17.png'},
-            {name:'Nail salon', fond:'#fff0e5', texte:'#df652a', accent:'#fee1d0', fond2:'#fff0e5', gradient:'false', pattern:'waves', layout:'top', stamp:'💅', type:'tampons', total:'10', reward:'1 soin offert', label:'Client', desc:'10 passages = 1 avantage beauté', message:'Votre carte beauté est prête. Présentez-la lors de votre prochain rendez-vous.', banner:'/banner-templates/nail-art.png'},
-            {name:'Sport', fond:'#045698', texte:'#ffffff', accent:'#dee7e6', fond2:'#045698', gradient:'false', pattern:'diagonal', layout:'background', stamp:'🏆', type:'points', total:'10', reward:'100 points = 1 séance offerte', label:'Athlète', desc:'1 point par euro, 100 points = 1 séance offerte', message:'Votre carte est prête. Cumulez vos points à chaque séance.', banner:'/banner-templates/template-06.png'},
+            {name:'Café cosy', badge:'CF', fond:'#2b1608', texte:'#fff7ed', accent:'#d97706', fond2:'#5f3214', pattern:'waves', layout:'bottom', stamp:'☕', type:'tampons', total:'10', reward:'1 boisson offerte', label:'Client', desc:'10 passages = 1 boisson offerte', message:'Votre café vous attend !'},
+            {name:'Restaurant', badge:'RS', fond:'#111827', texte:'#fff7ed', accent:'#f97316', fond2:'#7c2d12', pattern:'diagonal', layout:'top', stamp:'🍽️', type:'tampons', total:'8', reward:'1 dessert offert', label:'Table fidèle', desc:'Cumulez des tampons à chaque repas', message:'Une récompense vous attend au restaurant.'},
+            {name:'Institut beauté', badge:'BE', fond:'#4a102a', texte:'#fff1f2', accent:'#f472b6', fond2:'#831843', pattern:'confetti', layout:'bottom', stamp:'✨', type:'tampons', total:'6', reward:'-20% sur un soin', label:'Cliente', desc:'Votre carte privilège beauté', message:'Votre avantage beauté est disponible.'},
+            {name:'Barber shop', badge:'BR', fond:'#0f172a', texte:'#f8fafc', accent:'#38bdf8', fond2:'#1e3a8a', pattern:'grid', layout:'top', stamp:'✂️', type:'tampons', total:'8', reward:'1 coupe offerte', label:'Client', desc:'Une coupe offerte après 8 passages', message:'Votre barber vous attend.'},
+            {name:'Boutique premium', badge:'BT', fond:'#030712', texte:'#fefce8', accent:'#d4af37', fond2:'#422006', pattern:'dots', layout:'background', stamp:'🛍️', type:'points', total:'10', reward:'10€ de réduction', label:'Membre', desc:'Cumulez des points à chaque achat', message:'Votre avantage fidélité est disponible en boutique.'},
+            {name:'Sport & coaching', badge:'SP', fond:'#022c22', texte:'#ecfdf5', accent:'#22c55e', fond2:'#064e3b', pattern:'diagonal', layout:'background', stamp:'🏆', type:'points', total:'10', reward:'1 séance offerte', label:'Athlète', desc:'Transformez vos visites en récompenses', message:'Votre coach vous attend.'},
           ].map((preset, index) => (
             <button
               type="button"
-              class={`business-template-btn text-left rounded-[1.4rem] border border-sky-100 bg-gradient-to-br from-white to-sky-50/60 p-4 transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_24px_55px_-36px_rgba(59,130,246,0.45)] ${index >= 5 ? 'template-extra hidden' : ''}`}
+              class={`business-template-btn text-left rounded-[1.4rem] border border-sky-100 bg-gradient-to-br from-white to-sky-50/60 p-4 transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_24px_55px_-36px_rgba(59,130,246,0.45)] ${index >= 4 ? 'template-extra hidden' : ''}`}
               data-name={preset.name}
+              data-icon={preset.badge}
               data-fond={preset.fond}
               data-texte={preset.texte}
               data-accent={preset.accent}
               data-fond2={preset.fond2}
-              data-gradient={preset.gradient}
               data-pattern={preset.pattern}
               data-layout={preset.layout}
               data-stamp={preset.stamp}
@@ -222,11 +193,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               data-label={preset.label}
               data-desc={preset.desc}
               data-message={preset.message}
-              data-banner={preset.banner}
             >
-              <div>
-                <p class="text-sm font-semibold text-slate-900">{preset.name}</p>
-                <p class="mt-0.5 text-xs text-slate-500">{preset.reward}</p>
+              <div class="flex items-center gap-3">
+                <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-sm font-bold tracking-[0.12em] text-sky-700">{preset.badge}</span>
+                <div>
+                  <p class="text-sm font-semibold text-slate-900">{preset.name}</p>
+                  <p class="mt-0.5 text-xs text-slate-500">{preset.reward}</p>
+                </div>
               </div>
               <div class="mt-3 h-10 rounded-xl border border-sky-100" style={`background:linear-gradient(135deg,${preset.fond},${preset.fond2})`}>
                 <div class="h-full w-1/3 rounded-l-xl" style={`background:${preset.accent}`}></div>
@@ -234,10 +207,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             </button>
           ))}
         </div>
-        <div class="mt-4 flex flex-col gap-2 sm:flex-row">
-          <button id="toggle-more-templates-btn" type="button" class="btn-secondary text-sm py-2.5 px-4">Voir plus de modèles</button>
-          <button id="skip-template-btn" type="button" class="btn-secondary text-sm py-2.5 px-4">Continuer sans modèle</button>
-        </div>
+        <button id="toggle-more-templates-btn" type="button" class="mt-4 btn-secondary text-sm py-2.5 px-4">Voir plus de modèles</button>
       </div>
 
       <!-- Étape 2 : Identité -->
@@ -247,13 +217,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <p class="mt-1 text-sm leading-6 text-slate-500">Ajoutez les éléments qui feront reconnaître votre commerce au premier coup d'œil : nom, logo et icône de tampon.</p>
         </div>
         <div id="step-error-2" class="step-error hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
-        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
-          <div><label class="label" for="nom-carte">Nom de la carte *</label><input id="nom-carte" type="text" class="input" placeholder="Carte fidélité Ma Boutique" value="Carte fidélité" required /></div>
-          <div>
-            <label class="label" for="nom-point-vente">Nom du point de vente</label>
-            <input id="nom-point-vente" type="text" class="input" placeholder="Ex: SomStar — Principal" />
-            <p class="mt-1 text-[0.68rem] text-slate-500">Spécifique au lieu actif (indépendant des autres points de vente).</p>
-          </div>
+        <div class="grid sm:grid-cols-2 gap-4 mb-5">
+          <div><label class="label" for="nom-carte">Nom de la carte *</label><input id="nom-carte" type="text" class="input" placeholder="Carte fidélité Ma Boutique" required /></div>
           <div><label class="label" for="label-client">Label membre</label><input id="label-client" type="text" class="input" placeholder="Client, Membre, VIP..." maxlength="30" /></div>
         </div>
         <div class="mb-5"><label class="label" for="description">Description</label><input id="description" type="text" class="input" placeholder="Cumulez des points à chaque achat !" /></div>
@@ -262,15 +227,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <div>
             <label class="label mb-2 block">Logo</label>
             <div class="flex flex-col items-center gap-2">
-              <div id="logo-preview-wrap" class="w-16 h-16 rounded-xl flex items-center justify-center border border-slate-200 overflow-hidden" style="background:#1e293b">
+              <div id="logo-preview-wrap" class="w-16 h-16 rounded-xl flex items-center justify-center border border-white/10 overflow-hidden" style="background:#1e293b">
                 <img id="logo-preview-img" class="hidden w-full h-full object-cover" />
                 <span id="logo-preview-icon" class="text-2xl text-slate-500">🏪</span>
               </div>
               <input type="file" id="logo-file" accept="image/png,image/jpeg,image/webp" class="hidden" />
               <button type="button" id="logo-btn" class="btn-secondary text-xs py-1.5 px-3 w-full">Choisir</button>
-              <button type="button" id="logo-palette-btn" class="btn-secondary text-xs py-1.5 px-3 w-full text-emerald-700">Générer une palette</button>
+              <button type="button" id="logo-palette-btn" class="btn-secondary text-xs py-1.5 px-3 w-full text-emerald-300">Générer une palette</button>
               <input type="hidden" id="logo-url" />
-              <p id="logo-loading" class="hidden text-indigo-600 text-xs">Upload...</p>
+              <p id="logo-loading" class="hidden text-indigo-400 text-xs">Upload...</p>
               <p class="text-slate-600 text-xs text-center leading-tight">
                 PNG/JPG carré<br/>
                 Recommandé : 512×512 px<br/>
@@ -308,29 +273,22 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             <div id="tampon-emoji-zone" class="hidden">
               <p class="text-slate-500 text-xs mb-1.5">Sélectionnez un emoji</p>
               <div class="grid grid-cols-6 gap-1">
-                {['☕','🍩','⭐','🎁','❤️','🏆','🍕','🍽️','🍴','🧁','🍰','🍦','🥐','🍪','🍫','🥩','🍔','🥗','🥙','🎫','💎','🔥','🎉','✨','🛍️','🌟','🎵','✂️','💅','🌸','🌷','💐','🏋️'].map(e => (
-                  <button type="button" class="emoji-stamp-btn w-9 h-9 rounded-lg text-xl hover:bg-sky-50 transition-all flex items-center justify-center border-2 border-transparent" data-emoji={e}>{e}</button>
+                {['☕','🍩','⭐','🎁','❤️','🏆','🍕','🎫','💎','🔥','🎉','✨','🍦','🥐','🛍️','🌟','🎵','🍰','🍽️','✂️','💅','🏋️'].map(e => (
+                  <button type="button" class="emoji-stamp-btn w-9 h-9 rounded-lg text-xl hover:bg-white/10 transition-all flex items-center justify-center border-2 border-transparent" data-emoji={e}>{e}</button>
                 ))}
               </div>
               <input type="hidden" id="tampon-emoji" />
-              <p id="tampon-emoji-selected" class="hidden text-xs text-indigo-600 mt-1.5">Sélectionné : <span id="tampon-emoji-val"></span></p>
+              <p id="tampon-emoji-selected" class="hidden text-xs text-indigo-400 mt-1.5">Sélectionné : <span id="tampon-emoji-val"></span></p>
             </div>
             <div id="tampon-custom-zone" class="hidden flex flex-col items-center gap-2">
-              <div class="w-14 h-14 rounded-full flex items-center justify-center border border-slate-200 overflow-hidden" style="background:#1e293b">
+              <div class="w-14 h-14 rounded-full flex items-center justify-center border border-white/10 overflow-hidden" style="background:#1e293b">
                 <img id="tampon-preview-img" class="hidden w-full h-full object-cover rounded-full" />
                 <span id="tampon-preview-icon" class="text-xl text-slate-500">🔖</span>
               </div>
               <input type="file" id="tampon-file" accept="image/png,image/jpeg,image/webp" class="hidden" />
               <button type="button" id="tampon-btn" class="btn-secondary text-xs py-1.5 px-3 w-full">Choisir image</button>
               <input type="hidden" id="tampon-icon-url" />
-              <p id="tampon-loading" class="hidden text-indigo-600 text-xs">Upload...</p>
-              <div class="w-full rounded-xl border border-sky-100 bg-sky-50/60 px-3 py-3">
-                <div class="flex items-center justify-between text-xs text-slate-600 mb-1.5">
-                  <span>Taille logo tampon</span>
-                  <span id="tampon-icon-scale-val" class="font-semibold text-slate-800">100%</span>
-                </div>
-                <input id="tampon-icon-scale" type="range" min="60" max="150" step="5" value="100" class="w-full accent-indigo-500" />
-              </div>
+              <p id="tampon-loading" class="hidden text-indigo-400 text-xs">Upload...</p>
               <p class="text-slate-600 text-xs text-center leading-tight">PNG transparent — 64×64 px</p>
             </div>
           </div>
@@ -354,7 +312,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               <div><label class="label" for="points-recompense">Points pour la récompense</label><input id="points-recompense" type="number" class="input" min="1" value="100" /></div>
             </div>
           </div>
-          <div><label class="label" for="recompense">Récompense offerte *</label><input id="recompense" type="text" class="input" placeholder="Ex: 1 café offert, 5€ de réduction..." value="Récompense fidélité" required /></div>
+          <div><label class="label" for="recompense">Récompense offerte *</label><input id="recompense" type="text" class="input" placeholder="Ex: 1 café offert, 5€ de réduction..." required /></div>
           <div class="grid lg:grid-cols-2 gap-4">
             <div class="rounded-2xl border border-sky-100 bg-sky-50/60 p-4">
               <div class="flex items-center justify-between gap-3 mb-3">
@@ -398,28 +356,32 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <div id="step-error-4" class="step-error hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
         <div class="mb-4 grid grid-cols-1 gap-2 rounded-2xl border border-sky-100 bg-sky-50/60 p-2 lg:hidden">
           {[
-            { key: 'theme', label: '1. Thème principal', desc: 'Couleurs et identité visuelle' },
-            { key: 'banner', label: '2. Bannière', desc: 'Image et cadrage de couverture' },
-            { key: 'barcode', label: '3. Code-barres', desc: 'QR recommandé pour scanner vite' },
-          ].map(({ key, label, desc }) => (
+            { key: 'theme', label: '1. Thème principal', desc: 'Couleurs et identité visuelle', icon: '🎨' },
+            { key: 'banner', label: '2. Bannière', desc: 'Image et cadrage de couverture', icon: '▰' },
+            { key: 'barcode', label: '3. Code-barres', desc: 'QR recommandé pour scanner vite', icon: '▦' },
+          ].map(({ key, label, desc, icon }) => (
             <button
               type="button"
-              class="appearance-tab rounded-xl border border-white/80 bg-white px-3 py-2.5 text-left transition-all"
+              class="appearance-tab appearance-tab-card rounded-xl px-3 py-2.5 text-left transition-all"
               data-appearance-target={key}
             >
-              <p class="text-sm font-semibold text-slate-800">{label}</p>
-              <p class="mt-0.5 text-xs text-slate-500">{desc}</p>
+              <span class="appearance-tab-icon">{icon}</span>
+              <span class="min-w-0">
+                <span class="block text-sm font-semibold text-slate-900">{label}</span>
+                <span class="mt-0.5 block text-xs text-slate-600">{desc}</span>
+              </span>
             </button>
           ))}
         </div>
 
         <div class="hidden mb-4 flex-wrap gap-2 rounded-2xl border border-sky-100 bg-sky-50/60 p-2 lg:flex">
           {[
-            { key: 'theme', label: 'Thème' },
-            { key: 'banner', label: 'Bannière' },
-            { key: 'barcode', label: 'Code-barres' },
-          ].map(({ key, label }) => (
-            <button type="button" class="appearance-tab rounded-xl px-3 py-2 text-sm font-medium text-slate-600 transition" data-appearance-target={key}>
+            { key: 'theme', label: 'Thème', icon: '🎨' },
+            { key: 'banner', label: 'Bannière', icon: '▰' },
+            { key: 'barcode', label: 'Code-barres', icon: '▦' },
+          ].map(({ key, label, icon }) => (
+            <button type="button" class="appearance-tab appearance-tab-pill rounded-xl px-3 py-2 text-sm font-semibold transition" data-appearance-target={key}>
+              <span class="appearance-tab-icon">{icon}</span>
               {label}
             </button>
           ))}
@@ -459,13 +421,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               </div>
             </div>
             <div class="grid grid-cols-4 gap-3">
-              <div><label class="text-slate-500 text-xs mb-1.5 block" id="fond-label">Fond</label><input id="couleur-fond" type="color" value="#0f172a" class="w-full h-10 rounded-xl border border-slate-200 cursor-pointer bg-white" /></div>
-              <div id="fond2-wrap" class="hidden"><label class="text-slate-500 text-xs mb-1.5 block">Fond 2</label><input id="couleur-fond-2" type="color" value="#6366f1" class="w-full h-10 rounded-xl border border-slate-200 cursor-pointer bg-white" /></div>
-              <div><label class="text-slate-500 text-xs mb-1.5 block">Texte</label><input id="couleur-texte" type="color" value="#ffffff" class="w-full h-10 rounded-xl border border-slate-200 cursor-pointer bg-white" /></div>
-              <div><label class="text-slate-500 text-xs mb-1.5 block">Accent</label><input id="couleur-accent" type="color" value="#6366f1" class="w-full h-10 rounded-xl border border-slate-200 cursor-pointer bg-white" /></div>
+              <div><label class="text-slate-500 text-xs mb-1.5 block" id="fond-label">Fond</label><input id="couleur-fond" type="color" value="#0f172a" class="w-full h-10 rounded-xl border border-white/10 cursor-pointer bg-transparent" /></div>
+              <div id="fond2-wrap" class="hidden"><label class="text-slate-500 text-xs mb-1.5 block">Fond 2</label><input id="couleur-fond-2" type="color" value="#6366f1" class="w-full h-10 rounded-xl border border-white/10 cursor-pointer bg-transparent" /></div>
+              <div><label class="text-slate-500 text-xs mb-1.5 block">Texte</label><input id="couleur-texte" type="color" value="#ffffff" class="w-full h-10 rounded-xl border border-white/10 cursor-pointer bg-transparent" /></div>
+              <div><label class="text-slate-500 text-xs mb-1.5 block">Accent</label><input id="couleur-accent" type="color" value="#6366f1" class="w-full h-10 rounded-xl border border-white/10 cursor-pointer bg-transparent" /></div>
             </div>
             <div id="gradient-angle-wrap" class="hidden mt-3">
-              <div class="flex items-center justify-between mb-1"><label class="text-slate-500 text-xs">Angle du dégradé</label><span id="gradient-angle-val" class="text-indigo-700 text-xs font-mono">135°</span></div>
+              <div class="flex items-center justify-between mb-1"><label class="text-slate-500 text-xs">Angle du dégradé</label><span id="gradient-angle-val" class="text-indigo-400 text-xs font-mono">135°</span></div>
               <input id="gradient-angle" type="range" min="0" max="360" value="135" class="w-full accent-indigo-500" />
             </div>
           </div>
@@ -494,12 +456,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
         <div data-appearance-panel="banner" class="hidden">
           <div class="mt-1 mb-5">
-            <h3 class="font-semibold text-slate-900 mb-1">Bannière de couverture</h3>
-            <p class="mb-3 text-sm leading-6 text-slate-500">
-              Choisissez un modèle, importez votre image, puis ajustez simplement le cadrage.
-            </p>
+            <h3 class="font-semibold text-slate-900 mb-3">Bannière</h3>
             <div class="flex flex-col gap-2">
-              <div id="strip-drag-area" class="w-full h-16 rounded-xl border border-slate-200 overflow-hidden flex items-center justify-center relative select-none touch-none" style="background:#1e293b">
+              <div id="strip-drag-area" class="w-full h-16 rounded-xl border border-white/10 overflow-hidden flex items-center justify-center relative select-none touch-none" style="background:#1e293b">
                 <img id="strip-preview-img" class="hidden w-full h-full object-cover" style="object-position:center" />
                 <span id="strip-preview-icon" class="text-slate-500 text-xs">Aucune image</span>
               </div>
@@ -508,53 +467,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                 <button type="button" id="strip-btn" class="btn-secondary text-xs py-1.5 px-3 flex-1">Choisir</button>
                 <button type="button" id="strip-clear" class="hidden btn-secondary text-xs py-1.5 px-2 text-red-400">✕</button>
               </div>
-              <details id="banner-templates-fold" class="rounded-xl border border-sky-100 bg-sky-50/50">
-                <summary class="cursor-pointer list-none px-3 py-2.5 text-xs font-semibold text-slate-700 flex items-center justify-between">
-                  <span>Modèles de bannière prêts à l’emploi</span>
-                  <span class="text-slate-400 text-[0.68rem]">Déplier</span>
-                </summary>
-                <div class="px-3 pb-3">
-                  <div class="grid grid-cols-4 sm:grid-cols-5 gap-2">
-                    {[
-                      ...Array.from({ length: 20 }, (_, index) => {
-                        const num = index + 1;
-                        return {
-                          url: `/banner-templates/template-${String(num).padStart(2, '0')}.png`,
-                          label: `Template bannière ${num}`,
-                          badge: String(num),
-                        };
-                      }),
-                      { url: '/banner-templates/restaurant.png', label: 'Template bannière Restaurant', badge: 'Resto' },
-                      { url: '/banner-templates/patisserie.png', label: 'Template bannière Patisserie', badge: 'Pât.' },
-                      { url: '/banner-templates/nail-art.png', label: 'Template bannière Nail art', badge: 'Nail' },
-                    ].map((template) => (
-                      <button
-                        type="button"
-                        class="banner-template-btn group relative overflow-hidden rounded-lg border border-slate-200 bg-white transition hover:border-indigo-300 hover:shadow-[0_10px_24px_-16px_rgba(79,70,229,0.65)]"
-                        data-url={template.url}
-                        aria-label={template.label}
-                      >
-                        <img
-                          src={template.url}
-                          alt={template.label}
-                          class="h-12 w-full object-cover"
-                          loading="lazy"
-                        />
-                        <span class="absolute bottom-1 right-1 rounded-md bg-slate-900/75 px-1.5 py-0.5 text-[0.62rem] font-semibold text-white">
-                          {template.badge}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </details>
               <input type="hidden" id="strip-url" />
-              <p id="strip-loading" class="hidden text-indigo-600 text-xs">Upload...</p>
-              <p class="text-slate-600 text-xs text-center">Format conseillé: <strong class="text-slate-500">750×246 px</strong></p>
+              <p id="strip-loading" class="hidden text-indigo-400 text-xs">Upload...</p>
+              <p class="text-slate-600 text-xs text-center">PNG/JPG — <strong class="text-slate-500">750×246 px</strong></p>
               <input type="hidden" id="strip-position" value="50:50" />
               <div class="rounded-xl border border-sky-100 bg-white/80 px-3 py-2">
                 <div class="flex items-center justify-between gap-3 text-xs">
-                  <span class="text-slate-600">Cadrage</span>
+                  <span class="text-slate-600">Déplacez la bannière pour centrer le visuel</span>
                   <button id="strip-position-reset" type="button" class="btn-secondary px-2.5 py-1 text-[0.68rem]">Recentrer</button>
                 </div>
                 <p id="strip-position-label" class="mt-1 text-[0.68rem] text-slate-500">Position: 50% / 50%</p>
@@ -572,8 +491,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                   Ajustez le zoom puis déplacez directement l'image dans l'encadré pour le cadrage précis.
                 </p>
               </div>
+              <div class="w-full rounded-xl border border-sky-100 bg-white/85 px-3 py-3">
+                <div class="flex items-center justify-between text-xs text-slate-600 mb-1.5">
+                  <span>Filtre sombre bannière</span>
+                  <span id="banner-overlay-val" class="font-semibold text-slate-800">0%</span>
+                </div>
+                <input id="banner-overlay-opacity" type="range" min="0" max="85" step="5" value="0" class="w-full accent-indigo-500" />
+                <p class="text-[0.68rem] leading-tight text-slate-500 mt-2">
+                  Assombrit la bannière pour garder le texte lisible sur la carte.
+                </p>
+              </div>
               <a href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3NTAiIGhlaWdodD0iMjQ2Ij48cmVjdCB3aWR0aD0iNzUwIiBoZWlnaHQ9IjI0NiIgZmlsbD0iIzFlMjkzYiIvPjxyZWN0IHg9IjQwIiB5PSI0MCIgd2lkdGg9IjY3MCIgaGVpZ2h0PSIxNjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzYzNjZmMSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI4IDQiIHJ4PSI4Ii8+PHRleHQgeD0iMzc1IiB5PSIxMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2MzY2ZjEiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5ab25lIGJhbm5pZXJlIOKAlCA3NTAgw5cgMjQ2IHB4PC90ZXh0Pjx0ZXh0IHg9IjM3NSIgeT0iMTQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyI+TGVzIHRhbXBvbnMgc29udCBjZW50csOpcyBwYXItZGVzc3VzPC90ZXh0Pjwvc3ZnPg=="
-                download="template-banniere-fidelopass.svg" class="text-indigo-700 text-xs underline underline-offset-2 hover:text-indigo-900 text-center">⬇ Template SVG 750×246</a>
+                download="template-banniere-fidelopass.svg" class="text-indigo-400 text-xs underline underline-offset-2 hover:text-indigo-300 text-center">⬇ Template SVG 750×246</a>
             </div>
           </div>
         </div>
@@ -655,7 +584,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               <label class="label" for="rayon-geo">Rayon de géolocalisation</label>
               <div class="flex items-center gap-3">
                 <input id="rayon-geo" type="range" min="100" max="5000" step="100" value="1000" class="flex-1 accent-indigo-500" />
-                <span id="rayon-label" class="font-mono text-sm text-indigo-700 w-16 text-right">1 000 m</span>
+                <span id="rayon-label" class="font-mono text-sm text-indigo-400 w-16 text-right">1 000 m</span>
               </div>
               <p class="text-slate-500 text-xs mt-1.5">Définissez la distance à laquelle Wallet peut remonter la carte autour du commerce.</p>
             </div>
@@ -763,10 +692,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <div id="success-msg" class="hidden text-emerald-700 text-sm bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3"></div>
       <div class="hidden rounded-[1.6rem] border border-sky-100 bg-white/90 px-4 py-4 shadow-[0_18px_48px_-36px_rgba(59,130,246,0.35)] lg:flex lg:flex-col lg:gap-3 xl:flex-row xl:items-center xl:justify-between">
         <button type="button" id="prev-step-btn" class="btn-secondary py-3 px-5">Étape précédente</button>
-        <div class="flex flex-col gap-2 sm:flex-row">
-          <button type="button" id="skip-next-step-btn" class="btn-secondary py-3 px-5">Étape suivante sans enregistrer</button>
-          <button type="button" id="save-continue-btn" class="btn-primary py-3 px-5">Enregistrer et continuer</button>
-        </div>
+        <button type="button" id="save-continue-btn" class="btn-primary py-3 px-5">Enregistrer et continuer</button>
       </div>
     </div>
 
@@ -774,7 +700,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     <div class="lg:sticky lg:top-8 space-y-5">
       <button id="preview-toggle-btn" type="button" class="btn-secondary w-full py-3 text-sm lg:hidden">Voir l’aperçu</button>
       <div id="preview-mobile-backdrop" class="fixed inset-0 z-[72] hidden bg-slate-900/50 backdrop-blur-[1px] lg:hidden"></div>
-      <div id="preview-panel" class="card hidden p-5 ring-1 ring-indigo-100/70 shadow-[0_28px_54px_-32px_rgba(79,70,229,0.3)] lg:block">
+      <div id="preview-panel" class="card p-4 hidden lg:block">
         <div class="flex items-start justify-between gap-3 mb-3">
           <div>
             <p class="label mb-1">Aperçu temps réel</p>
@@ -794,18 +720,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
 
         <!-- Apple preview -->
-        <div id="apple-preview" class="relative overflow-hidden rounded-[1.7rem] ring-1 ring-white/30 shadow-[0_32px_70px_-34px_rgba(15,23,42,0.58)] transition-all duration-300 hover:scale-[1.01]" style="background:#0f172a;color:#ffffff;min-height:280px">
+        <div id="apple-preview" class="rounded-[1.6rem] overflow-hidden shadow-[0_28px_60px_-38px_rgba(15,23,42,0.45)] transition-all duration-300 relative" style="background:#0f172a;color:#ffffff;min-height:280px">
           <div id="a-pattern-global" class="absolute inset-0 pointer-events-none z-0"></div>
           <div class="relative z-10 flex items-center justify-between px-4 pt-4 pb-2">
             <div class="flex items-center gap-2">
               <div id="preview-logo-wrap" class="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center shrink-0" style="background:rgba(255,255,255,0.15)">
                 <img id="preview-logo" src="" alt="" class="hidden w-full h-full object-cover" /><span id="preview-logo-ph" class="text-base">🏪</span>
               </div>
-              <p id="preview-card-name" data-preview-text class="font-bold text-sm leading-tight">Ma carte</p>
+              <p id="preview-card-name" class="font-bold text-sm leading-tight">Ma carte</p>
             </div>
             <div class="text-right">
-              <p id="preview-type-label" data-preview-muted class="text-xs uppercase tracking-widest opacity-50">Tampons</p>
-              <p id="preview-solde" data-preview-text class="font-mono font-bold text-base leading-tight">0/10</p>
+              <p id="preview-type-label" class="text-xs uppercase tracking-widest opacity-50">Tampons</p>
+              <p id="preview-solde" class="font-mono font-bold text-base leading-tight">0/10</p>
             </div>
           </div>
           <div id="a-strip-zone" class="relative z-10 mx-3 mb-3 rounded-xl overflow-hidden" style="min-height:120px">
@@ -816,36 +742,26 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             <div id="preview-stamps-wrap" class="relative z-10 flex items-center justify-center p-3" style="min-height:120px">
               <div id="preview-stamps" class="w-full"></div>
             </div>
-            <div id="preview-points-wrap" class="hidden relative z-10 flex items-center justify-center p-4 text-center" style="min-height:120px">
-              <p id="preview-points-text" data-preview-muted class="rounded-full border border-white/15 bg-black/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] opacity-70">0 / 100 pts</p>
+            <div id="preview-points-wrap" class="hidden relative z-10 p-4">
+              <div class="h-2 rounded-full" style="background:rgba(255,255,255,0.2)"><div id="preview-points-bar" class="h-full rounded-full w-0" style="background:#6366f1"></div></div>
+              <p id="preview-points-text" class="text-xs opacity-60 mt-1.5">0 / 100 pts</p>
             </div>
           </div>
           <div class="relative z-10 px-4 pb-3">
-            <div class="grid grid-cols-3 gap-2 rounded-xl border border-white/10 bg-black/12 px-3 py-2.5">
-              <div>
-                <p id="preview-label-client" data-preview-muted class="text-[0.62rem] uppercase tracking-[0.14em] opacity-60">Client</p>
-                <p id="preview-client-name" data-preview-text class="text-sm font-medium leading-tight">—</p>
-              </div>
-              <div>
-                <p data-preview-muted class="text-[0.62rem] uppercase tracking-[0.14em] opacity-60">Récompense</p>
-                <p id="preview-recompense" data-preview-text class="text-sm font-medium leading-tight">—</p>
-              </div>
-              <div class="text-right">
-                <p data-preview-muted class="text-[0.62rem] uppercase tracking-[0.14em] opacity-60">Récompenses dispo</p>
-                <p id="preview-rewards-count" data-preview-text class="text-sm font-medium leading-tight">0</p>
-              </div>
-            </div>
+            <p id="preview-label-client" class="text-xs uppercase tracking-widest opacity-50">Client</p>
+            <p class="font-semibold text-sm">Votre prénom</p>
           </div>
           <div id="preview-barcode-wrap" class="relative z-10 mx-5 mb-5 bg-white rounded-xl py-3 px-4 flex flex-col items-center gap-1.5">
             <div id="prev-qr" class="w-14 h-14"><svg viewBox="0 0 21 21" class="w-full h-full" style="image-rendering:pixelated"><rect x="0" y="0" width="7" height="7" fill="#111" rx="1"/><rect x="1" y="1" width="5" height="5" fill="white"/><rect x="2" y="2" width="3" height="3" fill="#111"/><rect x="14" y="0" width="7" height="7" fill="#111" rx="1"/><rect x="15" y="1" width="5" height="5" fill="white"/><rect x="16" y="2" width="3" height="3" fill="#111"/><rect x="0" y="14" width="7" height="7" fill="#111" rx="1"/><rect x="1" y="15" width="5" height="5" fill="white"/><rect x="2" y="16" width="3" height="3" fill="#111"/><rect x="9" y="9" width="3" height="3" fill="#111"/><rect x="13" y="9" width="2" height="2" fill="#111"/><rect x="16" y="9" width="3" height="3" fill="#111"/></svg></div>
-            <div id="prev-barcode" class="hidden w-full h-8 flex gap-px">{Array.from({length:30}).map(()=>(<div class="flex-1 h-full" style={`background:#111;opacity:${Math.random()>0.4?1:0.15}`}></div>))}</div>
+            <div id="prev-barcode" class="hidden w-full h-8 flex gap-px">{Array.from({length:30}).map((_,i)=>(<div class="flex-1 h-full" style={`background:#111;opacity:${Math.random()>0.4?1:0.15}`}></div>))}</div>
             <p class="text-gray-400 text-xs">identifiant client</p>
-            <p id="preview-branding" class="text-[0.66rem] text-slate-700 font-medium leading-tight">Powered by Fidelopass</p>
           </div>
+          <div class="relative z-10 px-5 pb-3"><p class="text-xs opacity-50">Récompense</p><p id="preview-recompense" class="text-sm font-medium">—</p></div>
+          <p id="preview-branding" class="relative z-10 px-5 pb-4 text-right text-[0.62rem] tracking-[0.14em] uppercase opacity-45">Propulsé par Fidelopass</p>
         </div>
 
         <!-- Google preview -->
-        <div id="google-preview" class="hidden overflow-hidden rounded-[1.7rem] ring-1 ring-slate-200/70 shadow-[0_30px_60px_-36px_rgba(15,23,42,0.4)] transition-all duration-300 hover:scale-[1.01]">
+        <div id="google-preview" class="hidden rounded-[1.6rem] overflow-hidden shadow-[0_28px_60px_-38px_rgba(15,23,42,0.35)]">
           <div class="relative h-32 overflow-hidden">
             <img id="g-strip-img" src="" alt="" class="hidden w-full h-full object-cover" />
             <div id="g-strip-bg" class="absolute inset-0" style="background:#0f172a"></div>
@@ -855,35 +771,22 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               <div class="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0" style="background:rgba(255,255,255,0.2)">
                 <img id="g-logo" src="" alt="" class="hidden w-full h-full object-cover" /><span id="g-logo-ph" class="text-sm">🏪</span>
               </div>
-              <p id="g-card-name" data-preview-text class="font-bold text-sm drop-shadow" style="color:#ffffff">Ma carte</p>
+              <p id="g-card-name" class="font-bold text-sm drop-shadow" style="color:#ffffff">Ma carte</p>
             </div>
             <div class="absolute top-3 right-3 z-10 text-right">
-              <p id="g-type-lbl" data-preview-muted class="text-xs uppercase" style="color:rgba(255,255,255,0.72)">Tampons</p>
-              <p id="g-solde" data-preview-text class="font-mono font-bold" style="color:#ffffff">0/10</p>
+              <p id="g-type-lbl" class="text-xs uppercase" style="color:rgba(255,255,255,0.72)">Tampons</p>
+              <p id="g-solde" class="font-mono font-bold" style="color:#ffffff">0/10</p>
             </div>
           </div>
-          <div id="g-preview-body" class="p-4" style="background:#0f172a">
+          <div class="bg-white p-4">
+            <div class="flex items-center justify-between mb-3">
+              <div><p id="g-label-client" class="text-gray-400 text-xs uppercase">Client</p><p class="text-gray-900 font-semibold text-sm">Votre prénom</p></div>
+              <div id="g-barcode-wrap"><svg viewBox="0 0 21 21" class="w-10 h-10" style="image-rendering:pixelated"><rect x="0" y="0" width="7" height="7" fill="#111" rx="1"/><rect x="1" y="1" width="5" height="5" fill="white"/><rect x="2" y="2" width="3" height="3" fill="#111"/><rect x="14" y="0" width="7" height="7" fill="#111" rx="1"/><rect x="15" y="1" width="5" height="5" fill="white"/><rect x="16" y="2" width="3" height="3" fill="#111"/><rect x="0" y="14" width="7" height="7" fill="#111" rx="1"/><rect x="1" y="15" width="5" height="5" fill="white"/><rect x="2" y="16" width="3" height="3" fill="#111"/></svg></div>
+            </div>
             <div id="g-stamps-wrap"><div id="g-stamps" class="flex flex-wrap justify-center gap-1.5 mb-2"></div></div>
-            <div id="g-points-wrap" class="hidden mb-2 text-center"><p id="g-points-text" data-preview-muted class="inline-flex rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em]" style="border-color:rgba(255,255,255,0.14);background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.72)">0/100 pts</p></div>
-            <div id="g-preview-info" class="mb-3 grid grid-cols-3 gap-2 rounded-xl border px-3 py-2.5" style="border-color:rgba(255,255,255,0.1);background:rgba(0,0,0,0.12)">
-              <div>
-                <p id="g-label-client" data-preview-muted class="text-[0.62rem] uppercase tracking-[0.14em] text-slate-500">Client</p>
-                <p id="g-client-name" data-preview-text class="text-slate-900 font-medium text-sm leading-tight">—</p>
-              </div>
-              <div>
-                <p data-preview-muted class="text-[0.62rem] uppercase tracking-[0.14em] text-slate-500">Récompense</p>
-                <p id="g-recompense" data-preview-text class="text-gray-800 text-sm font-medium leading-tight">—</p>
-              </div>
-              <div class="text-right">
-                <p data-preview-muted class="text-[0.62rem] uppercase tracking-[0.14em] text-slate-500">Récompenses dispo</p>
-                <p id="g-rewards-count" data-preview-text class="text-gray-800 text-sm font-medium leading-tight">0</p>
-              </div>
-            </div>
-            <div id="g-barcode-wrap" class="rounded-xl border border-slate-200 bg-white py-3 px-4 flex flex-col items-center gap-1.5">
-              <svg viewBox="0 0 21 21" class="w-12 h-12" style="image-rendering:pixelated"><rect x="0" y="0" width="7" height="7" fill="#111" rx="1"/><rect x="1" y="1" width="5" height="5" fill="white"/><rect x="2" y="2" width="3" height="3" fill="#111"/><rect x="14" y="0" width="7" height="7" fill="#111" rx="1"/><rect x="15" y="1" width="5" height="5" fill="white"/><rect x="16" y="2" width="3" height="3" fill="#111"/><rect x="0" y="14" width="7" height="7" fill="#111" rx="1"/><rect x="1" y="15" width="5" height="5" fill="white"/><rect x="2" y="16" width="3" height="3" fill="#111"/></svg>
-              <p class="text-slate-400 text-xs">identifiant client</p>
-              <p id="g-branding" class="text-[0.66rem] text-slate-500 font-medium leading-tight">Powered by Fidelopass</p>
-            </div>
+            <div id="g-points-wrap" class="hidden mb-2"><div class="h-2 bg-gray-100 rounded-full"><div id="g-points-bar" class="h-full rounded-full w-0" style="background:#6366f1"></div></div><p id="g-points-text" class="text-gray-400 text-xs mt-1">0/100 pts</p></div>
+            <div class="border-t border-gray-100 pt-2 mt-1"><p class="text-gray-400 text-xs">Récompense</p><p id="g-recompense" class="text-gray-800 text-sm font-medium">—</p></div>
+            <p id="g-branding" class="mt-3 text-right text-[0.62rem] tracking-[0.14em] uppercase text-slate-400/80">Propulsé par Fidelopass</p>
           </div>
         </div>
       </div>
@@ -900,32 +803,24 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <div class="mb-2 flex justify-end">
         <button type="button" id="mobile-preview-btn" class="btn-secondary px-3 py-2 text-xs">Aperçu</button>
       </div>
-      <div class="grid grid-cols-[0.78fr_0.9fr_1.12fr] gap-2">
-        <button type="button" id="mobile-prev-step-btn" class="btn-secondary px-2 py-3 text-xs" aria-label="Étape précédente">Retour</button>
-        <button type="button" id="mobile-skip-next-step-btn" class="btn-secondary px-2 py-3 text-xs" aria-label="Suivant sans enregistrer">Suivant</button>
-        <button type="button" id="mobile-save-continue-btn" class="btn-primary px-2 py-3 text-xs" aria-label="Enregistrer et continuer">Enregistrer</button>
+      <div class="grid grid-cols-[132px_1fr] gap-2">
+        <button type="button" id="mobile-prev-step-btn" class="btn-secondary py-3 text-sm">Étape précédente</button>
+        <button type="button" id="mobile-save-continue-btn" class="btn-primary py-3 text-sm">Enregistrer et continuer</button>
       </div>
     </div>
   </div>
 </DashboardLayout>
 
 <style>
-  .wizard-tab {
-    border-radius: 14px;
-    transition: all 0.25s ease;
-  }
-
   .wizard-tab[data-state='active'] {
     border-color: #93c5fd;
-    background: linear-gradient(135deg, rgba(219, 234, 254, 0.9), rgba(224, 231, 255, 0.9));
-    box-shadow:
-      0 0 0 1px rgba(96, 165, 250, 0.26),
-      0 16px 28px -24px rgba(37, 99, 235, 0.75);
+    background: #eff6ff;
+    box-shadow: 0 18px 30px -28px rgba(59, 130, 246, 0.8);
   }
 
   .wizard-tab[data-state='done'] {
     border-color: #bbf7d0;
-    background: linear-gradient(180deg, #f7fff7 0%, #effcf2 100%);
+    background: #f0fdf4;
   }
 
   .wizard-step-status[data-state='done'] {
@@ -950,8 +845,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   .mobile-step-item[data-state='active'] {
     border-color: #93c5fd;
-    background: linear-gradient(135deg, rgba(219, 234, 254, 0.9), rgba(224, 231, 255, 0.9));
-    box-shadow: 0 12px 26px -20px rgba(37, 99, 235, 0.6);
+    background: #eff6ff;
   }
 
   .mobile-step-item[data-state='done'] {
@@ -959,59 +853,153 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     background: #f0fdf4;
   }
 
+  .appearance-tab {
+    --appearance-bg: #eff6ff;
+    --appearance-border: #bfdbfe;
+    --appearance-text: #1d4ed8;
+    --appearance-active-bg: #ffffff;
+    --appearance-active-border: #60a5fa;
+    --appearance-shadow: rgba(37, 99, 235, 0.26);
+    align-items: center;
+    border: 1px solid var(--appearance-border);
+    background: var(--appearance-bg);
+    color: var(--appearance-text);
+  }
+
+  .appearance-tab[data-appearance-target='theme'] {
+    --appearance-bg: linear-gradient(135deg, #f5f3ff 0%, #eef2ff 100%);
+    --appearance-border: #c4b5fd;
+    --appearance-text: #5b21b6;
+    --appearance-active-border: #8b5cf6;
+    --appearance-shadow: rgba(124, 58, 237, 0.28);
+  }
+
+  .appearance-tab[data-appearance-target='banner'] {
+    --appearance-bg: linear-gradient(135deg, #ecfeff 0%, #e0f2fe 100%);
+    --appearance-border: #67e8f9;
+    --appearance-text: #0e7490;
+    --appearance-active-border: #06b6d4;
+    --appearance-shadow: rgba(8, 145, 178, 0.26);
+  }
+
+  .appearance-tab[data-appearance-target='barcode'] {
+    --appearance-bg: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    --appearance-border: #86efac;
+    --appearance-text: #15803d;
+    --appearance-active-border: #22c55e;
+    --appearance-shadow: rgba(22, 163, 74, 0.24);
+  }
+
+  .appearance-tab-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem;
+  }
+
+  .appearance-tab-pill {
+    display: inline-flex;
+    gap: 0.5rem;
+  }
+
+  .appearance-tab-icon {
+    display: inline-flex;
+    height: 1.9rem;
+    width: 1.9rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    background: rgb(255 255 255 / 0.72);
+    color: var(--appearance-text);
+    font-size: 0.8rem;
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.5);
+  }
+
   .appearance-tab[data-active='true'] {
-    background: linear-gradient(135deg, #ffffff 0%, #eef2ff 100%);
+    background: var(--appearance-active-bg);
     color: #0f172a;
-    border: 1px solid rgba(96, 165, 250, 0.65);
-    box-shadow:
-      0 0 0 1px rgba(96, 165, 250, 0.18),
-      0 14px 28px -24px rgba(59, 130, 246, 0.9);
+    border-color: var(--appearance-active-border);
+    box-shadow: 0 16px 34px -24px var(--appearance-shadow), inset 0 0 0 1px rgb(255 255 255 / 0.85);
+    transform: translateY(-1px);
+  }
+
+  .appearance-tab[data-active='true'] .appearance-tab-icon {
+    background: var(--appearance-bg);
   }
 </style>
 
 <script>
   import { authFetch } from '../../lib/api';
-  import { clearAddressPayload, getAddressPayload, initAddressAutocomplete } from '../../lib/address-autocomplete';
   import { createClient } from '@supabase/supabase-js';
-  import { clamp, getPatternBackground, stampCols } from '../../lib/dashboard/carte-preview-utils';
-  import {
-    TOTAL_WIZARD_STEPS,
-    WIZARD_STEP_GUIDANCE,
-    WIZARD_STEP_LABELS,
-    WIZARD_STEP_TITLES,
-    validateWizardStep,
-    type StepValidationContext,
-    type WizardStep,
-  } from '../../lib/dashboard/carte-wizard';
-  import { withTimeout } from '../../lib/utils/with-timeout';
 
   const supabase = createClient(import.meta.env.PUBLIC_SUPABASE_URL, import.meta.env.PUBLIC_SUPABASE_ANON_KEY);
-  const API =
-    import.meta.env.PUBLIC_API_URL
-    ?? (import.meta.env.PROD ? 'https://api.fidelopass.com' : 'http://localhost:3001');
+  const API = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
   const PUBLIC_SITE_URL = (import.meta.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
-  const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
   const setupMode = new URLSearchParams(window.location.search).get('setup') === '1';
+  const TOTAL_STEPS = 7;
+  const STEP_LABELS = ['Type', 'Identité', 'Programme', 'Apparence', 'Messages', 'Options', 'Partage'] as const;
+  const STEP_TITLES = [
+    'Type de programme',
+    'Identité visuelle',
+    'Programme fidélité',
+    'Apparence',
+    'Messages client',
+    'Options',
+    'Scanner & Partage',
+  ] as const;
+  const STEP_GUIDANCE = [
+    {
+      title: 'Choisissez le socle du programme',
+      text: 'Tampons: le plus simple en caisse. Points: plus flexible pour offres évolutives.',
+      required: 'Obligatoire: type de programme',
+    },
+    {
+      title: 'Posez votre identité',
+      text: 'Nom clair + logo bien centré = carte reconnue instantanément par le client.',
+      required: 'Obligatoire: nom de carte',
+    },
+    {
+      title: 'Définissez la promesse client',
+      text: 'Fixez un objectif atteignable et une récompense qui donne envie de revenir vite.',
+      required: 'Obligatoire: configuration programme + récompense',
+    },
+    {
+      title: 'Habillez la carte en mode simple',
+      text: 'Commencez par thème + bannière + QR. Les options avancées restent optionnelles.',
+      required: 'Obligatoire: aucun (design libre)',
+    },
+    {
+      title: 'Rassurez le client avec des messages courts',
+      text: 'Un accueil clair et un message post-ajout augmentent l’activation de la carte.',
+      required: 'Obligatoire: aucun',
+    },
+    {
+      title: 'Activez la proximité si utile',
+      text: 'Géolocalisation: renseignez une adresse précise et un message utile en passage boutique.',
+      required: 'Obligatoire si activé: adresse du commerce',
+    },
+    {
+      title: 'Passez en mode opérationnel',
+      text: 'Installez le scanner équipe puis affichez le QR client en caisse.',
+      required: 'Obligatoire: carte déjà enregistrée',
+    },
+  ] as const;
 
   let carteId: string | null = null;
   let logoUrl = '', stripUrl = '', tamponIconUrl = '', tamponEmoji = '';
-  let tamponIconScale = 1;
   let logoScale = 1;
   let stripScale = 1;
   let stripFocusX = 50;
   let stripFocusY = 50;
   let bannerOverlayOpacity = 0;
   let isGradient = false;
+  type WizardStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
   let currentStep: WizardStep = 1;
   let maxUnlockedStep: WizardStep = 1;
   let savedProgramType: 'tampons' | 'points' | null = null;
   let typeChangePendingRevalidation = false;
   let isDirty = false;
   let isSaving = false;
-  const adresseCommerceInput = document.getElementById('adresse-commerce') as HTMLInputElement | null;
-  if (adresseCommerceInput) {
-    initAddressAutocomplete({ input: adresseCommerceInput });
-  }
   let suppressDirtyTracking = true;
   let multiRewardsEnabled = false;
   let brandingEnabled = true;
@@ -1021,29 +1009,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const completedSteps = new Set<WizardStep>();
   type RewardTier = { seuil: number; recompense: string };
   type VipTier = { nom: string; seuil: number; avantage?: string };
-  type AdminCardProposal = {
-    id: string;
-    status: 'pending_merchant' | string;
-    payload?: Record<string, unknown> | null;
-    submitted_at?: string | null;
-    updated_at?: string | null;
-    admin_note?: string | null;
-  };
-  let pendingAdminProposal: AdminCardProposal | null = null;
-
-  const adminProposalBanner = document.getElementById('admin-proposal-banner') as HTMLDivElement | null;
-  const adminProposalMeta = document.getElementById('admin-proposal-meta') as HTMLParagraphElement | null;
-  const adminProposalComment = document.getElementById('admin-proposal-comment') as HTMLTextAreaElement | null;
-  const adminProposalApproveBtn = document.getElementById('admin-proposal-approve-btn') as HTMLButtonElement | null;
-  const adminProposalRejectBtn = document.getElementById('admin-proposal-reject-btn') as HTMLButtonElement | null;
-
-  async function getAccessTokenFast() {
-    const sessionResult = await withTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
-    const sessionToken = sessionResult?.data?.session?.access_token;
-    if (sessionToken) return sessionToken;
-    const refreshResult = await withTimeout(supabase.auth.refreshSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
-    return refreshResult?.data?.session?.access_token ?? '';
-  }
 
   function setDraftState(dirty: boolean, force = false) {
     if (!force && (suppressDirtyTracking || isSaving)) return;
@@ -1056,22 +1021,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     } else {
       state.textContent = 'Brouillon enregistré';
       state.className = 'rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-emerald-700';
-    }
-  }
-
-  function showFeedbackMessage(type: 'success' | 'error', message: string) {
-    const errorBox = document.getElementById('error-msg') as HTMLDivElement | null;
-    const successBox = document.getElementById('success-msg') as HTMLDivElement | null;
-    errorBox?.classList.add('hidden');
-    successBox?.classList.add('hidden');
-    if (type === 'error' && errorBox) {
-      errorBox.textContent = message;
-      errorBox.classList.remove('hidden');
-      return;
-    }
-    if (successBox) {
-      successBox.textContent = message;
-      successBox.classList.remove('hidden');
     }
   }
 
@@ -1093,7 +1042,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   function scannerInstallUrl() {
-    return `${PUBLIC_SITE_URL}/app/scan`;
+    return `${PUBLIC_SITE_URL}/app/install`;
   }
 
   function ensureQr(containerId: string, url: string, size = 150) {
@@ -1120,84 +1069,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     ensureQr('scanner-qr-container', scannerInstallUrl());
   }
 
-  function setAdminProposalActionsDisabled(disabled: boolean) {
-    if (adminProposalApproveBtn) adminProposalApproveBtn.disabled = disabled;
-    if (adminProposalRejectBtn) adminProposalRejectBtn.disabled = disabled;
-  }
-
-  function renderAdminProposalBanner() {
-    if (!adminProposalBanner) return;
-    if (!pendingAdminProposal) {
-      adminProposalBanner.classList.add('hidden');
-      if (adminProposalComment) adminProposalComment.value = '';
-      return;
-    }
-    const when = pendingAdminProposal.submitted_at ?? pendingAdminProposal.updated_at ?? null;
-    const dateLabel = when
-      ? new Date(when).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })
-      : 'récemment';
-    if (adminProposalMeta) {
-      adminProposalMeta.textContent = pendingAdminProposal.admin_note
-        ? `Proposition envoyée le ${dateLabel}. Note admin: ${pendingAdminProposal.admin_note}`
-        : `Proposition envoyée le ${dateLabel}.`;
-    }
-    adminProposalBanner.classList.remove('hidden');
-    setAdminProposalActionsDisabled(false);
-  }
-
-  async function loadPendingAdminProposal() {
-    try {
-      const response = await authFetch('/api/cartes/admin-proposal');
-      if (!response.ok) {
-        pendingAdminProposal = null;
-        renderAdminProposalBanner();
-        return;
-      }
-      const { data } = await response.json();
-      pendingAdminProposal = (data ?? null) as AdminCardProposal | null;
-      renderAdminProposalBanner();
-    } catch {
-      pendingAdminProposal = null;
-      renderAdminProposalBanner();
-    }
-  }
-
-  async function submitAdminProposalDecision(decision: 'approve' | 'reject') {
-    if (!pendingAdminProposal?.id) return;
-    const previousApproveLabel = adminProposalApproveBtn?.textContent ?? 'Appliquer la proposition';
-    const previousRejectLabel = adminProposalRejectBtn?.textContent ?? 'Refuser';
-    setAdminProposalActionsDisabled(true);
-    if (decision === 'approve' && adminProposalApproveBtn) adminProposalApproveBtn.textContent = 'Application...';
-    if (decision === 'reject' && adminProposalRejectBtn) adminProposalRejectBtn.textContent = 'Refus...';
-    try {
-      const response = await authFetch('/api/cartes/admin-proposal/decision', {
-        method: 'POST',
-        body: JSON.stringify({
-          proposal_id: pendingAdminProposal.id,
-          decision,
-          merchant_comment: adminProposalComment?.value?.trim() || null,
-        }),
-      });
-      const result = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(result?.error ?? 'Impossible de traiter la proposition.');
-
-      if (decision === 'approve') {
-        showFeedbackMessage('success', 'Proposition admin appliquée avec succès.');
-        await loadExistingCarte();
-      } else {
-        showFeedbackMessage('success', 'Proposition refusée.');
-      }
-      pendingAdminProposal = null;
-      renderAdminProposalBanner();
-    } catch (error) {
-      showFeedbackMessage('error', error instanceof Error ? error.message : 'Erreur inattendue.');
-      setAdminProposalActionsDisabled(false);
-    } finally {
-      if (adminProposalApproveBtn) adminProposalApproveBtn.textContent = previousApproveLabel;
-      if (adminProposalRejectBtn) adminProposalRejectBtn.textContent = previousRejectLabel;
-    }
-  }
-
   function clearStepError(step: WizardStep) {
     const box = document.getElementById(`step-error-${step}`);
     if (box) box.classList.add('hidden');
@@ -1210,23 +1081,35 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     box.classList.remove('hidden');
   }
 
-  function getStepValidationContext(): StepValidationContext {
-    const type = ((document.querySelector('input[name="type"]:checked') as HTMLInputElement | null)?.value ?? 'tampons') as 'tampons' | 'points';
-    return {
-      type,
-      nomCarte: (document.getElementById('nom-carte') as HTMLInputElement).value,
-      recompense: (document.getElementById('recompense') as HTMLInputElement).value,
-      tamponsTotal: parseInt((document.getElementById('tampons-total') as HTMLInputElement).value, 10),
-      pointsParEuro: parseFloat((document.getElementById('points-par-euro') as HTMLInputElement).value),
-      pointsRecompense: parseInt((document.getElementById('points-recompense') as HTMLInputElement).value, 10),
-      geoEnabled,
-      adresseCommerce: (document.getElementById('adresse-commerce') as HTMLInputElement).value,
-    };
-  }
-
+  const stepValidators: Record<WizardStep, () => string | null> = {
+    1: () => ((document.querySelector('input[name="type"]:checked') as HTMLInputElement | null)?.value ? null : 'Choisissez un type de programme.'),
+    2: () => ((document.getElementById('nom-carte') as HTMLInputElement).value.trim() ? null : 'Renseignez au minimum le nom de la carte.'),
+    3: () => {
+      const type = (document.querySelector('input[name="type"]:checked') as HTMLInputElement | null)?.value ?? 'tampons';
+      if (type === 'tampons') {
+        const total = parseInt((document.getElementById('tampons-total') as HTMLInputElement).value, 10);
+        if (!Number.isFinite(total) || total < 1) return 'Le nombre de tampons doit être supérieur à 0.';
+      } else {
+        const perEuro = parseFloat((document.getElementById('points-par-euro') as HTMLInputElement).value);
+        const target = parseInt((document.getElementById('points-recompense') as HTMLInputElement).value, 10);
+        if (!Number.isFinite(perEuro) || perEuro <= 0) return 'Le ratio points/euro doit être supérieur à 0.';
+        if (!Number.isFinite(target) || target < 1) return 'Le seuil de points doit être supérieur à 0.';
+      }
+      if (!(document.getElementById('recompense') as HTMLInputElement).value.trim()) return 'Décrivez la récompense offerte au client.';
+      return null;
+    },
+    4: () => null,
+    5: () => null,
+    6: () => {
+      if (!geoEnabled) return null;
+      if (!(document.getElementById('adresse-commerce') as HTMLInputElement).value.trim()) return 'Ajoutez l’adresse du commerce pour activer la géolocalisation.';
+      return null;
+    },
+    7: () => null,
+  };
 
   function setMaxUnlockedStep(nextStep: number) {
-    maxUnlockedStep = Math.max(1, Math.min(TOTAL_WIZARD_STEPS, nextStep)) as WizardStep;
+    maxUnlockedStep = Math.max(1, Math.min(TOTAL_STEPS, nextStep)) as WizardStep;
   }
 
   function markStepCompleted(step: WizardStep) {
@@ -1242,22 +1125,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       document.getElementById('save-continue-btn'),
       document.getElementById('mobile-save-continue-btn'),
     ].filter(Boolean) as HTMLButtonElement[];
-    const skipNextButtons = [
-      document.getElementById('skip-next-step-btn'),
-      document.getElementById('mobile-skip-next-step-btn'),
-    ].filter(Boolean) as HTMLButtonElement[];
     const currentLabel = document.getElementById('wizard-current-label');
-    if (currentLabel) currentLabel.textContent = `Étape ${currentStep} · ${WIZARD_STEP_LABELS[currentStep - 1]}`;
+    if (currentLabel) currentLabel.textContent = `Étape ${currentStep} · ${STEP_LABELS[currentStep - 1]}`;
     const mobileCounter = document.getElementById('wizard-mobile-counter');
-    if (mobileCounter) mobileCounter.textContent = `Étape ${currentStep}/${TOTAL_WIZARD_STEPS}`;
+    if (mobileCounter) mobileCounter.textContent = `Étape ${currentStep}/${TOTAL_STEPS}`;
     const mobileTitle = document.getElementById('wizard-mobile-title');
-    if (mobileTitle) mobileTitle.textContent = WIZARD_STEP_TITLES[currentStep - 1];
+    if (mobileTitle) mobileTitle.textContent = STEP_TITLES[currentStep - 1];
     const mobileProgress = document.getElementById('wizard-mobile-progress') as HTMLDivElement | null;
-    if (mobileProgress) mobileProgress.style.width = `${(currentStep / TOTAL_WIZARD_STEPS) * 100}%`;
+    if (mobileProgress) mobileProgress.style.width = `${(currentStep / TOTAL_STEPS) * 100}%`;
     const guidanceTitle = document.getElementById('mobile-step-guidance-title');
     const guidanceText = document.getElementById('mobile-step-guidance-text');
     const guidanceRequired = document.getElementById('mobile-step-guidance-required');
-    const guidance = WIZARD_STEP_GUIDANCE[currentStep - 1];
+    const guidance = STEP_GUIDANCE[currentStep - 1];
     if (guidanceTitle) guidanceTitle.textContent = guidance.title;
     if (guidanceText) guidanceText.textContent = guidance.text;
     if (guidanceRequired) guidanceRequired.textContent = guidance.required;
@@ -1269,11 +1148,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     });
     saveContinueButtons.forEach((button) => {
       button.disabled = isSaving;
-      button.classList.toggle('opacity-50', button.disabled);
-      button.classList.toggle('cursor-not-allowed', button.disabled);
-    });
-    skipNextButtons.forEach((button) => {
-      button.disabled = isSaving || currentStep === TOTAL_WIZARD_STEPS || (currentStep === TOTAL_WIZARD_STEPS - 1 && !carteId);
       button.classList.toggle('opacity-50', button.disabled);
       button.classList.toggle('cursor-not-allowed', button.disabled);
     });
@@ -1302,10 +1176,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   function showStep(step: number) {
-    const target = Math.max(1, Math.min(TOTAL_WIZARD_STEPS, step));
+    const target = Math.max(1, Math.min(TOTAL_STEPS, step));
     const accessibleStep = Math.min(target, maxUnlockedStep);
-    if (target >= TOTAL_WIZARD_STEPS && !carteId) {
-      currentStep = (TOTAL_WIZARD_STEPS - 1) as WizardStep;
+    if (target >= TOTAL_STEPS && !carteId) {
+      currentStep = (TOTAL_STEPS - 1) as WizardStep;
       showStepError(6, "Créez d'abord votre carte avant d'accéder au scanner et au partage.");
     } else {
       currentStep = accessibleStep as WizardStep;
@@ -1334,10 +1208,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   async function uploadFile(file: File): Promise<string> {
-    const accessToken = await getAccessTokenFast();
+    const {data:{session}} = await supabase.auth.getSession();
     const fd = new FormData(); fd.append('file',file);
-    const r = await fetch(`${API}/api/upload`,{method:'POST',headers:{Authorization:`Bearer ${accessToken}`},body:fd});
+    const r = await fetch(`${API}/api/upload`,{method:'POST',headers:{Authorization:`Bearer ${session?.access_token??''}`},body:fd});
     const j = await r.json(); if(!r.ok) throw new Error(j.error??'Erreur upload'); return j.url as string;
+  }
+
+  function clamp(value: number, min: number, max: number): number {
+    return Math.max(min, Math.min(max, value));
   }
 
   function applyImageScaleToElements(ids: string[], scale: number) {
@@ -1411,6 +1289,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     const file = new File([blob], `${filePrefix}-${Date.now()}.png`, { type: 'image/png' });
     return uploadFile(file);
+  }
+
+  function stampCols(total: number): number {
+    if(total<=6) return total; if(total<=12) return Math.ceil(total/2); if(total<=15) return 5; return 6;
   }
 
   // Switch
@@ -1649,7 +1531,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   (document.getElementById('logo-file') as HTMLInputElement).addEventListener('change',async(e)=>{
     const f=(e.target as HTMLInputElement).files?.[0]; if(!f)return;
     const ld=document.getElementById('logo-loading')!; ld.classList.remove('hidden');
-    try{logoUrl=await uploadFile(f);setLogoPreview(logoUrl);}catch(err:unknown){showFeedbackMessage('error', err instanceof Error ? err.message : 'Erreur');}finally{ld.classList.add('hidden');}
+    try{logoUrl=await uploadFile(f);setLogoPreview(logoUrl);}catch(err:unknown){alert(err instanceof Error?err.message:'Erreur');}finally{ld.classList.add('hidden');}
   });
   function setLogoPreview(url: string){
     ['logo-preview-img','preview-logo','g-logo'].forEach(id=>{const el=document.getElementById(id) as HTMLImageElement;if(url){el.src=url;el.classList.remove('hidden');}else el.classList.add('hidden');});
@@ -1763,27 +1645,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     return (0.2126*r+0.7152*g+0.0722*b)/255;
   }
 
-  const tamponIconScaleInput = document.getElementById('tampon-icon-scale') as HTMLInputElement;
-  const tamponIconScaleVal = document.getElementById('tampon-icon-scale-val') as HTMLSpanElement;
-
-  function setTamponIconScale(nextScale: number, syncInput = true) {
-    tamponIconScale = clamp(nextScale, 0.6, 1.5);
-    if (syncInput) tamponIconScaleInput.value = String(Math.round(tamponIconScale * 100));
-    tamponIconScaleVal.textContent = `${Math.round(tamponIconScale * 100)}%`;
-    const previewImg = document.getElementById('tampon-preview-img') as HTMLImageElement | null;
-    if (previewImg) {
-      previewImg.style.transformOrigin = 'center center';
-      previewImg.style.transform = `scale(${tamponIconScale})`;
-    }
-  }
-
-  tamponIconScaleInput.addEventListener('input', (event) => {
-    const value = parseInt((event.target as HTMLInputElement).value, 10);
-    setTamponIconScale(value / 100, false);
-    updatePreview();
-    markDirty();
-  });
-
   // Mode tampon
   document.querySelectorAll('input[name="tampon_mode"]').forEach(r=>r.addEventListener('change',()=>{
     const mode=(document.querySelector('input[name="tampon_mode"]:checked') as HTMLInputElement).value;
@@ -1807,14 +1668,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   (document.getElementById('tampon-file') as HTMLInputElement).addEventListener('change',async(e)=>{
     const f=(e.target as HTMLInputElement).files?.[0]; if(!f)return;
     const ld=document.getElementById('tampon-loading')!; ld.classList.remove('hidden');
-    try{tamponIconUrl=await uploadFile(f);setTamponPreview(tamponIconUrl);updatePreview();}catch(err:unknown){showFeedbackMessage('error', err instanceof Error ? err.message : 'Erreur');}finally{ld.classList.add('hidden');}
+    try{tamponIconUrl=await uploadFile(f);setTamponPreview(tamponIconUrl);updatePreview();}catch(err:unknown){alert(err instanceof Error?err.message:'Erreur');}finally{ld.classList.add('hidden');}
   });
   function setTamponPreview(url: string){
     const img=document.getElementById('tampon-preview-img') as HTMLImageElement;
     if(url){img.src=url;img.classList.remove('hidden');document.getElementById('tampon-preview-icon')!.classList.add('hidden');}
     else{img.classList.add('hidden');document.getElementById('tampon-preview-icon')!.classList.remove('hidden');}
-    img.style.transformOrigin = 'center center';
-    img.style.transform = `scale(${tamponIconScale})`;
     (document.getElementById('tampon-icon-url') as HTMLInputElement).value=url;
   }
 
@@ -1867,40 +1726,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     setMultiRewardsEnabled(!multiRewardsEnabled);
   });
 
-  function escapeAttr(value: unknown) {
-    return String(value ?? '')
-      .replaceAll('&','&amp;')
-      .replaceAll('"','&quot;')
-      .replaceAll('<','&lt;')
-      .replaceAll('>','&gt;')
-      .replaceAll("'", '&#39;');
-  }
-
-  function safePreviewImageUrl(value: unknown) {
-    const rawValue = String(value ?? '').trim();
-    if (!rawValue) return '';
-    try {
-      const url = new URL(rawValue, window.location.origin);
-      if (url.protocol === 'http:' || url.protocol === 'https:') return url.toString();
-    } catch {
-      return '';
-    }
-    return '';
-  }
-
-  function appendStampImage(dot: HTMLElement, source: string, iconSize: number, opacity?: number) {
-    const safeUrl = safePreviewImageUrl(source);
-    if (!safeUrl) return false;
-    const img = document.createElement('img');
-    img.src = safeUrl;
-    img.alt = '';
-    img.style.width = `${iconSize}px`;
-    img.style.height = `${iconSize}px`;
-    img.style.objectFit = 'contain';
-    img.style.borderRadius = '50%';
-    if (typeof opacity === 'number') img.style.opacity = String(opacity);
-    dot.appendChild(img);
-    return true;
+  function escapeAttr(value: string) {
+    return value.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;');
   }
 
   function renderRewardTiers(tiers: RewardTier[]=[]) {
@@ -1965,8 +1792,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const stripScaleInput = document.getElementById('strip-scale') as HTMLInputElement;
   const stripScaleVal = document.getElementById('strip-scale-val') as HTMLSpanElement;
   const stripApplyResizeBtn = document.getElementById('strip-apply-resize') as HTMLButtonElement;
-  const bannerOverlayInput = document.getElementById('banner-overlay-opacity') as HTMLInputElement | null;
-  const bannerOverlayVal = document.getElementById('banner-overlay-val') as HTMLSpanElement | null;
+  const bannerOverlayInput = document.getElementById('banner-overlay-opacity') as HTMLInputElement;
+  const bannerOverlayVal = document.getElementById('banner-overlay-val') as HTMLSpanElement;
   const stripPositionInput = document.getElementById('strip-position') as HTMLInputElement;
   const stripPositionLabel = document.getElementById('strip-position-label') as HTMLParagraphElement;
   const stripDragArea = document.getElementById('strip-drag-area') as HTMLDivElement;
@@ -2017,10 +1844,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     setStripScale(value / 100, false);
     markDirty();
   });
-  bannerOverlayInput?.addEventListener('input', (event) => {
+  bannerOverlayInput.addEventListener('input', (event) => {
     bannerOverlayOpacity = clamp(parseInt((event.target as HTMLInputElement).value, 10) || 0, 0, 85);
-    if (bannerOverlayInput) bannerOverlayInput.value = String(bannerOverlayOpacity);
-    if (bannerOverlayVal) bannerOverlayVal.textContent = `${bannerOverlayOpacity}%`;
+    bannerOverlayInput.value = String(bannerOverlayOpacity);
+    bannerOverlayVal.textContent = `${bannerOverlayOpacity}%`;
     markDirty();
     updatePreview();
   });
@@ -2060,48 +1887,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   (document.getElementById('strip-file') as HTMLInputElement).addEventListener('change',async(e)=>{
     const f=(e.target as HTMLInputElement).files?.[0]; if(!f)return;
     const ld=document.getElementById('strip-loading')!; ld.classList.remove('hidden');
-    try{stripUrl=await uploadFile(f);setStripPreview(stripUrl);}catch(err:unknown){showFeedbackMessage('error', err instanceof Error ? err.message : 'Erreur');}finally{ld.classList.add('hidden');}
+    try{stripUrl=await uploadFile(f);setStripPreview(stripUrl);}catch(err:unknown){alert(err instanceof Error?err.message:'Erreur');}finally{ld.classList.add('hidden');}
   });
   document.getElementById('strip-clear')!.addEventListener('click',()=>{stripUrl='';setStripPreview('');(document.getElementById('strip-file') as HTMLInputElement).value='';});
-  const bannerTemplateButtons = Array.from(document.querySelectorAll('.banner-template-btn')) as HTMLButtonElement[];
-
-  function normalizeBannerTemplatePath(value: string): string {
-    if (!value) return '';
-    try {
-      const url = new URL(value, window.location.origin);
-      return url.pathname;
-    } catch {
-      return value;
-    }
-  }
-
-  function syncBannerTemplateSelection(url: string) {
-    const currentPath = normalizeBannerTemplatePath(url);
-    bannerTemplateButtons.forEach((button) => {
-      const buttonPath = normalizeBannerTemplatePath(button.dataset.url ?? '');
-      const selected = Boolean(currentPath) && buttonPath === currentPath;
-      button.classList.toggle('ring-2', selected);
-      button.classList.toggle('ring-indigo-500', selected);
-      button.classList.toggle('border-indigo-400', selected);
-      button.classList.toggle('border-slate-200', !selected);
-    });
-  }
-
-  bannerTemplateButtons.forEach((button) => {
-    button.addEventListener('click', () => {
-      const selectedUrl = button.dataset.url ?? '';
-      if (!selectedUrl) return;
-      stripUrl = selectedUrl;
-      setStripScale(1);
-      setStripFocus(50, 50);
-      setStripPreview(stripUrl);
-      const success = document.getElementById('success-msg') as HTMLDivElement;
-      success.textContent = 'Template de bannière appliqué. Vous pouvez encore ajuster le cadrage.';
-      success.classList.remove('hidden');
-      markDirty();
-    });
-  });
-
   function setStripPreview(url: string){
     const img=document.getElementById('strip-preview-img') as HTMLImageElement;
     document.getElementById('strip-clear')!.classList.toggle('hidden',!url);
@@ -2115,7 +1903,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     (document.getElementById('strip-url') as HTMLInputElement).value=url;
     setStripFocus(stripFocusX, stripFocusY, { silent: true });
     applyImageScaleToElements(['strip-preview-img', 'preview-strip', 'g-strip-img'], stripScale);
-    syncBannerTemplateSelection(url);
   }
 
   stripApplyResizeBtn.addEventListener('click', async () => {
@@ -2206,7 +1993,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     setInput('couleur-fond', el.dataset.fond ?? '#0f172a');
     setInput('couleur-texte', el.dataset.texte ?? '#ffffff');
     setInput('couleur-accent', el.dataset.accent ?? '#6366f1');
-    ensureGradient(el.dataset.gradient === 'true');
+    ensureGradient(true);
     setInput('couleur-fond-2', el.dataset.fond2 ?? '#6366f1');
     setInput('gradient-angle', '135');
     document.getElementById('gradient-angle-val')!.textContent='135°';
@@ -2217,30 +2004,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     setInput('points-recompense', el.dataset.type === 'points' ? '100' : '100');
     setRadio('barcode_type', 'QR');
     selectEmojiStamp(el.dataset.stamp ?? '✓');
-    const selectedBanner = el.dataset.banner ?? '';
-    if (selectedBanner) {
-      stripUrl = selectedBanner;
-      setStripScale(1);
-      setStripFocus(50, 50, { silent: true });
-      setStripPreview(stripUrl);
-    }
     renderRewardTiers(defaultRewardTiers());
     renderVipTiers();
     updatePreview();
     document.getElementById('success-msg')!.textContent='Modèle appliqué. Vous pouvez ajuster puis enregistrer.';
     document.getElementById('success-msg')!.classList.remove('hidden');
   }));
-
-  document.getElementById('skip-template-btn')?.addEventListener('click', () => {
-    document.querySelectorAll('.business-template-btn').forEach((button) => {
-      button.classList.remove('ring-2', 'ring-indigo-500', 'border-indigo-400');
-    });
-    const suc = document.getElementById('success-msg') as HTMLDivElement;
-    suc.textContent = 'Aucun modèle appliqué. Vous pouvez personnaliser la carte manuellement.';
-    suc.classList.remove('hidden');
-    setMaxUnlockedStep(Math.max(maxUnlockedStep, 2));
-    showStep(2);
-  });
 
   // Type
   document.querySelectorAll('input[name="type"]').forEach(r=>r.addEventListener('change',()=>{
@@ -2302,26 +2071,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const a=(document.getElementById('gradient-angle') as HTMLInputElement).value;
     return `linear-gradient(${a}deg,${f},${f2})`;
   }
-
-  function colorWithAlpha(color:string, alpha:number):string{
-    const value=color.trim();
-    const expanded=value.replace(/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i,'#$1$1$2$2$3$3');
-    const match=expanded.match(/^#([0-9a-f]{6})$/i);
-    if(!match)return value;
-    const hex=match[1];
-    const r=parseInt(hex.slice(0,2),16);
-    const g=parseInt(hex.slice(2,4),16);
-    const b=parseInt(hex.slice(4,6),16);
-    return `rgba(${r},${g},${b},${alpha})`;
-  }
-
-  function applyPreviewTextColor(color:string){
-    document.querySelectorAll<HTMLElement>('[data-preview-text]').forEach((element)=>{
-      element.style.color=color;
-    });
-    document.querySelectorAll<HTMLElement>('[data-preview-muted]').forEach((element)=>{
-      element.style.color=colorWithAlpha(color,0.68);
-    });
+  function hex2rgb(h:string):string{const v=h.replace('#','');return `${parseInt(v.slice(0,2),16)},${parseInt(v.slice(2,4),16)},${parseInt(v.slice(4,6),16)}`;}
+  function getPatBg(pt:string,accent:string):{image:string;size:string}{
+    const rgb=hex2rgb(accent);
+    if(pt==='dots') return{image:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='12' cy='12' r='2' fill='rgba(${encodeURIComponent(rgb)},0.18)'/%3E%3C/svg%3E")`,size:'24px 24px'};
+    if(pt==='grid') return{image:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M 24 0 L 0 0 0 24' fill='none' stroke='rgba(${encodeURIComponent(rgb)},0.15)' stroke-width='0.6'/%3E%3C/svg%3E")`,size:'24px 24px'};
+    if(pt==='waves') return{image:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='24'%3E%3Cpath d='M 0 12 Q 12 0 24 12 Q 36 24 48 12' fill='none' stroke='rgba(${encodeURIComponent(rgb)},0.2)' stroke-width='1.2'/%3E%3C/svg%3E")`,size:'48px 24px'};
+    if(pt==='diagonal') return{image:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cdefs%3E%3Cpattern id='p' width='28' height='28' patternUnits='userSpaceOnUse' patternTransform='rotate(35)'%3E%3Crect width='5' height='28' fill='rgba(${encodeURIComponent(rgb)},0.16)'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='28' height='28' fill='url(%23p)'/%3E%3C/svg%3E")`,size:'28px 28px'};
+    if(pt==='confetti') return{image:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='54' height='54'%3E%3Ccircle cx='10' cy='12' r='3' fill='rgba(${encodeURIComponent(rgb)},0.18)'/%3E%3Crect x='31' y='8' width='12' height='4' rx='2' transform='rotate(25 37 10)' fill='rgba(${encodeURIComponent(rgb)},0.16)'/%3E%3Ccircle cx='42' cy='38' r='2.5' fill='rgba(${encodeURIComponent(rgb)},0.2)'/%3E%3Crect x='14' y='36' width='10' height='4' rx='2' transform='rotate(-28 19 38)' fill='rgba(${encodeURIComponent(rgb)},0.15)'/%3E%3C/svg%3E")`,size:'54px 54px'};
+    return{image:'none',size:'auto'};
   }
 
   function renderStamps(container:HTMLElement, current:number, display:number, accent:string, texte:string){
@@ -2344,20 +2102,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         if(filled){
           dot.style.background=accent;
           if(tamponEmoji){dot.style.fontSize=`${Math.round(dotSize*0.55)}px`;dot.style.lineHeight='1';dot.textContent=tamponEmoji;}
-          else if(tamponIconUrl){
-            const iconSize = Math.max(12, Math.round(dotSize * tamponIconScale));
-            if (!appendStampImage(dot, tamponIconUrl, iconSize)) {
-              const sw=Math.max(1.5,dotSize*0.07);dot.innerHTML=`<svg viewBox="0 0 12 12" style="width:${Math.round(dotSize*0.55)}px;height:${Math.round(dotSize*0.55)}px"><path d="M2 6l3 3 5-5" stroke="${escapeAttr(texte)}" stroke-width="${sw}" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-            }
-          }
-          else{const sw=Math.max(1.5,dotSize*0.07);dot.innerHTML=`<svg viewBox="0 0 12 12" style="width:${Math.round(dotSize*0.55)}px;height:${Math.round(dotSize*0.55)}px"><path d="M2 6l3 3 5-5" stroke="${escapeAttr(texte)}" stroke-width="${sw}" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;}
+          else if(tamponIconUrl){dot.innerHTML=`<img src="${tamponIconUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`;}
+          else{const sw=Math.max(1.5,dotSize*0.07);dot.innerHTML=`<svg viewBox="0 0 12 12" style="width:${Math.round(dotSize*0.55)}px;height:${Math.round(dotSize*0.55)}px"><path d="M2 6l3 3 5-5" stroke="${texte}" stroke-width="${sw}" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;}
         }else{
           dot.style.border='2px solid rgba(255,255,255,0.25)';dot.style.background='rgba(255,255,255,0.05)';
           if(tamponEmoji){dot.style.fontSize=`${Math.round(dotSize*0.5)}px`;dot.style.opacity='0.3';dot.textContent=tamponEmoji;}
-          else if(tamponIconUrl){
-            const iconSize = Math.max(12, Math.round(dotSize * tamponIconScale));
-            appendStampImage(dot, tamponIconUrl, iconSize, 0.3);
-          }
+          else if(tamponIconUrl){dot.innerHTML=`<img src="${tamponIconUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;opacity:0.3;"/>`;}
         }
         rowEl.appendChild(dot);
       });
@@ -2378,20 +2128,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const pt=(document.querySelector('input[name="pattern_type"]:checked') as HTMLInputElement)?.value??'none';
     const rewardTiers = multiRewardsEnabled ? collectRewardTiers() : [];
     const rewardSummary=rewardTiers.length?rewardTiers.map(t=>`${t.seuil} ${getProgramUnit()} : ${t.recompense}`).join(' • '):recompense;
-    const previewTampons = Math.max(0, Math.min(total, Math.round(total * 0.5)));
-    const previewPoints = Math.max(0, Math.round(ptsCible * 0.45));
-    const previewRewardsCount = rewardTiers.length
-      ? rewardTiers.filter((tier) => (type === 'tampons' ? previewTampons : previewPoints) >= tier.seuil).length
-      : (type === 'tampons' ? (previewTampons >= total ? 1 : 0) : (previewPoints >= ptsCible ? 1 : 0));
 
     const bg=getBgStyle();
-    const pat=getPatternBackground(pt,accent);
+    const pat=getPatBg(pt,accent);
     const display=Math.min(total,12);
 
     // Apple
     const apple=document.getElementById('apple-preview')!;
     apple.style.background=fond; apple.style.color=texte;
-    applyPreviewTextColor(texte);
     const ag=document.getElementById('a-pattern-global')!;
     // Apple Wallet (storeCard) n'affiche pas le pattern sur toute la carte:
     // on reflète le rendu réel en preview => pattern uniquement dans la bannière.
@@ -2404,30 +2148,25 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     document.getElementById('preview-card-name')!.textContent=nom;
     document.getElementById('preview-recompense')!.textContent=rewardSummary;
     document.getElementById('preview-label-client')!.textContent=labelClient.toUpperCase();
-    document.getElementById('preview-client-name')!.textContent='—';
-    document.getElementById('preview-rewards-count')!.textContent=String(previewRewardsCount);
     document.getElementById('preview-type-label')!.textContent=type==='tampons'?'Tampons':'Points';
     document.getElementById('preview-branding')!.classList.toggle('hidden', !brandingEnabled);
 
     if(type==='tampons'){
-      document.getElementById('preview-solde')!.textContent=`${previewTampons}/${total}`;
+      document.getElementById('preview-solde')!.textContent=`1/${total}`;
       document.getElementById('preview-stamps-wrap')!.classList.remove('hidden');
       document.getElementById('preview-points-wrap')!.classList.add('hidden');
-      renderStamps(document.getElementById('preview-stamps')!,previewTampons,display,accent,texte);
+      renderStamps(document.getElementById('preview-stamps')!,1,display,accent,texte);
     }else{
-      document.getElementById('preview-solde')!.textContent=String(previewPoints);
+      document.getElementById('preview-solde')!.textContent='0';
       document.getElementById('preview-stamps-wrap')!.classList.add('hidden');
       document.getElementById('preview-points-wrap')!.classList.remove('hidden');
-      document.getElementById('preview-points-text')!.textContent=`${previewPoints} / ${ptsCible} pts`;
+      (document.getElementById('preview-points-bar') as HTMLElement).style.background=accent;
+      (document.getElementById('preview-points-bar') as HTMLElement).style.width='0%';
+      document.getElementById('preview-points-text')!.textContent=`0 / ${ptsCible} pts`;
     }
 
     // Google
     const gb=document.getElementById('g-strip-bg')!; gb.style.background=bg;
-    const gBody=document.getElementById('g-preview-body')!;
-    gBody.style.background=fond;
-    const gInfo=document.getElementById('g-preview-info')!;
-    gInfo.style.borderColor=colorWithAlpha(texte,0.18);
-    gInfo.style.background=colorWithAlpha(texte,0.08);
     const gp=document.getElementById('g-pattern-overlay')!; gp.style.backgroundImage=pat.image; gp.style.backgroundSize=pat.size;
     const gDark=document.getElementById('g-strip-dark-overlay')!;
     gDark.style.background = `rgba(2,6,23,${bannerOverlayOpacity / 100})`;
@@ -2435,21 +2174,20 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     document.getElementById('g-card-name')!.textContent=nom;
     document.getElementById('g-recompense')!.textContent=rewardSummary;
     document.getElementById('g-label-client')!.textContent=labelClient.toUpperCase();
-    document.getElementById('g-client-name')!.textContent='—';
-    document.getElementById('g-rewards-count')!.textContent=String(previewRewardsCount);
     document.getElementById('g-type-lbl')!.textContent=type==='tampons'?'Tampons':'Points';
     document.getElementById('g-branding')!.classList.toggle('hidden', !brandingEnabled);
 
     if(type==='tampons'){
-      document.getElementById('g-solde')!.textContent=`${previewTampons}/${total}`;
+      document.getElementById('g-solde')!.textContent=`1/${total}`;
       document.getElementById('g-stamps-wrap')!.classList.remove('hidden');
       document.getElementById('g-points-wrap')!.classList.add('hidden');
-      renderStamps(document.getElementById('g-stamps')!,previewTampons,display,accent,'#111');
+      renderStamps(document.getElementById('g-stamps')!,1,display,accent,'#111');
     }else{
-      document.getElementById('g-solde')!.textContent=String(previewPoints);
+      document.getElementById('g-solde')!.textContent='0';
       document.getElementById('g-stamps-wrap')!.classList.add('hidden');
       document.getElementById('g-points-wrap')!.classList.remove('hidden');
-      document.getElementById('g-points-text')!.textContent=`${previewPoints}/${ptsCible} pts`;
+      (document.getElementById('g-points-bar') as HTMLElement).style.background=accent;
+      document.getElementById('g-points-text')!.textContent=`0/${ptsCible} pts`;
     }
 
     renderReviewSummary();
@@ -2487,9 +2225,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     container.innerHTML = cards.map((card) => `
       <div class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm">
-        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-sky-600/70">${escapeAttr(card.title)}</p>
-        <p class="mt-2 text-sm font-semibold text-slate-900">${escapeAttr(card.value)}</p>
-        <p class="mt-1 text-xs leading-relaxed text-slate-500">${escapeAttr(card.detail)}</p>
+        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-sky-600/70">${card.title}</p>
+        <p class="mt-2 text-sm font-semibold text-slate-900">${card.value}</p>
+        <p class="mt-1 text-xs leading-relaxed text-slate-500">${card.detail}</p>
       </div>
     `).join('');
   }
@@ -2505,7 +2243,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   window.addEventListener('beforeunload', (event) => {
     if (!isDirty) return;
     event.preventDefault();
-    (event as unknown as { returnValue: string }).returnValue = '';
+    event.returnValue = '';
   });
 
   document.querySelectorAll('#nom-carte,#recompense,#label-client,#tampons-total,#points-recompense,#couleur-fond,#couleur-texte,#couleur-accent,#couleur-fond-2').forEach(el=>el.addEventListener('input',updatePreview));
@@ -2538,26 +2276,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const res=await authFetch('/api/cartes'); if(!res.ok)return;
       const {data}=await res.json(); if(!data)return;
       carteId=data.id;
-      setMaxUnlockedStep(TOTAL_WIZARD_STEPS);
-      (Array.from({ length: TOTAL_WIZARD_STEPS }, (_, index) => index + 1) as WizardStep[]).forEach((step) => completedSteps.add(step));
+      setMaxUnlockedStep(TOTAL_STEPS);
+      (Array.from({ length: TOTAL_STEPS }, (_, index) => index + 1) as WizardStep[]).forEach((step) => completedSteps.add(step));
       const set=(id:string,val:string)=>{const el=document.getElementById(id) as HTMLInputElement;if(el)el.value=val;};
       set('nom-carte',data.nom??''); set('description',data.description??''); set('tampons-total',String(data.tampons_total??10));
       set('points-par-euro',String(data.points_par_euro??1)); set('points-recompense',String(data.points_recompense??100));
       set('recompense',data.recompense_description??''); set('message-geo',data.message_geo??'');
       set('couleur-fond',data.couleur_fond??'#0f172a'); set('couleur-texte',data.couleur_texte??'#ffffff'); set('couleur-accent',data.couleur_accent??'#6366f1');
-      bannerOverlayOpacity = 0;
-      if (bannerOverlayInput) bannerOverlayInput.value = '0';
-      if (bannerOverlayVal) bannerOverlayVal.textContent = '0%';
+      bannerOverlayOpacity = clamp(Number(data.banner_overlay_opacity ?? 0), 0, 85);
+      bannerOverlayInput.value = String(bannerOverlayOpacity);
+      bannerOverlayVal.textContent = `${bannerOverlayOpacity}%`;
       set('label-client',data.label_client??'Client');
-      const secondColor = String(data.couleur_fond_2 ?? '').trim();
-      const firstColor = String(data.couleur_fond ?? '#0f172a').trim();
-      if(secondColor && secondColor.toLowerCase() !== firstColor.toLowerCase()){
-        set('couleur-fond-2',secondColor);
-        if(!isGradient)gradientToggle.click();
-      } else {
-        set('couleur-fond-2',firstColor || '#6366f1');
-        ensureGradient(false);
-      }
+      if(data.couleur_fond_2){set('couleur-fond-2',data.couleur_fond_2);if(!isGradient)gradientToggle.click();}
       if(data.gradient_angle!=null){set('gradient-angle',String(data.gradient_angle));document.getElementById('gradient-angle-val')!.textContent=`${data.gradient_angle}°`;}
 
       function sr(name:string,val:string){const el=document.querySelector(`input[name="${name}"][value="${val}"]`) as HTMLInputElement;if(el)el.checked=true;}
@@ -2600,7 +2330,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         document.getElementById('tampon-custom-zone')!.classList.remove('hidden');
         ['default','emoji','custom'].forEach(v=>document.getElementById(`tampon-mode-${v}-label`)!.style.cssText=v==='custom'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff');
       }
-      setTamponIconScale(Number(data.tampon_icon_scale ?? 1));
       updatePreview();
       const pu=publicCardUrl(data.id);
       document.getElementById('public-link-banner')!.classList.remove('hidden');
@@ -2616,8 +2345,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const b=document.getElementById('copy-link-btn')!;b.textContent='Copié !';setTimeout(()=>b.textContent='Copier le lien',2000);
     });
   });
-  adminProposalApproveBtn?.addEventListener('click', () => submitAdminProposalDecision('approve'));
-  adminProposalRejectBtn?.addEventListener('click', () => submitAdminProposalDecision('reject'));
 
   document.querySelectorAll('[data-step-target]').forEach((tab) => {
     tab.addEventListener('click', () => {
@@ -2640,20 +2367,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   document.getElementById('prev-step-btn')!.addEventListener('click', goToPreviousStep);
   document.getElementById('mobile-prev-step-btn')!.addEventListener('click', goToPreviousStep);
 
-  function goToNextStepWithoutSaving() {
-    clearStepError(currentStep);
-    if (currentStep >= TOTAL_WIZARD_STEPS) return;
-    if (currentStep === TOTAL_WIZARD_STEPS - 1 && !carteId) {
-      showStepError(currentStep, "Créez d'abord votre carte avant d'accéder au scanner et au partage.");
-      return;
-    }
-    const nextStep = Math.min(TOTAL_WIZARD_STEPS, currentStep + 1) as WizardStep;
-    setMaxUnlockedStep(Math.max(maxUnlockedStep, nextStep));
-    showStep(nextStep);
+  function toSafeUrl(val: string): string | null {
+    if (!val) return null;
+    try { new URL(val); return val; } catch { return null; }
   }
-
-  document.getElementById('skip-next-step-btn')!.addEventListener('click', goToNextStepWithoutSaving);
-  document.getElementById('mobile-skip-next-step-btn')!.addEventListener('click', goToNextStepWithoutSaving);
 
   function buildPayload() {
     const getChecked = (name: string) => (document.querySelector(`input[name="${name}"]:checked`) as HTMLInputElement)?.value ?? '';
@@ -2670,23 +2387,22 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       couleur_fond:getInput('couleur-fond'),
       couleur_texte:getInput('couleur-texte'),
       couleur_accent:getInput('couleur-accent'),
-      logo_url:logoUrl||null,
-      strip_url:stripUrl||null,
+      logo_url:toSafeUrl(logoUrl),
+      strip_url:toSafeUrl(stripUrl),
       strip_position:stripPositionInput.value || getSerializedStripPosition(),
-      tampon_icon_url:tamponIconUrl||null,
+      tampon_icon_url:toSafeUrl(tamponIconUrl),
       barcode_type:getChecked('barcode_type')||'QR',
       label_client:getInput('label-client')||'Client',
       couleur_fond_2:isGradient?getInput('couleur-fond-2'):null,
       gradient_angle:isGradient?parseInt(getInput('gradient-angle')):135,
       pattern_type:getChecked('pattern_type')||'none',
       tampon_emoji:tamponEmoji||null,
-      tampon_icon_scale:tamponIconScale,
       police:'system',
       police_taille:100,
       police_gras:false,
       texte_alignement:'left',
       strip_plein_largeur:true,
-      banner_overlay_opacity:0,
+      banner_overlay_opacity:bannerOverlayOpacity,
       strip_layout:'background',
       branding_powered_by_enabled:brandingEnabled,
       rewards_multi_enabled:multiRewardsEnabled,
@@ -2739,9 +2455,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         method: 'PATCH',
         body: JSON.stringify({
           rayon_geo: parseInt((document.getElementById('rayon-geo') as HTMLInputElement).value, 10),
-          adresse: (adresseCommerceInput?.value || null),
-          ...(adresseCommerceInput ? getAddressPayload(adresseCommerceInput) : {}),
-          point_vente_nom: (document.getElementById('nom-point-vente') as HTMLInputElement).value.trim() || undefined,
+          adresse: (document.getElementById('adresse-commerce') as HTMLInputElement).value || null,
         }),
       });
 
@@ -2771,7 +2485,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         if (typeChangePendingRevalidation) {
           setMaxUnlockedStep(3);
         } else {
-          setMaxUnlockedStep(TOTAL_WIZARD_STEPS);
+          setMaxUnlockedStep(TOTAL_STEPS);
         }
       }
 
@@ -2783,7 +2497,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       if (advance) {
         clearStepError(currentStep);
-        const nextStep = currentStep < TOTAL_WIZARD_STEPS ? (currentStep + 1) : TOTAL_WIZARD_STEPS;
+        const nextStep = currentStep < TOTAL_STEPS ? (currentStep + 1) : TOTAL_STEPS;
         setMaxUnlockedStep(Math.max(maxUnlockedStep, nextStep));
         showStep(nextStep);
       }
@@ -2800,7 +2514,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   async function handleSaveContinue() {
-    const validation = validateWizardStep(currentStep, getStepValidationContext());
+    const validation = stepValidators[currentStep]();
     if (validation) {
       showStepError(currentStep, validation);
       return;
@@ -2855,19 +2569,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         activePointName.textContent = data?.point_vente_nom ?? data?.nom ?? 'Principal';
       }
       const rayon = data?.rayon_geo ?? 1000;
-      if (adresseCommerceInput) {
-        adresseCommerceInput.value = data?.adresse ?? '';
-        clearAddressPayload(adresseCommerceInput);
-        if (typeof data?.latitude === 'number' && typeof data?.longitude === 'number') {
-          adresseCommerceInput.dataset.latitude = String(data.latitude);
-          adresseCommerceInput.dataset.longitude = String(data.longitude);
-          adresseCommerceInput.dataset.rue = data?.rue ?? '';
-          adresseCommerceInput.dataset.ville = data?.ville ?? '';
-          adresseCommerceInput.dataset.codePostal = data?.code_postal ?? '';
-          adresseCommerceInput.dataset.pays = data?.pays ?? '';
-        }
-      }
-      (document.getElementById('nom-point-vente') as HTMLInputElement).value = data?.point_vente_nom ?? data?.nom ?? '';
+      (document.getElementById('adresse-commerce') as HTMLInputElement).value = data?.adresse ?? '';
       rayonSlider.value = String(rayon);
       rayonLabel.textContent = `${rayon.toLocaleString('fr-FR')} m`;
       if (data?.adresse) setGeoToggle(true, true);
@@ -2911,7 +2613,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   registerDirtyTracking();
   setAppearancePanel('theme');
   setLogoScale(1);
-  setTamponIconScale(1);
   setStripScale(1);
   setStripFocus(50, 50, { silent: true });
   setMultiRewardsEnabled(false, { silent: true });
@@ -2929,7 +2630,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       loadCommerceGeo(),
       loadExistingCarte(),
       loadPlanRestrictions(),
-      loadPendingAdminProposal(),
     ]);
     suppressDirtyTracking = false;
     setDraftState(false);

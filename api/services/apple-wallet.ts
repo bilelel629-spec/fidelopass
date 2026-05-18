@@ -239,7 +239,7 @@ export async function generateApplePass(
     backgroundColor: hexToRgb(carte.couleur_fond),
     labelColor: hexToRgb(carte.couleur_accent),
     logoText: walletDisplayName,
-    authenticationToken: client.id,
+    authenticationToken: (client as { apple_auth_token?: string | null }).apple_auth_token ?? client.id,
     storeCard: {
       // headerFields : coin supérieur droit (solde)
       headerFields: [
@@ -450,6 +450,8 @@ export async function generateApplePass(
  * ⚠️  La notification visible vient du `changeMessage` dans le pass.json,
  *     PAS du payload APNs. Le payload DOIT être {} pour les passes Wallet.
  */
+const APNS_TIMEOUT_MS = 10_000;
+
 export async function pushApplePassUpdate(pushToken: string, passTypeIdentifier: string): Promise<void> {
   const cert = readSecretFileOrEnv('signer.pem', 'APPLE_SIGNER_CERT_PEM');
   const key = readSecretFileOrEnv('key.pem', 'APPLE_SIGNER_KEY_PEM');
@@ -464,10 +466,13 @@ export async function pushApplePassUpdate(pushToken: string, passTypeIdentifier:
     const finish = (error?: Error) => {
       if (settled) return;
       settled = true;
+      clearTimeout(timer);
       session.close();
       if (error) reject(error);
       else resolvePromise();
     };
+
+    const timer = setTimeout(() => finish(new Error('APNs push timeout')), APNS_TIMEOUT_MS);
 
     session.on('error', finish);
 
@@ -492,6 +497,6 @@ export async function pushApplePassUpdate(pushToken: string, passTypeIdentifier:
       finish(new Error(`APNs Wallet update failed (${status}) ${body}`));
     });
     request.on('error', finish);
-    request.end('{}');
+    request.end();
   });
 }

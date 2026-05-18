@@ -1,12 +1,25 @@
 import { Hono } from 'hono';
+import type { ApiEnv } from '../types';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
+import { rateLimit } from '../middleware/rate-limit';
 import { randomUUID } from 'crypto';
 
-export const uploadRoutes = new Hono();
+export const uploadRoutes = new Hono<ApiEnv>();
 
 const BUCKET = 'cartes';
+
+const MAGIC_MIME_MAP: Array<{ mime: string; check: (b: Buffer) => boolean }> = [
+  { mime: 'image/png', check: (b) => b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47 },
+  { mime: 'image/jpeg', check: (b) => b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF },
+  { mime: 'image/gif', check: (b) => b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 },
+  { mime: 'image/webp', check: (b) => b.length >= 12 && b.subarray(0, 4).toString('binary') === 'RIFF' && b.subarray(8, 12).toString('binary') === 'WEBP' },
+];
+
+function detectMimeFromBytes(buf: Buffer): string | null {
+  return MAGIC_MIME_MAP.find((entry) => entry.check(buf))?.mime ?? null;
+}
 
 async function ensureBucket(db: ReturnType<typeof createServiceClient>) {
   const { data: buckets } = await db.storage.listBuckets();
@@ -17,7 +30,7 @@ async function ensureBucket(db: ReturnType<typeof createServiceClient>) {
 }
 
 /** POST /api/upload — Upload d'une image vers Supabase Storage */
-uploadRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
+uploadRoutes.post('/', rateLimit(20, 60_000), authMiddleware, paidMiddleware, async (c) => {
   const userId = c.get('userId') as string;
 
   const body = await c.req.parseBody();
@@ -39,17 +52,23 @@ uploadRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
     return c.json({ error: 'Fichier trop lourd (max 5 Mo)' }, 400);
   }
 
+  const buffer = Buffer.from(await fileObj.arrayBuffer());
+
+  const detectedMime = detectMimeFromBytes(buffer);
+  if (!detectedMime) {
+    return c.json({ error: 'Fichier non reconnu. Seuls PNG, JPG, WEBP et GIF sont acceptés.' }, 400);
+  }
+
   const db = createServiceClient();
 
   // Crée le bucket s'il n'existe pas encore
   await ensureBucket(db);
 
   const filename = `${userId}/${randomUUID()}.${ext}`;
-  const buffer = Buffer.from(await fileObj.arrayBuffer());
 
   const { data, error } = await db.storage
     .from(BUCKET)
-    .upload(filename, buffer, { contentType: fileObj.type, upsert: true });
+    .upload(filename, buffer, { contentType: detectedMime, upsert: true });
 
   if (error) {
     console.error('[Upload]', error);

@@ -1,17 +1,16 @@
 import type { Context, Next } from 'hono';
+import type { ApiEnv } from '../types';
 
-const builtInAdmins = ['bilelel@live.fr', 'bilelel629@gmail.com'];
-
-const adminEmails = Array.from(new Set([...builtInAdmins, ...(process.env.ADMIN_EMAILS ?? '')
+const adminEmails = (process.env.ADMIN_EMAILS ?? '')
   .split(',')
-  .map((e) => e.trim())
-  .filter(Boolean)]));
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
 
 /** Vérifie que l'utilisateur est super admin (email dans ADMIN_EMAILS) */
-export async function adminMiddleware(c: Context, next: Next) {
+export async function adminMiddleware(c: Context<ApiEnv>, next: Next) {
   const user = c.get('user');
 
-  if (!user?.email || !adminEmails.includes(user.email)) {
+  if (!user?.email || !adminEmails.includes(user.email.toLowerCase())) {
     return c.json({ error: 'Accès réservé aux administrateurs' }, 403);
   }
 

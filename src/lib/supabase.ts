@@ -1,16 +1,15 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from './database.types';
+import { createClient } from '@supabase/supabase-js';
 
 // PUBLIC_ = accessible navigateur + serveur Astro
 // Sans préfixe = serveur uniquement (API Hono / Node.js)
 const supabaseUrl =
-  (typeof import.meta !== 'undefined' && (import.meta.env?.PUBLIC_SUPABASE_URL || import.meta.env?.SUPABASE_URL))
+  (typeof import.meta !== 'undefined' ? (import.meta.env.PUBLIC_SUPABASE_URL || import.meta.env.SUPABASE_URL) : undefined)
   ?? process.env.PUBLIC_SUPABASE_URL
   ?? process.env.SUPABASE_URL
   ?? '';
 
 const supabaseAnonKey =
-  (typeof import.meta !== 'undefined' && (import.meta.env?.PUBLIC_SUPABASE_ANON_KEY || import.meta.env?.SUPABASE_ANON_KEY))
+  (typeof import.meta !== 'undefined' ? (import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY) : undefined)
   ?? process.env.PUBLIC_SUPABASE_ANON_KEY
   ?? process.env.SUPABASE_ANON_KEY
   ?? '';
@@ -19,21 +18,16 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase env vars manquantes — vérifiez votre .env');
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-/** Client avec la service role key — côté serveur/API uniquement.
- *
- * Les routes API utilisent beaucoup de sélections relationnelles Supabase dynamiques.
- * On garde le client public typé, mais le client service role volontairement souple
- * pour éviter que le typecheck API casse à chaque migration non régénérée.
- */
-export function createServiceClient(): SupabaseClient<any> {
+/** Client avec la service role key — côté serveur/API uniquement */
+export function createServiceClient() {
   const serviceKey =
-    (typeof import.meta !== 'undefined' && import.meta.env?.SUPABASE_SERVICE_ROLE_KEY)
+    (typeof import.meta !== 'undefined' ? import.meta.env.SUPABASE_SERVICE_ROLE_KEY : undefined)
     ?? process.env.SUPABASE_SERVICE_ROLE_KEY
     ?? '';
   if (!serviceKey) throw new Error('SUPABASE_SERVICE_ROLE_KEY est requis');
-  return createClient<any>(supabaseUrl, serviceKey, {
+  return createClient(supabaseUrl, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }

@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import type { ApiEnv } from '../types';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
@@ -6,7 +7,7 @@ import { getPlanLimits, normalizePlan } from './commerces';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
 
-export const dashboardRoutes = new Hono();
+export const dashboardRoutes = new Hono<ApiEnv>();
 
 dashboardRoutes.use('*', authMiddleware);
 dashboardRoutes.use('*', paidMiddleware);

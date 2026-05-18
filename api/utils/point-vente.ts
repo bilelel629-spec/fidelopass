@@ -2,6 +2,7 @@ import type { Context } from 'hono';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 type CommerceRow = {
+  [key: string]: unknown;
   id: string;
   plan: string | null;
   plan_override?: string | null;

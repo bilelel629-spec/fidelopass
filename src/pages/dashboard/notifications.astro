@@ -4,58 +4,34 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
 <DashboardLayout title="Notifications push — Fidelopass" activeNav="notifications">
   <div class="mb-6">
-    <p class="dashboard-kicker">Communication client</p>
-    <h1 class="dashboard-title">Notifications push</h1>
-    <p class="dashboard-subtitle">Envoyez un message immédiat ou activez des automatisations pour vos clients Wallet.</p>
+    <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Communication client</p>
+    <h1 class="mt-2 font-display text-3xl font-bold text-slate-900">Notifications push</h1>
+    <p class="mt-2 text-sm text-slate-600">Envoyez un message immédiat ou activez des automatisations pour vos clients Wallet.</p>
   </div>
 
-  <div class="mb-5 grid gap-4 sm:grid-cols-2">
-    <div class="card dashboard-panel p-5">
+  <div class="mb-5 grid gap-4 sm:grid-cols-2" data-tour="notifications-summary">
+    <div class="card p-5">
       <p class="text-slate-500 text-xs uppercase tracking-wide">Clients joignables Wallet</p>
       <p id="summary-wallet" class="mt-2 text-2xl font-display font-bold text-slate-900">—</p>
       <p class="mt-1 text-xs text-slate-500">Apple Wallet + Google Wallet</p>
     </div>
-    <div class="card dashboard-panel p-5">
+    <div class="card p-5">
       <p class="text-slate-500 text-xs uppercase tracking-wide">Campagnes envoyées</p>
       <p id="summary-history" class="mt-2 text-2xl font-display font-bold text-slate-900">—</p>
       <p class="mt-1 text-xs text-slate-500">Historique du point de vente actif</p>
     </div>
   </div>
 
-  <div class="mb-5 grid gap-3 lg:grid-cols-3">
-    <button type="button" data-tab-shortcut="manual" class="notif-shortcut rounded-3xl border border-sky-100 bg-white p-4 text-left shadow-[0_16px_38px_-32px_rgba(37,99,235,0.45)] transition hover:-translate-y-0.5 hover:border-sky-200">
-      <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-sky-700/70">Immédiat</p>
-      <p class="mt-2 text-sm font-bold text-slate-900">Envoyer un message maintenant</p>
-      <p class="mt-1 text-xs leading-5 text-slate-500">Idéal pour une offre du jour ou une relance rapide.</p>
-    </button>
-    <button type="button" data-tab-shortcut="automation" class="notif-shortcut rounded-3xl border border-violet-100 bg-white p-4 text-left shadow-[0_16px_38px_-32px_rgba(79,70,229,0.45)] transition hover:-translate-y-0.5 hover:border-violet-200">
-      <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-violet-700/70">Automatique</p>
-      <p class="mt-2 text-sm font-bold text-slate-900">Programmer les moments clés</p>
-      <p class="mt-1 text-xs leading-5 text-slate-500">Avis Google, anniversaire et prochains scénarios clients.</p>
-    </button>
-    <button type="button" data-tab-shortcut="history" class="notif-shortcut rounded-3xl border border-slate-200 bg-white p-4 text-left shadow-[0_16px_38px_-32px_rgba(15,23,42,0.2)] transition hover:-translate-y-0.5 hover:border-slate-300">
-      <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Suivi</p>
-      <p class="mt-2 text-sm font-bold text-slate-900">Voir ce qui a été envoyé</p>
-      <p class="mt-1 text-xs leading-5 text-slate-500">Historique filtré sur le point de vente actif.</p>
-    </button>
-  </div>
-
-  <div class="mb-5 dashboard-tabs">
+  <div class="mb-5 rounded-2xl border border-sky-100 bg-white p-2">
     <div class="grid gap-2 sm:grid-cols-3">
-      <button type="button" data-tab="manual" class="notif-tab dashboard-tab dashboard-tab-active">Envoi manuel</button>
-      <button type="button" data-tab="automation" class="notif-tab dashboard-tab">Automatisations</button>
-      <button type="button" data-tab="history" class="notif-tab dashboard-tab">Historique</button>
+      <button type="button" data-tab="manual" class="notif-tab rounded-xl bg-sky-100 px-4 py-2.5 text-sm font-semibold text-sky-800">Envoi manuel</button>
+      <button type="button" data-tab="automation" class="notif-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Automatisations</button>
+      <button type="button" data-tab="history" class="notif-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Historique</button>
     </div>
   </div>
 
-  <section id="tab-manual" class="notif-panel card dashboard-panel p-6">
-    <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h2 class="font-display font-bold text-slate-900">Nouveau message client</h2>
-        <p class="mt-1 text-sm text-slate-500">Le nom de la carte apparaît déjà comme expéditeur: écrivez seulement le message utile.</p>
-      </div>
-      <span class="w-fit rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-emerald-700">Wallet-first</span>
-    </div>
+  <section id="tab-manual" class="notif-panel card p-6" data-tour="notifications-compose">
+    <h2 class="mb-4 font-display font-bold text-slate-900">Nouveau message client</h2>
     <form id="notif-form" class="flex flex-col gap-4">
       <div>
         <label class="label" for="titre">Titre</label>
@@ -71,6 +47,22 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <button type="submit" class="btn-primary py-3">Envoyer le message</button>
     </form>
 
+    <div class="mt-6 rounded-2xl border border-sky-100 bg-sky-50/35 p-4">
+      <div class="mb-3 flex items-start justify-between gap-3">
+        <div>
+          <h3 class="font-semibold text-slate-900">Fond du logo des notifications</h3>
+          <p class="mt-0.5 text-xs text-slate-500">Réglage identique à l’onglet Automatisations, appliqué au point de vente sélectionné.</p>
+        </div>
+        <div id="push-icon-preview-manual" class="h-10 w-10 rounded-xl border border-slate-200 shadow-inner"></div>
+      </div>
+      <div id="push-icon-error-manual" class="mb-2 hidden rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"></div>
+      <div id="push-icon-success-manual" class="mb-2 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"></div>
+      <div class="space-y-2">
+        <label class="label" for="push-icon-bg-color-manual">Couleur du fond</label>
+        <input id="push-icon-bg-color-manual" type="color" value="#6366f1" class="h-11 w-full cursor-pointer rounded-xl border border-slate-200 bg-white" />
+        <p id="push-icon-status-manual" class="text-xs text-slate-500">Chargement du réglage...</p>
+      </div>
+    </div>
   </section>
 
   <section id="tab-automation" class="notif-panel hidden space-y-5">
@@ -80,13 +72,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <h2 class="font-display font-bold text-slate-900">Avis Google automatique (+1h)</h2>
           <p class="mt-1 text-sm text-slate-500">Push envoyé 60 minutes après l’installation de la carte.</p>
         </div>
-        <span class="rounded-full border border-amber-200 bg-amber-100 px-2 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-700">Pro · inclus pendant l’essai</span>
+        <span class="rounded-full border border-amber-200 bg-amber-100 px-2 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-700">Pro uniquement</span>
       </div>
       <div class="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
         Plan actuel: <span id="review-auto-plan-value" class="font-semibold text-slate-900">Chargement...</span>
       </div>
       <div id="review-auto-locked" class="mb-4 hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-        Cette fonctionnalité est incluse pendant l’essai gratuit, puis réservée au plan Pro.
+        Cette fonctionnalité est réservée au plan Pro.
       </div>
       <div id="review-auto-error" class="mb-3 hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
       <div id="review-auto-success" class="mb-3 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
@@ -126,7 +118,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
         <div>
           <label class="label" for="birthday-title">Titre du push</label>
-          <input id="birthday-title" type="text" maxlength="80" class="input" placeholder="Joyeux anniversaire" />
+          <input id="birthday-title" type="text" maxlength="80" class="input" placeholder="Joyeux anniversaire 🎉" />
         </div>
         <div>
           <label class="label" for="birthday-message">Message du push</label>
@@ -145,9 +137,25 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <p id="birthday-status" class="mt-2 text-center text-xs text-slate-500">Chargement du statut...</p>
     </div>
 
+    <div class="card border-sky-100 bg-white p-6">
+      <div class="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h2 class="font-display font-bold text-slate-900">Fond du logo des notifications</h2>
+          <p class="mt-1 text-sm text-slate-500">Couleur affichée derrière le logo commerçant dans les notifications Wallet.</p>
+        </div>
+        <div id="push-icon-preview" class="h-11 w-11 rounded-xl border border-slate-200 shadow-inner"></div>
+      </div>
+      <div id="push-icon-error" class="mb-3 hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+      <div id="push-icon-success" class="mb-3 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
+      <div class="space-y-2">
+        <label class="label" for="push-icon-bg-color">Couleur du fond</label>
+        <input id="push-icon-bg-color" type="color" value="#6366f1" class="h-11 w-full cursor-pointer rounded-xl border border-slate-200 bg-white" />
+        <p id="push-icon-status" class="text-xs text-slate-500">Chargement du réglage...</p>
+      </div>
+    </div>
   </section>
 
-  <section id="tab-history" class="notif-panel hidden card dashboard-panel p-6">
+  <section id="tab-history" class="notif-panel hidden card p-6">
     <h2 class="mb-4 font-display font-bold text-slate-900">Historique des messages</h2>
     <div id="notif-history" class="flex flex-col gap-3">
       <p class="text-sm text-slate-500">Chargement...</p>
@@ -158,7 +166,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 <script>
   import { ACTIVE_POINT_VENTE_STORAGE_KEY, authFetch } from '../../lib/api';
   import { isProPlan, normalizePlan } from '../../lib/dashboard-config';
-  import { pointAwareFetch as pointAwareFetchShared } from '../../lib/point-aware-fetch';
 
   function escapeHtml(value: unknown) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -170,16 +177,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }[char] ?? char));
   }
 
-  function toNonNegativeNumber(value: unknown) {
-    const numberValue = Number(value ?? 0);
-    return Number.isFinite(numberValue) ? Math.max(0, numberValue) : 0;
-  }
-
-  function formatDate(value: unknown) {
-    const date = new Date(String(value ?? ''));
-    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('fr-FR');
-  }
-
   function setNotifTab(tab: 'manual' | 'automation' | 'history') {
     document.querySelectorAll<HTMLElement>('.notif-panel').forEach((panel) => panel.classList.add('hidden'));
     document.getElementById(`tab-${tab}`)?.classList.remove('hidden');
@@ -187,16 +184,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     document.querySelectorAll<HTMLElement>('.notif-tab').forEach((btn) => {
       const active = btn.dataset.tab === tab;
       btn.className = active
-        ? 'notif-tab dashboard-tab dashboard-tab-active'
-        : 'notif-tab dashboard-tab';
+        ? 'notif-tab rounded-xl bg-sky-100 px-4 py-2.5 text-sm font-semibold text-sky-800'
+        : 'notif-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50';
     });
   }
 
   document.querySelectorAll<HTMLElement>('.notif-tab').forEach((btn) => {
     btn.addEventListener('click', () => setNotifTab((btn.dataset.tab as 'manual' | 'automation' | 'history') ?? 'manual'));
-  });
-  document.querySelectorAll<HTMLElement>('.notif-shortcut').forEach((btn) => {
-    btn.addEventListener('click', () => setNotifTab((btn.dataset.tabShortcut as 'manual' | 'automation' | 'history') ?? 'manual'));
   });
 
   const messageInput = document.getElementById('message') as HTMLTextAreaElement;
@@ -213,11 +207,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   let summaryHistory = 0;
   let reviewAutoEnabled = false;
   let reviewAutoIsPro = false;
-  let reviewAutoTrialActive = false;
   let birthdayEnabled = false;
   let birthdayIsPro = false;
-  const SETTINGS_FETCH_RETRIES = 3;
-  const API_FETCH_TIMEOUT_MS = Number(import.meta.env.PUBLIC_API_FETCH_TIMEOUT_MS ?? 3500);
 
   const reviewAutoToggle = document.getElementById('review-auto-toggle') as HTMLButtonElement;
   const reviewAutoKnob = document.getElementById('review-auto-knob') as HTMLSpanElement;
@@ -237,52 +228,45 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const birthdayRewardValue = document.getElementById('birthday-reward-value') as HTMLInputElement;
   const birthdayTitle = document.getElementById('birthday-title') as HTMLInputElement;
   const birthdayMessage = document.getElementById('birthday-message') as HTMLTextAreaElement;
-  let cachedPlan: string | null = null;
-  let bootstrapToken = 0;
+  const pushIconColorInput = document.getElementById('push-icon-bg-color') as HTMLInputElement;
+  const pushIconColorInputManual = document.getElementById('push-icon-bg-color-manual') as HTMLInputElement | null;
+  const pushIconPreview = document.getElementById('push-icon-preview') as HTMLDivElement;
+  const pushIconPreviewManual = document.getElementById('push-icon-preview-manual') as HTMLDivElement | null;
+  const pushIconStatus = document.getElementById('push-icon-status') as HTMLParagraphElement;
+  const pushIconStatusManual = document.getElementById('push-icon-status-manual') as HTMLParagraphElement | null;
+  const pushIconError = document.getElementById('push-icon-error') as HTMLDivElement;
+  const pushIconErrorManual = document.getElementById('push-icon-error-manual') as HTMLDivElement | null;
+  const pushIconSuccess = document.getElementById('push-icon-success') as HTMLDivElement;
+  const pushIconSuccessManual = document.getElementById('push-icon-success-manual') as HTMLDivElement | null;
+  const pushIconInputs = [pushIconColorInput, pushIconColorInputManual].filter(Boolean) as HTMLInputElement[];
+  const pushIconPreviews = [pushIconPreview, pushIconPreviewManual].filter(Boolean) as HTMLDivElement[];
+  const pushIconStatuses = [pushIconStatus, pushIconStatusManual].filter(Boolean) as HTMLParagraphElement[];
+  const pushIconErrors = [pushIconError, pushIconErrorManual].filter(Boolean) as HTMLDivElement[];
+  const pushIconSuccesses = [pushIconSuccess, pushIconSuccessManual].filter(Boolean) as HTMLDivElement[];
+  let cachedPlan: string = 'starter';
+  let pushIconSaveTimer: ReturnType<typeof setTimeout> | null = null;
+  let pushIconLastSavedColor = '#6366f1';
+  let pushIconIsSaving = false;
 
-  function isCurrentBootstrap(token: number) {
-    return token === bootstrapToken;
-  }
-
-  function sleep(ms: number) {
-    return new Promise((resolve) => window.setTimeout(resolve, ms));
-  }
-
-  function readPlanFromBadge(): string | null {
-    const planText = (
-      document.getElementById('dashboard-plan-badge')?.textContent
-      ?? document.getElementById('dashboard-plan-badge-mobile')?.textContent
-      ?? ''
-    ).trim().toLowerCase();
-    if (!planText || planText === 'chargement...' || planText === '...') return null;
-    if (planText.includes('sur') || planText.includes('mesure') || planText.includes('custom')) return 'sur-mesure';
-    if (planText.includes('pro')) return 'pro';
-    if (planText.includes('starter')) return 'starter';
-    return null;
-  }
-
-  async function pointAwareFetch(path: string, init?: RequestInit): Promise<Response> {
-    return pointAwareFetchShared(authFetch, path, init, {
-      storageKey: ACTIVE_POINT_VENTE_STORAGE_KEY,
-      timeoutMs: API_FETCH_TIMEOUT_MS,
-    });
+  function withPointVente(path: string): string {
+    if (typeof window === 'undefined') return path;
+    try {
+      const pointVenteId = window.localStorage.getItem(ACTIVE_POINT_VENTE_STORAGE_KEY)?.trim() ?? '';
+      if (!pointVenteId) return path;
+      const separator = path.includes('?') ? '&' : '?';
+      return `${path}${separator}point_vente_id=${encodeURIComponent(pointVenteId)}`;
+    } catch {
+      return path;
+    }
   }
 
   function setReviewPlanLabel(planRaw: unknown) {
-    const raw = String(planRaw ?? '').trim();
-    if (!raw || /chargement|indisponible/i.test(raw)) {
-      reviewAutoPlanValue.textContent = 'Indisponible';
-      return;
-    }
-    const normalized = normalizePlan(raw);
+    const normalized = normalizePlan(planRaw);
     if (normalized.includes('sur-mesure') || normalized.includes('surmesure') || normalized.includes('custom') || normalized.includes('enterprise')) {
       reviewAutoPlanValue.textContent = 'Sur mesure';
       return;
     }
-    const baseLabel = isProPlan(normalized) ? 'Pro' : 'Starter';
-    reviewAutoPlanValue.textContent = reviewAutoTrialActive && !isProPlan(normalized)
-      ? `${baseLabel} (essai gratuit)`
-      : baseLabel;
+    reviewAutoPlanValue.textContent = isProPlan(normalized) ? 'Pro' : 'Starter';
   }
 
   function setReviewToggle(enabled: boolean) {
@@ -294,12 +278,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   function setBirthdayPlanLabel(planRaw: unknown) {
-    const raw = String(planRaw ?? '').trim();
-    if (!raw || /chargement|indisponible/i.test(raw)) {
-      birthdayPlanValue.textContent = 'Indisponible';
-      return;
-    }
-    const normalized = normalizePlan(raw);
+    const normalized = normalizePlan(planRaw);
     if (normalized.includes('sur-mesure') || normalized.includes('surmesure') || normalized.includes('custom') || normalized.includes('enterprise')) {
       birthdayPlanValue.textContent = 'Sur mesure';
       return;
@@ -324,55 +303,65 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     birthdayToggle.classList.toggle('cursor-not-allowed', disabled);
   }
 
+  function syncPushIconInputs(color: string, source?: HTMLInputElement) {
+    pushIconInputs.forEach((input) => {
+      if (source && input === source) return;
+      input.value = color;
+    });
+  }
+
+  function updatePushIconPreview(color: string) {
+    pushIconPreviews.forEach((preview) => {
+      preview.style.background = color;
+    });
+  }
+
+  function setPushIconStatusText(text: string) {
+    pushIconStatuses.forEach((status) => { status.textContent = text; });
+  }
+
+  function setPushIconInputsDisabled(disabled: boolean) {
+    pushIconInputs.forEach((input) => { input.disabled = disabled; });
+  }
+
+  function hidePushIconAlerts() {
+    pushIconErrors.forEach((el) => el.classList.add('hidden'));
+    pushIconSuccesses.forEach((el) => el.classList.add('hidden'));
+  }
+
+  function showPushIconError(text: string) {
+    pushIconErrors.forEach((el) => {
+      el.textContent = text;
+      el.classList.remove('hidden');
+    });
+  }
+
+  function showPushIconSuccess(text: string) {
+    pushIconSuccesses.forEach((el) => {
+      el.textContent = text;
+      el.classList.remove('hidden');
+    });
+  }
+
   async function loadPlanFallback() {
-    const badgePlan = readPlanFromBadge();
-    if (badgePlan) cachedPlan = badgePlan;
-
-    for (let attempt = 0; attempt < SETTINGS_FETCH_RETRIES; attempt += 1) {
-      try {
-        const res = await pointAwareFetch('/api/dashboard/plan');
-        const payload = await res.json().catch(() => null);
-        if (res.ok) {
-          const nextPlan = String(payload?.data?.plan ?? payload?.data?.raw_plan ?? '').trim();
-          if (nextPlan) {
-            cachedPlan = nextPlan;
-            return;
-          }
-        }
-      } catch {
-        // retry
-      }
-      await sleep((attempt + 1) * 250);
-    }
-
-    for (let attempt = 0; attempt < SETTINGS_FETCH_RETRIES; attempt += 1) {
-      try {
-        const res = await pointAwareFetch('/api/commerces/me');
-        const payload = await res.json().catch(() => null);
-        if (res.ok) {
-          const nextPlan = String(payload?.data?.plan_override ?? payload?.data?.plan ?? '').trim();
-          if (nextPlan) {
-            cachedPlan = nextPlan;
-            return;
-          }
-        }
-      } catch {
-        // retry
-      }
-      await sleep((attempt + 1) * 250);
+    try {
+      const res = await authFetch(withPointVente('/api/dashboard/plan'));
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) return;
+      cachedPlan = String(payload?.data?.plan ?? payload?.data?.raw_plan ?? 'starter');
+    } catch {
+      cachedPlan = 'starter';
     }
   }
 
-  async function loadSummary(token = bootstrapToken) {
+  async function loadSummary() {
     try {
       const [summaryRes, historyRes] = await Promise.all([
-        pointAwareFetch('/api/notifications/summary'),
-        pointAwareFetch('/api/notifications?limit=50'),
+        authFetch(withPointVente('/api/notifications/summary')),
+        authFetch(withPointVente('/api/notifications?limit=50')),
       ]);
-      if (!isCurrentBootstrap(token)) return;
       const summaryPayload = await summaryRes.json().catch(() => null);
       const historyPayload = await historyRes.json().catch(() => null);
-      if (!isCurrentBootstrap(token)) return;
 
       summaryWallet = summaryPayload?.data?.wallet_ready ?? 0;
       summaryHistory = Array.isArray(historyPayload?.data) ? historyPayload.data.length : 0;
@@ -380,44 +369,36 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       document.getElementById('summary-wallet')!.textContent = String(summaryWallet);
       document.getElementById('summary-history')!.textContent = String(summaryHistory);
     } catch {
-      if (!isCurrentBootstrap(token)) return;
       document.getElementById('summary-wallet')!.textContent = '—';
       document.getElementById('summary-history')!.textContent = '—';
     }
   }
 
-  async function loadHistory(token = bootstrapToken) {
+  async function loadHistory() {
     const container = document.getElementById('notif-history')!;
     try {
-      const res = await pointAwareFetch('/api/notifications?limit=20');
-      if (!isCurrentBootstrap(token)) return;
+      const res = await authFetch(withPointVente('/api/notifications?limit=20'));
       if (!res.ok) throw new Error();
       const { data } = await res.json();
-      if (!isCurrentBootstrap(token)) return;
 
       if (!data?.length) {
         container.innerHTML = '<p class="text-slate-500 text-sm">Aucune notification envoyée.</p>';
         return;
       }
 
-      container.innerHTML = data.map((n: { titre?: string; message?: string; nb_destinataires?: number; nb_delivrees?: number | null; created_at?: string }) => {
-        const delivered = toNonNegativeNumber(n.nb_delivrees);
-        const recipients = toNonNegativeNumber(n.nb_destinataires);
-        return `
-          <div class="border-b border-slate-200 pb-3 last:border-0 last:pb-0">
-            <div class="flex items-start justify-between gap-2">
-              <div>
-                <p class="text-sm font-medium text-slate-900">${escapeHtml(n.titre)}</p>
-                <p class="mt-0.5 text-xs text-slate-600">${escapeHtml(n.message)}</p>
-              </div>
-              <span class="badge badge-info shrink-0">${escapeHtml(delivered)}/${escapeHtml(recipients)}</span>
+      container.innerHTML = data.map((n: { titre: string; message: string; nb_destinataires: number; nb_delivrees: number | null; created_at: string }) => `
+        <div class="border-b border-slate-200 pb-3 last:border-0 last:pb-0">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <p class="text-sm font-medium text-slate-900">${escapeHtml(n.titre)}</p>
+              <p class="mt-0.5 text-xs text-slate-600">${escapeHtml(n.message)}</p>
             </div>
-            <p class="mt-1 text-xs text-slate-500">${escapeHtml(formatDate(n.created_at))}</p>
+            <span class="badge badge-info shrink-0">${n.nb_delivrees ?? 0}/${n.nb_destinataires}</span>
           </div>
-        `;
-      }).join('');
+          <p class="mt-1 text-xs text-slate-500">${new Date(n.created_at).toLocaleString('fr-FR')}</p>
+        </div>
+      `).join('');
     } catch {
-      if (!isCurrentBootstrap(token)) return;
       container.innerHTML = '<p class="text-red-600 text-sm">Erreur lors du chargement.</p>';
     }
   }
@@ -431,9 +412,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     btn.textContent = 'Envoi en cours...';
 
     try {
+      if (pushIconSaveTimer) {
+        clearTimeout(pushIconSaveTimer);
+        pushIconSaveTimer = null;
+      }
+      await savePushIconColorNow(pushIconInputs[0]?.value ?? '#6366f1');
+
       const titre = (document.getElementById('titre') as HTMLInputElement).value.trim();
       const message = messageInput.value.trim();
-      const res = await pointAwareFetch('/api/notifications', {
+      const res = await authFetch(withPointVente('/api/notifications'), {
         method: 'POST',
         body: JSON.stringify({ titre, message }),
       });
@@ -446,7 +433,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       successMsg.classList.remove('hidden');
       form.reset();
       charCount.textContent = '0';
-      await Promise.all([loadSummary(bootstrapToken), loadHistory(bootstrapToken)]);
+      await Promise.all([loadSummary(), loadHistory()]);
     } catch (error: unknown) {
       errorMsg.textContent = error instanceof Error ? error.message : 'Erreur réseau.';
       errorMsg.classList.remove('hidden');
@@ -456,49 +443,32 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   });
 
-  async function loadReviewAutoSettings(token = bootstrapToken) {
-    for (let attempt = 0; attempt < SETTINGS_FETCH_RETRIES; attempt += 1) {
-      try {
-        const res = await pointAwareFetch('/api/notifications/review-reminder-settings');
-        if (!isCurrentBootstrap(token)) return;
-        const payload = await res.json().catch(() => null);
-        if (!isCurrentBootstrap(token)) return;
-        if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage.');
+  async function loadReviewAutoSettings() {
+    try {
+      const res = await authFetch(withPointVente('/api/notifications/review-reminder-settings'));
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage.');
 
-        reviewAutoTrialActive = Boolean(payload?.data?.trial_active);
-        reviewAutoIsPro = Boolean(payload?.data?.is_pro) || isProPlan(payload?.data?.plan ?? payload?.data?.raw_plan);
-        setReviewPlanLabel(payload?.data?.plan ?? payload?.data?.raw_plan ?? cachedPlan);
-        setReviewToggle(Boolean(payload?.data?.enabled));
+      reviewAutoIsPro = Boolean(payload?.data?.is_pro) || isProPlan(payload?.data?.plan ?? payload?.data?.raw_plan);
+      setReviewPlanLabel(payload?.data?.plan);
+      setReviewToggle(Boolean(payload?.data?.enabled));
 
-        if (!reviewAutoIsPro) {
-          reviewAutoLocked.classList.remove('hidden');
-          reviewAutoToggle.disabled = true;
-          reviewAutoToggle.classList.add('opacity-40', 'cursor-not-allowed');
-        } else {
-          reviewAutoLocked.classList.add('hidden');
-          reviewAutoToggle.disabled = false;
-          reviewAutoToggle.classList.remove('opacity-40', 'cursor-not-allowed');
-        }
-        return;
-      } catch {
-        if (attempt < SETTINGS_FETCH_RETRIES - 1) {
-          await sleep((attempt + 1) * 300);
-          continue;
-        }
+      if (!reviewAutoIsPro) {
+        reviewAutoLocked.classList.remove('hidden');
+        reviewAutoToggle.disabled = true;
+        reviewAutoToggle.classList.add('opacity-40', 'cursor-not-allowed');
+      } else {
+        reviewAutoLocked.classList.add('hidden');
+        reviewAutoToggle.disabled = false;
+        reviewAutoToggle.classList.remove('opacity-40', 'cursor-not-allowed');
       }
+    } catch {
+      setReviewPlanLabel('starter');
+      setReviewToggle(false);
+      reviewAutoToggle.disabled = true;
+      reviewAutoLocked.classList.remove('hidden');
+      reviewAutoStatus.textContent = 'Impossible de charger le statut pour le moment.';
     }
-
-    if (!isCurrentBootstrap(token)) return;
-    const fallbackPlan = cachedPlan ?? readPlanFromBadge();
-    const hasProSignal = isProPlan(fallbackPlan ?? '') || isProPlan(readPlanFromBadge() ?? '');
-    reviewAutoIsPro = hasProSignal;
-    setReviewPlanLabel(fallbackPlan ?? 'indisponible');
-    setReviewToggle(false);
-    reviewAutoToggle.disabled = !reviewAutoIsPro;
-    reviewAutoLocked.classList.toggle('hidden', reviewAutoIsPro);
-    reviewAutoToggle.classList.toggle('opacity-40', !reviewAutoIsPro);
-    reviewAutoToggle.classList.toggle('cursor-not-allowed', !reviewAutoIsPro);
-    reviewAutoStatus.textContent = 'Impossible de charger le statut pour le moment.';
   }
 
   reviewAutoToggle.addEventListener('click', async () => {
@@ -509,7 +479,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     try {
       const nextValue = !reviewAutoEnabled;
-      const res = await pointAwareFetch('/api/notifications/review-reminder-settings', {
+      const res = await authFetch(withPointVente('/api/notifications/review-reminder-settings'), {
         method: 'PATCH',
         body: JSON.stringify({ enabled: nextValue }),
       });
@@ -526,52 +496,96 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   });
 
-  async function loadBirthdaySettings(token = bootstrapToken) {
-    for (let attempt = 0; attempt < SETTINGS_FETCH_RETRIES; attempt += 1) {
-      try {
-        const res = await pointAwareFetch('/api/notifications/birthday-settings');
-        if (!isCurrentBootstrap(token)) return;
-        const payload = await res.json().catch(() => null);
-        if (!isCurrentBootstrap(token)) return;
-        if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage anniversaire.');
+  async function loadBirthdaySettings() {
+    try {
+      const res = await authFetch(withPointVente('/api/notifications/birthday-settings'));
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage anniversaire.');
 
-        birthdayIsPro = Boolean(payload?.data?.is_pro) || isProPlan(payload?.data?.plan ?? payload?.data?.raw_plan);
-        setBirthdayPlanLabel(payload?.data?.plan ?? payload?.data?.raw_plan ?? cachedPlan);
-        setBirthdayToggle(Boolean(payload?.data?.enabled));
-        birthdayRewardValue.value = String(payload?.data?.reward_value ?? 1);
-        birthdayTitle.value = String(payload?.data?.push_title ?? '');
-        birthdayMessage.value = String(payload?.data?.push_message ?? '');
+      birthdayIsPro = Boolean(payload?.data?.is_pro) || isProPlan(payload?.data?.plan ?? payload?.data?.raw_plan);
+      setBirthdayPlanLabel(payload?.data?.plan);
+      setBirthdayToggle(Boolean(payload?.data?.enabled));
+      birthdayRewardValue.value = String(payload?.data?.reward_value ?? 1);
+      birthdayTitle.value = String(payload?.data?.push_title ?? '');
+      birthdayMessage.value = String(payload?.data?.push_message ?? '');
 
-        if (!payload?.data?.has_active_card) {
-          setBirthdayFormDisabled(true);
-          birthdayStatus.textContent = 'Aucune carte active sur ce point de vente.';
-          return;
-        }
-
-        if (!birthdayIsPro) {
-          birthdayLocked.classList.remove('hidden');
-          setBirthdayFormDisabled(true);
-        } else {
-          birthdayLocked.classList.add('hidden');
-          setBirthdayFormDisabled(false);
-        }
+      if (!payload?.data?.has_active_card) {
+        setBirthdayFormDisabled(true);
+        birthdayStatus.textContent = 'Aucune carte active sur ce point de vente.';
         return;
-      } catch {
-        if (attempt < SETTINGS_FETCH_RETRIES - 1) {
-          await sleep((attempt + 1) * 300);
-          continue;
-        }
       }
-    }
 
-    if (!isCurrentBootstrap(token)) return;
-    const fallbackPlan = cachedPlan ?? readPlanFromBadge();
-    birthdayIsPro = isProPlan(fallbackPlan ?? '') || isProPlan(readPlanFromBadge() ?? '');
-    setBirthdayPlanLabel(fallbackPlan ?? 'indisponible');
-    setBirthdayToggle(false);
-    birthdayLocked.classList.toggle('hidden', birthdayIsPro);
-    setBirthdayFormDisabled(!birthdayIsPro);
-    birthdayStatus.textContent = 'Impossible de charger le statut pour le moment.';
+      if (!birthdayIsPro) {
+        birthdayLocked.classList.remove('hidden');
+        setBirthdayFormDisabled(true);
+      } else {
+        birthdayLocked.classList.add('hidden');
+        setBirthdayFormDisabled(false);
+      }
+    } catch {
+      setBirthdayPlanLabel(cachedPlan);
+      setBirthdayToggle(false);
+      birthdayLocked.classList.remove('hidden');
+      setBirthdayFormDisabled(true);
+      birthdayStatus.textContent = 'Impossible de charger le statut pour le moment.';
+    }
+  }
+
+  async function loadPushIconSettings() {
+    hidePushIconAlerts();
+    try {
+      const res = await authFetch(withPointVente('/api/notifications/push-icon-settings'));
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage.');
+      const color = String(payload?.data?.push_icon_bg_color ?? '#6366f1');
+      syncPushIconInputs(color);
+      pushIconLastSavedColor = color;
+      updatePushIconPreview(color);
+      setPushIconStatusText(payload?.data?.has_active_card
+        ? 'Réglage actif pour la carte du point de vente sélectionné.'
+        : 'Aucune carte active sur ce point de vente.');
+      setPushIconInputsDisabled(!payload?.data?.has_active_card);
+    } catch (error: unknown) {
+      setPushIconStatusText('Impossible de charger le réglage.');
+      setPushIconInputsDisabled(true);
+      showPushIconError(error instanceof Error ? error.message : 'Erreur réseau.');
+    }
+  }
+
+  async function persistPushIconColor(color: string) {
+    if (pushIconIsSaving) return null;
+    if (color === pushIconLastSavedColor) return null;
+    pushIconIsSaving = true;
+    try {
+      const res = await authFetch(withPointVente('/api/notifications/push-icon-settings'), {
+        method: 'PATCH',
+        body: JSON.stringify({ push_icon_bg_color: color }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(payload?.error ?? 'Impossible de mettre à jour la couleur.');
+      }
+      pushIconLastSavedColor = color;
+      return payload;
+    } finally {
+      pushIconIsSaving = false;
+    }
+  }
+
+  async function savePushIconColorNow(color: string) {
+    if (pushIconInputs.every((input) => input.disabled)) return;
+    hidePushIconAlerts();
+    try {
+      const payload = await persistPushIconColor(color);
+      if (!payload) return;
+      const refreshed = Number(payload?.data?.apple_refresh_sent ?? 0);
+      showPushIconSuccess(refreshed > 0
+        ? `Couleur appliquée. ${refreshed} carte(s) Apple Wallet mise(s) à jour.`
+        : 'Couleur de fond des notifications enregistrée.');
+      setPushIconStatusText('Réglage actif pour la carte du point de vente sélectionné.');
+    } catch (error: unknown) {
+      showPushIconError(error instanceof Error ? error.message : 'Erreur réseau.');
+    }
   }
 
   async function persistBirthdaySettings(nextEnabled: boolean) {
@@ -579,7 +593,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     if (!Number.isFinite(rewardValue) || rewardValue < 1 || rewardValue > 50) {
       throw new Error('Le bonus anniversaire doit être compris entre 1 et 50.');
     }
-    const res = await pointAwareFetch('/api/notifications/birthday-settings', {
+    const res = await authFetch(withPointVente('/api/notifications/birthday-settings'), {
       method: 'PATCH',
       body: JSON.stringify({
         enabled: nextEnabled,
@@ -629,39 +643,33 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     });
   });
 
-  async function bootstrapNotifications() {
-    const token = ++bootstrapToken;
-    const immediatePlan = cachedPlan ?? readPlanFromBadge();
-    if (immediatePlan) {
-      setReviewPlanLabel(immediatePlan);
-      setBirthdayPlanLabel(immediatePlan);
-    }
-    reviewAutoStatus.textContent = 'Chargement du statut...';
-    birthdayStatus.textContent = 'Chargement du statut...';
-    reviewAutoError.classList.add('hidden');
-    reviewAutoSuccess.classList.add('hidden');
-    birthdayError.classList.add('hidden');
-    birthdaySuccess.classList.add('hidden');
+  function bindPushIconInput(input: HTMLInputElement) {
+    input.addEventListener('input', () => {
+      const color = input.value;
+      syncPushIconInputs(color, input);
+      updatePushIconPreview(color);
+      if (pushIconSaveTimer) clearTimeout(pushIconSaveTimer);
+      pushIconSaveTimer = setTimeout(() => {
+        void savePushIconColorNow(color);
+      }, 220);
+    });
 
-    await loadPlanFallback();
-    if (!isCurrentBootstrap(token)) return;
-    const resolvedPlan = cachedPlan ?? readPlanFromBadge();
-    if (resolvedPlan) {
-      setReviewPlanLabel(resolvedPlan);
-      setBirthdayPlanLabel(resolvedPlan);
-    }
-    await Promise.all([
-      loadSummary(token),
-      loadHistory(token),
-      loadReviewAutoSettings(token),
-      loadBirthdaySettings(token),
-    ]);
+    input.addEventListener('change', async () => {
+      if (pushIconSaveTimer) clearTimeout(pushIconSaveTimer);
+      syncPushIconInputs(input.value, input);
+      updatePushIconPreview(input.value);
+      await savePushIconColorNow(input.value);
+    });
   }
 
-  window.addEventListener('fidelopass:point-vente-ready', () => {
-    void bootstrapNotifications();
-  });
+  pushIconInputs.forEach(bindPushIconInput);
 
   setNotifTab('manual');
-  void bootstrapNotifications();
+  loadSummary();
+  loadHistory();
+  loadPlanFallback().then(() => Promise.all([
+    loadReviewAutoSettings(),
+    loadBirthdaySettings(),
+    loadPushIconSettings(),
+  ]));
 </script>

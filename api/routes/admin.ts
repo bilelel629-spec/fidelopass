@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import type { ApiEnv } from '../types';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { adminMiddleware } from '../middleware/admin';
@@ -6,7 +7,7 @@ import { z } from 'zod';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
 import { appendAdminAuditLog, listAdminAuditLogs } from '../services/admin-audit';
 
-export const adminRoutes = new Hono();
+export const adminRoutes = new Hono<ApiEnv>();
 
 adminRoutes.use('*', authMiddleware);
 adminRoutes.use('*', adminMiddleware);

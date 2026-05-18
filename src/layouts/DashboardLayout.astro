@@ -1,7 +1,6 @@
 ---
 import '../styles/global.css';
 import DashboardNav from '../components/dashboard/DashboardNav.astro';
-import LanguageSwitcher from '../components/LanguageSwitcher.astro';
 
 interface Props {
   title?: string;
@@ -9,54 +8,6 @@ interface Props {
 }
 
 const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
-const contextualHelp: Record<string, { label: string; title: string; body: string }> = {
-  dashboard: {
-    label: 'À quoi ça sert ?',
-    title: 'Votre cockpit quotidien',
-    body: 'Cette page sert à voir quoi faire maintenant: créer la carte, installer le scanner, partager le QR ou suivre les premiers retours clients.',
-  },
-  carte: {
-    label: 'À quoi ça sert ?',
-    title: 'Créer et faire évoluer votre carte',
-    body: 'Chaque réglage modifie l’expérience Wallet de vos clients: identité, programme, couleurs, messages, géolocalisation et partage.',
-  },
-  scan: {
-    label: 'À quoi ça sert ?',
-    title: 'Scanner vite en caisse',
-    body: 'Cette page est prévue pour une scannette USB/Bluetooth: scannez le pass, ajoutez un point ou tampon, puis gardez le champ prêt pour le client suivant.',
-  },
-  notifications: {
-    label: 'À quoi ça sert ?',
-    title: 'Faire revenir vos clients',
-    body: 'Utilisez cet onglet pour envoyer une offre immédiate ou activer les automatisations Wallet comme avis Google et anniversaire.',
-  },
-  'points-vente': {
-    label: 'À quoi ça sert ?',
-    title: 'Gérer vos lieux indépendamment',
-    body: 'Chaque point de vente peut avoir sa carte, son adresse, son scanner et ses campagnes, surtout utile pour les commerces multi-sites.',
-  },
-  clients: {
-    label: 'À quoi ça sert ?',
-    title: 'Comprendre votre base fidèle',
-    body: 'Retrouvez vos clients, leurs points ou tampons, les récompenses disponibles et les profils à relancer.',
-  },
-  transactions: {
-    label: 'À quoi ça sert ?',
-    title: 'Suivre ce qui se passe en caisse',
-    body: 'L’historique permet de vérifier les scans, les ajouts de points ou tampons et les récompenses distribuées.',
-  },
-  parametres: {
-    label: 'À quoi ça sert ?',
-    title: 'Piloter votre compte commerçant',
-    body: 'Retrouvez ici vos informations, votre plan, la facturation et les paramètres d’organisation.',
-  },
-  'assistant-carte': {
-    label: 'À quoi ça sert ?',
-    title: 'Confier le design à notre équipe',
-    body: 'Si vous prenez l’accompagnement, notre équipe prépare une carte cohérente avec votre commerce puis vous la fait valider.',
-  },
-};
-const help = contextualHelp[activeNav];
 ---
 
 <!doctype html>
@@ -64,65 +15,32 @@ const help = contextualHelp[activeNav];
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f8fafc" />
+    <meta name="theme-color" content="#f5f9ff" />
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <title>{title}</title>
-    <script src="/i18n.js" defer></script>
   </head>
-  <body class="min-h-screen bg-transparent text-slate-900 antialiased">
+  <body class="min-h-screen bg-[#f5f9ff] text-slate-900 antialiased">
     <div class="pointer-events-none fixed inset-0 overflow-hidden">
-      <div class="absolute -top-36 right-[-9rem] h-[32rem] w-[32rem] rounded-full bg-blue-200/40 blur-3xl"></div>
-      <div class="absolute top-[22%] left-[-11rem] h-[28rem] w-[28rem] rounded-full bg-indigo-200/25 blur-3xl"></div>
-      <div class="absolute bottom-[-9rem] right-[14%] h-[20rem] w-[20rem] rounded-full bg-cyan-200/25 blur-3xl"></div>
-      <div class="absolute inset-x-0 top-0 h-52 bg-gradient-to-b from-white/85 to-transparent"></div>
+      <div class="absolute -top-28 right-[-8rem] h-[28rem] w-[28rem] rounded-full bg-cyan-200/45 blur-3xl"></div>
+      <div class="absolute top-1/3 left-[-9rem] h-[24rem] w-[24rem] rounded-full bg-blue-100/80 blur-3xl"></div>
+      <div class="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-white/80 to-transparent"></div>
     </div>
     <div class="flex min-h-screen lg:h-screen overflow-hidden">
       <DashboardNav activeNav={activeNav} />
-      <main class="relative z-10 flex-1 min-w-0 overflow-y-auto pb-24 lg:pb-8">
-        <div class="p-4 sm:p-6 md:p-7 pt-24 lg:pt-7 max-w-[88rem] mx-auto">
-          {help && (
-            <aside class="mb-4">
-              <button
-                id="dashboard-context-help-trigger"
-                type="button"
-                class="inline-flex items-center gap-2 rounded-full border border-sky-100/90 bg-white/85 px-3.5 py-2 text-xs font-bold text-sky-800 shadow-[0_14px_32px_-28px_rgba(37,99,235,0.45)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white"
-                aria-expanded="false"
-                aria-controls="dashboard-context-help-panel"
-              >
-                <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-sky-50 text-[11px] text-sky-700">?</span>
-                <span>{help.label}</span>
-                <svg
-                  id="dashboard-context-help-icon"
-                  class="h-3.5 w-3.5 transition-transform"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                </svg>
-              </button>
-              <div
-                id="dashboard-context-help-panel"
-                class="mt-3 hidden max-w-3xl rounded-[1.25rem] border border-sky-100/80 bg-white/88 px-4 py-3 shadow-[0_18px_42px_-32px_rgba(37,99,235,0.38)] backdrop-blur-xl sm:px-5"
-              >
-                <h2 class="font-display text-[0.98rem] font-bold leading-snug text-slate-900">{help.title}</h2>
-                <p class="mt-1 text-sm leading-6 text-slate-600">{help.body}</p>
-              </div>
-            </aside>
-          )}
+      <main class="relative z-10 flex-1 min-w-0 overflow-y-auto pb-24 lg:pb-0">
+        <div class="p-4 sm:p-6 md:p-8 pt-24 lg:pt-8 max-w-7xl mx-auto">
           <slot />
         </div>
       </main>
     </div>
-    <LanguageSwitcher />
   </body>
 </html>
 
 <script>
   import { createClient } from '@supabase/supabase-js';
-  import { clearSessionCookie, setSessionCookie } from '../lib/session-cookie';
+  import { requireFreshSession, showSessionOverlay } from '../lib/session-guard';
 
   const supabase = createClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
@@ -131,58 +49,78 @@ const help = contextualHelp[activeNav];
   const API = (import.meta.env.PUBLIC_API_URL ?? 'https://api.fidelopass.com').replace(/\/$/, '');
 
   type SessionLike = { access_token: string };
-  type TourStep = { selector: string; title: string; body: string };
+  type TourStep = {
+    path: string;
+    selector: string;
+    navSelector?: string;
+    title: string;
+    body: string;
+    action: string;
+  };
 
-  const contextHelpTrigger = document.getElementById('dashboard-context-help-trigger');
-  const contextHelpPanel = document.getElementById('dashboard-context-help-panel');
-  const contextHelpIcon = document.getElementById('dashboard-context-help-icon');
-
-  function setContextHelpOpen(open: boolean) {
-    if (!contextHelpTrigger || !contextHelpPanel) return;
-    contextHelpTrigger.setAttribute('aria-expanded', String(open));
-    contextHelpPanel.classList.toggle('hidden', !open);
-    contextHelpIcon?.classList.toggle('rotate-180', open);
-  }
-
-  contextHelpTrigger?.addEventListener('click', (event) => {
-    event.stopPropagation();
-    const isOpen = contextHelpTrigger.getAttribute('aria-expanded') === 'true';
-    setContextHelpOpen(!isOpen);
-  });
-
-  document.addEventListener('click', (event) => {
-    if (!contextHelpTrigger || !contextHelpPanel) return;
-    const target = event.target as Node | null;
-    if (target && (contextHelpTrigger.contains(target) || contextHelpPanel.contains(target))) return;
-    setContextHelpOpen(false);
-  });
-
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') setContextHelpOpen(false);
-  });
+  const TOUR_QUERY_KEY = 'fidelopass_tour_active';
+  const TOUR_STEP_KEY = 'fidelopass_tour_step';
+  const TOUR_POSTPONED_KEY = 'fidelopass_tour_postponed';
 
   const TOUR_STEPS: TourStep[] = [
-    { selector: 'a[href="/dashboard"]', title: 'Dashboard', body: 'Suivez vos indicateurs clés et les actions prioritaires de la journée.' },
-    { selector: 'a[href="/dashboard/carte"]', title: 'Ma carte', body: 'Personnalisez votre carte fidélité: visuel, programme, messages et options.' },
-    { selector: 'a[href="/dashboard/scan"]', title: 'Scan caisse', body: 'Utilisez une scannette qui agit comme un clavier pour valider les passages encore plus vite.' },
-    { selector: 'a[href="/dashboard/notifications"]', title: 'Notifications push', body: 'Envoyez des messages immédiats ou activez vos automatisations clients.' },
-    { selector: 'a[href="/dashboard/points-vente"]', title: 'Points de vente', body: 'Ajoutez vos lieux et passez facilement d’un point de vente à l’autre.' },
-    { selector: 'a[href="/dashboard/clients"]', title: 'Clients', body: 'Retrouvez les clients inscrits, les récompenses disponibles et les profils à relancer.' },
-    { selector: 'a[href="/dashboard/transactions"]', title: 'Historique', body: 'Vérifiez les passages en caisse, les ajouts et les récompenses distribuées.' },
-    { selector: 'a[href="/dashboard/assistant-carte"]', title: 'Assistant carte', body: 'Confiez la création de la carte à notre équipe si vous avez pris l’accompagnement.' },
-    { selector: 'a[href="/app"]', title: 'Scanner', body: 'Installez et ouvrez le scanner équipe pour valider les passages en caisse.' },
+    {
+      path: '/dashboard',
+      selector: '[data-tour="dashboard-actions"]',
+      navSelector: '[data-tour-nav="dashboard"]',
+      title: 'Votre poste de pilotage',
+      body: 'Cette zone rassemble les actions les plus fréquentes: scanner en caisse, afficher le QR client et relancer vos clients.',
+      action: 'Commencez ici quand vous voulez aller vite pendant la journée.',
+    },
+    {
+      path: '/dashboard',
+      selector: '[data-tour="dashboard-stats"]',
+      title: 'Les chiffres qui comptent',
+      body: 'Clients, scans, récompenses et clients joignables vous donnent une lecture rapide de la santé du programme.',
+      action: 'Surveillez surtout les scans du jour et les clients joignables Wallet.',
+    },
+    {
+      path: '/dashboard/carte',
+      selector: '[data-tour="card-editor-intro"]',
+      navSelector: '[data-tour-nav="carte"]',
+      title: 'Construire la carte Wallet',
+      body: 'La page Ma carte est le centre de création: identité, programme, design, messages et partage.',
+      action: 'Avancez étape par étape, puis enregistrez pour garder une carte cohérente.',
+    },
+    {
+      path: '/dashboard/carte',
+      selector: '[data-tour="card-program"]',
+      title: 'Choisir la mécanique fidélité',
+      body: 'Tampons pour une expérience simple en caisse, points pour plus de souplesse et des paliers avancés.',
+      action: 'Choisissez le modèle le plus simple pour votre équipe avant de personnaliser le visuel.',
+    },
+    {
+      path: '/dashboard/clients',
+      selector: '[data-tour="clients-list"]',
+      navSelector: '[data-tour-nav="clients"]',
+      title: 'Suivre vos clients fidèles',
+      body: 'La base client vous permet de retrouver un membre, consulter son solde et corriger manuellement ses points ou tampons.',
+      action: 'Cliquez sur un client pour ouvrir sa fiche et ajuster son solde si besoin.',
+    },
+    {
+      path: '/dashboard/notifications',
+      selector: '[data-tour="notifications-compose"]',
+      navSelector: '[data-tour-nav="notifications"]',
+      title: 'Faire revenir les clients',
+      body: 'Les notifications Wallet servent à annoncer une offre, rappeler une récompense ou automatiser des relances.',
+      action: 'Gardez vos messages courts, utiles et liés à une vraie raison de revenir.',
+    },
+    {
+      path: '/dashboard/parametres?tab=abonnement',
+      selector: '[data-tour="account-billing"]',
+      navSelector: '[data-tour-nav="parametres"]',
+      title: 'Gérer le compte commerçant',
+      body: 'L’espace compte regroupe profil, abonnement, moyens de paiement, scanners et organisation des points de vente.',
+      action: 'Revenez ici pour changer de plan, annuler, réactiver ou installer un scanner.',
+    },
   ];
 
-  function escapeHtml(value: unknown) {
-    return String(value ?? '')
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
-  }
-
   function getVisibleTarget(selector: string): HTMLElement | null {
+    if (!selector) return null;
     const nodes = Array.from(document.querySelectorAll<HTMLElement>(selector));
     return nodes.find((node) => node.offsetParent !== null) ?? nodes[0] ?? null;
   }
@@ -202,27 +140,86 @@ const help = contextualHelp[activeNav];
     }
   }
 
-  function startDashboardTour(accessToken: string) {
+  function getCurrentPath() {
+    return window.location.pathname;
+  }
+
+  function getStepFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get('step') ?? window.sessionStorage.getItem(TOUR_STEP_KEY) ?? '0';
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return 0;
+    return Math.min(Math.max(parsed, 0), TOUR_STEPS.length - 1);
+  }
+
+  function isTourForced() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('tour') === '1' || window.sessionStorage.getItem(TOUR_QUERY_KEY) === '1';
+  }
+
+  function makeTourUrl(stepIndex: number) {
+    const step = TOUR_STEPS[stepIndex];
+    const url = new URL(step.path, window.location.origin);
+    url.searchParams.set('tour', '1');
+    url.searchParams.set('step', String(stepIndex));
+    return `${url.pathname}${url.search}`;
+  }
+
+  function goToTourStep(stepIndex: number) {
+    window.sessionStorage.setItem(TOUR_QUERY_KEY, '1');
+    window.sessionStorage.removeItem(TOUR_POSTPONED_KEY);
+    window.sessionStorage.setItem(TOUR_STEP_KEY, String(stepIndex));
+    const stepUrl = makeTourUrl(stepIndex);
+    const destination = new URL(stepUrl, window.location.origin);
+    if (destination.pathname !== getCurrentPath()) {
+      window.location.href = stepUrl;
+      return;
+    }
+    window.history.replaceState({}, '', stepUrl);
+  }
+
+  function clearTourUrl() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('tour');
+    url.searchParams.delete('step');
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+  }
+
+  function startDashboardTour(accessToken: string, startIndex = 0) {
     const style = document.createElement('style');
     style.textContent = `
       .dashboard-tour-highlight {
         position: relative;
-        z-index: 80 !important;
-        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.55), 0 0 0 8px rgba(56, 189, 248, 0.18);
+        z-index: 86 !important;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.75), 0 0 0 9999px rgba(15, 23, 42, 0.42), 0 20px 55px -30px rgba(8, 47, 73, 0.6);
         border-radius: 1rem;
+      }
+      .dashboard-tour-card {
+        max-height: min(72vh, 560px);
+        overflow: auto;
+      }
+      @media (max-width: 640px) {
+        .dashboard-tour-card {
+          left: 1rem !important;
+          right: 1rem !important;
+          top: auto !important;
+          bottom: calc(env(safe-area-inset-bottom) + 1rem) !important;
+          width: auto !important;
+          transform: none !important;
+        }
       }
     `;
     document.head.appendChild(style);
 
     const overlay = document.createElement('div');
-    overlay.className = 'fixed inset-0 z-[75] bg-slate-900/45 backdrop-blur-[1px]';
+    overlay.className = 'fixed inset-0 z-[75] pointer-events-none';
 
     const card = document.createElement('div');
-    card.className = 'fixed z-[85] left-1/2 -translate-x-1/2 bottom-5 w-[min(92vw,460px)] rounded-2xl border border-sky-100 bg-white p-5 shadow-2xl';
+    card.className = 'dashboard-tour-card pointer-events-auto fixed z-[90] w-[min(92vw,430px)] rounded-2xl border border-sky-100 bg-white p-5 shadow-2xl shadow-slate-950/20';
     overlay.appendChild(card);
     document.body.appendChild(overlay);
 
-    let index = 0;
+    let index = startIndex;
     let activeTarget: HTMLElement | null = null;
 
     const cleanupTarget = () => {
@@ -235,30 +232,107 @@ const help = contextualHelp[activeNav];
       cleanupTarget();
       overlay.remove();
       style.remove();
+      window.sessionStorage.removeItem(TOUR_QUERY_KEY);
+      window.sessionStorage.removeItem(TOUR_STEP_KEY);
+      window.sessionStorage.removeItem(TOUR_POSTPONED_KEY);
+      clearTourUrl();
       await setTourSeen(accessToken, true);
+    };
+
+    const postpone = async () => {
+      cleanupTarget();
+      overlay.remove();
+      style.remove();
+      window.sessionStorage.removeItem(TOUR_QUERY_KEY);
+      window.sessionStorage.removeItem(TOUR_STEP_KEY);
+      window.sessionStorage.setItem(TOUR_POSTPONED_KEY, '1');
+      clearTourUrl();
+      await setTourSeen(accessToken, false);
+    };
+
+    const positionCard = (target: HTMLElement | null) => {
+      const margin = 18;
+      const viewportW = window.innerWidth;
+      const viewportH = window.innerHeight;
+      const cardW = Math.min(430, viewportW - 32);
+
+      if (!target || viewportW < 640) {
+        card.style.left = '';
+        card.style.right = '';
+        card.style.top = '';
+        card.style.bottom = '';
+        card.style.width = '';
+        card.style.transform = '';
+        return;
+      }
+
+      const rect = target.getBoundingClientRect();
+      const preferRight = rect.left + rect.width + cardW + margin < viewportW;
+      const preferLeft = rect.left - cardW - margin > 0;
+      const top = Math.min(Math.max(rect.top, margin), viewportH - 260);
+
+      card.style.width = `${cardW}px`;
+      card.style.top = `${top}px`;
+      card.style.bottom = 'auto';
+      card.style.transform = 'none';
+
+      if (preferRight) {
+        card.style.left = `${rect.right + margin}px`;
+        card.style.right = 'auto';
+      } else if (preferLeft) {
+        card.style.left = `${rect.left - cardW - margin}px`;
+        card.style.right = 'auto';
+      } else {
+        card.style.left = '50%';
+        card.style.right = 'auto';
+        card.style.transform = 'translateX(-50%)';
+        card.style.top = `${Math.min(rect.bottom + margin, viewportH - 260)}px`;
+      }
     };
 
     const render = () => {
       const step = TOUR_STEPS[index];
+      if (getCurrentPath() !== new URL(step.path, window.location.origin).pathname) {
+        goToTourStep(index);
+        return;
+      }
+
       cleanupTarget();
-      activeTarget = getVisibleTarget(step.selector);
+      activeTarget = getVisibleTarget(step.selector) ?? getVisibleTarget(step.navSelector ?? '');
       activeTarget?.classList.add('dashboard-tour-highlight');
+      activeTarget?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+      window.setTimeout(() => positionCard(activeTarget), 180);
 
       card.innerHTML = `
-        <p class="text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-sky-700/75">Guide rapide (${escapeHtml(index + 1)}/${escapeHtml(TOUR_STEPS.length)})</p>
-        <h3 class="mt-2 text-lg font-display font-bold text-slate-900">${escapeHtml(step.title)}</h3>
-        <p class="mt-2 text-sm text-slate-600">${escapeHtml(step.body)}</p>
-        <div class="mt-4 flex items-center justify-between gap-2">
-          <button type="button" id="tour-skip" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
-            Passer
+        <div class="mb-3 flex items-center justify-between gap-3">
+          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-sky-700/75">Guide FideloPass (${index + 1}/${TOUR_STEPS.length})</p>
+          <button type="button" id="tour-skip" class="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+            Plus tard
           </button>
+        </div>
+        <h3 class="text-lg font-display font-bold text-slate-900">${step.title}</h3>
+        <p class="mt-2 text-sm leading-6 text-slate-600">${step.body}</p>
+        <div class="mt-3 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-sm font-medium text-sky-900">
+          ${step.action}
+        </div>
+        <div class="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
+          <div class="h-full rounded-full bg-sky-600 transition-all" style="width:${((index + 1) / TOUR_STEPS.length) * 100}%"></div>
+        </div>
+        <div class="mt-4 grid grid-cols-[auto_1fr_auto] items-center gap-2">
+          <button type="button" id="tour-prev" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 ${index === 0 ? 'opacity-40 cursor-not-allowed' : ''}" ${index === 0 ? 'disabled' : ''}>
+            Précédent
+          </button>
+          <a id="tour-open-page" href="${step.path}" class="text-center text-xs font-semibold text-sky-700 hover:text-sky-800">
+            Explorer cette page
+          </a>
           <button type="button" id="tour-next" class="rounded-xl bg-sky-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-sky-700">
-            ${escapeHtml(index === TOUR_STEPS.length - 1 ? 'Terminer' : 'Suivant')}
+            ${index === TOUR_STEPS.length - 1 ? 'Terminer' : 'Suivant'}
           </button>
         </div>
       `;
 
       const nextBtn = card.querySelector<HTMLButtonElement>('#tour-next');
+      const prevBtn = card.querySelector<HTMLButtonElement>('#tour-prev');
       const skipBtn = card.querySelector<HTMLButtonElement>('#tour-skip');
       nextBtn?.addEventListener('click', async () => {
         if (index >= TOUR_STEPS.length - 1) {
@@ -266,11 +340,19 @@ const help = contextualHelp[activeNav];
           return;
         }
         index += 1;
+        goToTourStep(index);
         render();
       });
-      skipBtn?.addEventListener('click', finish);
+      prevBtn?.addEventListener('click', () => {
+        if (index <= 0) return;
+        index -= 1;
+        goToTourStep(index);
+        render();
+      });
+      skipBtn?.addEventListener('click', postpone);
     };
 
+    goToTourStep(index);
     render();
   }
 
@@ -284,63 +366,52 @@ const help = contextualHelp[activeNav];
       });
       if (!res.ok) return;
       const payload = await res.json().catch(() => null);
-      if (payload?.data?.seen) return;
-      startDashboardTour(session.access_token);
+      if (window.sessionStorage.getItem(TOUR_POSTPONED_KEY) === '1' && !isTourForced()) return;
+      if (payload?.data?.seen && !isTourForced()) return;
+      startDashboardTour(session.access_token, isTourForced() ? getStepFromUrl() : 0);
     } catch {
       // ignore
     }
   }
 
   async function initDashboardGuard() {
-    const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 2500);
-    const timeoutSymbol = Symbol('session-timeout');
-    const withSoftTimeout = <T,>(promise: Promise<T>, timeoutMs: number) => Promise.race([
-      promise,
-      new Promise<typeof timeoutSymbol>((resolve) => window.setTimeout(() => resolve(timeoutSymbol), timeoutMs)),
-    ]);
-
-    async function resolveSession(): Promise<{ state: 'authenticated'; session: SessionLike } | { state: 'missing' } | { state: 'unknown' }> {
-      const sessionResult = await withSoftTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null) as
-        | typeof timeoutSymbol
-        | { data?: { session?: SessionLike | null } }
-        | null;
-
-      if (sessionResult === timeoutSymbol) return { state: 'unknown' };
-      const session = sessionResult?.data?.session ?? null;
-      if (session?.access_token) return { state: 'authenticated', session };
-
-      const refreshResult = await withSoftTimeout(supabase.auth.refreshSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null) as
-        | typeof timeoutSymbol
-        | { data?: { session?: SessionLike | null } }
-        | null;
-
-      if (refreshResult === timeoutSymbol) return { state: 'unknown' };
-      const refreshedSession = refreshResult?.data?.session ?? null;
-      if (refreshedSession?.access_token) return { state: 'authenticated', session: refreshedSession };
-
-      return { state: 'missing' };
-    }
-
-    const resolved = await resolveSession();
-
-    if (resolved.state === 'authenticated') {
-      setSessionCookie(resolved.session.access_token);
-      maybeShowTour(resolved.session);
+    const overlay = showSessionOverlay('Vérification de la session...', 'Un instant, nous gardons votre espace commerçant prêt.');
+    const session = await requireFreshSession(supabase, { overlay });
+    if (!session) {
       return;
     }
 
-    if (resolved.state === 'unknown') {
-      // Le middleware serveur protège déjà les routes dashboard via le cookie fp_session.
-      // Si Supabase JS est simplement lent, ne pas envoyer l'utilisateur sur /login puis le reconnecter aussitôt.
-      window.setTimeout(async () => {
-        const retry = await resolveSession();
-        if (retry.state === 'authenticated') setSessionCookie(retry.session.access_token);
-      }, 1200);
+    const billing = await fetch(`${API}/api/billing/status`, {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+    }).then(async (r) => ({ ok: r.ok, status: r.status, payload: await r.json().catch(() => ({})) })).catch(() => null);
+
+    if (!billing) {
+      overlay.setText('Connexion instable', 'Impossible de vérifier votre accès pour le moment.');
+      window.setTimeout(() => window.location.reload(), 1200);
       return;
     }
 
-    clearSessionCookie();
-    window.location.replace('/login');
+    if (billing.status === 401) {
+      const refreshed = await requireFreshSession(supabase, { overlay });
+      if (!refreshed) return;
+      window.location.reload();
+      return;
+    }
+
+    if (!billing.payload?.data?.has_access) {
+      window.location.replace('/abonnement/choix');
+      return;
+    }
+    if (!billing.payload?.data?.onboarding_completed) {
+      window.location.replace('/onboarding');
+      return;
+    }
+
+    overlay.remove();
+    maybeShowTour(session as SessionLike);
   }
 
   initDashboardGuard();

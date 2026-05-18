@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import type { ApiEnv } from '../types';
 import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
@@ -7,7 +8,7 @@ import { sendSMS, personnaliserMessage } from '../../src/lib/brevo-sms';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 import { getPublicSiteUrl } from '../utils/public-site-url';
 
-export const smsRoutes = new Hono();
+export const smsRoutes = new Hono<ApiEnv>();
 
 smsRoutes.use('*', authMiddleware);
 smsRoutes.use('*', paidMiddleware);
@@ -146,7 +147,8 @@ smsRoutes.post('/campagne', async (c) => {
     query = query.or(`derniere_visite.is.null,derniere_visite.lte.${cutoff}`);
   }
 
-  const { data: clients } = await query.limit(commerce.sms_credits ?? 0);
+  const smsCredits = Number(commerce.sms_credits ?? 0);
+  const { data: clients } = await query.limit(smsCredits);
 
   if (!clients || clients.length === 0) {
     return c.json({ message: 'Aucun client correspondant à ce filtre.', envoyes: 0, echecs: 0 });

@@ -5,12 +5,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 <DashboardLayout title="Clients — Fidelopass" activeNav="clients">
   <div class="flex items-center justify-between mb-8">
     <div>
-      <p class="dashboard-kicker">Base client</p>
-      <h1 class="dashboard-title">Clients</h1>
-      <p class="dashboard-subtitle">Gérez votre base de clients fidèles et ajustez leurs tampons ou points manuellement.</p>
+      <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Base client</p>
+      <h1 class="font-display text-3xl font-bold text-slate-900 mt-2">Clients</h1>
+      <p class="text-slate-600 text-sm mt-2">Gérez votre base de clients fidèles et ajustez leurs tampons ou points manuellement.</p>
     </div>
     <div class="flex gap-2">
-      <button id="refresh-clients-btn" type="button" class="ghost-button">
+      <button id="refresh-clients-btn" type="button" class="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 flex items-center gap-1.5">
         <svg id="refresh-clients-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
           <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
           <path d="M21 3v5h-5"></path>
@@ -26,43 +26,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   </div>
 
   <!-- Barre de recherche -->
-  <div class="mb-6 grid gap-4 xl:grid-cols-[0.78fr_1.22fr]">
-    <div class="card dashboard-panel p-4">
-      <label class="label" for="search">Recherche rapide</label>
-      <input
-        id="search"
-        type="search"
-        class="input"
-        placeholder="Rechercher un client, téléphone ou code FID..."
-      />
-      <p class="mt-2 text-xs leading-5 text-slate-500">Cliquez sur une ligne pour ajouter ou retirer des points/tampons.</p>
-    </div>
-    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <div class="rounded-3xl border border-sky-100 bg-white p-4 shadow-[0_14px_34px_-30px_rgba(37,99,235,0.45)]">
-        <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-sky-700/70">Base active</p>
-        <p id="segment-total" class="mt-2 font-mono text-2xl font-bold text-slate-900">—</p>
-        <p class="mt-1 text-xs text-slate-500">clients enregistrés</p>
-      </div>
-      <div class="rounded-3xl border border-emerald-100 bg-white p-4 shadow-[0_14px_34px_-30px_rgba(16,185,129,0.35)]">
-        <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-emerald-700/70">À servir</p>
-        <p id="segment-rewards" class="mt-2 font-mono text-2xl font-bold text-slate-900">—</p>
-        <p class="mt-1 text-xs text-slate-500">récompenses dispo</p>
-      </div>
-      <div class="rounded-3xl border border-amber-100 bg-white p-4 shadow-[0_14px_34px_-30px_rgba(245,158,11,0.35)]">
-        <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-amber-700/70">Presque prêt</p>
-        <p id="segment-near-reward" class="mt-2 font-mono text-2xl font-bold text-slate-900">—</p>
-        <p class="mt-1 text-xs text-slate-500">proches d’une récompense</p>
-      </div>
-      <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-[0_14px_34px_-30px_rgba(15,23,42,0.2)]">
-        <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-slate-500">À relancer</p>
-        <p id="segment-inactive" class="mt-2 font-mono text-2xl font-bold text-slate-900">—</p>
-        <p class="mt-1 text-xs text-slate-500">sans visite depuis 30j</p>
-      </div>
-    </div>
+  <div class="mb-6" data-tour="clients-search">
+    <input
+      id="search"
+      type="search"
+      class="input max-w-sm"
+      placeholder="Rechercher un client..."
+    />
   </div>
 
   <!-- Liste clients -->
-  <div class="card dashboard-panel overflow-x-auto">
+  <div class="card overflow-x-auto" data-tour="clients-list">
     <div id="clients-list">
       <p class="text-slate-500 text-sm p-6">Chargement...</p>
     </div>
@@ -80,7 +54,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <p class="text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-sky-600/70 mb-1">Client sélectionné</p>
       <h3 id="modal-nom" class="text-lg font-bold text-slate-900">—</h3>
       <p id="modal-contact" class="text-slate-500 text-xs mt-0.5 mb-4">—</p>
-      <p id="modal-wallet-code" class="mb-4 inline-flex rounded-full border border-sky-100 bg-sky-50 px-3 py-1.5 font-mono text-xs font-bold text-sky-800">—</p>
 
       <div class="rounded-2xl border border-sky-100 bg-sky-50/40 p-4 mb-4">
         <div class="flex items-center justify-between">
@@ -122,7 +95,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     nom: string | null;
     email: string | null;
     telephone: string | null;
-    wallet_code: string | null;
     points_actuels: number;
     tampons_actuels: number;
     recompenses_obtenues: number;
@@ -135,7 +107,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   let currentClients: Client[] = [];
   let selectedClient: Client | null = null;
   let carteType: 'tampons' | 'points' = 'tampons';
-  let rewardTarget = 10;
 
   function escapeHtml(value: unknown) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -147,17 +118,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }[char] ?? char));
   }
 
-  function toNonNegativeNumber(value: unknown, fallback = 0) {
-    const number = Number(value);
-    return Number.isFinite(number) && number >= 0 ? number : fallback;
-  }
-
-  function formatDate(value: unknown) {
-    if (!value) return '—';
-    const date = new Date(String(value));
-    return Number.isFinite(date.getTime()) ? date.toLocaleDateString('fr-FR') : '—';
-  }
-
   async function loadClients(search = '') {
     const container = document.getElementById('clients-list')!;
     try {
@@ -166,11 +126,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const res = await authFetch(`/api/clients?${params}`);
       if (!res.ok) throw new Error();
       const { data } = await res.json();
-      const clients = Array.isArray(data) ? data : [];
-      currentClients = clients;
-      updateClientSegments();
+      currentClients = data ?? [];
 
-      if (!clients.length) {
+      if (!data?.length) {
         container.innerHTML = '<p class="text-slate-500 text-sm p-6">Aucun client trouvé.</p>';
         return;
       }
@@ -180,17 +138,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <thead class="border-b border-slate-200">
             <tr class="text-left">
               <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Client</th>
-              <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Code client</th>
               <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Points / Tampons</th>
               <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Récompenses dispo</th>
               <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Dernière visite</th>
+              <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Push</th>
             </tr>
           </thead>
           <tbody>
-            ${clients.map((c: Client) => {
-              const balance = toNonNegativeNumber(c.points_actuels || c.tampons_actuels);
-              const rewards = toNonNegativeNumber(c.recompenses_obtenues);
-              return `
+            ${data.map((c: Client) => `
               <tr
                 class="border-b border-slate-200 last:border-0 hover:bg-sky-50 transition-colors cursor-pointer"
                 data-client-id="${escapeHtml(c.id)}"
@@ -200,47 +155,29 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                   <div class="text-slate-500 text-xs">${escapeHtml(c.email ?? c.telephone ?? '—')}</div>
                 </td>
                 <td class="px-6 py-4">
-                  <button
-                    type="button"
-                    class="copy-wallet-code inline-flex items-center rounded-full border border-sky-100 bg-sky-50 px-3 py-1.5 font-mono text-xs font-bold text-sky-800 transition hover:border-sky-200 hover:bg-sky-100"
-                    data-wallet-code="${escapeHtml(c.wallet_code ?? '')}"
-                    ${c.wallet_code ? '' : 'disabled'}
-                  >
-                    ${escapeHtml(c.wallet_code ?? 'À générer')}
-                  </button>
+                  <span class="font-mono text-sm text-sky-700">${c.points_actuels || c.tampons_actuels}</span>
                 </td>
                 <td class="px-6 py-4">
-                  <span class="font-mono text-sm text-sky-700">${balance}</span>
-                </td>
-                <td class="px-6 py-4">
-                  <span class="font-mono text-sm ${rewards > 0 ? 'text-emerald-600' : 'text-slate-500'}">${rewards}</span>
+                  <span class="font-mono text-sm ${c.recompenses_obtenues > 0 ? 'text-emerald-600' : 'text-slate-500'}">${c.recompenses_obtenues ?? 0}</span>
                 </td>
                 <td class="px-6 py-4 text-slate-600 text-sm">
-                  ${escapeHtml(formatDate(c.derniere_visite))}
+                  ${c.derniere_visite ? new Date(c.derniere_visite).toLocaleDateString('fr-FR') : '—'}
+                </td>
+                <td class="px-6 py-4">
+                  ${c.push_enabled && c.fcm_token
+                    ? '<span class="badge badge-success">Prêt</span>'
+                    : c.push_enabled
+                      ? '<span class="badge badge-warning">Token manquant</span>'
+                      : '<span class="badge bg-slate-100 text-slate-500 border border-slate-200">Non</span>'
+                  }
                 </td>
               </tr>
-            `;
-            }).join('')}
+            `).join('')}
           </tbody>
         </table>
       `;
 
       // Attacher les listeners sur chaque ligne
-      container.querySelectorAll('.copy-wallet-code').forEach((button) => {
-        button.addEventListener('click', async (event) => {
-          event.stopPropagation();
-          const target = event.currentTarget as HTMLButtonElement;
-          const code = target.dataset.walletCode?.trim();
-          if (!code) return;
-          await navigator.clipboard.writeText(code).catch(() => null);
-          const previous = target.textContent;
-          target.textContent = 'Copié';
-          window.setTimeout(() => {
-            target.textContent = previous;
-          }, 1200);
-        });
-      });
-
       container.querySelectorAll('tr[data-client-id]').forEach((row) => {
         row.addEventListener('click', () => {
           const id = (row as HTMLElement).dataset.clientId;
@@ -260,34 +197,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (!res.ok) return;
       const { data } = await res.json();
       if (data?.type) carteType = data.type;
-      rewardTarget = carteType === 'points'
-        ? Number(data?.points_recompense ?? 100)
-        : Number(data?.tampons_total ?? 10);
-      updateClientSegments();
     } catch { /* silencieux */ }
-  }
-
-  function updateClientSegments() {
-    const total = currentClients.length;
-    const rewards = currentClients.filter((client) => Number(client.recompenses_obtenues ?? 0) > 0).length;
-    const inactiveLimit = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    const inactive = currentClients.filter((client) => {
-      if (!client.derniere_visite) return total > 0;
-      return new Date(client.derniere_visite).getTime() < inactiveLimit;
-    }).length;
-    const nearReward = currentClients.filter((client) => {
-      const score = carteType === 'points'
-        ? Number(client.points_actuels ?? 0)
-        : Number(client.tampons_actuels ?? 0);
-      if (!rewardTarget || score <= 0) return false;
-      const remaining = rewardTarget - (score % rewardTarget || rewardTarget);
-      return remaining > 0 && remaining <= (carteType === 'points' ? Math.max(10, Math.ceil(rewardTarget * 0.15)) : 2);
-    }).length;
-
-    document.getElementById('segment-total')!.textContent = String(total);
-    document.getElementById('segment-rewards')!.textContent = String(rewards);
-    document.getElementById('segment-near-reward')!.textContent = String(nearReward);
-    document.getElementById('segment-inactive')!.textContent = String(inactive);
   }
 
   // ── Modal ──────────────────────────────────────────────────────────
@@ -299,7 +209,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     (document.getElementById('modal-nom') as HTMLElement).textContent = client.nom ?? 'Anonyme';
     (document.getElementById('modal-contact') as HTMLElement).textContent = client.email ?? client.telephone ?? '—';
-    (document.getElementById('modal-wallet-code') as HTMLElement).textContent = client.wallet_code ?? 'Code client à générer';
     (document.getElementById('modal-unit-label') as HTMLElement).textContent = unit;
     (document.getElementById('modal-score') as HTMLElement).textContent = String(score);
     (document.getElementById('modal-valeur-unit') as HTMLElement).textContent = unitShort;
@@ -368,7 +277,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         if (carteType === 'points') currentClients[idx].points_actuels = data.client.points_actuels;
         else currentClients[idx].tampons_actuels = data.client.tampons_actuels;
         currentClients[idx].recompenses_obtenues = data.client.recompenses_obtenues;
-        updateClientSegments();
       }
 
       const sign = direction === 'add' ? '+' : '−';
@@ -423,15 +331,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   document.getElementById('export-csv-btn')!.addEventListener('click', () => {
     const rows = [
-      ['Nom', 'Email', 'Téléphone', 'Code client', 'Points ou tampons', 'Récompenses disponibles', 'Dernière visite'],
+      ['Nom', 'Email', 'Téléphone', 'Points ou tampons', 'Récompenses disponibles', 'Dernière visite', 'Push activé', 'Token push'],
       ...currentClients.map((client) => [
         client.nom ?? 'Anonyme',
         client.email ?? '',
         client.telephone ?? '',
-        client.wallet_code ?? '',
         String(client.points_actuels || client.tampons_actuels || 0),
         String(client.recompenses_obtenues ?? 0),
         client.derniere_visite ? new Date(client.derniere_visite).toLocaleDateString('fr-FR') : '',
+        client.push_enabled ? 'Oui' : 'Non',
+        client.fcm_token ? 'Oui' : 'Non',
       ]),
     ];
     const csv = rows.map((row) =>

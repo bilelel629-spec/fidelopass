@@ -1,92 +1,47 @@
 import type { Context, Next } from 'hono';
 
-type RateLimitOptions = {
-  keyPrefix: string;
-  limit: number;
-  windowMs: number;
-};
-
-type RateLimitEntry = {
+interface RateLimitEntry {
   count: number;
   resetAt: number;
-};
-
-const entries = new Map<string, RateLimitEntry>();
-const MAX_ENTRIES = Number(process.env.RATE_LIMIT_MAX_ENTRIES ?? 50_000);
-let requestsSinceLastPrune = 0;
-
-function getClientIp(c: Context) {
-  const forwardedFor = c.req.header('x-forwarded-for');
-  if (forwardedFor) return forwardedFor.split(',')[0]?.trim() ?? 'unknown';
-  return c.req.header('x-real-ip') ?? 'unknown';
 }
 
-function setRateHeaders(c: Context, limit: number, remaining: number, resetAt: number) {
-  c.header('X-RateLimit-Limit', String(limit));
-  c.header('X-RateLimit-Remaining', String(Math.max(remaining, 0)));
-  c.header('X-RateLimit-Reset', String(Math.ceil(resetAt / 1000)));
-}
+const store = new Map<string, RateLimitEntry>();
 
-function pruneExpiredEntries(now: number) {
-  for (const [key, value] of entries.entries()) {
-    if (value.resetAt <= now) entries.delete(key);
+// Purge périodique des entrées expirées (toutes les 5 minutes)
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of store.entries()) {
+    if (now > entry.resetAt) store.delete(key);
   }
-}
+}, 5 * 60 * 1000);
 
-function enforceMaxEntries() {
-  if (entries.size <= MAX_ENTRIES) return;
-  const targetSize = Math.floor(MAX_ENTRIES * 0.95);
-  const keys = entries.keys();
-  while (entries.size > targetSize) {
-    const next = keys.next();
-    if (next.done) break;
-    entries.delete(next.value);
-  }
-}
-
-function maybePrune(now: number) {
-  requestsSinceLastPrune += 1;
-  if (requestsSinceLastPrune % 100 !== 0 && entries.size <= MAX_ENTRIES) return;
-  pruneExpiredEntries(now);
-  enforceMaxEntries();
-}
-
-export function createRateLimitMiddleware(options: RateLimitOptions) {
-  const { keyPrefix, limit, windowMs } = options;
-
+/**
+ * Middleware de rate limiting par IP.
+ * @param limit  Nombre max de requêtes dans la fenêtre
+ * @param windowMs  Durée de la fenêtre en ms
+ */
+export function rateLimit(limit: number, windowMs: number) {
   return async (c: Context, next: Next) => {
-    if (c.req.method === 'OPTIONS') {
-      await next();
-      return;
-    }
+    const ip =
+      (c.req.header('x-forwarded-for') ?? '').split(',')[0].trim() ||
+      c.req.header('x-real-ip') ||
+      'unknown';
 
+    const key = `${ip}:${c.req.method}:${c.req.path}`;
     const now = Date.now();
-    maybePrune(now);
-    const key = `${keyPrefix}:${getClientIp(c)}`;
-    const current = entries.get(key);
+    const entry = store.get(key);
 
-    if (!current || current.resetAt <= now) {
-      entries.set(key, { count: 1, resetAt: now + windowMs });
-      setRateHeaders(c, limit, limit - 1, now + windowMs);
-      await next();
-      return;
+    if (!entry || now > entry.resetAt) {
+      store.set(key, { count: 1, resetAt: now + windowMs });
+    } else {
+      entry.count++;
+      if (entry.count > limit) {
+        const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
+        c.header('Retry-After', String(retryAfter));
+        return c.json({ error: 'Trop de requêtes. Réessayez dans quelques secondes.' }, 429);
+      }
     }
 
-    if (current.count >= limit) {
-      setRateHeaders(c, limit, 0, current.resetAt);
-      c.header('Retry-After', String(Math.max(1, Math.ceil((current.resetAt - now) / 1000))));
-      return c.json(
-        {
-          error: 'Trop de requêtes, merci de réessayer dans quelques instants.',
-          code: 'RATE_LIMITED',
-        },
-        429,
-      );
-    }
-
-    current.count += 1;
-    entries.set(key, current);
-    setRateHeaders(c, limit, limit - current.count, current.resetAt);
     await next();
   };
 }

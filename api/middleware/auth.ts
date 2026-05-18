@@ -1,47 +1,25 @@
 import type { Context, Next } from 'hono';
 import { createClient } from '@supabase/supabase-js';
-import { getCookie } from 'hono/cookie';
+import type { ApiEnv } from '../types';
 
 const supabaseUrl = process.env.SUPABASE_URL ?? '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
-const authTimeoutMs = Number(process.env.AUTH_PROVIDER_TIMEOUT_MS ?? 2500);
-
-const supabaseAuthClient = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
-
-type SupabaseAuthResult = Awaited<ReturnType<typeof supabaseAuthClient.auth.getUser>>;
-
-async function getUserWithTimeout(token: string): Promise<SupabaseAuthResult | null> {
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  const timeoutPromise = new Promise<null>((resolve) => {
-    timer = setTimeout(() => resolve(null), authTimeoutMs);
-  });
-
-  const userPromise = supabaseAuthClient.auth.getUser(token);
-  const result = await Promise.race([userPromise, timeoutPromise]);
-
-  if (timer) clearTimeout(timer);
-  return result;
-}
 
 /** Vérifie le JWT Supabase et injecte l'utilisateur dans le contexte */
-export async function authMiddleware(c: Context, next: Next) {
+export async function authMiddleware(c: Context<ApiEnv>, next: Next) {
   const authorization = c.req.header('Authorization');
-  const cookieToken = getCookie(c, 'fp_session');
 
-  if (!authorization?.startsWith('Bearer ') && !cookieToken) {
+  if (!authorization?.startsWith('Bearer ')) {
     return c.json({ error: 'Token d\'authentification manquant' }, 401);
   }
 
-  const token = authorization?.startsWith('Bearer ') ? authorization.slice(7) : cookieToken!;
+  const token = authorization.slice(7);
 
-  const authResult = await getUserWithTimeout(token);
-  if (!authResult) {
-    return c.json({ error: 'Service d’authentification momentanément indisponible' }, 503);
-  }
+  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 
-  const { data: { user }, error } = authResult;
+  const { data: { user }, error } = await supabase.auth.getUser(token);
 
   if (error || !user) {
     return c.json({ error: 'Token invalide ou expiré' }, 401);

@@ -48,12 +48,17 @@ function isProPlan(plan: string | null | undefined): boolean {
 }
 
 const GOOGLE_WALLET_API = 'https://walletobjects.googleapis.com/walletobjects/v1';
-const GOOGLE_BARCODE_MAP: Record<string, string> = {
-  QR: 'QR_CODE',
-  PDF417: 'PDF_417',
-  AZTEC: 'AZTEC',
-  CODE128: 'CODE_128',
-};
+const GOOGLE_WALLET_TIMEOUT_MS = 15_000;
+const GOOGLE_WALLET_FAST_TIMEOUT_MS = 8_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`Google Wallet API timeout (${ms}ms)`)), ms),
+    ),
+  ]);
+}
 
 function getCredentials() {
   if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
@@ -75,18 +80,6 @@ function getIssuerId(): string {
   const id = process.env.GOOGLE_ISSUER_ID;
   if (!id) throw new Error('GOOGLE_ISSUER_ID non configuré');
   return id;
-}
-
-function getPublicAppUrl(): string {
-  return (process.env.APP_URL ?? process.env.PUBLIC_APP_URL ?? 'https://www.fidelopass.com').replace(/\/+$/, '');
-}
-
-function toPublicMediaUrl(value: string | null | undefined): string | null {
-  const trimmed = String(value ?? '').trim();
-  if (!trimmed) return null;
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  if (trimmed.startsWith('/')) return `${getPublicAppUrl()}${trimmed}`;
-  return trimmed;
 }
 
 function getRewardsText(carte: CarteData): string | null {
@@ -116,25 +109,35 @@ function getMerchantLocations(carte: CarteData): Array<{ latitude: number; longi
   return [{ latitude, longitude }];
 }
 
-function getWalletScanCode(client: ClientData): string {
-  return String(client.wallet_code ?? client.id).trim() || client.id;
-}
+// Cache de l'authClient pour éviter un échange OAuth2 à chaque appel
+type GAuthClient = Awaited<ReturnType<InstanceType<typeof google.auth.GoogleAuth>['getClient']>>;
+let cachedAuthClient: GAuthClient | null = null;
+let cachedAuthClientExpiry = 0;
+const AUTH_CLIENT_TTL_MS = 55 * 60 * 1000;
 
-async function getAuthClient() {
+async function getAuthClient(): Promise<GAuthClient> {
+  const now = Date.now();
+  if (cachedAuthClient && now < cachedAuthClientExpiry) return cachedAuthClient;
   const credentials = getCredentials();
   const auth = new google.auth.GoogleAuth({
     credentials,
     scopes: ['https://www.googleapis.com/auth/wallet_object.issuer'],
   });
-  return auth.getClient();
+  cachedAuthClient = await auth.getClient();
+  cachedAuthClientExpiry = now + AUTH_CLIENT_TTL_MS;
+  return cachedAuthClient;
 }
+
+type HttpRequester = {
+  request: (opts: { url: string; method: string; data?: unknown }) => Promise<unknown>;
+};
 
 export async function upsertLoyaltyClass(carte: CarteData): Promise<string> {
   const issuerId = getIssuerId();
   const classId = `${issuerId}.carte_${carte.id}`;
   const authClient = await getAuthClient();
 
-  const logoUri = toPublicMediaUrl(carte.logo_url) ?? toPublicMediaUrl(carte.commerces.logo_url)
+  const logoUri = carte.logo_url ?? carte.commerces.logo_url
     ?? `${process.env.SUPABASE_URL}/storage/v1/object/public/assets/logo-default.png`;
 
   const classData: Record<string, unknown> = {
@@ -156,31 +159,40 @@ export async function upsertLoyaltyClass(carte: CarteData): Promise<string> {
     classData.merchantLocations = merchantLocations;
   }
 
-  // Image bannière (hero image)
-  const stripUri = toPublicMediaUrl(carte.strip_url);
-  if (stripUri) {
+  if (carte.strip_url) {
     classData.heroImage = {
-      sourceUri: { uri: stripUri },
+      sourceUri: { uri: carte.strip_url },
       contentDescription: { defaultValue: { language: 'fr-FR', value: carte.nom } },
     };
   }
 
-  const requester = authClient as unknown as {
-    request: (opts: { url: string; method: string; data?: unknown }) => Promise<unknown>;
-  };
+  const requester = authClient as unknown as HttpRequester;
 
+  // PUT (upsert). Si 404 → POST (création initiale). Tout autre code est propagé.
   try {
-    await requester.request({
+    await withTimeout(requester.request({
       url: `${GOOGLE_WALLET_API}/loyaltyClass/${classId}`,
       method: 'PUT',
       data: classData,
-    });
-  } catch {
-    await requester.request({
-      url: `${GOOGLE_WALLET_API}/loyaltyClass`,
-      method: 'POST',
-      data: classData,
-    });
+    }), GOOGLE_WALLET_TIMEOUT_MS);
+  } catch (err: unknown) {
+    const status = (err as { code?: number; status?: number })?.code
+      ?? (err as { code?: number; status?: number })?.status;
+    if (status === 404 || status === 409) {
+      try {
+        await withTimeout(requester.request({
+          url: `${GOOGLE_WALLET_API}/loyaltyClass`,
+          method: 'POST',
+          data: classData,
+        }), GOOGLE_WALLET_TIMEOUT_MS);
+      } catch (createErr: unknown) {
+        const createStatus = (createErr as { code?: number; status?: number })?.code
+          ?? (createErr as { code?: number; status?: number })?.status;
+        if (createStatus !== 409) throw createErr;
+      }
+    } else {
+      throw err;
+    }
   }
 
   return classId;
@@ -200,8 +212,10 @@ export async function generateGooglePass(
     ? `${client.tampons_actuels}/${carte.tampons_total}`
     : String(client.points_actuels);
 
+  const GOOGLE_BARCODE_MAP: Record<string, string> = {
+    QR: 'QR_CODE', PDF417: 'PDF_417', AZTEC: 'AZTEC', CODE128: 'CODE_128',
+  };
   const barcodeType = carte.barcode_type ?? 'QR';
-  const barcodeValue = getWalletScanCode(client);
 
   const loyaltyObject: Record<string, unknown> = {
     id: objectId,
@@ -255,7 +269,7 @@ export async function generateGooglePass(
   if (barcodeType !== 'NONE') {
     loyaltyObject.barcode = {
       type: GOOGLE_BARCODE_MAP[barcodeType] ?? 'QR_CODE',
-      value: barcodeValue,
+      value: client.id,
     };
   }
 
@@ -279,18 +293,19 @@ export async function updateGooglePassObject(
   carte: CarteData,
   client: ClientData,
 ): Promise<void> {
+  // Propage les changements de logo/couleur/nom dans la classe aussi
+  await upsertLoyaltyClass(carte).catch((err) =>
+    console.error('[Google Wallet] upsertLoyaltyClass échec lors de la mise à jour:', err),
+  );
+
   const authClient = await getAuthClient();
   const solde = carte.type === 'tampons'
     ? `${client.tampons_actuels}/${carte.tampons_total}`
     : String(client.points_actuels);
 
-  const requester = authClient as unknown as {
-    request: (opts: { url: string; method: string; data?: unknown }) => Promise<unknown>;
-  };
-  const barcodeType = carte.barcode_type ?? 'QR';
-  const barcodeValue = getWalletScanCode(client);
+  const requester = authClient as unknown as HttpRequester;
 
-  await requester.request({
+  await withTimeout(requester.request({
     url: `${GOOGLE_WALLET_API}/loyaltyObject/${objectId}`,
     method: 'PATCH',
     data: {
@@ -327,17 +342,9 @@ export async function updateGooglePassObject(
             id: 'branding_fidelopass',
           }]),
       ],
-      ...(barcodeType !== 'NONE'
-        ? {
-          barcode: {
-            type: GOOGLE_BARCODE_MAP[barcodeType] ?? 'QR_CODE',
-            value: barcodeValue,
-          },
-        }
-        : {}),
       ...(getMerchantLocations(carte) ? { merchantLocations: getMerchantLocations(carte) } : {}),
     },
-  });
+  }), GOOGLE_WALLET_FAST_TIMEOUT_MS);
 }
 
 export async function sendGoogleWalletMessage(
@@ -347,11 +354,9 @@ export async function sendGoogleWalletMessage(
   notificationId?: string,
 ): Promise<void> {
   const authClient = await getAuthClient();
-  const requester = authClient as unknown as {
-    request: (opts: { url: string; method: string; data?: unknown }) => Promise<unknown>;
-  };
+  const requester = authClient as unknown as HttpRequester;
 
-  await requester.request({
+  await withTimeout(requester.request({
     url: `${GOOGLE_WALLET_API}/loyaltyObject/${objectId}/addMessage`,
     method: 'POST',
     data: {
@@ -362,5 +367,5 @@ export async function sendGoogleWalletMessage(
         messageType: 'TEXT_AND_NOTIFY',
       },
     },
-  });
+  }), GOOGLE_WALLET_FAST_TIMEOUT_MS);
 }

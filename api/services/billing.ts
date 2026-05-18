@@ -5,43 +5,58 @@ export type BillingRecord = {
   plan: string | null;
   billing_status: string | null;
   stripe_subscription_id: string | null;
+  stripe_customer_id: string | null;
+  stripe_price_id: string | null;
   trial_ends_at: string | null;
+  billing_interval: string | null;
+  billing_commitment: string | null;
+  billing_current_period_end: string | null;
+  billing_cancel_at_period_end: boolean | null;
+  billing_cancel_at: string | null;
+  billing_canceled_at: string | null;
+  billing_access_ends_at: string | null;
   onboarding_completed: boolean | null;
 };
 
 export type BillingStatusPayload = {
-  access_state:
-    | 'no_commerce'
-    | 'account_created_no_subscription'
-    | 'checkout_pending'
-    | 'trial_active'
-    | 'subscription_active'
-    | 'subscription_past_due'
-    | 'subscription_cancelled'
-    | 'onboarding_not_completed'
-    | 'dashboard_ready';
-  recommended_redirect: '/abonnement/choix' | '/onboarding' | '/dashboard';
   has_commerce: boolean;
   commerce_id: string | null;
   plan: string | null;
   billing_status: string;
   stripe_subscription_id: string | null;
+  stripe_customer_id: string | null;
+  stripe_price_id: string | null;
   trial_ends_at: string | null;
+  billing_interval: string | null;
+  billing_commitment: string | null;
+  billing_current_period_end: string | null;
+  billing_cancel_at_period_end: boolean;
+  billing_cancel_at: string | null;
+  billing_canceled_at: string | null;
+  billing_access_ends_at: string | null;
   trial_active: boolean;
+  one_time_access_active: boolean;
   has_access: boolean;
   needs_payment: boolean;
+  can_open_portal: boolean;
+  can_change_plan: boolean;
+  can_cancel: boolean;
+  can_reactivate: boolean;
+  is_subscription: boolean;
+  is_one_time_access: boolean;
+  renewal_or_access_end_at: string | null;
   onboarding_completed: boolean;
 };
 
-const ACTIVE_BILLING_STATUSES = new Set(['active']);
+const ACTIVE_BILLING_STATUSES = new Set(['active', 'trialing']);
 
 function normalizeBillingStatus(status: string | null | undefined) {
   return (status ?? 'unpaid').toLowerCase();
 }
 
-function isTrialActive(trialEndsAt: string | null | undefined) {
-  if (!trialEndsAt) return false;
-  const ts = Date.parse(trialEndsAt);
+function isFutureDate(value: string | null | undefined) {
+  if (!value) return false;
+  const ts = Date.parse(value);
   if (Number.isNaN(ts)) return false;
   return ts > Date.now();
 }
@@ -49,89 +64,100 @@ function isTrialActive(trialEndsAt: string | null | undefined) {
 export function buildBillingStatusPayload(record: BillingRecord | null): BillingStatusPayload {
   if (!record) {
     return {
-      access_state: 'no_commerce',
-      recommended_redirect: '/abonnement/choix',
       has_commerce: false,
       commerce_id: null,
       plan: null,
       billing_status: 'unpaid',
       stripe_subscription_id: null,
+      stripe_customer_id: null,
+      stripe_price_id: null,
       trial_ends_at: null,
+      billing_interval: null,
+      billing_commitment: null,
+      billing_current_period_end: null,
+      billing_cancel_at_period_end: false,
+      billing_cancel_at: null,
+      billing_canceled_at: null,
+      billing_access_ends_at: null,
       trial_active: false,
+      one_time_access_active: false,
       has_access: false,
       needs_payment: true,
+      can_open_portal: false,
+      can_change_plan: false,
+      can_cancel: false,
+      can_reactivate: false,
+      is_subscription: false,
+      is_one_time_access: false,
+      renewal_or_access_end_at: null,
       onboarding_completed: false,
     };
   }
 
   const billingStatus = normalizeBillingStatus(record.billing_status);
-  const trialActive = isTrialActive(record.trial_ends_at);
-  const isTrialing = billingStatus === 'trialing';
-  const hasAccess = ACTIVE_BILLING_STATUSES.has(billingStatus) || trialActive;
-  const onboardingCompleted = Boolean(record.onboarding_completed);
-
-  const accessState: BillingStatusPayload['access_state'] = (() => {
-    if (!hasAccess) {
-      if (billingStatus === 'past_due') return 'subscription_past_due';
-      if (billingStatus === 'canceled' || billingStatus === 'cancelled') return 'subscription_cancelled';
-      if (billingStatus === 'unpaid' && record.stripe_subscription_id) return 'checkout_pending';
-      return 'account_created_no_subscription';
-    }
-    if (!onboardingCompleted) return 'onboarding_not_completed';
-    if (trialActive || isTrialing) return 'trial_active';
-    return 'dashboard_ready';
-  })();
-
-  const recommendedRedirect: BillingStatusPayload['recommended_redirect'] = !hasAccess
-    ? '/abonnement/choix'
-    : onboardingCompleted
-      ? '/dashboard'
-      : '/onboarding';
+  const trialActive = isFutureDate(record.trial_ends_at);
+  const oneTimeAccessActive = isFutureDate(record.billing_access_ends_at);
+  const periodAccessActive = Boolean(record.billing_cancel_at_period_end) && isFutureDate(record.billing_current_period_end);
+  const hasSubscription = Boolean(record.stripe_subscription_id);
+  const isSubscription = hasSubscription && record.billing_interval !== 'one_time';
+  const isOneTimeAccess = record.billing_interval === 'one_time' || (!hasSubscription && Boolean(record.billing_access_ends_at));
+  const hasAccess = ACTIVE_BILLING_STATUSES.has(billingStatus) || trialActive || oneTimeAccessActive || periodAccessActive;
+  const isAnnualMonthlyCommitment = record.billing_commitment === 'annual-12m-monthly';
 
   return {
-    access_state: accessState,
-    recommended_redirect: recommendedRedirect,
     has_commerce: true,
     commerce_id: record.id,
     plan: record.plan,
     billing_status: billingStatus,
     stripe_subscription_id: record.stripe_subscription_id,
+    stripe_customer_id: record.stripe_customer_id,
+    stripe_price_id: record.stripe_price_id,
     trial_ends_at: record.trial_ends_at,
+    billing_interval: record.billing_interval,
+    billing_commitment: record.billing_commitment,
+    billing_current_period_end: record.billing_current_period_end,
+    billing_cancel_at_period_end: Boolean(record.billing_cancel_at_period_end),
+    billing_cancel_at: record.billing_cancel_at,
+    billing_canceled_at: record.billing_canceled_at,
+    billing_access_ends_at: record.billing_access_ends_at,
     trial_active: trialActive,
+    one_time_access_active: oneTimeAccessActive,
     has_access: hasAccess,
     needs_payment: !hasAccess,
-    onboarding_completed: onboardingCompleted,
+    can_open_portal: Boolean(record.stripe_customer_id || record.stripe_subscription_id),
+    can_change_plan: isSubscription && !isAnnualMonthlyCommitment,
+    can_cancel: isSubscription && !isAnnualMonthlyCommitment && billingStatus !== 'canceled',
+    can_reactivate: isSubscription && Boolean(record.billing_cancel_at_period_end) && billingStatus !== 'canceled',
+    is_subscription: isSubscription,
+    is_one_time_access: isOneTimeAccess,
+    renewal_or_access_end_at: record.billing_access_ends_at ?? record.billing_current_period_end ?? record.trial_ends_at,
+    onboarding_completed: Boolean(record.onboarding_completed),
   };
 }
 
 export async function getBillingStatusForUser(userId: string): Promise<BillingStatusPayload> {
   const db = createServiceClient();
-  let result = await db
+  const { data } = await db
     .from('commerces')
-    .select('id, plan, billing_status, stripe_subscription_id, trial_ends_at, onboarding_completed')
+    .select(`
+      id,
+      plan,
+      billing_status,
+      stripe_subscription_id,
+      stripe_customer_id,
+      stripe_price_id,
+      trial_ends_at,
+      billing_interval,
+      billing_commitment,
+      billing_current_period_end,
+      billing_cancel_at_period_end,
+      billing_cancel_at,
+      billing_canceled_at,
+      billing_access_ends_at,
+      onboarding_completed
+    `)
     .eq('user_id', userId)
-    .order('created_at', { ascending: true })
-    .limit(1);
+    .single();
 
-  if (result.error && /created_at/i.test(result.error.message ?? '')) {
-    result = await db
-      .from('commerces')
-      .select('id, plan, billing_status, stripe_subscription_id, trial_ends_at, onboarding_completed')
-      .eq('user_id', userId)
-      .limit(1);
-  }
-
-  const { data, error } = result;
-
-  if (error) {
-    // Cas normal: aucun commerce encore créé pour cet utilisateur.
-    if (error.code === 'PGRST116' || /0 rows/i.test(error.message ?? '')) {
-      return buildBillingStatusPayload(null);
-    }
-    // Les autres erreurs doivent remonter (pour éviter un faux "non abonné").
-    throw error;
-  }
-
-  const record = Array.isArray(data) ? (data[0] ?? null) : data;
-  return buildBillingStatusPayload((record as BillingRecord | null) ?? null);
+  return buildBillingStatusPayload((data as BillingRecord | null) ?? null);
 }

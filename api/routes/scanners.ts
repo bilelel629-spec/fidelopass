@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import type { ApiEnv } from '../types';
 import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
@@ -7,7 +8,7 @@ import { getPlanLimits } from './commerces';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
 
-export const scannersRoutes = new Hono();
+export const scannersRoutes = new Hono<ApiEnv>();
 
 scannersRoutes.use('*', authMiddleware, paidMiddleware);
 

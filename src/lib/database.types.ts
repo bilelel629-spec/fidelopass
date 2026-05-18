@@ -1,21 +1,17 @@
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
-type GenericTable = {
-  Row: Record<string, any>;
-  Insert: Record<string, any>;
-  Update: Record<string, any>;
-  Relationships: Array<{
-    foreignKeyName: string;
-    columns: string[];
-    isOneToOne: boolean;
-    referencedRelation: string;
-    referencedColumns: string[];
-  }>;
-};
-
 export interface Database {
+  __InternalSupabase: {
+    PostgrestVersion: '12';
+  };
   public: {
-    Tables: ({
+    Tables: {
+      [key: string]: {
+        Row: Record<string, any>;
+        Insert: Record<string, any>;
+        Update: Record<string, any>;
+        Relationships: [];
+      };
       commerces: {
         Row: {
           id: string;
@@ -30,57 +26,45 @@ export interface Database {
           rayon_geo: number;
           actif: boolean;
           plan: string | null;
-          plan_override: string | null;
-          billing_status: string | null;
           stripe_customer_id: string | null;
           stripe_subscription_id: string | null;
-          trial_ends_at: string | null;
-          onboarding_completed: boolean | null;
+          stripe_price_id: string | null;
           onboarding_purchased: boolean | null;
           scanners_count: number | null;
           sms_credits: number | null;
-          sms_welcome_enabled: boolean | null;
-          sms_welcome_message: string | null;
+          trial_ends_at: string | null;
+          billing_status: string | null;
+          billing_interval: string | null;
+          billing_commitment: string | null;
+          billing_current_period_end: string | null;
+          billing_cancel_at_period_end: boolean;
+          billing_cancel_at: string | null;
+          billing_canceled_at: string | null;
+          billing_access_ends_at: string | null;
+          onboarding_completed: boolean | null;
+          review_auto_enabled: boolean | null;
           sms_review_enabled: boolean | null;
-          sms_relance_enabled: boolean | null;
-          sms_relance_jours: number | null;
+          partner_id: string | null;
+          white_label_enabled: boolean | null;
+          plan_override: string | null;
+          dashboard_tour_seen: boolean | null;
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['commerces']['Row'], 'id' | 'created_at' | 'updated_at'> & {
-          id?: string;
-          rayon_geo?: number;
-          actif?: boolean;
-        };
-        Update: Partial<Database['public']['Tables']['commerces']['Insert']>;
-      };
-      points_vente: {
-        Row: {
-          id: string;
-          commerce_id: string;
+        Insert: Partial<Database['public']['Tables']['commerces']['Row']> & {
+          user_id: string;
           nom: string;
-          adresse: string | null;
-          telephone: string | null;
-          email: string | null;
-          latitude: number | null;
-          longitude: number | null;
-          rayon_geo: number;
-          actif: boolean;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: Omit<Database['public']['Tables']['points_vente']['Row'], 'id' | 'created_at' | 'updated_at'> & {
           id?: string;
           rayon_geo?: number;
           actif?: boolean;
         };
-        Update: Partial<Database['public']['Tables']['points_vente']['Insert']>;
+        Update: Partial<Database['public']['Tables']['commerces']['Row']>;
+        Relationships: [];
       };
       cartes: {
         Row: {
           id: string;
           commerce_id: string;
-          point_vente_id: string | null;
           nom: string;
           description: string | null;
           type: 'points' | 'tampons';
@@ -95,24 +79,23 @@ export interface Database {
           logo_url: string | null;
           strip_url: string | null;
           strip_position: string | null;
-          strip_layout: string | null;
-          strip_plein_largeur: boolean | null;
           tampon_icon_url: string | null;
-          tampon_emoji: string | null;
-          tampon_icon_scale: number | null;
           barcode_type: string;
           label_client: string;
           couleur_fond_2: string | null;
           gradient_angle: number | null;
           pattern_type: string | null;
+          tampon_emoji: string | null;
           police: string | null;
           police_taille: number | null;
           police_gras: boolean | null;
           texte_alignement: string | null;
+          strip_plein_largeur: boolean | null;
           welcome_message: string | null;
           success_message: string | null;
           rewards_config: Json | null;
           vip_tiers: Json | null;
+          strip_layout: string | null;
           review_reward_enabled: boolean | null;
           review_reward_value: number | null;
           google_maps_url: string | null;
@@ -140,18 +123,17 @@ export interface Database {
           actif?: boolean;
         };
         Update: Partial<Database['public']['Tables']['cartes']['Insert']>;
+        Relationships: [];
       };
       clients: {
         Row: {
           id: string;
           carte_id: string;
           commerce_id: string;
-          point_vente_id: string | null;
           nom: string | null;
           telephone: string | null;
           email: string | null;
           date_naissance: string | null;
-          wallet_code: string | null;
           points_actuels: number;
           tampons_actuels: number;
           recompenses_obtenues: number;
@@ -169,16 +151,15 @@ export interface Database {
           tampons_actuels?: number;
           recompenses_obtenues?: number;
           push_enabled?: boolean;
-          wallet_code?: string | null;
         };
         Update: Partial<Database['public']['Tables']['clients']['Insert']>;
+        Relationships: [];
       };
       transactions: {
         Row: {
           id: string;
           client_id: string;
           commerce_id: string;
-          point_vente_id: string | null;
           type: 'ajout_points' | 'ajout_tampon' | 'recompense' | 'reset';
           valeur: number;
           points_avant: number | null;
@@ -189,13 +170,14 @@ export interface Database {
         Insert: Omit<Database['public']['Tables']['transactions']['Row'], 'id' | 'created_at'> & {
           id?: string;
         };
-        Update: Partial<Database['public']['Tables']['transactions']['Insert']>;
+        Update: never;
+        Relationships: [];
       };
       notifications: {
         Row: {
           id: string;
           commerce_id: string;
-          point_vente_id: string | null;
+          point_vente_id: string;
           titre: string;
           message: string;
           type: string;
@@ -210,6 +192,7 @@ export interface Database {
           nb_delivrees?: number;
         };
         Update: Partial<Pick<Database['public']['Tables']['notifications']['Row'], 'nb_delivrees'>>;
+        Relationships: [];
       };
       apple_pass_registrations: {
         Row: {
@@ -227,6 +210,7 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database['public']['Tables']['apple_pass_registrations']['Insert']>;
+        Relationships: [];
       };
       birthday_rewards: {
         Row: {
@@ -244,82 +228,16 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['birthday_rewards']['Insert']>;
+        Relationships: [];
       };
-      review_rewards: {
-        Row: {
-          id: string;
-          client_id: string;
-          carte_id: string;
-          created_at: string;
-        };
-        Insert: Omit<Database['public']['Tables']['review_rewards']['Row'], 'id' | 'created_at'> & { id?: string };
-        Update: Partial<Database['public']['Tables']['review_rewards']['Insert']>;
-      };
-      scanner_devices: {
-        Row: {
-          id: string;
-          commerce_id: string;
-          point_vente_id: string | null;
-          scanner_token: string;
-          device_name: string | null;
-          user_agent: string | null;
-          last_seen_at: string;
-          created_at: string;
-        };
-        Insert: Omit<Database['public']['Tables']['scanner_devices']['Row'], 'id' | 'created_at'> & { id?: string };
-        Update: Partial<Database['public']['Tables']['scanner_devices']['Insert']>;
-      };
-      sms_logs: {
-        Row: {
-          id: string;
-          commerce_id: string;
-          client_id: string | null;
-          type: string;
-          telephone: string;
-          message: string;
-          statut: string;
-          credits_debites: number;
-          created_at: string;
-        };
-        Insert: Omit<Database['public']['Tables']['sms_logs']['Row'], 'id' | 'created_at'> & { id?: string };
-        Update: Partial<Database['public']['Tables']['sms_logs']['Insert']>;
-      };
-      sms_scheduled: {
-        Row: {
-          id: string;
-          commerce_id: string;
-          client_id: string | null;
-          telephone: string;
-          message: string;
-          type: string;
-          send_at: string;
-          sent: boolean;
-          created_at: string;
-        };
-        Insert: Omit<Database['public']['Tables']['sms_scheduled']['Row'], 'id' | 'created_at'> & { id?: string };
-        Update: Partial<Database['public']['Tables']['sms_scheduled']['Insert']>;
-      };
-      stripe_webhook_events: {
-        Row: {
-          id: string;
-          event_id: string;
-          event_type: string;
-          status: string;
-          last_error: string | null;
-          processed_at: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: Omit<Database['public']['Tables']['stripe_webhook_events']['Row'], 'id' | 'created_at' | 'updated_at'> & {
-          id?: string;
-          last_error?: string | null;
-          processed_at?: string | null;
-        };
-        Update: Partial<Database['public']['Tables']['stripe_webhook_events']['Insert']>;
-      };
-    } & Record<string, GenericTable>);
+    };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      [key: string]: {
+        Args: Record<string, any>;
+        Returns: any;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

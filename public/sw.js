@@ -1,25 +1,10 @@
-const CACHE_NAME = 'fidelopass-v10';
+const CACHE_NAME = 'fidelopass-v11';
 const APP_SHELL = [
   '/app',
   '/app/scan',
-  '/app/install',
   '/favicon.png',
   '/manifest.json',
 ];
-
-const STATIC_ASSET_REGEX = /\.(?:js|mjs|css|png|jpg|jpeg|svg|webp|gif|ico|woff2?|ttf)$/i;
-
-function isDashboardLikePath(pathname) {
-  return (
-    pathname.startsWith('/dashboard')
-    || pathname.startsWith('/carte/')
-    || pathname.startsWith('/login')
-    || pathname.startsWith('/register')
-    || pathname.startsWith('/abonnement')
-    || pathname.startsWith('/onboarding')
-    || pathname.startsWith('/admin')
-  );
-}
 
 // ── Installation : mise en cache de l'app shell ──────────────────────────────
 self.addEventListener('install', (event) => {
@@ -39,97 +24,61 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// ── Fetch : évite le cache agressif des pages dynamiques, garde le cache pour assets ──
+// ── Fetch : network-first pour éviter de garder une vieille version après deploy ──
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
-
-  if (request.method !== 'GET') return;
-  if (url.origin !== self.location.origin) return;
 
   // Les appels API ne sont jamais mis en cache
   if (url.pathname.startsWith('/api/')) {
     return; // laisse passer sans interception
   }
 
-  if (request.mode === 'navigate') {
-    // Pour les pages dynamiques, toujours préférer le réseau (évite les pages obsolètes).
-    if (isDashboardLikePath(url.pathname)) {
-      event.respondWith(fetch(request));
-      return;
-    }
-
-    // Pour l'app scanner, fallback offline basique si réseau indisponible.
-    if (url.pathname.startsWith('/app')) {
-      event.respondWith(
-        fetch(request)
-          .then((response) => {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-            return response;
-          })
-          .catch(async () => {
-            const cached = await caches.match(request);
-            if (cached) return cached;
-            return caches.match('/app');
-          })
-      );
-      return;
-    }
-
-    event.respondWith(fetch(request));
-    return;
-  }
-
-  if (!STATIC_ASSET_REGEX.test(url.pathname)) {
-    return;
-  }
-
   event.respondWith(
-    caches.match(request).then((cached) => {
-      const networkPromise = fetch(request)
-        .then((response) => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        })
-        .catch(() => cached ?? new Response('Offline', { status: 503 }));
-
-      return cached ?? networkPromise;
-    }),
+    fetch(request).then((response) => {
+      if (request.method === 'GET' && url.origin === self.location.origin) {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+      }
+      return response;
+    }).catch(() =>
+      caches.match(request).then((cached) => cached ?? new Response('Offline', { status: 503 }))
+    )
   );
 });
 
 // ── Push notifications ────────────────────────────────────────────────────────
+// FCM envoie des messages "data-only" (sans clé notification) pour que le push
+// event soit TOUJOURS déclenché par le service worker. Si notification était
+// présente, FCM pouvait l'afficher lui-même et bypasser ce handler → intermittent.
 self.addEventListener('push', (event) => {
-  let payload = { title: 'Fidelopass', body: 'Nouvelle notification', icon: '/favicon.png' };
+  let title = 'Fidelopass';
+  let body = 'Nouvelle notification';
+  let icon = '/favicon.png';
+  let url = '/';
+
   try {
     if (event.data) {
-      const data = event.data.json();
-      payload = {
-        ...payload,
-        ...data.data,
-        ...data.notification,
-        ...data,
-        title: data.notification?.title ?? data.data?.title ?? data.title ?? payload.title,
-        body: data.notification?.body ?? data.data?.body ?? data.body ?? payload.body,
-        icon: data.notification?.icon ?? data.data?.icon ?? data.icon ?? payload.icon,
-      };
+      const raw = event.data.json();
+      // Les données FCM sont dans raw.data (message data-only)
+      const d = raw.data ?? raw;
+      title = d.title ?? title;
+      body = d.body ?? body;
+      icon = d.icon || '/favicon.png';
+      url = d.url ?? '/';
     }
   } catch {
-    if (event.data) payload.body = event.data.text();
+    if (event.data) body = event.data.text();
   }
 
   event.waitUntil(
-    self.registration.showNotification(payload.title, {
-      body: payload.body,
-      icon: payload.icon ?? '/favicon.png',
+    self.registration.showNotification(title, {
+      body,
+      icon,
       badge: '/favicon.png',
-      tag: 'fidelopass-promo',
-      renotify: true,
-      data: { url: '/' },
+      tag: 'fidelopass-' + Date.now(),
+      renotify: false,
+      data: { url },
     })
   );
 });

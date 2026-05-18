@@ -4,7 +4,7 @@
  */
 import sharp from 'sharp';
 import { existsSync, readFileSync } from 'node:fs';
-import { normalize, resolve } from 'node:path';
+import { resolve } from 'node:path';
 
 interface StripOptions {
   type: 'tampons' | 'points';
@@ -40,35 +40,9 @@ const BRANDING_WATERMARK_PATHS = [
   resolve(process.cwd(), 'public/logo-premium-cropped.png'),
   resolve(process.cwd(), 'assets/pass/logo.png'),
 ];
-const PUBLIC_DIR = resolve(process.cwd(), 'public');
 
 let brandingWatermarkCache: Buffer | null | undefined;
 const emojiImageCache = new Map<string, Buffer | null>();
-
-function getPublicAppUrl(): string {
-  return (process.env.APP_URL ?? process.env.PUBLIC_APP_URL ?? 'https://www.fidelopass.com').replace(/\/+$/, '');
-}
-
-function normalizePublicAssetPath(value: string): string | null {
-  const pathOnly = value.split('?')[0]?.split('#')[0] ?? '';
-  if (!pathOnly.startsWith('/') || pathOnly.includes('\0')) return null;
-  const normalized = normalize(pathOnly).replace(/^[/\\]+/, '');
-  if (!normalized || normalized.startsWith('..')) return null;
-  return normalized;
-}
-
-function readPublicAssetBuffer(value: string): Buffer | null {
-  const relativePath = normalizePublicAssetPath(value);
-  if (!relativePath) return null;
-  const filePath = resolve(PUBLIC_DIR, relativePath);
-  if (!filePath.startsWith(PUBLIC_DIR) || !existsSync(filePath)) return null;
-
-  try {
-    return readFileSync(filePath);
-  } catch {
-    return null;
-  }
-}
 
 function loadBrandingWatermark(): Buffer | null {
   if (brandingWatermarkCache !== undefined) return brandingWatermarkCache;
@@ -96,17 +70,8 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
 }
 
 async function fetchBuffer(url: string): Promise<Buffer | null> {
-  const trimmed = String(url ?? '').trim();
-  if (!trimmed) return null;
-
-  if (trimmed.startsWith('/')) {
-    const localAsset = readPublicAssetBuffer(trimmed);
-    if (localAsset) return localAsset;
-    return fetchBuffer(`${getPublicAppUrl()}${trimmed}`);
-  }
-
   try {
-    const res = await fetch(trimmed, { signal: AbortSignal.timeout(6000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
     if (!res.ok) return null;
     return Buffer.from(await res.arrayBuffer());
   } catch { return null; }
@@ -306,9 +271,9 @@ function computeStampGrid(total: number, current: number, W: number, H: number, 
   const displayTotal = Math.max(1, Math.min(total, 12));
   const cols = stampCols(displayTotal);
   const rows = Math.ceil(displayTotal / cols);
-  const radius = Math.min(34, Math.floor((W * 0.72) / (cols * 2.65)));
-  const spacingX = radius * 2.65;
-  const spacingY = radius * 2.58;
+  const radius = Math.min(26, Math.floor((W * 0.65) / (cols * 2.8)));
+  const spacingX = radius * 2.8;
+  const spacingY = radius * 2.8;
   const totalW = cols * spacingX - spacingX + radius * 2;
   const totalH = rows * spacingY - spacingY + radius * 2;
   const startX = (W - totalW) / 2 + radius;
@@ -497,8 +462,7 @@ function buildTamponCirclesSvg(W: number, H: number, accentHex: string, dots: St
 
 async function composeTamponGrid(base: Buffer, opts: StripOptions, W: number, H: number, layout: TamponLayout, useLightStyle: boolean): Promise<Buffer> {
   const { dots, radius } = computeStampGrid(opts.tamponsTotal, opts.tamponsActuels, W, H, layout);
-  const normalizedScale = Math.max(0.6, Math.min(1.5, Number(opts.tamponIconScale ?? 1)));
-  const iconSize = Math.max(14, Math.round(radius * 1.42 * normalizedScale));
+  const iconSize = Math.max(18, Math.round(radius * 1.42));
   const customIconBuffer = await prepareCircularTamponIcon(opts.tamponIconUrl, iconSize);
   const emojiIconBuffer = customIconBuffer ? null : await prepareCircularEmojiIcon(opts.tamponEmoji, iconSize);
   const iconBuffer = customIconBuffer ?? emojiIconBuffer;
@@ -524,7 +488,8 @@ async function composeTamponGrid(base: Buffer, opts: StripOptions, W: number, H:
         left: Math.round(dot.cx - iconSize / 2),
         top: Math.round(dot.cy - iconSize / 2),
         blend: 'over',
-      });
+        opacity: dot.filled ? 1 : 0.34,
+      } as sharp.OverlayOptions);
     }
   }
 

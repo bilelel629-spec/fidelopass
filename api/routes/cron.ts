@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import type { ApiEnv } from '../types';
 import { createServiceClient } from '../../src/lib/supabase';
 import { sendSMS } from '../../src/lib/brevo-sms';
 import { sendPersonalizedPushNotifications } from '../services/push';
@@ -6,16 +7,14 @@ import { sendGoogleWalletMessage, updateGooglePassObject } from '../services/goo
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { getPlanLimits } from './commerces';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
-import { getPublicSiteUrl } from '../utils/public-site-url';
 
-export const cronRoutes = new Hono();
-const PUBLIC_SITE_URL = getPublicSiteUrl();
+export const cronRoutes = new Hono<ApiEnv>();
+const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
 const BIRTHDAY_TIMEZONE = 'Europe/Paris';
 const BIRTHDAY_SEND_HOUR = 10;
 const BIRTHDAY_WINDOW_MAX_MINUTE = 5;
 const DEFAULT_BIRTHDAY_PUSH_TITLE = 'Joyeux anniversaire 🎉';
 const DEFAULT_BIRTHDAY_PUSH_MESSAGE = 'Votre bonus anniversaire est disponible sur votre carte Fidelopass.';
-const SMS_FEATURE_ENABLED = process.env.SMS_FEATURE_ENABLED === 'true';
 
 type CronCarteRow = {
   id: string;
@@ -42,7 +41,6 @@ type CronCarteRow = {
     plan: string | null;
   } | null;
   points_vente: {
-    nom?: string | null;
     latitude: number | null;
     longitude: number | null;
     rayon_geo: number | null;
@@ -51,7 +49,6 @@ type CronCarteRow = {
 
 type CronClientRow = {
   id: string;
-  wallet_code: string | null;
   nom: string | null;
   date_naissance: string | null;
   fcm_token: string | null;
@@ -218,6 +215,7 @@ async function sendScheduledReviewPushes(db: ReturnType<typeof createServiceClie
         }));
 
         const webSent = await sendPersonalizedPushNotifications(webRecipients, messageTitle, messageBody)
+          .then((result) => result.successCount)
           .catch((err) => {
             console.error('[cron review-auto webpush]', err);
             return 0;
@@ -332,7 +330,7 @@ async function sendScheduledBirthdayPushes(db: ReturnType<typeof createServiceCl
           rewards_config, vip_tiers, branding_powered_by_enabled,
           birthday_reward_value, birthday_push_title, birthday_push_message, point_vente_id,
           commerces(nom, logo_url, plan),
-          points_vente(nom, latitude, longitude, rayon_geo)
+          points_vente(latitude, longitude, rayon_geo)
         `)
         .eq('commerce_id', commerce.id)
         .eq('actif', true)
@@ -351,7 +349,7 @@ async function sendScheduledBirthdayPushes(db: ReturnType<typeof createServiceCl
 
         const { data: clients, error: clientsError } = await db
           .from('clients')
-          .select('id, wallet_code, nom, date_naissance, fcm_token, push_enabled, google_pass_id, apple_pass_serial, points_actuels, tampons_actuels, recompenses_obtenues')
+          .select('id, nom, date_naissance, fcm_token, push_enabled, google_pass_id, apple_pass_serial, points_actuels, tampons_actuels, recompenses_obtenues')
           .eq('commerce_id', commerce.id)
           .eq('point_vente_id', carte.point_vente_id)
           .eq('carte_id', carte.id)
@@ -479,7 +477,7 @@ async function sendScheduledBirthdayPushes(db: ReturnType<typeof createServiceCl
         const carteForWallet = {
           ...carte,
           commerces: {
-            nom: pointVenteRef?.nom ?? commerceRef?.nom ?? commerce.nom ?? '',
+            nom: commerceRef?.nom ?? commerce.nom ?? '',
             logo_url: commerceRef?.logo_url ?? null,
             latitude: pointVenteRef?.latitude ?? null,
             longitude: pointVenteRef?.longitude ?? null,
@@ -494,10 +492,12 @@ async function sendScheduledBirthdayPushes(db: ReturnType<typeof createServiceCl
             token: client.fcm_token as string,
             clickUrl,
           }));
-          const sent = await sendPersonalizedPushNotifications(recipients, messageTitle, messageBody).catch((err: unknown) => {
-            console.error('[cron birthday webpush]', err);
-            return 0;
-          });
+          const sent = await sendPersonalizedPushNotifications(recipients, messageTitle, messageBody)
+            .then((result) => result.successCount)
+            .catch((err: unknown) => {
+              console.error('[cron birthday webpush]', err);
+              return 0;
+            });
           pushesSent += sent;
           webPushClients.slice(0, sent).forEach((client) => deliveredClientIds.add(client.id));
         }
@@ -509,7 +509,6 @@ async function sendScheduledBirthdayPushes(db: ReturnType<typeof createServiceCl
             carteForWallet,
             {
               id: client.id,
-              wallet_code: client.wallet_code ?? null,
               nom: client.nom,
               points_actuels: client.points_actuels,
               tampons_actuels: client.tampons_actuels,
@@ -606,7 +605,7 @@ cronRoutes.get('/send-scheduled-sms', async (c) => {
   let sent = 0;
   let failed = 0;
 
-  if (SMS_FEATURE_ENABLED && pending?.length) {
+  if (pending?.length) {
     for (const sms of pending) {
       const result = await sendSMS(
         sms.telephone,

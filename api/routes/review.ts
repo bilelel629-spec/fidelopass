@@ -1,10 +1,11 @@
 import { Hono } from 'hono';
+import type { ApiEnv } from '../types';
 import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { updateGooglePassObject } from '../services/google-wallet';
 
-export const reviewRoutes = new Hono();
+export const reviewRoutes = new Hono<ApiEnv>();
 
 const claimSchema = z.object({
   client_id: z.string().uuid(),
@@ -21,7 +22,7 @@ reviewRoutes.get('/:carteId/info', async (c) => {
 
   const { data: carte } = await db
     .from('cartes')
-    .select('id, nom, type, review_reward_enabled, review_reward_value, google_maps_url, commerces(nom, logo_url), points_vente(nom)')
+    .select('id, nom, type, review_reward_enabled, review_reward_value, google_maps_url, commerces(nom, logo_url)')
     .eq('id', carteId)
     .eq('actif', true)
     .single();
@@ -47,10 +48,6 @@ reviewRoutes.get('/:carteId/info', async (c) => {
     .eq('carte_id', carteId)
     .maybeSingle();
 
-  const pointVente = (carte.points_vente as unknown as { nom?: string | null } | null);
-  const commerceInfo = (carte.commerces as unknown as { nom: string; logo_url: string | null } | null);
-  const displayCommerceName = pointVente?.nom ?? commerceInfo?.nom ?? '';
-
   return c.json({
     data: {
       carte: {
@@ -58,8 +55,8 @@ reviewRoutes.get('/:carteId/info', async (c) => {
         type: carte.type,
         review_reward_value: carte.review_reward_value,
         google_maps_url: carte.google_maps_url,
-        commerce_nom: displayCommerceName,
-        commerce_logo: commerceInfo?.logo_url ?? null,
+        commerce_nom: (carte.commerces as unknown as { nom: string; logo_url: string | null } | null)?.nom ?? '',
+        commerce_logo: (carte.commerces as unknown as { nom: string; logo_url: string | null } | null)?.logo_url ?? null,
       },
       already_claimed: !!existing,
       claimed_at: existing?.claimed_at ?? null,
@@ -81,7 +78,7 @@ reviewRoutes.post('/:carteId/claim', async (c) => {
   // Vérifie la carte
   const { data: carte } = await db
     .from('cartes')
-    .select('id, type, tampons_total, points_recompense, recompense_description, review_reward_enabled, review_reward_value, couleur_fond, logo_url, strip_url, barcode_type, label_client, commerces(nom, logo_url), points_vente(nom)')
+    .select('id, type, tampons_total, points_recompense, recompense_description, review_reward_enabled, review_reward_value, couleur_fond, logo_url, strip_url, barcode_type, label_client, commerces(nom, logo_url)')
     .eq('id', carteId)
     .eq('actif', true)
     .single();
@@ -161,21 +158,12 @@ reviewRoutes.post('/:carteId/claim', async (c) => {
   // Mise à jour Wallets (fire-and-forget)
   void (async () => {
     try {
-      const pointVente = (carte.points_vente as unknown as { nom?: string | null } | null);
-      const commerceBase = (carte.commerces as unknown as { nom?: string | null; logo_url?: string | null } | null);
-      const carteForWallet = {
-        ...carte,
-        commerces: {
-          nom: pointVente?.nom ?? commerceBase?.nom ?? '',
-          logo_url: commerceBase?.logo_url ?? null,
-        },
-      } as unknown as Parameters<typeof updateGooglePassObject>[1];
       const updatedClient = { ...client, points_actuels: newPoints, tampons_actuels: newTampons, recompenses_obtenues: recompensesObtenues };
 
       if (client.google_pass_id) {
         await updateGooglePassObject(
           client.google_pass_id,
-          carteForWallet,
+          carte as unknown as Parameters<typeof updateGooglePassObject>[1],
           updatedClient,
         ).catch((err) => console.error('[review claim google]', err));
       }

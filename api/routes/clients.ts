@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
+import type { ApiEnv } from '../types';
 import { z } from 'zod';
-import { randomBytes } from 'crypto';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
@@ -10,39 +10,19 @@ import { updateGooglePassObject } from '../services/google-wallet';
 import { scheduleSMS, personnaliserMessage } from '../../src/lib/brevo-sms';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
-import { getPublicSiteUrl } from '../utils/public-site-url';
 
-const PUBLIC_SITE_URL = getPublicSiteUrl();
-const SMS_FEATURE_ENABLED = process.env.SMS_FEATURE_ENABLED === 'true';
+const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
 
-export const clientsRoutes = new Hono();
-
-const uuidSchema = z.string().uuid();
+export const clientsRoutes = new Hono<ApiEnv>();
 
 function normalizePhone(phone: string): string {
   return phone.replace(/[^\d+]/g, '');
 }
 
-function generateWalletCode(): string {
-  return `FID-${randomBytes(4).toString('hex').toUpperCase()}`;
-}
-
-function errorMentionsColumn(error: { message?: string | null; details?: string | null } | null | undefined, column: string): boolean {
-  const haystack = `${error?.message ?? ''} ${error?.details ?? ''}`.toLowerCase();
-  return haystack.includes(column.toLowerCase());
-}
-
 /** GET /api/clients/public/:id — État minimal du client pour la page carte publique */
 clientsRoutes.get('/public/:id', async (c) => {
-  const clientIdResult = uuidSchema.safeParse(c.req.param('id'));
-  if (!clientIdResult.success) return c.json({ error: 'Client introuvable' }, 404);
-
-  const carteIdParam = c.req.query('carte_id');
-  const carteIdResult = carteIdParam ? uuidSchema.safeParse(carteIdParam) : null;
-  if (carteIdResult && !carteIdResult.success) return c.json({ error: 'Client introuvable' }, 404);
-
-  const clientId = clientIdResult.data;
-  const carteId = carteIdResult?.data;
+  const clientId = c.req.param('id') ?? '';
+  const carteId = c.req.query('carte_id');
   const db = createServiceClient();
 
   const { data, error } = await db
@@ -78,8 +58,6 @@ clientsRoutes.get('/public/:id', async (c) => {
     data: {
       id: data.id,
       nom: data.nom,
-      telephone: data.telephone,
-      date_naissance: data.date_naissance,
       points_actuels: data.points_actuels,
       tampons_actuels: data.tampons_actuels,
       recompenses_obtenues: data.recompenses_obtenues,
@@ -96,10 +74,7 @@ clientsRoutes.get('/public/:id', async (c) => {
 
 /** GET /api/clients/:id — Récupère un client (utilisé par le scanner) */
 clientsRoutes.get('/:id', authMiddleware, paidMiddleware, async (c) => {
-  const clientIdResult = uuidSchema.safeParse(c.req.param('id'));
-  if (!clientIdResult.success) return c.json({ error: 'Client introuvable' }, 404);
-
-  const clientId = clientIdResult.data;
+  const clientId = c.req.param('id') ?? '';
   const userId = c.get('userId') as string;
   const db = createServiceClient();
   const requestedPointVenteId = readRequestedPointVenteId(c);
@@ -120,43 +95,33 @@ clientsRoutes.get('/:id', authMiddleware, paidMiddleware, async (c) => {
   return c.json({ data });
 });
 
-/** GET /api/clients — Liste les clients du commerce */
+/** GET /api/clients — Liste les clients du commerce (paginé) */
 clientsRoutes.get('/', authMiddleware, paidMiddleware, async (c) => {
   const userId = c.get('userId') as string;
   const search = c.req.query('search') ?? '';
+  const page = Math.max(0, parseInt(c.req.query('page') ?? '0'));
+  const pageSize = Math.min(Math.max(1, parseInt(c.req.query('limit') ?? '100')), 500);
   const db = createServiceClient();
   const requestedPointVenteId = readRequestedPointVenteId(c);
   const { commerce, pointVente } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id, plan');
 
-  if (!commerce || !pointVente) return c.json({ data: [] });
+  if (!commerce || !pointVente) return c.json({ data: [], total: 0, page: 0, pageSize });
 
   let query = db
     .from('clients')
-    .select('*')
+    .select('*', { count: 'exact' })
     .eq('commerce_id', commerce.id)
     .eq('point_vente_id', pointVente.id)
     .order('derniere_visite', { ascending: false, nullsFirst: false });
 
   if (search) {
-    query = query.or(`nom.ilike.%${search}%,email.ilike.%${search}%,telephone.ilike.%${search}%,wallet_code.ilike.%${search}%`);
+    query = query.or(`nom.ilike.%${search}%,email.ilike.%${search}%,telephone.ilike.%${search}%`);
   }
 
-  let { data, error } = await query.limit(100);
-  if (errorMentionsColumn(error, 'wallet_code') && search) {
-    const fallbackQuery = db
-      .from('clients')
-      .select('*')
-      .eq('commerce_id', commerce.id)
-      .eq('point_vente_id', pointVente.id)
-      .or(`nom.ilike.%${search}%,email.ilike.%${search}%,telephone.ilike.%${search}%`)
-      .order('derniere_visite', { ascending: false, nullsFirst: false });
-    const fallback = await fallbackQuery.limit(100);
-    data = fallback.data;
-    error = fallback.error;
-  }
+  const { data, error, count } = await query.range(page * pageSize, (page + 1) * pageSize - 1);
   if (error) return c.json({ error: 'Erreur lors de la récupération' }, 500);
 
-  return c.json({ data });
+  return c.json({ data, total: count ?? 0, page, pageSize });
 });
 
 /** POST /api/clients — Crée un client (lors de l'ajout au Wallet) */
@@ -170,7 +135,15 @@ clientsRoutes.post('/', async (c) => {
     email: z.string().email().nullable().optional(),
     date_naissance: z.preprocess(
       (value) => (value === '' ? null : value),
-      z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format attendu: AAAA-MM-JJ').nullable().optional(),
+      z.string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, 'Format attendu: AAAA-MM-JJ')
+        .refine((d) => {
+          const [year, month, day] = d.split('-').map(Number);
+          const date = new Date(year, month - 1, day);
+          return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+        }, 'Date invalide (ex: 30 février)')
+        .nullable()
+        .optional(),
     ),
     push_consent: z.boolean().default(false),
     fcm_token: z.string().nullable().optional(),
@@ -230,7 +203,6 @@ clientsRoutes.post('/', async (c) => {
   if (existingClient) {
     const nextFcmToken = parsed.data.fcm_token ?? existingClient.fcm_token;
     const pushEnabled = Boolean(nextFcmToken) && (parsed.data.push_consent || existingClient.push_enabled);
-    const nextWalletCode = (existingClient as { wallet_code?: string | null }).wallet_code ?? generateWalletCode();
 
     const { data: updatedClient, error: updateError } = await db
       .from('clients')
@@ -239,7 +211,6 @@ clientsRoutes.post('/', async (c) => {
         telephone: normalizedPhone,
         email: parsed.data.email ?? existingClient.email,
         date_naissance: parsed.data.date_naissance ?? existingClient.date_naissance ?? null,
-        wallet_code: nextWalletCode,
         fcm_token: nextFcmToken,
         push_enabled: pushEnabled,
         updated_at: new Date().toISOString(),
@@ -248,26 +219,17 @@ clientsRoutes.post('/', async (c) => {
       .select()
       .single();
 
-    if (updateError && (errorMentionsColumn(updateError, 'date_naissance') || errorMentionsColumn(updateError, 'wallet_code'))) {
-      const fallbackPayload: Record<string, unknown> = {
-        nom: parsed.data.nom,
-        telephone: normalizedPhone,
-        email: parsed.data.email ?? existingClient.email,
-        fcm_token: nextFcmToken,
-        push_enabled: pushEnabled,
-        updated_at: new Date().toISOString(),
-      };
-
-      if (!errorMentionsColumn(updateError, 'date_naissance')) {
-        fallbackPayload.date_naissance = parsed.data.date_naissance ?? existingClient.date_naissance ?? null;
-      }
-      if (!errorMentionsColumn(updateError, 'wallet_code')) {
-        fallbackPayload.wallet_code = nextWalletCode;
-      }
-
+    if (updateError && updateError.message?.includes('date_naissance')) {
       const { data: fallbackUpdatedClient, error: fallbackUpdateError } = await db
         .from('clients')
-        .update(fallbackPayload)
+        .update({
+          nom: parsed.data.nom,
+          telephone: normalizedPhone,
+          email: parsed.data.email ?? existingClient.email,
+          fcm_token: nextFcmToken,
+          push_enabled: pushEnabled,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', existingClient.id)
         .select()
         .single();
@@ -286,14 +248,12 @@ clientsRoutes.post('/', async (c) => {
     return c.json({ data: updatedClient, existing: true });
   }
 
-  const walletCode = generateWalletCode();
   let insertResult = await db
     .from('clients')
     .insert({
       carte_id: parsed.data.carte_id,
       commerce_id: carte.commerce_id,
       point_vente_id: carte.point_vente_id,
-      wallet_code: walletCode,
       nom: parsed.data.nom,
       telephone: normalizedPhone,
       email: parsed.data.email ?? null,
@@ -304,28 +264,19 @@ clientsRoutes.post('/', async (c) => {
     .select()
     .single();
 
-  if (errorMentionsColumn(insertResult.error, 'date_naissance') || errorMentionsColumn(insertResult.error, 'wallet_code')) {
-    const fallbackPayload: Record<string, unknown> = {
-      carte_id: parsed.data.carte_id,
-      commerce_id: carte.commerce_id,
-      point_vente_id: carte.point_vente_id,
-      nom: parsed.data.nom,
-      telephone: normalizedPhone,
-      email: parsed.data.email ?? null,
-      fcm_token: parsed.data.fcm_token ?? null,
-      push_enabled: parsed.data.push_consent && Boolean(parsed.data.fcm_token),
-    };
-
-    if (!errorMentionsColumn(insertResult.error, 'date_naissance')) {
-      fallbackPayload.date_naissance = parsed.data.date_naissance ?? null;
-    }
-    if (!errorMentionsColumn(insertResult.error, 'wallet_code')) {
-      fallbackPayload.wallet_code = walletCode;
-    }
-
+  if (insertResult.error?.message?.includes('date_naissance')) {
     insertResult = await db
       .from('clients')
-      .insert(fallbackPayload)
+      .insert({
+        carte_id: parsed.data.carte_id,
+        commerce_id: carte.commerce_id,
+        point_vente_id: carte.point_vente_id,
+        nom: parsed.data.nom,
+        telephone: normalizedPhone,
+        email: parsed.data.email ?? null,
+        fcm_token: parsed.data.fcm_token ?? null,
+        push_enabled: parsed.data.push_consent && Boolean(parsed.data.fcm_token),
+      })
       .select()
       .single();
   }
@@ -334,19 +285,13 @@ clientsRoutes.post('/', async (c) => {
   if (error) return c.json({ error: 'Erreur lors de la création du client' }, 500);
 
   // SMS bienvenue planifié 60 min après l'inscription
-  if (SMS_FEATURE_ENABLED && commerce && commerce.sms_welcome_enabled && (commerce.sms_credits ?? 0) > 0 && data.telephone) {
-    const { data: pointVenteData } = await db
-      .from('points_vente')
-      .select('nom')
-      .eq('id', carte.point_vente_id)
-      .maybeSingle();
-    const commerceDisplayName = pointVenteData?.nom ?? (commerce.nom as string | null) ?? '';
+  if (commerce && commerce.sms_welcome_enabled && (commerce.sms_credits ?? 0) > 0 && data.telephone) {
     const defaultMsg = 'Bonjour {prenom} ! Bienvenue chez {commerce}. Retrouvez votre carte de fidélité ici : {lien_carte}';
     const msg = personnaliserMessage(
       (commerce.sms_welcome_message as string | null) ?? defaultMsg,
       {
         prenom: data.nom ?? '',
-        commerce: commerceDisplayName,
+        commerce: (commerce.nom as string | null) ?? '',
         lien_carte: `${PUBLIC_SITE_URL}/carte/${data.id}`,
       },
     );
@@ -359,10 +304,7 @@ clientsRoutes.post('/', async (c) => {
 
 /** PATCH /api/clients/:id/adjust — Ajustement manuel du score (+ ou -) par le commerçant */
 clientsRoutes.patch('/:id/adjust', authMiddleware, paidMiddleware, async (c) => {
-  const clientIdResult = uuidSchema.safeParse(c.req.param('id'));
-  if (!clientIdResult.success) return c.json({ error: 'Client introuvable' }, 404);
-
-  const clientId = clientIdResult.data;
+  const clientId = c.req.param('id') ?? '';
   const userId = c.get('userId') as string;
   const body = await c.req.json().catch(() => null);
   const requestedPointVenteId = readRequestedPointVenteId(c);
@@ -388,44 +330,37 @@ clientsRoutes.patch('/:id/adjust', authMiddleware, paidMiddleware, async (c) => 
 
   const carte = Array.isArray(client.cartes) ? client.cartes[0] : client.cartes;
   const isPoints = carte?.type === 'points';
-
+  const scoreType = isPoints ? 'points' : 'tampons';
+  const seuil = isPoints ? (carte?.points_recompense ?? 100) : (carte?.tampons_total ?? 10);
   const current = isPoints ? client.points_actuels : client.tampons_actuels;
-  const newScore = Math.max(0, current + parsed.data.delta);
   const type = parsed.data.delta > 0
     ? (isPoints ? 'ajout_points' : 'ajout_tampon')
     : (isPoints ? 'retrait_points' : 'retrait_tampon');
 
-  let recompensesObtenues = client.recompenses_obtenues;
-  let finalScore = newScore;
-  if (parsed.data.delta > 0) {
-    const seuil = isPoints ? (carte?.points_recompense ?? 100) : (carte?.tampons_total ?? 10);
-    if (newScore >= seuil) {
-      recompensesObtenues += Math.floor(newScore / seuil);
-      // Plafonne au seuil — le reset se fait explicitement quand le commerçant attribue la récompense
-      finalScore = seuil;
-    }
-  }
+  // Mise à jour atomique via RPC pour éviter les race conditions sur les scans simultanés
+  const { data: rpcResult, error: rpcError } = await db.rpc('adjust_client_score_atomic', {
+    p_client_id: clientId,
+    p_commerce_id: commerce.id,
+    p_delta: parsed.data.delta,
+    p_score_type: scoreType,
+    p_seuil: seuil,
+  });
 
-  const [updateResult] = await Promise.all([
-    db.from('clients').update({
-      ...(isPoints ? { points_actuels: finalScore } : { tampons_actuels: finalScore }),
-      recompenses_obtenues: recompensesObtenues,
-      derniere_visite: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }).eq('id', clientId),
-    db.from('transactions').insert({
-      client_id: clientId,
-      commerce_id: commerce.id,
-      point_vente_id: pointVente.id,
-      type,
-      valeur: Math.abs(parsed.data.delta),
-      points_avant: current,
-      points_apres: finalScore,
-      note: 'Ajustement manuel',
-    }),
-  ]);
+  if (rpcError) return c.json({ error: 'Erreur lors de la mise à jour' }, 500);
 
-  if (updateResult.error) return c.json({ error: 'Erreur lors de la mise à jour' }, 500);
+  const updated = rpcResult as { points_actuels: number; tampons_actuels: number; recompenses_obtenues: number };
+  const finalScore = isPoints ? updated.points_actuels : updated.tampons_actuels;
+
+  await db.from('transactions').insert({
+    client_id: clientId,
+    commerce_id: commerce.id,
+    point_vente_id: pointVente.id,
+    type,
+    valeur: Math.abs(parsed.data.delta),
+    points_avant: current,
+    points_apres: finalScore,
+    note: 'Ajustement manuel',
+  });
 
   // Mise à jour Wallet en fire-and-forget (ne bloque pas la réponse)
   const { data: clientFull } = await db
@@ -465,11 +400,10 @@ clientsRoutes.patch('/:id/adjust', authMiddleware, paidMiddleware, async (c) => 
 
       updateGooglePassObject(clientFull.google_pass_id, carteForWallet, {
         id: clientId,
-        wallet_code: (client as { wallet_code?: string | null }).wallet_code ?? null,
         nom: client.nom ?? null,
-        points_actuels: isPoints ? finalScore : client.points_actuels,
-        tampons_actuels: isPoints ? client.tampons_actuels : finalScore,
-        recompenses_obtenues: recompensesObtenues,
+        points_actuels: updated.points_actuels,
+        tampons_actuels: updated.tampons_actuels,
+        recompenses_obtenues: updated.recompenses_obtenues,
       }).catch((err) => console.error('[adjust wallet google]', err));
     }
 
@@ -493,18 +427,16 @@ clientsRoutes.patch('/:id/adjust', authMiddleware, paidMiddleware, async (c) => 
 
   return c.json({
     client: {
-      ...(isPoints ? { points_actuels: finalScore } : { tampons_actuels: finalScore }),
-      recompenses_obtenues: recompensesObtenues,
+      points_actuels: updated.points_actuels,
+      tampons_actuels: updated.tampons_actuels,
+      recompenses_obtenues: updated.recompenses_obtenues,
     },
   });
 });
 
 /** POST /api/clients/:id/claim-review — Réclame la récompense avis Google */
 clientsRoutes.post('/:id/claim-review', async (c) => {
-  const clientIdResult = uuidSchema.safeParse(c.req.param('id'));
-  if (!clientIdResult.success) return c.json({ error: 'Client introuvable' }, 404);
-
-  const clientId = clientIdResult.data;
+  const clientId = c.req.param('id') ?? '';
   const body = await c.req.json().catch(() => null);
 
   const schema = z.object({ carte_id: z.string().uuid() });
@@ -513,28 +445,7 @@ clientsRoutes.post('/:id/claim-review', async (c) => {
 
   const db = createServiceClient();
 
-  const { data: client } = await db
-    .from('clients')
-    .select('id, nom, commerce_id, carte_id, points_actuels, tampons_actuels')
-    .eq('id', clientId)
-    .single();
-
-  if (!client) return c.json({ error: 'Client introuvable' }, 404);
-
-  const { data: carte } = await db
-    .from('cartes')
-    .select('id, commerce_id, type, review_reward_enabled, review_reward_value')
-    .eq('id', parsed.data.carte_id)
-    .eq('actif', true)
-    .single();
-
-  if (!carte) return c.json({ error: 'Carte introuvable' }, 404);
-  if (client.carte_id !== carte.id || client.commerce_id !== carte.commerce_id) {
-    return c.json({ error: 'Client introuvable' }, 404);
-  }
-  if (!carte.review_reward_enabled) return c.json({ error: 'Récompense avis non activée' }, 403);
-
-  // Anti-double-claim après validation de rattachement client/carte.
+  // Anti-double-claim
   const { data: existing } = await db
     .from('review_rewards')
     .select('id')
@@ -543,6 +454,24 @@ clientsRoutes.post('/:id/claim-review', async (c) => {
     .maybeSingle();
 
   if (existing) return c.json({ error: 'Récompense déjà réclamée' }, 409);
+
+  const { data: client } = await db
+    .from('clients')
+    .select('id, nom, commerce_id, points_actuels, tampons_actuels')
+    .eq('id', clientId)
+    .single();
+
+  if (!client) return c.json({ error: 'Client introuvable' }, 404);
+
+  const { data: carte } = await db
+    .from('cartes')
+    .select('id, type, review_reward_enabled, review_reward_value')
+    .eq('id', parsed.data.carte_id)
+    .eq('actif', true)
+    .single();
+
+  if (!carte) return c.json({ error: 'Carte introuvable' }, 404);
+  if (!carte.review_reward_enabled) return c.json({ error: 'Récompense avis non activée' }, 403);
 
   // Insérer la réclamation
   await db.from('review_rewards').insert({
@@ -567,10 +496,7 @@ clientsRoutes.post('/:id/claim-review', async (c) => {
 
 /** PATCH /api/clients/:id/fcm — Met à jour le token FCM */
 clientsRoutes.patch('/:id/fcm', async (c) => {
-  const clientIdResult = uuidSchema.safeParse(c.req.param('id'));
-  if (!clientIdResult.success) return c.json({ error: 'Client introuvable' }, 404);
-
-  const clientId = clientIdResult.data;
+  const clientId = c.req.param('id') ?? '';
   const body = await c.req.json().catch(() => null);
 
   const schema = z.object({ fcm_token: z.string() });

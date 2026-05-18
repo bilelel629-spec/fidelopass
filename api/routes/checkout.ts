@@ -1,758 +1,25 @@
 import { Hono } from 'hono';
+import type { ApiEnv } from '../types';
 import { z } from 'zod';
 import Stripe from 'stripe';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { authMiddleware } from '../middleware/auth';
 import { createServiceClient } from '../../src/lib/supabase';
-import { getPublicSiteUrl } from '../utils/public-site-url';
-import { getEffectivePlanRaw } from '../utils/effective-plan';
-import { getBillingStatusForUser } from '../services/billing';
+import {
+  getStripe,
+  loadPriceIds,
+  resolvePriceSlot,
+  resolveExpectedModeFromSlot,
+  resolveCommitmentLabelFromSlot,
+  resolvePlanFromSlot,
+  resolveUsablePriceId,
+} from '../services/stripe-billing';
 
-export const checkoutRoutes = new Hono();
-const PRODUCTION_SITE_URL = 'https://www.fidelopass.com';
-
-function getStripe() {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) throw new Error('STRIPE_SECRET_KEY manquant');
-  return new Stripe(key);
-}
-
-function isLoopbackHostname(hostname: string): boolean {
-  const value = hostname.trim().toLowerCase();
-  return (
-    value === 'localhost'
-    || value === '127.0.0.1'
-    || value === '0.0.0.0'
-    || value.endsWith('.localhost')
-  );
-}
-
-function resolvePublicSiteUrlFromRequest(originOrReferer?: string | null): string {
-  const fallback = getPublicSiteUrl();
-  if (!originOrReferer) return fallback || PRODUCTION_SITE_URL;
-  try {
-    const parsed = new URL(originOrReferer);
-    if (isLoopbackHostname(parsed.hostname)) return PRODUCTION_SITE_URL;
-    const host = parsed.hostname.toLowerCase();
-    if (host.endsWith('fidelopass.com')) {
-      return `${parsed.protocol}//${parsed.host}`.replace(/\/$/, '');
-    }
-    return fallback || PRODUCTION_SITE_URL;
-  } catch {
-    return fallback || PRODUCTION_SITE_URL;
-  }
-}
+export const checkoutRoutes = new Hono<ApiEnv>();
 
 const createSessionSchema = z.object({
   priceId: z.string().min(1),
-  priceSlot: z.enum([
-    'starter_mensuel',
-    'starter_annuel_once',
-    'starter_annuel_mensuel',
-    'pro_mensuel',
-    'pro_annuel_once',
-    'pro_annuel_mensuel',
-    'accompagnement',
-    'scanner',
-  ]).optional(),
   mode: z.enum(['subscription', 'payment']),
   includeAccompagnement: z.boolean().optional().default(false),
-  dryRun: z.boolean().optional().default(false),
-});
-
-const reconcileSessionSchema = z.object({
-  sessionId: z.string().min(8),
-});
-
-const whiteLabelSessionSchema = z.object({
-  plan: z.enum(['white_label_starter', 'white_label_pro']),
-});
-
-type WhiteLabelPlan = z.infer<typeof whiteLabelSessionSchema>['plan'];
-
-const WHITE_LABEL_PLAN_CONFIG: Record<WhiteLabelPlan, {
-  included_commerces: number;
-  monthly_price_cents: number;
-  label: string;
-}> = {
-  white_label_starter: {
-    included_commerces: 10,
-    monthly_price_cents: 19900,
-    label: 'White Label Starter',
-  },
-  white_label_pro: {
-    included_commerces: 25,
-    monthly_price_cents: 44900,
-    label: 'White Label Pro',
-  },
-};
-
-type PriceSlot =
-  | 'starter_mensuel'
-  | 'starter_annuel_once'
-  | 'starter_annuel_mensuel'
-  | 'pro_mensuel'
-  | 'pro_annuel_once'
-  | 'pro_annuel_mensuel'
-  | 'accompagnement'
-  | 'scanner';
-
-const PRICE_SLOTS: PriceSlot[] = [
-  'starter_mensuel',
-  'starter_annuel_once',
-  'starter_annuel_mensuel',
-  'pro_mensuel',
-  'pro_annuel_once',
-  'pro_annuel_mensuel',
-  'accompagnement',
-  'scanner',
-];
-
-const LEGACY_PRICE_IDS: Record<PriceSlot, string[]> = {
-  starter_mensuel: ['price_1TLWbz7qMJeoJ4KrW4C8UFLr', 'price_1TMlVz60FYcAjVxl8VNyc7o6'],
-  starter_annuel_once: ['price_1TLWbz7qMJeoJ4KrpUsFIFPs', 'price_1TMlVz60FYcAjVxlSG7wb8dA'],
-  starter_annuel_mensuel: ['price_1TLWbz7qMJeoJ4KrUuITfZUO', 'price_1TMlVy60FYcAjVxlsTpI09J1'],
-  pro_mensuel: ['price_1TLWc07qMJeoJ4KrbyyfYOlH', 'price_1TMlVx60FYcAjVxlm2p12mJm'],
-  pro_annuel_once: ['price_1TLWc07qMJeoJ4KrP8wZXL9U', 'price_1TMlVx60FYcAjVxlTlIYvWFd'],
-  pro_annuel_mensuel: ['price_1TLWc07qMJeoJ4KrvqLZfE0u', 'price_1TMlVw60FYcAjVxlVWNs7aJd'],
-  accompagnement: ['price_1TLUSQ7qMJeoJ4KrYRnAjiPT', 'price_1TMlVu60FYcAjVxl8HONXsoV'],
-  scanner: ['price_1TLUSR7qMJeoJ4KraAIhkZNc', 'price_1TMlVy60FYcAjVxl06t2Sgq1'],
-};
-
-function loadPriceIds() {
-  try {
-    const raw = readFileSync(resolve(process.cwd(), 'stripe-price-ids.json'), 'utf8');
-    return JSON.parse(raw) as Record<string, string>;
-  } catch {
-    return {
-      starter_mensuel: 'price_1TMlVz60FYcAjVxl8VNyc7o6',
-      starter_annuel_once: 'price_1TMlVz60FYcAjVxlSG7wb8dA',
-      starter_annuel_mensuel: 'price_1TMlVy60FYcAjVxlsTpI09J1',
-      pro_mensuel: 'price_1TMlVx60FYcAjVxlm2p12mJm',
-      pro_annuel_once: 'price_1TMlVx60FYcAjVxlTlIYvWFd',
-      pro_annuel_mensuel: 'price_1TMlVw60FYcAjVxlVWNs7aJd',
-      accompagnement: 'price_1TMlVu60FYcAjVxl8HONXsoV',
-      scanner: 'price_1TMlVy60FYcAjVxl06t2Sgq1',
-    } satisfies Record<string, string>;
-  }
-}
-
-function loadWhiteLabelPriceIds(): Record<WhiteLabelPlan, string | null> {
-  const envStarter = process.env.STRIPE_WHITE_LABEL_STARTER_PRICE_ID?.trim();
-  const envPro = process.env.STRIPE_WHITE_LABEL_PRO_PRICE_ID?.trim();
-
-  if (envStarter || envPro) {
-    return {
-      white_label_starter: envStarter || null,
-      white_label_pro: envPro || null,
-    };
-  }
-
-  try {
-    const raw = readFileSync(resolve(process.cwd(), 'stripe-white-label-price-ids.json'), 'utf8');
-    const parsed = JSON.parse(raw) as {
-      mode?: string;
-      white_label_starter?: { monthly_price_id?: string };
-      white_label_pro?: { monthly_price_id?: string };
-    };
-    const stripeKey = process.env.STRIPE_SECRET_KEY ?? '';
-    const fileMode = String(parsed.mode ?? '').toLowerCase();
-    const keyMode = stripeKey.startsWith('sk_test_') ? 'test' : stripeKey.startsWith('sk_live_') ? 'live' : '';
-    if (fileMode && keyMode && fileMode !== keyMode) {
-      return {
-        white_label_starter: null,
-        white_label_pro: null,
-      };
-    }
-    return {
-      white_label_starter: parsed.white_label_starter?.monthly_price_id ?? null,
-      white_label_pro: parsed.white_label_pro?.monthly_price_id ?? null,
-    };
-  } catch {
-    return {
-      white_label_starter: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
-        ? 'price_1TTrjy7qMJeoJ4Kr8BpYuf90'
-        : null,
-      white_label_pro: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
-        ? 'price_1TTrjz7qMJeoJ4KrUrF0azJc'
-        : null,
-    };
-  }
-}
-
-function unique(values: Array<string | null | undefined>): string[] {
-  return Array.from(new Set(values.filter((v): v is string => Boolean(v))));
-}
-
-function candidatesForSlot(slot: PriceSlot, priceIds: Record<string, string>): string[] {
-  return unique([priceIds[slot], ...(LEGACY_PRICE_IDS[slot] ?? [])]);
-}
-
-function resolvePriceSlot(priceId: string, priceIds: Record<string, string>): PriceSlot | null {
-  for (const slot of PRICE_SLOTS) {
-    if (candidatesForSlot(slot, priceIds).includes(priceId)) return slot;
-  }
-  return null;
-}
-
-function resolveExpectedModeFromSlot(slot: PriceSlot): 'subscription' | 'payment' {
-  if (
-    slot === 'starter_mensuel'
-    || slot === 'starter_annuel_mensuel'
-    || slot === 'pro_mensuel'
-    || slot === 'pro_annuel_mensuel'
-  ) {
-    return 'subscription';
-  }
-  return 'payment';
-}
-
-function resolveCommitmentLabelFromSlot(slot: PriceSlot) {
-  if (slot === 'starter_mensuel' || slot === 'pro_mensuel') {
-    return 'monthly-flex';
-  }
-  if (slot === 'starter_annuel_mensuel' || slot === 'pro_annuel_mensuel') {
-    return 'annual-12m-monthly';
-  }
-  if (slot === 'starter_annuel_once' || slot === 'pro_annuel_once') {
-    return 'annual-12m-once';
-  }
-  return 'unknown';
-}
-
-function normalizeBillingStatusFromSubscription(status: string | null | undefined) {
-  if (!status) return 'unpaid';
-  if (status === 'active') return 'active';
-  if (status === 'trialing') return 'trialing';
-  if (status === 'past_due') return 'past_due';
-  if (status === 'canceled') return 'canceled';
-  return 'unpaid';
-}
-
-function isSubscriptionAccessReady(subscription: Stripe.Subscription) {
-  const status = normalizeBillingStatusFromSubscription(subscription.status);
-  if (status === 'active') return true;
-  if (status !== 'trialing') return false;
-  if (!subscription.trial_end) return false;
-  return subscription.trial_end * 1000 > Date.now();
-}
-
-function isPaymentCheckoutSettled(session: Stripe.Checkout.Session) {
-  return session.status === 'complete' && session.payment_status === 'paid';
-}
-
-function resolvePlanFromSlot(slot: PriceSlot): 'starter' | 'pro' | null {
-  if (slot.startsWith('starter_')) return 'starter';
-  if (slot.startsWith('pro_')) return 'pro';
-  return null;
-}
-
-function isAnnualOnceSlot(slot: PriceSlot | null | undefined) {
-  return slot === 'starter_annuel_once' || slot === 'pro_annuel_once';
-}
-
-type CheckoutCommerceRecord = {
-  id: string;
-  stripe_customer_id: string | null;
-  stripe_subscription_id: string | null;
-  plan: string | null;
-  plan_override?: string | null;
-  billing_status?: string | null;
-  trial_ends_at?: string | null;
-};
-
-const CHECKOUT_COMMERCE_SELECT = 'id, stripe_customer_id, stripe_subscription_id, plan, plan_override, billing_status, trial_ends_at';
-const CHECKOUT_COMMERCE_SELECT_FALLBACK = 'id, stripe_customer_id, stripe_subscription_id, plan, billing_status, trial_ends_at';
-
-function isMissingPlanOverrideLookupError(error: { code?: string; message?: string } | null | undefined) {
-  const message = error?.message ?? '';
-  return error?.code === '42703'
-    || error?.code === 'PGRST204'
-    || (/plan_override/i.test(message) && /schema cache|does not exist|could not find/i.test(message));
-}
-
-async function findCheckoutCommerceForUser(
-  db: ReturnType<typeof createServiceClient>,
-  userId: string,
-): Promise<CheckoutCommerceRecord | null> {
-  const buildQuery = (select = CHECKOUT_COMMERCE_SELECT) => db
-    .from('commerces')
-    .select(select)
-    .eq('user_id', userId);
-
-  let result = await buildQuery()
-    .order('created_at', { ascending: true })
-    .limit(1);
-
-  if (result.error) {
-    console.warn('[checkout] commerce lookup with order failed:', result.error.message);
-    result = await buildQuery().limit(1);
-  }
-
-  if (isMissingPlanOverrideLookupError(result.error)) {
-    console.warn('[checkout] commerce lookup fallback without plan_override:', result.error?.message);
-    result = await buildQuery(CHECKOUT_COMMERCE_SELECT_FALLBACK).limit(1);
-  }
-
-  if (result.error) {
-    console.error('[checkout] commerce lookup failed:', result.error.message);
-    return null;
-  }
-
-  return (((result.data as unknown[] | null) ?? [])[0] ?? null) as CheckoutCommerceRecord | null;
-}
-
-async function findCheckoutCommerceById(
-  db: ReturnType<typeof createServiceClient>,
-  commerceId: string | null | undefined,
-): Promise<CheckoutCommerceRecord | null> {
-  if (!commerceId) return null;
-
-  let result = await db
-    .from('commerces')
-    .select(CHECKOUT_COMMERCE_SELECT)
-    .eq('id', commerceId)
-    .maybeSingle();
-
-  if (isMissingPlanOverrideLookupError(result.error)) {
-    console.warn('[checkout] commerce by id fallback without plan_override:', result.error?.message);
-    result = await db
-      .from('commerces')
-      .select(CHECKOUT_COMMERCE_SELECT_FALLBACK)
-      .eq('id', commerceId)
-      .maybeSingle();
-  }
-
-  if (result.error) {
-    console.error('[checkout] commerce by id lookup failed:', result.error.message);
-    return null;
-  }
-
-  return (result.data ?? null) as CheckoutCommerceRecord | null;
-}
-
-async function findWhiteLabelPartnerForUser(
-  db: ReturnType<typeof createServiceClient>,
-  userId: string,
-): Promise<{ id: string; stripe_customer_id: string | null } | null> {
-  const { data, error } = await db
-    .from('partner_users')
-    .select('partner_id, partners(id, stripe_customer_id)')
-    .eq('user_id', userId)
-    .eq('active', true)
-    .order('created_at', { ascending: true })
-    .limit(1);
-
-  if (error) {
-    console.warn('[checkout] white label partner lookup failed:', error.message);
-    return null;
-  }
-
-  const row = ((data as unknown[] | null) ?? [])[0] as
-    | { partner_id?: string; partners?: { id?: string; stripe_customer_id?: string | null } | Array<{ id?: string; stripe_customer_id?: string | null }> }
-    | undefined;
-  const partner = Array.isArray(row?.partners) ? row?.partners[0] : row?.partners;
-  const id = partner?.id ?? row?.partner_id;
-  if (!id) return null;
-  return {
-    id,
-    stripe_customer_id: partner?.stripe_customer_id ?? null,
-  };
-}
-
-function slugifyPartnerName(value: string) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 72) || 'partenaire';
-}
-
-function normalizeBillingStatusForWhiteLabel(status: string | null | undefined) {
-  if (status === 'active' || status === 'trialing' || status === 'past_due' || status === 'canceled') return status;
-  return 'unpaid';
-}
-
-async function syncWhiteLabelPartnerFromSession(
-  db: ReturnType<typeof createServiceClient>,
-  session: Stripe.Checkout.Session,
-  userId: string,
-  subscription: Stripe.Subscription | null,
-) {
-  const plan = whiteLabelSessionSchema.shape.plan.safeParse(session.metadata?.partner_plan).success
-    ? session.metadata?.partner_plan as WhiteLabelPlan
-    : null;
-  if (!plan) throw new Error('Plan white label introuvable dans la session Stripe.');
-
-  const config = WHITE_LABEL_PLAN_CONFIG[plan];
-  const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null;
-  const subscriptionId = subscription?.id
-    ?? (typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? null);
-  const billingStatus = subscription
-    ? normalizeBillingStatusForWhiteLabel(subscription.status)
-    : session.payment_status === 'paid'
-      ? 'active'
-      : 'unpaid';
-  const email = session.customer_details?.email ?? null;
-  const baseName = session.customer_details?.name
-    || email?.split('@')[0]
-    || 'Partenaire Fidelopass';
-  const existingPartner = await findWhiteLabelPartnerForUser(db, userId);
-
-  const updates = {
-    name: baseName,
-    plan,
-    included_commerces: config.included_commerces,
-    monthly_price_cents: config.monthly_price_cents,
-    support_email: email,
-    stripe_customer_id: customerId,
-    stripe_subscription_id: subscriptionId,
-    billing_status: billingStatus,
-    trial_ends_at: subscription?.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
-    active: ['trialing', 'active'].includes(billingStatus),
-    white_label_enabled: true,
-    hide_fidelopass_branding: true,
-  };
-
-  let partnerId = existingPartner?.id ?? null;
-  if (partnerId) {
-    const { error } = await db.from('partners').update(updates).eq('id', partnerId);
-    if (error) throw error;
-  } else {
-    const { data, error } = await db
-      .from('partners')
-      .insert({
-        ...updates,
-        slug: `${slugifyPartnerName(baseName)}-${userId.slice(0, 8)}`,
-      })
-      .select('id')
-      .single();
-    if (error) throw error;
-    partnerId = data.id;
-  }
-
-  const { error: userError } = await db
-    .from('partner_users')
-    .upsert({
-      partner_id: partnerId,
-      user_id: userId,
-      role: 'owner',
-      active: true,
-    }, { onConflict: 'partner_id,user_id' });
-  if (userError) throw userError;
-  return partnerId;
-}
-
-function normalizePlanForCheckout(plan: string | null | undefined): 'starter' | 'pro' | 'sur-mesure' | 'unknown' {
-  const normalized = String(plan ?? '')
-    .trim()
-    .toLowerCase()
-    .replace(/[_\s]+/g, '-');
-
-  if (normalized === 'starter' || normalized.startsWith('starter-') || normalized.includes('starter')) return 'starter';
-  if (normalized === 'pro' || normalized.startsWith('pro-') || normalized.includes('pro')) return 'pro';
-  if (
-    normalized === 'sur-mesure'
-    || normalized.includes('sur-mesure')
-    || normalized.includes('surmesure')
-    || normalized.includes('custom')
-    || normalized.includes('enterprise')
-  ) return 'sur-mesure';
-  return 'unknown';
-}
-
-function isFutureDate(value: string | null | undefined): boolean {
-  if (!value) return false;
-  const timestamp = Date.parse(value);
-  return Number.isFinite(timestamp) && timestamp > Date.now();
-}
-
-function canPurchaseAccompagnement(commerce: CheckoutCommerceRecord | null | undefined): boolean {
-  if (!commerce) return false;
-
-  const effectivePlan = normalizePlanForCheckout(getEffectivePlanRaw(commerce));
-  const isEligiblePack = effectivePlan === 'starter' || effectivePlan === 'pro';
-  if (!isEligiblePack) return false;
-
-  const billingStatus = String(commerce.billing_status ?? 'unpaid').trim().toLowerCase();
-  const hasBillingAccess = billingStatus === 'active'
-    || billingStatus === 'trialing'
-    || billingStatus === 'paid'
-    || isFutureDate(commerce.trial_ends_at);
-
-  // Un override admin est volontaire: il doit ouvrir les options du plan choisi
-  // même si la facturation Stripe n'a pas encore synchronisé tous les champs.
-  const hasAdminOverride = Boolean(String(commerce.plan_override ?? '').trim());
-
-  const hasStripeSubscription = Boolean(commerce.stripe_subscription_id)
-    && !['unpaid', 'canceled', 'cancelled'].includes(billingStatus);
-
-  return hasBillingAccess || hasAdminOverride || hasStripeSubscription;
-}
-
-function canPurchaseAccompagnementFromBilling(payload: Awaited<ReturnType<typeof getBillingStatusForUser>> | null | undefined): boolean {
-  if (!payload?.has_access) return false;
-  const plan = normalizePlanForCheckout(payload.plan);
-  return plan === 'starter' || plan === 'pro';
-}
-
-function isNoSuchPriceError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error ?? '');
-  return /No such price/i.test(message);
-}
-
-type PricingConfigEntry = {
-  slot: PriceSlot;
-  mode: 'subscription' | 'payment';
-  priceId: string | null;
-  available: boolean;
-};
-
-type PricingConfigPayload = {
-  starter: {
-    monthly: PricingConfigEntry;
-    annual_monthly: PricingConfigEntry;
-    annual_once: PricingConfigEntry;
-  };
-  pro: {
-    monthly: PricingConfigEntry;
-    annual_monthly: PricingConfigEntry;
-    annual_once: PricingConfigEntry;
-  };
-  addons: {
-    accompagnement: PricingConfigEntry;
-    scanner: PricingConfigEntry;
-  };
-};
-
-let pricingConfigCache:
-  | {
-    expiresAt: number;
-    data: PricingConfigPayload;
-  }
-  | null = null;
-
-const PRICING_CONFIG_CACHE_TTL_MS = Number(process.env.PRICING_CONFIG_CACHE_TTL_MS ?? 300_000);
-
-async function resolveAvailablePriceMap(stripe: Stripe, priceIds: Record<string, string>) {
-  const allCandidateIds = Array.from(
-    new Set(
-      PRICE_SLOTS.flatMap((slot) => candidatesForSlot(slot, priceIds)),
-    ),
-  );
-
-  const entries = await Promise.all(
-    allCandidateIds.map(async (id) => {
-      try {
-        await stripe.prices.retrieve(id);
-        return [id, true] as const;
-      } catch (error) {
-        if (isNoSuchPriceError(error)) return [id, false] as const;
-        throw error;
-      }
-    }),
-  );
-
-  return Object.fromEntries(entries) as Record<string, boolean>;
-}
-
-function resolveBestPriceForSlot(slot: PriceSlot, priceIds: Record<string, string>, availability: Record<string, boolean>) {
-  const candidates = candidatesForSlot(slot, priceIds);
-  const firstAvailable = candidates.find((candidate) => availability[candidate]);
-  const picked = firstAvailable ?? candidates[0] ?? null;
-  return {
-    priceId: picked,
-    available: Boolean(picked && availability[picked]),
-  };
-}
-
-function buildPricingConfigPayload(priceIds: Record<string, string>, availability: Record<string, boolean>): PricingConfigPayload {
-  const starterMonthly = resolveBestPriceForSlot('starter_mensuel', priceIds, availability);
-  const starterAnnualMonthly = resolveBestPriceForSlot('starter_annuel_mensuel', priceIds, availability);
-  const starterAnnualOnce = resolveBestPriceForSlot('starter_annuel_once', priceIds, availability);
-  const proMonthly = resolveBestPriceForSlot('pro_mensuel', priceIds, availability);
-  const proAnnualMonthly = resolveBestPriceForSlot('pro_annuel_mensuel', priceIds, availability);
-  const proAnnualOnce = resolveBestPriceForSlot('pro_annuel_once', priceIds, availability);
-  const addonAccompagnement = resolveBestPriceForSlot('accompagnement', priceIds, availability);
-  const addonScanner = resolveBestPriceForSlot('scanner', priceIds, availability);
-
-  return {
-    starter: {
-      monthly: { slot: 'starter_mensuel', mode: 'subscription', ...starterMonthly },
-      annual_monthly: { slot: 'starter_annuel_mensuel', mode: 'subscription', ...starterAnnualMonthly },
-      annual_once: { slot: 'starter_annuel_once', mode: 'payment', ...starterAnnualOnce },
-    },
-    pro: {
-      monthly: { slot: 'pro_mensuel', mode: 'subscription', ...proMonthly },
-      annual_monthly: { slot: 'pro_annuel_mensuel', mode: 'subscription', ...proAnnualMonthly },
-      annual_once: { slot: 'pro_annuel_once', mode: 'payment', ...proAnnualOnce },
-    },
-    addons: {
-      accompagnement: { slot: 'accompagnement', mode: 'payment', ...addonAccompagnement },
-      scanner: { slot: 'scanner', mode: 'payment', ...addonScanner },
-    },
-  };
-}
-
-async function resolvePricingConfig(stripe: Stripe, priceIds: Record<string, string>): Promise<{ data: PricingConfigPayload; cached: boolean; degraded: boolean }> {
-  const now = Date.now();
-  if (pricingConfigCache && pricingConfigCache.expiresAt > now) {
-    return { data: pricingConfigCache.data, cached: true, degraded: false };
-  }
-
-  try {
-    const availability = await resolveAvailablePriceMap(stripe, priceIds);
-    const data = buildPricingConfigPayload(priceIds, availability);
-    pricingConfigCache = {
-      expiresAt: now + PRICING_CONFIG_CACHE_TTL_MS,
-      data,
-    };
-    return { data, cached: false, degraded: false };
-  } catch (error) {
-    console.error('[checkout] pricing-config validation fallback:', error);
-    const fallbackAvailability = Object.fromEntries(
-      PRICE_SLOTS.flatMap((slot) => candidatesForSlot(slot, priceIds)).map((id) => [id, true]),
-    ) as Record<string, boolean>;
-    const data = buildPricingConfigPayload(priceIds, fallbackAvailability);
-    return { data, cached: false, degraded: true };
-  }
-}
-
-function getPricingEntryFromSlot(data: PricingConfigPayload, slot: PriceSlot): PricingConfigEntry {
-  switch (slot) {
-    case 'starter_mensuel':
-      return data.starter.monthly;
-    case 'starter_annuel_mensuel':
-      return data.starter.annual_monthly;
-    case 'starter_annuel_once':
-      return data.starter.annual_once;
-    case 'pro_mensuel':
-      return data.pro.monthly;
-    case 'pro_annuel_mensuel':
-      return data.pro.annual_monthly;
-    case 'pro_annuel_once':
-      return data.pro.annual_once;
-    case 'accompagnement':
-      return data.addons.accompagnement;
-    case 'scanner':
-      return data.addons.scanner;
-  }
-}
-
-checkoutRoutes.get('/pricing-config', authMiddleware, async (c) => {
-  const priceIds = loadPriceIds();
-  const stripe = getStripe();
-  const pricing = await resolvePricingConfig(stripe, priceIds);
-  return c.json(pricing);
-});
-
-/** POST /api/checkout/white-label-session */
-checkoutRoutes.post('/white-label-session', authMiddleware, async (c) => {
-  const userId = c.get('userId') as string;
-  const body = await c.req.json().catch(() => null);
-  const parsed = whiteLabelSessionSchema.safeParse(body);
-
-  if (!parsed.success) {
-    return c.json({ error: parsed.error.errors[0]?.message ?? 'Plan white label invalide.' }, 400);
-  }
-
-  const { plan } = parsed.data;
-  const priceId = loadWhiteLabelPriceIds()[plan];
-  if (!priceId) {
-    return c.json({
-      error: 'Le tarif White Label Stripe est manquant. Ajoutez STRIPE_WHITE_LABEL_STARTER_PRICE_ID et STRIPE_WHITE_LABEL_PRO_PRICE_ID.',
-    }, 500);
-  }
-
-  const db = createServiceClient();
-  const { data: { user } } = await db.auth.admin.getUserById(userId);
-  const email = user?.email ?? undefined;
-  const existingPartner = await findWhiteLabelPartnerForUser(db, userId);
-  const stripe = getStripe();
-  const PUBLIC_SITE_URL = resolvePublicSiteUrlFromRequest(
-    c.req.header('origin') || c.req.header('referer') || null,
-  );
-  const config = WHITE_LABEL_PLAN_CONFIG[plan];
-
-  const sessionParams: Stripe.Checkout.SessionCreateParams = {
-    mode: 'subscription',
-    line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${PUBLIC_SITE_URL}/partner/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${PUBLIC_SITE_URL}/devenir-revendeur?checkout=cancelled`,
-    locale: 'fr',
-    allow_promotion_codes: true,
-    automatic_tax: { enabled: false },
-    metadata: {
-      checkout_type: 'white_label_partner',
-      user_id: userId,
-      partner_id: existingPartner?.id ?? '',
-      partner_plan: plan,
-      included_commerces: String(config.included_commerces),
-      monthly_price_cents: String(config.monthly_price_cents),
-    },
-    subscription_data: {
-      metadata: {
-        checkout_type: 'white_label_partner',
-        user_id: userId,
-        partner_id: existingPartner?.id ?? '',
-        partner_plan: plan,
-        included_commerces: String(config.included_commerces),
-        monthly_price_cents: String(config.monthly_price_cents),
-      },
-    },
-    ...(existingPartner?.stripe_customer_id
-      ? { customer: existingPartner.stripe_customer_id }
-      : email
-        ? { customer_email: email }
-        : {}),
-  };
-
-  try {
-    const session = await stripe.checkout.sessions.create(sessionParams);
-    return c.json({ url: session.url });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Erreur Stripe lors de la création de session White Label.';
-    console.error('[checkout] white-label-session error:', message);
-    return c.json({ error: message }, 400);
-  }
-});
-
-/** POST /api/checkout/reconcile-white-label-session */
-checkoutRoutes.post('/reconcile-white-label-session', authMiddleware, async (c) => {
-  const userId = c.get('userId') as string;
-  const body = await c.req.json().catch(() => null);
-  const parsed = reconcileSessionSchema.safeParse(body);
-  if (!parsed.success) {
-    return c.json({ error: 'Session Stripe invalide.' }, 400);
-  }
-
-  const stripe = getStripe();
-  const db = createServiceClient();
-
-  try {
-    const session = await stripe.checkout.sessions.retrieve(parsed.data.sessionId);
-    if (session.metadata?.checkout_type !== 'white_label_partner') {
-      return c.json({ error: 'Cette session ne correspond pas à un abonnement White Label.' }, 400);
-    }
-    const sessionUserId = String(session.metadata?.user_id ?? '').trim();
-    if (sessionUserId && sessionUserId !== userId) {
-      return c.json({ error: 'Session Stripe non autorisée.' }, 403);
-    }
-
-    const subscriptionId = typeof session.subscription === 'string'
-      ? session.subscription
-      : session.subscription?.id ?? null;
-    const subscription = subscriptionId ? await stripe.subscriptions.retrieve(subscriptionId) : null;
-    const partnerId = await syncWhiteLabelPartnerFromSession(db, session, userId, subscription);
-    return c.json({ ok: true, partner_id: partnerId });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Impossible de synchroniser la session White Label.';
-    console.error('[checkout] reconcile-white-label-session error:', message);
-    return c.json({ error: message }, 400);
-  }
 });
 
 /** POST /api/checkout/create-session */
@@ -765,9 +32,9 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
     return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides' }, 400);
   }
 
-  const { priceId, priceSlot, mode, includeAccompagnement, dryRun } = parsed.data;
+  const { priceId, mode, includeAccompagnement } = parsed.data;
   const priceIds = loadPriceIds();
-  const selectedSlot = priceSlot ?? resolvePriceSlot(priceId, priceIds);
+  const selectedSlot = resolvePriceSlot(priceId, priceIds);
 
   if (!selectedSlot) {
     return c.json({ error: 'Prix Stripe invalide.' }, 400);
@@ -777,6 +44,10 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   const selectedPlan = resolvePlanFromSlot(selectedSlot);
   const isPlanCheckout = selectedPlan !== null;
   const isAccompagnementOnly = selectedSlot === 'accompagnement';
+
+  if (isAccompagnementOnly) {
+    return c.json({ error: "L'option Accompagnement Setup est disponible uniquement en complément d'un pack Starter ou Pro." }, 400);
+  }
 
   if (mode !== expectedMode) {
     return c.json({
@@ -791,78 +62,16 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   }
 
   const db = createServiceClient();
-
-  let existingCommerce = await findCheckoutCommerceForUser(db, userId);
-
-  const billingAccess = isAccompagnementOnly
-    ? await getBillingStatusForUser(userId).catch(() => null)
-    : null;
-
-  if (!existingCommerce && billingAccess?.commerce_id) {
-    existingCommerce = await findCheckoutCommerceById(db, billingAccess.commerce_id);
-  }
-
-  if (
-    isAccompagnementOnly
-    && !canPurchaseAccompagnement(existingCommerce as CheckoutCommerceRecord | null)
-    && !canPurchaseAccompagnementFromBilling(billingAccess)
-  ) {
-    return c.json({
-      error: "L'option Accompagnement Setup est disponible uniquement en complément d'un pack Starter ou Pro actif.",
-    }, 400);
-  }
-
-  const stripe = getStripe();
-  const pricing = await resolvePricingConfig(stripe, priceIds);
-  const selectedPriceEntry = getPricingEntryFromSlot(pricing.data, selectedSlot);
-  if (!selectedPriceEntry.available || !selectedPriceEntry.priceId) {
-    return c.json({
-      error: 'Ce tarif est temporairement indisponible. Rafraîchissez la page puis réessayez.',
-      code: 'PRICE_UNAVAILABLE',
-      slot: selectedSlot,
-    }, 409);
-  }
-
-  const resolvedBasePriceId = selectedPriceEntry.priceId;
-  const accompagnementEntry = includeAccompagnement
-    ? getPricingEntryFromSlot(pricing.data, 'accompagnement')
-    : null;
-  if (includeAccompagnement && (!accompagnementEntry?.available || !accompagnementEntry?.priceId)) {
-    return c.json({
-      error: "L'option Accompagnement Setup est temporairement indisponible. Réessayez dans quelques instants.",
-      code: 'ADDON_UNAVAILABLE',
-      slot: 'accompagnement',
-    }, 409);
-  }
-  const resolvedAccompagnementPriceId = accompagnementEntry?.priceId ?? null;
-
-  if (dryRun) {
-    return c.json({
-      ok: true,
-      data: {
-        dry_run: true,
-        selected_slot: selectedSlot,
-        selected_plan: selectedPlan ?? null,
-        mode,
-        include_accompagnement: includeAccompagnement,
-        base_price_id: resolvedBasePriceId,
-        addon_price_id: resolvedAccompagnementPriceId,
-        pricing_config_cached: pricing.cached,
-        pricing_config_degraded: pricing.degraded,
-      },
-    });
-  }
-
   const { data: { user } } = await db.auth.admin.getUserById(userId);
   const email = user?.email ?? undefined;
 
-  let commerce = existingCommerce;
-  if (!commerce && isAccompagnementOnly) {
-    return c.json({
-      error: 'Commerce introuvable pour cet achat. Rechargez la page puis réessayez.',
-    }, 404);
-  }
+  const { data: existingCommerce } = await db
+    .from('commerces')
+    .select('id, stripe_customer_id, stripe_subscription_id, billing_status')
+    .eq('user_id', userId)
+    .single();
 
+  let commerce = existingCommerce;
   if (!commerce) {
     const fallbackName = (email?.split('@')[0] ?? 'Mon commerce').trim() || 'Mon commerce';
     const { data: createdCommerce, error: createCommerceError } = await db
@@ -873,41 +82,37 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
         onboarding_completed: false,
         billing_status: 'unpaid',
       })
-      .select(CHECKOUT_COMMERCE_SELECT)
+      .select('id, stripe_customer_id, stripe_subscription_id, billing_status')
       .single();
     if (createCommerceError || !createdCommerce) {
-      const fallbackCommerce = await findCheckoutCommerceForUser(db, userId);
-      if (!fallbackCommerce) {
-        console.error('[checkout] commerce initialization failed:', createCommerceError?.message ?? 'unknown');
-        return c.json({ error: "Impossible d'initialiser le commerce avant le paiement." }, 500);
-      }
-      commerce = fallbackCommerce;
-    } else {
-      commerce = createdCommerce as CheckoutCommerceRecord;
+      return c.json({ error: "Impossible d'initialiser le commerce avant le paiement." }, 500);
     }
+    commerce = createdCommerce;
   }
 
-  const PUBLIC_SITE_URL = resolvePublicSiteUrlFromRequest(
-    c.req.header('origin') || c.req.header('referer') || null,
-  );
+  if (
+    isPlanCheckout
+    && commerce.stripe_subscription_id
+    && ['active', 'trialing', 'past_due', 'incomplete'].includes(String(commerce.billing_status ?? '').toLowerCase())
+  ) {
+    return c.json({
+      error: 'Un abonnement existe déjà pour ce commerce. Utilisez la gestion d’abonnement pour changer de plan.',
+    }, 409);
+  }
+
+  const stripe = getStripe();
+  const resolvedBasePriceId = await resolveUsablePriceId(stripe, selectedSlot, priceId, priceIds);
+  const resolvedAccompagnementPriceId = includeAccompagnement
+    ? await resolveUsablePriceId(stripe, 'accompagnement', priceIds.accompagnement, priceIds)
+    : null;
+
+  const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
   const successUrl = isPlanCheckout
-    ? `${PUBLIC_SITE_URL}/abonnement/success?session_id={CHECKOUT_SESSION_ID}`
-    : isAccompagnementOnly
-      ? `${PUBLIC_SITE_URL}/dashboard/assistant-carte?checkout=success`
+    ? `${PUBLIC_SITE_URL}/onboarding?paid=1`
     : `${PUBLIC_SITE_URL}/dashboard/parametres?tab=abonnement&checkout=success`;
   const cancelUrl = isPlanCheckout
     ? `${PUBLIC_SITE_URL}/abonnement/choix?cancelled=1`
-    : isAccompagnementOnly
-      ? `${PUBLIC_SITE_URL}/dashboard/assistant-carte?checkout=cancelled`
     : `${PUBLIC_SITE_URL}/dashboard/parametres?tab=abonnement&checkout=cancelled`;
-  console.info('[checkout] redirect urls', {
-    publicSiteUrl: PUBLIC_SITE_URL,
-    successUrl,
-    cancelUrl,
-    userId,
-    selectedSlot,
-    mode,
-  });
 
   const lineItems = [{ price: resolvedBasePriceId, quantity: 1 }];
   if (resolvedAccompagnementPriceId) {
@@ -932,11 +137,8 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
       onboarding_addon: includeAccompagnement ? 'true' : 'false',
       billing_commitment: resolveCommitmentLabelFromSlot(selectedSlot),
     },
-    ...(commerce.stripe_customer_id
-      ? { customer: commerce.stripe_customer_id }
-      : email
-        ? { customer_email: email }
-        : {}),
+    ...(email ? { customer_email: email } : {}),
+    ...(commerce.stripe_customer_id ? { customer: commerce.stripe_customer_id } : {}),
   };
 
   if (mode === 'subscription') {
@@ -961,131 +163,6 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erreur Stripe lors de la création de session.';
     console.error('[checkout] create-session error:', message);
-    return c.json({ error: message }, 400);
-  }
-});
-
-/** POST /api/checkout/reconcile-session
- * Fallback immédiat après Stripe Checkout: si le webhook est en retard,
- * on synchronise l'état minimal du commerce depuis la session Stripe.
- */
-checkoutRoutes.post('/reconcile-session', authMiddleware, async (c) => {
-  const userId = c.get('userId') as string;
-  const body = await c.req.json().catch(() => null);
-  const parsed = reconcileSessionSchema.safeParse(body);
-  if (!parsed.success) {
-    return c.json({ error: 'Session Stripe invalide.' }, 400);
-  }
-
-  const stripe = getStripe();
-  const db = createServiceClient();
-  const priceIds = loadPriceIds();
-  const { sessionId } = parsed.data;
-
-  try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-    const sessionUserId = String(session.metadata?.user_id ?? '');
-    if (sessionUserId && sessionUserId !== userId) {
-      return c.json({ error: 'Session Stripe non autorisée.' }, 403);
-    }
-
-    if (session.status !== 'complete') {
-      return c.json({
-        error: 'Le paiement Stripe n’est pas encore finalisé.',
-        code: 'CHECKOUT_NOT_COMPLETE',
-      }, 409);
-    }
-
-    if (session.mode === 'payment' && !isPaymentCheckoutSettled(session)) {
-      return c.json({
-        error: 'Le paiement Stripe n’a pas encore été confirmé.',
-        code: 'PAYMENT_NOT_CONFIRMED',
-      }, 409);
-    }
-
-    let commerce = await findCheckoutCommerceById(db, session.metadata?.commerce_id);
-    if (!commerce) commerce = await findCheckoutCommerceForUser(db, userId);
-    if (!commerce) {
-      return c.json({ error: 'Commerce introuvable pour cette session.' }, 404);
-    }
-
-    const lineItems = await stripe.checkout.sessions.listLineItems(sessionId, { limit: 20 });
-    const purchasedPriceIds = lineItems.data
-      .map((item) => item.price?.id)
-      .filter((id): id is string => Boolean(id));
-    const slotFromMetadataRaw = String(session.metadata?.selected_price_slot ?? '').trim();
-    const selectedSlot = (
-      slotFromMetadataRaw && PRICE_SLOTS.includes(slotFromMetadataRaw as PriceSlot)
-        ? slotFromMetadataRaw as PriceSlot
-        : purchasedPriceIds
-          .map((id) => resolvePriceSlot(id, priceIds))
-          .find((slot): slot is PriceSlot => Boolean(slot))
-    ) ?? null;
-
-    const selectedPlanFromMetadata = (() => {
-      const plan = String(session.metadata?.selected_plan ?? '').toLowerCase();
-      return (plan === 'starter' || plan === 'pro') ? plan : null;
-    })();
-    const selectedPlan = selectedPlanFromMetadata ?? (selectedSlot ? resolvePlanFromSlot(selectedSlot) : null);
-    const updates: Record<string, unknown> = {};
-
-    if (session.customer && typeof session.customer === 'string') {
-      updates.stripe_customer_id = session.customer;
-    }
-
-    if (selectedPlan) {
-      updates.plan = selectedPlan;
-      if (session.mode === 'subscription' && session.subscription) {
-        const subscriptionId = typeof session.subscription === 'string'
-          ? session.subscription
-          : session.subscription.id;
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        if (!isSubscriptionAccessReady(subscription)) {
-          return c.json({
-            error: 'L’abonnement Stripe n’est pas encore actif.',
-            code: 'SUBSCRIPTION_NOT_READY',
-          }, 409);
-        }
-        updates.stripe_subscription_id = subscription.id;
-        updates.billing_status = normalizeBillingStatusFromSubscription(subscription.status);
-        updates.trial_ends_at = subscription.trial_end
-          ? new Date(subscription.trial_end * 1000).toISOString()
-          : null;
-      } else if (session.mode === 'subscription') {
-        return c.json({
-          error: 'Abonnement Stripe introuvable sur cette session.',
-          code: 'SUBSCRIPTION_MISSING',
-        }, 409);
-      } else if (session.mode === 'payment' && isAnnualOnceSlot(selectedSlot)) {
-        // Compatibilité avec le modèle actuel: l'accès annuel payé en une fois
-        // expire via trial_ends_at, même si le nom du champ est historique.
-        updates.billing_status = 'trialing';
-        updates.trial_ends_at = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
-      } else if (session.payment_status === 'paid') {
-        updates.billing_status = 'active';
-      }
-    }
-
-    const hasAccompagnement = String(session.metadata?.onboarding_addon ?? '') === 'true'
-      || purchasedPriceIds.some((id) => resolvePriceSlot(id, priceIds) === 'accompagnement');
-    if (hasAccompagnement) {
-      updates.onboarding_purchased = true;
-    }
-
-    if (Object.keys(updates).length > 0) {
-      const { error } = await db
-        .from('commerces')
-        .update(updates)
-        .eq('id', commerce.id)
-        .eq('user_id', userId);
-      if (error) throw error;
-    }
-
-    const billing = await getBillingStatusForUser(userId);
-    return c.json({ ok: true, data: billing });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Impossible de synchroniser la session Stripe.';
-    console.error('[checkout] reconcile-session error:', message);
     return c.json({ error: message }, 400);
   }
 });
@@ -1131,9 +208,7 @@ checkoutRoutes.post('/create-portal-session', authMiddleware, async (c) => {
       .eq('id', commerce.id);
   }
 
-  const PUBLIC_SITE_URL = resolvePublicSiteUrlFromRequest(
-    c.req.header('origin') || c.req.header('referer') || null,
-  );
+  const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
   try {
     const returnUrl = `${PUBLIC_SITE_URL}/dashboard/parametres?tab=abonnement`;
     const subscriptionId = commerce.stripe_subscription_id;

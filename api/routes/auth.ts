@@ -1,10 +1,10 @@
 import { Hono } from 'hono';
+import type { ApiEnv } from '../types';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
-import { deleteCookie, setCookie } from 'hono/cookie';
-import { sendRegistrationEmail } from '../services/registration-email';
+import { rateLimit } from '../middleware/rate-limit';
 
-export const authRoutes = new Hono();
+export const authRoutes = new Hono<ApiEnv>();
 
 const supabaseUrl = process.env.SUPABASE_URL ?? '';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY ?? '';
@@ -112,10 +112,6 @@ async function handleRegisterRequest(body: unknown) {
       };
     }
 
-    void sendRegistrationEmail({ toEmail: email }).catch((mailError) => {
-      console.error('[auth registration email]', mailError);
-    });
-
     return {
       status: 200,
       payload: {
@@ -136,7 +132,7 @@ async function handleRegisterRequest(body: unknown) {
   }
 }
 
-authRoutes.post('/login', async (c) => {
+authRoutes.post('/login', rateLimit(10, 60_000), async (c) => {
   const body = await c.req.json().catch(() => null);
   const parsed = loginSchema.safeParse(body);
 
@@ -151,44 +147,29 @@ authRoutes.post('/login', async (c) => {
 
   if (error) return c.json({ error: error.message ?? 'Email ou mot de passe incorrect' }, 401);
 
-  const token = data.session?.access_token;
-  if (token) {
-    setCookie(c, 'fp_session', token, {
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7,
-      sameSite: 'Lax',
-      secure: c.req.url.startsWith('https://'),
-      httpOnly: false,
-    });
-  }
-
   return c.json({ session: data.session, user: data.user });
 });
 
-authRoutes.post('/register/request-code', async (c) => {
+authRoutes.post('/register/request-code', rateLimit(5, 60_000), async (c) => {
   const body = await c.req.json().catch(() => null);
   const result = await handleRegisterRequest(body);
   return c.json(result.payload, result.status as 200 | 400 | 403 | 409 | 500);
 });
 
-authRoutes.post('/register/resend-code', async (c) => {
+authRoutes.post('/register/resend-code', rateLimit(5, 60_000), async (c) => {
   const body = await c.req.json().catch(() => null);
   const result = await handleRegisterRequest(body);
   return c.json(result.payload, result.status as 200 | 400 | 403 | 409 | 500);
 });
 
-authRoutes.post('/register', async (c) => {
+authRoutes.post('/register', rateLimit(5, 60_000), async (c) => {
   const body = await c.req.json().catch(() => null);
   const result = await handleRegisterRequest(body);
   return c.json(result.payload, result.status as 200 | 400 | 403 | 409 | 500);
 });
 
 authRoutes.post('/logout', async (c) => {
-  deleteCookie(c, 'fp_session', {
-    path: '/',
-    sameSite: 'Lax',
-    secure: c.req.url.startsWith('https://'),
-  });
-  await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut();
+  if (error) console.error('[auth logout]', error.message);
   return c.json({ ok: true });
 });

@@ -3,13 +3,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 ---
 
 <DashboardLayout title="Dashboard — Fidelopass" activeNav="dashboard">
-  <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+  <div class="mb-6 flex items-start justify-between gap-3">
     <div>
-      <p class="dashboard-kicker">Pilotage</p>
-      <h1 class="dashboard-title">Tableau de bord</h1>
-      <p class="dashboard-subtitle">Tout ce qui compte aujourd’hui: scanner, partager la carte, suivre l’activité.</p>
+      <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Pilotage</p>
+      <h1 class="mt-2 font-display text-3xl font-bold text-slate-900">Tableau de bord</h1>
+      <p class="mt-2 text-sm text-slate-600">Tout ce qui compte aujourd’hui: scanner, partager la carte, suivre l’activité.</p>
     </div>
-    <button id="refresh-btn" type="button" class="ghost-button self-start sm:self-auto">
+    <button id="refresh-btn" type="button" class="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 flex items-center gap-1.5">
       <svg id="refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
         <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
         <path d="M21 3v5h-5"></path>
@@ -20,117 +20,64 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </button>
   </div>
 
-  <div class="card dashboard-panel mb-5 overflow-hidden p-0">
-    <div class="grid gap-0 xl:grid-cols-[1.02fr_0.98fr]">
-      <div id="priority-panel" class="relative overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 p-5 text-white sm:p-6">
-        <div class="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-sky-400/20 blur-3xl"></div>
-        <div class="pointer-events-none absolute -bottom-24 left-10 h-48 w-48 rounded-full bg-indigo-300/20 blur-3xl"></div>
-        <p id="next-action-kicker" class="relative text-[0.6rem] font-semibold uppercase tracking-[0.26em] text-sky-200">Action prioritaire</p>
-        <h2 id="next-action-title" class="relative mt-2.5 font-display text-[1.65rem] font-bold leading-tight !text-white sm:text-[2rem]" style="color:#fff">
-          Préparez votre programme fidélité.
-        </h2>
-        <p id="next-action-desc" class="relative mt-2.5 max-w-xl text-sm leading-6 text-slate-200">
+  <div class="card mb-6 p-5" data-tour="dashboard-actions">
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div>
+        <p class="text-[0.64rem] font-semibold uppercase tracking-[0.24em] text-sky-700/70">Actions du jour</p>
+        <p class="mt-1 text-sm text-slate-600">
           Point actif:
-          <span id="active-point-name" class="font-semibold text-white">Chargement...</span>.
-          On charge vos indicateurs pour vous proposer la meilleure prochaine action.
+          <span id="active-point-name" class="font-semibold text-slate-900">Chargement...</span>
         </p>
-        <div class="relative mt-4 flex flex-wrap gap-2">
-          <a id="next-action-primary" href="/dashboard/carte" class="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-2.5 text-sm font-bold text-slate-950 shadow-[0_18px_40px_-24px_rgba(255,255,255,0.9)] transition hover:-translate-y-0.5 hover:bg-sky-50">
-            Créer ma carte
-          </a>
-          <a id="next-action-secondary" href="/app/install" class="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/16">
-            Installer le scanner
-          </a>
-        </div>
-        <div class="relative mt-5 grid gap-2 sm:grid-cols-3">
-          <div id="setup-card-state" class="rounded-2xl border border-white/15 bg-white/10 px-3 py-2 backdrop-blur">
-            <p class="text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-sky-100/80">Carte</p>
-            <p class="mt-1 text-sm font-bold text-white">Vérification...</p>
-          </div>
-          <div id="setup-scanner-state" class="rounded-2xl border border-white/15 bg-white/10 px-3 py-2 backdrop-blur">
-            <p class="text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-sky-100/80">Scanner</p>
-            <p class="mt-1 text-sm font-bold text-white">À installer</p>
-          </div>
-          <div id="setup-share-state" class="rounded-2xl border border-white/15 bg-white/10 px-3 py-2 backdrop-blur">
-            <p class="text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-sky-100/80">Clients</p>
-            <p class="mt-1 text-sm font-bold text-white">0 ajouté</p>
-          </div>
-        </div>
       </div>
-      <div class="grid gap-3 bg-white/72 p-4 sm:grid-cols-2 sm:p-5">
-        <a href="/dashboard/carte" class="dashboard-action-card border-sky-100">
-          <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-sky-700/70">Créer</p>
-          <p class="mt-2 text-sm font-bold text-slate-900">Personnaliser la carte</p>
-          <p class="mt-1 text-xs leading-5 text-slate-500">Visuel, programme, messages et géolocalisation.</p>
-        </a>
-        <a href="/dashboard/notifications" class="dashboard-action-card border-violet-100">
-          <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-violet-700/70">Relancer</p>
-          <p class="mt-2 text-sm font-bold text-slate-900">Envoyer une notification</p>
-          <p class="mt-1 text-xs leading-5 text-slate-500">Message immédiat ou automatisation client.</p>
-        </a>
-        <a href="/app/install" class="dashboard-action-card border-slate-200">
-          <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Équipe</p>
-          <p class="mt-2 text-sm font-bold text-slate-900">Installer le scanner</p>
-          <p class="mt-1 text-xs leading-5 text-slate-500">À ajouter sur le téléphone de caisse.</p>
-        </a>
-        <a href="/dashboard/scan" class="dashboard-action-card border-emerald-100 bg-gradient-to-br from-emerald-50 to-white">
-          <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-emerald-700/70">Caisse</p>
-          <p class="mt-2 text-sm font-bold text-slate-900">Mode caisse scannette</p>
-          <p class="mt-1 text-xs leading-5 text-slate-500">Scannez les passes avec une scannette USB/Bluetooth.</p>
-        </a>
-        <a href="/dashboard/points-vente" class="dashboard-action-card border-slate-200 sm:col-span-2 sm:grid sm:grid-cols-[auto_1fr] sm:items-center sm:gap-x-4">
-          <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Lieu actif</p>
-          <p class="mt-2 text-sm font-bold text-slate-900 sm:mt-0">Changer de point de vente</p>
-          <p id="points-vente-usage" class="mt-1 text-xs leading-5 text-slate-500 sm:col-span-2">Chargement du quota...</p>
-        </a>
+      <div class="flex flex-wrap gap-2">
+        <a href="/app/scan" class="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-sky-700">Scanner en caisse</a>
+        <a id="dashboard-client-qr-btn" href="/dashboard/carte" class="rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-50">Afficher le QR client</a>
+        <a href="/dashboard/notifications" class="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50">Envoyer une notification</a>
       </div>
     </div>
   </div>
 
-  <div class="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+  <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4" data-tour="dashboard-stats">
     <div class="stat-card">
-      <span class="text-slate-500 text-xs uppercase tracking-wide">Clients actifs</span>
+      <span class="text-slate-500 text-xs uppercase tracking-wide">Clients totaux</span>
       <span id="stat-clients" class="font-mono text-3xl font-bold text-slate-900">—</span>
-      <span class="text-slate-500 text-xs">Cartes créées par vos clients</span>
+      <span class="text-slate-500 text-xs">Base active</span>
     </div>
     <div class="stat-card">
-      <span class="text-slate-500 text-xs uppercase tracking-wide">Passages aujourd’hui</span>
+      <span class="text-slate-500 text-xs uppercase tracking-wide">Scans aujourd’hui</span>
       <span id="stat-scans" class="font-mono text-3xl font-bold text-slate-900">—</span>
-      <span class="text-slate-500 text-xs">Scans et validations en caisse</span>
+      <span class="text-slate-500 text-xs">Transactions</span>
     </div>
     <div class="stat-card">
       <span class="text-slate-500 text-xs uppercase tracking-wide">Récompenses offertes</span>
       <span id="stat-recompenses" class="font-mono text-3xl font-bold text-slate-900">—</span>
-      <span class="text-slate-500 text-xs">Avantages débloqués par vos clients</span>
+      <span class="text-slate-500 text-xs">Total</span>
     </div>
     <div class="stat-card">
-      <span class="text-slate-500 text-xs uppercase tracking-wide">Retour client 30j</span>
-      <span id="stat-retention-card" class="font-mono text-3xl font-bold text-slate-900">—</span>
-      <span id="stat-retention-detail" class="text-slate-500 text-xs">Clients revenus au moins 2 fois</span>
+      <span class="text-slate-500 text-xs uppercase tracking-wide">Clients joignables</span>
+      <span id="stat-push" class="font-mono text-3xl font-bold text-slate-900">—</span>
+      <span class="text-slate-500 text-xs">Wallet/push</span>
     </div>
   </div>
 
-  <div class="mb-5 grid items-start gap-5 xl:grid-cols-[1.42fr_0.58fr]">
-    <div class="card dashboard-panel self-start h-fit min-h-0 p-5">
+  <div class="mb-6 grid gap-6 xl:grid-cols-[1.4fr_0.6fr]">
+    <div class="card p-6">
       <div class="mb-5 flex items-center justify-between">
         <div>
           <h2 class="font-display font-bold text-slate-900">Activité des 7 derniers jours</h2>
-          <p id="chart-insight" class="mt-0.5 text-xs text-slate-500">Scans et récompenses</p>
+          <p class="mt-0.5 text-xs text-slate-500">Scans et récompenses</p>
         </div>
         <div class="flex items-center gap-4 text-xs text-slate-500">
           <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-3 rounded-sm bg-sky-500"></span>Scans</span>
           <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-3 rounded-sm bg-emerald-400"></span>Récompenses</span>
         </div>
       </div>
-      <div id="chart-container" class="flex h-[10.5rem] min-h-[10.5rem] items-end gap-2 overflow-hidden">
+      <div id="chart-container" class="flex h-44 items-end gap-1.5" data-tour="dashboard-activity">
         <p class="m-auto text-sm text-slate-400">Chargement...</p>
-      </div>
-      <div id="dashboard-tip" class="mt-5 rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3 text-sm leading-6 text-slate-600">
-        On prépare un conseil utile selon votre activité du jour.
       </div>
     </div>
 
-    <div class="card dashboard-panel self-start h-fit min-h-0 p-5">
+    <div class="card p-6">
       <div class="mb-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
         <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Rétention clients</p>
         <div class="mt-2 flex items-end justify-between gap-2">
@@ -142,35 +89,19 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
       </div>
 
-      <p class="text-[0.64rem] font-semibold uppercase tracking-[0.24em] text-sky-700/70">Mise en route</p>
-      <div class="mt-3 space-y-3">
-        <a id="check-card" data-step="1" href="/dashboard/carte" class="dashboard-checklist-item">
-          <span class="dashboard-checklist-icon">1</span>
-          <span>
-            <span class="block text-sm font-semibold text-slate-900">Personnaliser la carte</span>
-            <span class="block mt-1 text-xs text-slate-600">Template, visuels, programme et géolocalisation.</span>
-          </span>
+      <p class="text-[0.64rem] font-semibold uppercase tracking-[0.24em] text-sky-700/70">Parcours rapide</p>
+      <div class="mt-3 space-y-3" data-tour="dashboard-quick-path">
+        <a href="/dashboard/carte" class="block rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3 transition hover:border-sky-200 hover:bg-sky-100/70">
+          <p class="text-sm font-semibold text-slate-900">1. Personnaliser la carte</p>
+          <p class="mt-1 text-xs text-slate-600">Template, visuels, programme et géolocalisation.</p>
         </a>
-        <a id="check-share" data-step="2" href="/dashboard/qr-client" class="dashboard-checklist-item">
-          <span class="dashboard-checklist-icon">2</span>
-          <span>
-            <span class="block text-sm font-semibold text-slate-900">Partager le QR client</span>
-            <span class="block mt-1 text-xs text-slate-600">Affichez la carte en caisse pour obtenir les premiers clients.</span>
-          </span>
+        <a href="/app/install" class="block rounded-2xl border border-slate-200 bg-white px-4 py-3 transition hover:border-slate-300 hover:bg-slate-50">
+          <p class="text-sm font-semibold text-slate-900">2. Installer le scanner équipe</p>
+          <p class="mt-1 text-xs text-slate-600">QRCode d’installation pour la caisse.</p>
         </a>
-        <a id="check-scanner" data-step="3" href="/app/install" class="dashboard-checklist-item">
-          <span class="dashboard-checklist-icon">3</span>
-          <span>
-            <span class="block text-sm font-semibold text-slate-900">Installer le scanner équipe</span>
-            <span class="block mt-1 text-xs text-slate-600">QRCode d’installation pour la caisse.</span>
-          </span>
-        </a>
-        <a id="check-points" data-step="4" href="/dashboard/points-vente" class="dashboard-checklist-item">
-          <span class="dashboard-checklist-icon">4</span>
-          <span>
-            <span class="block text-sm font-semibold text-slate-900">Gérer vos points de vente</span>
-            <span id="points-vente-usage-secondary" class="block mt-1 text-xs text-slate-600">Chargement du quota...</span>
-          </span>
+        <a href="/dashboard/points-vente" class="block rounded-2xl border border-slate-200 bg-white px-4 py-3 transition hover:border-slate-300 hover:bg-slate-50">
+          <p class="text-sm font-semibold text-slate-900">3. Gérer vos points de vente</p>
+          <p id="points-vente-usage" class="mt-1 text-xs text-slate-600">Chargement du quota...</p>
         </a>
       </div>
       <div id="admin-shortcut" class="hidden mt-4 rounded-2xl border border-sky-100 bg-sky-50/80 p-4">
@@ -181,7 +112,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </div>
   </div>
 
-  <div class="card dashboard-panel p-5">
+  <div class="card p-6">
     <h2 class="mb-4 font-display font-bold text-slate-900">Activité récente</h2>
     <div id="recent-transactions" class="flex flex-col gap-3">
       <p class="text-sm text-slate-500">Chargement...</p>
@@ -190,35 +121,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 </DashboardLayout>
 
 <script>
-  import { ACTIVE_POINT_VENTE_STORAGE_KEY, authFetch } from '../../lib/api';
+  import { authFetch } from '../../lib/api';
   import { supabase } from '../../lib/supabase';
   import { isProPlan, planLabel } from '../../lib/dashboard-config';
-  const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
-
-  type DashboardState = {
-    totalClients: number;
-    scansAujourdhui: number;
-    totalRecompenses: number;
-    hasCard: boolean | null;
-    cardName: string | null;
-    activePointName: string | null;
-  };
-
-  const dashboardState: DashboardState = {
-    totalClients: 0,
-    scansAujourdhui: 0,
-    totalRecompenses: 0,
-    hasCard: null,
-    cardName: null,
-    activePointName: null,
-  };
-
-  function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-    return Promise.race([
-      promise,
-      new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
-    ]);
-  }
 
   function escapeHtml(value: unknown) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -230,186 +135,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }[char] ?? char));
   }
 
-  function toNonNegativeNumber(value: unknown) {
-    const numberValue = Number(value ?? 0);
-    return Number.isFinite(numberValue) ? Math.max(0, numberValue) : 0;
-  }
-
-  function getStoredPointVenteId(): string | null {
-    try {
-      const value = window.localStorage.getItem(ACTIVE_POINT_VENTE_STORAGE_KEY)?.trim() ?? '';
-      return value.length > 0 ? value : null;
-    } catch {
-      return null;
-    }
-  }
-
-  function clearStoredPointVenteId() {
-    try {
-      window.localStorage.removeItem(ACTIVE_POINT_VENTE_STORAGE_KEY);
-    } catch {
-      // best effort
-    }
-  }
-
-  async function pointAwareFetch(path: string, init?: RequestInit): Promise<Response> {
-    const response = await authFetch(path, init);
-    if (response.status !== 403 && response.status !== 404) return response;
-    const pointVenteId = getStoredPointVenteId();
-    if (!pointVenteId) return response;
-    clearStoredPointVenteId();
-    return authFetch(path, init);
-  }
-
-  function setSetupState(id: string, title: string, tone: 'success' | 'warning' | 'neutral' = 'neutral') {
-    const node = document.getElementById(id);
-    if (!node) return;
-    const value = node.querySelector('p:last-child');
-    if (!value) return;
-    value.textContent = title;
-    node.className = tone === 'success'
-      ? 'rounded-2xl border border-emerald-300/30 bg-emerald-400/15 px-3 py-2 backdrop-blur'
-      : tone === 'warning'
-        ? 'rounded-2xl border border-amber-300/30 bg-amber-400/15 px-3 py-2 backdrop-blur'
-      : 'rounded-2xl border border-white/15 bg-white/10 px-3 py-2 backdrop-blur';
-  }
-
-  function setChecklistState(id: string, done: boolean) {
-    const item = document.getElementById(id);
-    const icon = item?.querySelector('.dashboard-checklist-icon');
-    if (!item || !icon) return;
-    item.classList.toggle('is-done', done);
-    icon.textContent = done ? '✓' : (item.dataset.step ?? icon.textContent ?? '•');
-  }
-
-  function updateChecklist() {
-    setChecklistState('check-card', Boolean(dashboardState.hasCard));
-    setChecklistState('check-share', dashboardState.totalClients > 0);
-    setChecklistState('check-scanner', dashboardState.scansAujourdhui > 0);
-    setChecklistState('check-points', Boolean(dashboardState.activePointName));
-  }
-
-  function updateDashboardTip() {
-    const tip = document.getElementById('dashboard-tip');
-    if (!tip) return;
-    if (dashboardState.hasCard === false) {
-      tip.textContent = 'Conseil: commencez avec un modèle rapide, puis ajustez seulement le logo, la récompense et les couleurs. La carte peut être améliorée après publication.';
-      return;
-    }
-    if (dashboardState.hasCard && dashboardState.totalClients === 0) {
-      tip.textContent = 'Conseil: affichez le QR client près de la caisse et demandez au premier client de l’ajouter avant paiement. C’est le meilleur moment pour lancer la boucle fidélité.';
-      return;
-    }
-    if (dashboardState.totalClients > 0 && dashboardState.scansAujourdhui === 0) {
-      tip.textContent = 'Conseil: gardez le scanner ouvert sur le téléphone de caisse. Chaque passage non scanné est une occasion de fidélisation perdue.';
-      return;
-    }
-    if (dashboardState.scansAujourdhui > 0) {
-      tip.textContent = 'Conseil: bonne dynamique aujourd’hui. Si l’activité ralentit, envoyez une notification courte avec une offre simple à comprendre.';
-      return;
-    }
-    tip.textContent = 'Conseil: suivez ici vos passages, récompenses et retours clients pour savoir quoi faire en priorité.';
-  }
-
-  function updatePriorityAction() {
-    const kicker = document.getElementById('next-action-kicker');
-    const title = document.getElementById('next-action-title');
-    const desc = document.getElementById('next-action-desc');
-    const primary = document.getElementById('next-action-primary') as HTMLAnchorElement | null;
-    const secondary = document.getElementById('next-action-secondary') as HTMLAnchorElement | null;
-    if (!kicker || !title || !desc || !primary || !secondary) return;
-
-    const pointLabel = dashboardState.activePointName ?? 'votre point de vente actif';
-    primary.dataset.action = '';
-    setSetupState('setup-card-state', dashboardState.hasCard ? 'Configurée' : dashboardState.hasCard === false ? 'À créer' : 'Vérification...', dashboardState.hasCard ? 'success' : 'warning');
-    setSetupState('setup-scanner-state', dashboardState.scansAujourdhui > 0 ? 'Utilisé aujourd’hui' : 'Prêt à installer', dashboardState.scansAujourdhui > 0 ? 'success' : 'neutral');
-    setSetupState('setup-share-state', `${dashboardState.totalClients} client${dashboardState.totalClients > 1 ? 's' : ''}`, dashboardState.totalClients > 0 ? 'success' : 'warning');
-    updateChecklist();
-    updateDashboardTip();
-
-    if (dashboardState.hasCard === false) {
-      kicker.textContent = 'À faire maintenant';
-      title.textContent = 'Créez votre carte fidélité.';
-      desc.innerHTML = `Point actif: <span class="font-semibold text-white">${escapeHtml(pointLabel)}</span>. Commencez par une carte simple, vous pourrez l’améliorer ensuite.`;
-      primary.href = '/dashboard/carte?setup=1';
-      primary.textContent = 'Créer ma carte';
-      secondary.href = '/dashboard/assistant-carte';
-      secondary.textContent = 'Demander l’assistance';
-      return;
-    }
-
-    if (dashboardState.hasCard && dashboardState.totalClients === 0) {
-      kicker.textContent = 'Prochaine conversion';
-      title.textContent = 'Faites installer la carte à vos premiers clients.';
-      desc.innerHTML = `Votre carte <span class="font-semibold text-white">${escapeHtml(dashboardState.cardName ?? 'fidélité')}</span> est prête. Affichez le QR client en caisse pour démarrer la collecte.`;
-      primary.href = '/dashboard/qr-client';
-      primary.textContent = 'Afficher le QR client';
-      secondary.href = '/app/install';
-      secondary.textContent = 'Installer le scanner';
-      return;
-    }
-
-    if (dashboardState.scansAujourdhui === 0) {
-      kicker.textContent = 'Action du jour';
-      title.textContent = 'Gardez le scanner prêt en caisse.';
-      desc.innerHTML = `Point actif: <span class="font-semibold text-white">${escapeHtml(pointLabel)}</span>. Scannez chaque passage pour faire progresser vos clients vers leur récompense.`;
-      primary.href = '/app/scan';
-      primary.dataset.action = 'scanner';
-      primary.textContent = 'Scanner en caisse';
-      secondary.href = '/dashboard/notifications';
-      secondary.textContent = 'Relancer mes clients';
-      return;
-    }
-
-    kicker.textContent = 'Activité en cours';
-    title.textContent = `${dashboardState.scansAujourdhui} passage${dashboardState.scansAujourdhui > 1 ? 's' : ''} validé${dashboardState.scansAujourdhui > 1 ? 's' : ''} aujourd’hui.`;
-    desc.innerHTML = `Continuez à scanner pendant le service. Vos récompenses offertes: <span class="font-semibold text-white">${dashboardState.totalRecompenses}</span>.`;
-    primary.href = '/app/scan';
-    primary.dataset.action = 'scanner';
-    primary.textContent = 'Continuer à scanner';
-    secondary.href = '/dashboard/transactions';
-    secondary.textContent = 'Voir l’historique';
-  }
-
-  document.getElementById('next-action-primary')?.addEventListener('click', (event) => {
-    const link = event.currentTarget as HTMLAnchorElement;
-    if (link.dataset.action !== 'scanner') return;
-    const isDesktop = window.matchMedia('(min-width: 768px)').matches;
-    if (!isDesktop) return;
-
-    event.preventDefault();
-    const showInstallQr = window.confirm(
-      'Sur ordinateur, le plus simple est d’installer le scanner sur un téléphone de caisse. OK: afficher le QR d’installation. Annuler: ouvrir le scanner sur cet ordinateur.',
-    );
-    window.location.href = showInstallQr ? '/app/install' : '/app/scan';
-  });
-
-  async function loadCardContext() {
-    try {
-      const res = await pointAwareFetch('/api/cartes');
-      if (!res.ok) throw new Error();
-      const payload = await res.json().catch(() => null);
-      dashboardState.hasCard = Boolean(payload?.data?.id);
-      dashboardState.cardName = payload?.data?.nom ?? null;
-      updatePriorityAction();
-    } catch {
-      dashboardState.hasCard = null;
-      updatePriorityAction();
-    }
-  }
-
   async function loadStats() {
     try {
-      const res = await pointAwareFetch('/api/dashboard/stats');
+      const res = await authFetch('/api/dashboard/stats');
       if (!res.ok) return;
       const data = await res.json();
-      dashboardState.totalClients = toNonNegativeNumber(data.totalClients);
-      dashboardState.scansAujourdhui = toNonNegativeNumber(data.scansAujourdhui);
-      dashboardState.totalRecompenses = toNonNegativeNumber(data.totalRecompenses);
-      document.getElementById('stat-clients')!.textContent = String(dashboardState.totalClients);
-      document.getElementById('stat-scans')!.textContent = String(dashboardState.scansAujourdhui);
-      document.getElementById('stat-recompenses')!.textContent = String(dashboardState.totalRecompenses);
-      updatePriorityAction();
+      document.getElementById('stat-clients')!.textContent = String(data.totalClients ?? 0);
+      document.getElementById('stat-scans')!.textContent = String(data.scansAujourdhui ?? 0);
+      document.getElementById('stat-recompenses')!.textContent = String(data.totalRecompenses ?? 0);
+      document.getElementById('stat-push')!.textContent = String(data.clientsPushActifs ?? 0);
     } catch {
       // best effort
     }
@@ -418,47 +152,26 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   async function loadChart() {
     const container = document.getElementById('chart-container')!;
     try {
-      const res = await pointAwareFetch('/api/dashboard/weekly-scans');
+      const res = await authFetch('/api/dashboard/weekly-scans');
       if (!res.ok) throw new Error();
-      const payload = await res.json().catch(() => null);
-      const data = Array.isArray(payload?.data) ? payload.data : [];
+      const { data } = await res.json();
 
-      if (!data.length) {
+      if (!data?.length) {
         container.innerHTML = '<p class="text-slate-400 text-sm m-auto">Aucune activité cette semaine.</p>';
-        const insight = document.getElementById('chart-insight');
-        if (insight) insight.textContent = 'Aucun passage enregistré cette semaine.';
         return;
       }
 
-      const normalized = data.map((d: { date?: string; scans?: number; recompenses?: number }) => ({
-        date: String(d.date ?? ''),
-        scans: toNonNegativeNumber(d.scans),
-        recompenses: toNonNegativeNumber(d.recompenses),
-      }));
-      const totalScans = normalized.reduce((acc: number, d: { scans: number }) => acc + d.scans, 0);
-      const totalRewards = normalized.reduce((acc: number, d: { recompenses: number }) => acc + d.recompenses, 0);
-      const insight = document.getElementById('chart-insight');
-      if (insight) {
-        insight.textContent = totalScans > 0
-          ? `${totalScans} passage${totalScans > 1 ? 's' : ''} sur 7 jours · ${totalRewards} récompense${totalRewards > 1 ? 's' : ''}`
-          : 'Aucun scan cette semaine: pensez à garder le scanner ouvert en caisse.';
-      }
+      const maxVal = Math.max(...data.map((d: { scans: number; recompenses: number }) => d.scans + d.recompenses), 1);
+      const chartHeight = 160;
 
-      const maxVal = Math.max(...normalized.map((d: { scans: number; recompenses: number }) => d.scans + d.recompenses), 1);
-      const containerHeight = Math.max(container.clientHeight || 200, 180);
-      const chartHeight = Math.max(120, containerHeight - 36);
-
-      container.innerHTML = normalized.map((d: { date: string; scans: number; recompenses: number }) => {
+      container.innerHTML = data.map((d: { date: string; scans: number; recompenses: number }) => {
         const scansH = Math.round((d.scans / maxVal) * chartHeight);
         const recH = Math.round((d.recompenses / maxVal) * chartHeight);
-        const labelDate = new Date(`${d.date}T12:00:00`);
-        const label = Number.isNaN(labelDate.getTime())
-          ? '—'
-          : labelDate.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
+        const label = new Date(d.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
         return `
-          <div class="flex min-w-0 flex-1 flex-col items-center gap-1.5 self-stretch">
-            <div class="w-full max-w-[58px] flex flex-1 flex-col-reverse items-center gap-0.5 rounded-xl bg-slate-100/70 p-1.5" style="height:${chartHeight}px">
-              <div class="w-full rounded-md bg-sky-500 transition-all" style="height:${scansH}px" title="${d.scans} scan(s)"></div>
+          <div class="flex-1 flex flex-col items-center gap-1 min-w-0">
+            <div class="w-full flex flex-col-reverse items-center gap-0.5" style="height:${chartHeight}px">
+              <div class="w-full rounded-t-lg bg-sky-500 transition-all" style="height:${scansH}px" title="${d.scans} scan(s)"></div>
               ${recH > 0 ? `<div class="w-full rounded-t-lg bg-emerald-400 transition-all" style="height:${recH}px" title="${d.recompenses} récompense(s)"></div>` : ''}
             </div>
             <p class="text-[0.62rem] text-slate-500 text-center truncate w-full">${escapeHtml(label)}</p>
@@ -472,76 +185,25 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   async function loadRecentTransactions() {
     try {
-      const res = await pointAwareFetch('/api/transactions?limit=5');
+      const res = await authFetch('/api/transactions?limit=5');
       if (!res.ok) return;
-      const payload = await res.json().catch(() => null);
-      const data = Array.isArray(payload?.data) ? payload.data : [];
+      const { data } = await res.json();
       const container = document.getElementById('recent-transactions')!;
 
-      if (!data.length) {
-        container.innerHTML = `
-          <div class="rounded-3xl border border-dashed border-slate-200 bg-slate-50/70 p-5 text-sm text-slate-600">
-            Aucune transaction pour le moment. Dès que le scanner sera utilisé, les passages clients apparaîtront ici.
-          </div>
-        `;
+      if (!data?.length) {
+        container.innerHTML = '<p class="text-slate-500 text-sm">Aucune transaction pour le moment.</p>';
         return;
       }
 
-      type RecentTransaction = {
-        type: string;
-        valeur: number;
-        created_at: string;
-        clients?: { nom?: string | null; telephone?: string | null } | null;
-      };
-
-      const clientLabel = (transaction: RecentTransaction) => (
-        transaction.clients?.nom?.trim()
-        || transaction.clients?.telephone?.trim()
-        || 'Un client'
-      );
-      const transactionLabel = (transaction: RecentTransaction) => {
-        const type = transaction.type;
-        const value = toNonNegativeNumber(transaction.valeur);
-        const label = clientLabel(transaction);
-        if (type === 'ajout_tampon') return `${label} a reçu ${value} tampon${value > 1 ? 's' : ''}`;
-        if (type === 'ajout_points') return `${label} a reçu ${value} point${value > 1 ? 's' : ''}`;
-        if (type === 'recompense') return `Récompense attribuée à ${label}`;
-        if (type === 'reset') return `Carte de ${label} remise à zéro`;
-        return type.replace('_', ' ');
-      };
-      const transactionBadge = (transaction: RecentTransaction) => {
-        const value = toNonNegativeNumber(transaction.valeur);
-        if (transaction.type === 'ajout_tampon' || transaction.type === 'ajout_points') return `+${value}`;
-        if (transaction.type === 'recompense') return 'Offerte';
-        if (transaction.type === 'reset') return 'Reset';
-        return String(value);
-      };
-      const transactionTone = (type: string) => {
-        if (type === 'ajout_tampon') return 'bg-indigo-400';
-        if (type === 'ajout_points') return 'bg-cyan-400';
-        if (type === 'recompense') return 'bg-emerald-400';
-        return 'bg-slate-400';
-      };
-      const relativeDate = (date: string) => {
-        const createdAt = new Date(date).getTime();
-        if (!Number.isFinite(createdAt)) return '—';
-        const diffMinutes = Math.max(0, Math.round((Date.now() - createdAt) / 60000));
-        if (diffMinutes < 1) return 'À l’instant';
-        if (diffMinutes < 60) return `Il y a ${diffMinutes} min`;
-        const diffHours = Math.round(diffMinutes / 60);
-        if (diffHours < 24) return `Il y a ${diffHours} h`;
-        return new Date(date).toLocaleDateString('fr-FR');
-      };
-
-      container.innerHTML = data.map((t: RecentTransaction) => `
-        <div class="flex flex-col gap-2 rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-[0_12px_30px_-28px_rgba(15,23,42,0.35)] sm:flex-row sm:items-center sm:justify-between">
+      container.innerHTML = data.map((t: { type: string; valeur: number; created_at: string }) => `
+        <div class="flex items-center justify-between border-b border-slate-200 py-3 last:border-0">
           <div class="flex items-center gap-3">
-            <span class="h-2.5 w-2.5 shrink-0 rounded-full ${transactionTone(t.type)}"></span>
-            <span class="text-sm font-medium text-slate-700">${escapeHtml(transactionLabel(t))}</span>
+            <span class="w-2 h-2 rounded-full ${t.type === 'ajout_tampon' ? 'bg-indigo-400' : t.type === 'ajout_points' ? 'bg-cyan-400' : 'bg-emerald-400'}"></span>
+            <span class="text-slate-700 text-sm capitalize">${escapeHtml(t.type.replace('_', ' '))}</span>
           </div>
           <div class="flex items-center gap-4">
-            <span class="rounded-full bg-slate-100 px-2.5 py-1 font-mono text-xs font-bold text-slate-900">${escapeHtml(transactionBadge(t))}</span>
-            <span class="text-slate-500 text-xs">${escapeHtml(relativeDate(t.created_at))}</span>
+            <span class="font-mono text-sm text-slate-900">+${t.valeur}</span>
+            <span class="text-slate-500 text-xs">${new Date(t.created_at).toLocaleDateString('fr-FR')}</span>
           </div>
         </div>
       `).join('');
@@ -556,45 +218,28 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     if (!rate || !chart) return;
 
     try {
-      const res = await pointAwareFetch('/api/dashboard/retention');
+      const res = await authFetch('/api/dashboard/retention');
       if (!res.ok) throw new Error();
       const payload = await res.json().catch(() => null);
       const summary = payload?.summary ?? {};
       const weekly = Array.isArray(payload?.data) ? payload.data : [];
 
-      const rate30d = Math.min(100, toNonNegativeNumber(summary?.rate_30d));
-      const repeat30d = toNonNegativeNumber(summary?.repeat_30d);
-      const active30d = toNonNegativeNumber(summary?.active_30d);
-
-      rate.textContent = `${rate30d}%`;
-      const retentionCard = document.getElementById('stat-retention-card');
-      const retentionDetail = document.getElementById('stat-retention-detail');
-      if (retentionCard) retentionCard.textContent = `${rate30d}%`;
-      if (retentionDetail) {
-        retentionDetail.textContent = `${repeat30d}/${active30d} client${active30d > 1 ? 's' : ''} revenu${repeat30d > 1 ? 's' : ''}`;
-      }
+      rate.textContent = `${summary?.rate_30d ?? 0}%`;
 
       if (!weekly.length) {
         chart.innerHTML = '<p class="m-auto text-xs text-slate-400">Pas assez de données.</p>';
         return;
       }
 
-      const normalizedWeekly = weekly.map((item: { week_start?: string; retention_rate?: number }) => ({
-        week_start: String(item.week_start ?? ''),
-        retention_rate: Math.min(100, toNonNegativeNumber(item.retention_rate)),
-      }));
-      const maxRate = Math.max(...normalizedWeekly.map((item: { retention_rate: number }) => item.retention_rate), 1);
-      chart.innerHTML = normalizedWeekly.map((item: { week_start: string; retention_rate: number }) => {
-        const ratio = Math.max(0, Math.min(100, Math.round((item.retention_rate / maxRate) * 100)));
-        const labelDate = new Date(`${item.week_start}T12:00:00`);
-        const label = Number.isNaN(labelDate.getTime())
-          ? '—'
-          : labelDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+      const maxRate = Math.max(...weekly.map((item: { retention_rate?: number }) => Number(item.retention_rate ?? 0)), 1);
+      chart.innerHTML = weekly.map((item: { week_start: string; retention_rate: number }) => {
+        const ratio = Math.round((Number(item.retention_rate ?? 0) / maxRate) * 100);
+        const label = new Date(`${item.week_start}T12:00:00`).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
         return `
           <div class="min-w-0 flex-1">
             <div class="group relative h-16 rounded-lg bg-slate-200/70">
               <div class="absolute inset-x-0 bottom-0 rounded-lg bg-gradient-to-t from-sky-600 to-cyan-500 transition-all" style="height:${ratio}%"></div>
-              <span class="pointer-events-none absolute -top-6 left-1/2 hidden -translate-x-1/2 rounded-md bg-slate-900 px-2 py-1 text-[10px] text-white group-hover:block">${item.retention_rate}%</span>
+              <span class="pointer-events-none absolute -top-6 left-1/2 hidden -translate-x-1/2 rounded-md bg-slate-900 px-2 py-1 text-[10px] text-white group-hover:block">${Number(item.retention_rate ?? 0)}%</span>
             </div>
             <p class="mt-1 truncate text-center text-[0.62rem] text-slate-500">${escapeHtml(label)}</p>
           </div>
@@ -606,13 +251,26 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   }
 
+  async function loadCardShortcuts() {
+    try {
+      const res = await authFetch('/api/cartes');
+      if (!res.ok) return;
+      const { data } = await res.json();
+      if (!data?.id) return;
+      const qrBtn = document.getElementById('dashboard-client-qr-btn') as HTMLAnchorElement;
+      qrBtn.href = `/poster/${data.id}?template=signature`;
+    } catch {
+      // best effort
+    }
+  }
+
   async function loadPointVenteContext() {
     const activeName = document.getElementById('active-point-name');
     const usage = document.getElementById('points-vente-usage');
     if (!activeName || !usage) return;
 
     try {
-      const res = await pointAwareFetch('/api/commerces/points-vente');
+      const res = await authFetch('/api/commerces/points-vente');
       if (!res.ok) throw new Error();
       const payload = await res.json().catch(() => null);
       const points = Array.isArray(payload?.data) ? payload.data : [];
@@ -622,32 +280,19 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const plan = planLabel(payload?.plan);
       const pro = isProPlan(payload?.plan);
 
-      dashboardState.activePointName = selected?.nom ?? '—';
-      activeName.textContent = dashboardState.activePointName;
-      const usageText = `Plan ${plan}: ${stats?.current ?? 0}/${stats?.max ?? 1} point(s) de vente utilisés (${pro ? 'multi-sites activé' : '1 point inclus'}).`;
-      usage.textContent = usageText;
-      const secondaryUsage = document.getElementById('points-vente-usage-secondary');
-      if (secondaryUsage) secondaryUsage.textContent = usageText;
-      updatePriorityAction();
+      activeName.textContent = selected?.nom ?? '—';
+      usage.textContent = `Plan ${plan}: ${stats?.current ?? 0}/${stats?.max ?? 1} point(s) de vente utilisés (${pro ? 'multi-sites activé' : '1 point inclus'}).`;
     } catch {
-      dashboardState.activePointName = '—';
       activeName.textContent = '—';
       usage.textContent = 'Impossible de charger votre contexte point de vente.';
-      const secondaryUsage = document.getElementById('points-vente-usage-secondary');
-      if (secondaryUsage) secondaryUsage.textContent = 'Impossible de charger votre contexte point de vente.';
     }
   }
 
   async function loadAdminShortcut() {
     try {
-      const sessionResult = await withTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
-      let session = sessionResult?.data?.session ?? null;
-      if (!session) {
-        const refreshResult = await withTimeout(supabase.auth.refreshSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
-        session = refreshResult?.data?.session ?? null;
-      }
+      const { data: { session } } = await supabase.auth.getSession();
       const email = session?.user?.email?.toLowerCase();
-      const isAdmin = ['bilelel@live.fr', 'contact@duo-agency.com'].includes(email ?? '');
+      const isAdmin = ['bilelel@live.fr', 'bilel@pulse-agency.fr'].includes(email ?? '');
       document.getElementById('admin-shortcut')!.classList.toggle('hidden', !isAdmin);
     } catch {
       // best effort
@@ -661,10 +306,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     icon.style.animation = 'spin 0.8s linear infinite';
     await Promise.all([
       loadStats(),
-      loadCardContext(),
       loadChart(),
       loadRecentTransactions(),
       loadRetention(),
+      loadCardShortcuts(),
       loadPointVenteContext(),
     ]);
     icon.style.animation = '';
@@ -672,19 +317,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   document.getElementById('refresh-btn')!.addEventListener('click', refreshAll);
-  window.addEventListener('fidelopass:point-vente-ready', () => {
-    void Promise.all([loadStats(), loadCardContext(), loadChart(), loadRecentTransactions(), loadRetention(), loadPointVenteContext()]);
-  });
 
   const style = document.createElement('style');
   style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
   document.head.appendChild(style);
 
   loadStats();
-  loadCardContext();
   loadChart();
   loadRecentTransactions();
   loadRetention();
+  loadCardShortcuts();
   loadPointVenteContext();
   loadAdminShortcut();
 </script>

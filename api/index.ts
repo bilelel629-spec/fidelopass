@@ -1,9 +1,9 @@
 import 'dotenv/config';
 import { Hono } from 'hono';
+import type { ApiEnv } from './types';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { serve } from '@hono/node-server';
-import { randomUUID } from 'node:crypto';
 import { authRoutes } from './routes/auth';
 import { commercesRoutes } from './routes/commerces';
 import { cartesRoutes } from './routes/cartes';
@@ -21,82 +21,24 @@ import { smsRoutes } from './routes/sms';
 import { cronRoutes } from './routes/cron';
 import { billingRoutes } from './routes/billing';
 import { scannersRoutes } from './routes/scanners';
-import { geocodingRoutes } from './routes/geocoding';
-import { assistantCardRoutes } from './routes/assistant-card';
-import { partnerRoutes } from './routes/partners';
-import { merchantScanRoutes } from './routes/merchant-scan';
-import { createRateLimitMiddleware } from './middleware/rate-limit';
-import { authMiddleware } from './middleware/auth';
-import { adminMiddleware } from './middleware/admin';
-import { createServiceClient } from '../src/lib/supabase';
 
-const app = new Hono();
+const app = new Hono<ApiEnv>();
 
-const DEFAULT_ALLOWED_ORIGINS = [
-  'https://fidelopass.com',
+const ALLOWED_ORIGINS = Array.from(new Set([
   'https://www.fidelopass.com',
-  'http://localhost:3000',
-  'http://localhost:4321',
-  'http://localhost:5173',
-];
-
-const allowedOrigins = Array.from(
-  new Set(
-    (process.env.CORS_ALLOWED_ORIGINS ?? '')
-      .split(',')
-      .map((value) => value.trim())
-      .filter(Boolean)
-      .concat(DEFAULT_ALLOWED_ORIGINS),
-  ),
-);
-
-const globalRateLimit = createRateLimitMiddleware({
-  keyPrefix: 'global',
-  limit: Number(process.env.RATE_LIMIT_GLOBAL ?? 240),
-  windowMs: Number(process.env.RATE_LIMIT_GLOBAL_WINDOW_MS ?? 60_000),
-});
-
-const authRateLimit = createRateLimitMiddleware({
-  keyPrefix: 'auth',
-  limit: Number(process.env.RATE_LIMIT_AUTH ?? 20),
-  windowMs: Number(process.env.RATE_LIMIT_AUTH_WINDOW_MS ?? 300_000),
-});
+  'https://fidelopass.com',
+  'https://api.fidelopass.com',
+  ...(process.env.ALLOWED_ORIGINS?.split(',').map((o) => o.trim()).filter(Boolean) ?? []),
+  ...(process.env.NODE_ENV !== 'production' ? ['http://localhost:4321', 'http://localhost:3000', 'http://localhost:3001'] : []),
+]));
 
 app.use('*', logger());
-app.use('*', async (c, next) => {
-  const requestId = c.req.header('x-request-id')?.trim() || randomUUID();
-  const startedAt = Date.now();
-  c.header('X-Request-Id', requestId);
-  await next();
-  c.header('X-Request-Id', requestId);
-  const elapsedMs = Date.now() - startedAt;
-  c.header('X-Response-Time', `${elapsedMs}ms`);
-  if (elapsedMs >= Number(process.env.SLOW_REQUEST_THRESHOLD_MS ?? 1200)) {
-    console.warn(`[Slow API] ${c.req.method} ${new URL(c.req.url).pathname} ${elapsedMs}ms requestId=${requestId}`);
-  }
-});
-app.use('*', async (c, next) => {
-  c.header('X-Content-Type-Options', 'nosniff');
-  c.header('X-Frame-Options', 'DENY');
-  c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
-  c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
-  if (c.req.url.startsWith('https://')) {
-    c.header('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
-  }
-  await next();
-});
 app.use('*', cors({
-  origin: (origin) => {
-    if (!origin) return origin;
-    if (allowedOrigins.includes(origin)) return origin;
-    return '';
-  },
+  origin: (origin) => (ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]),
   allowHeaders: ['Content-Type', 'Authorization', 'X-Point-Vente-Id'],
   allowMethods: ['GET', 'HEAD', 'PUT', 'POST', 'DELETE', 'PATCH', 'OPTIONS'],
   credentials: true,
 }));
-app.use('/api/*', globalRateLimit);
-app.use('/api/auth/*', authRateLimit);
 
 app.route('/api/auth', authRoutes);
 app.route('/api/commerces', commercesRoutes);
@@ -115,88 +57,8 @@ app.route('/api/stripe-webhook', stripeWebhookRoutes);
 app.route('/api/sms', smsRoutes);
 app.route('/api/cron', cronRoutes);
 app.route('/api/scanners', scannersRoutes);
-app.route('/api/geocoding', geocodingRoutes);
-app.route('/api/assistant-card', assistantCardRoutes);
-app.route('/api/partners', partnerRoutes);
-app.route('/api/merchant', merchantScanRoutes);
 
 app.get('/api/health', (c) => c.json({ ok: true, ts: new Date().toISOString() }));
-app.get('/api/health/deps', authMiddleware, adminMiddleware, async (c) => {
-  const db = createServiceClient();
-  const startedAt = Date.now();
-  const timeoutMs = Number(process.env.HEALTH_DB_TIMEOUT_MS ?? 2000);
-
-  const dbCheck = Promise.race([
-    db.from('commerces').select('id', { count: 'exact', head: true }).limit(1),
-    new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
-  ]);
-
-  const dbResult = await dbCheck;
-  const dbOk = Boolean(dbResult && !dbResult.error);
-  const dbError = dbResult && dbResult.error ? dbResult.error.message : dbResult ? null : `timeout>${timeoutMs}ms`;
-
-  async function probeColumn(table: string, column: string) {
-    const result = await db
-      .from(table as never)
-      .select(column, { count: 'exact', head: true })
-      .limit(1);
-    return {
-      ok: !result.error,
-      error: result.error?.message ?? null,
-    };
-  }
-
-  const migrationProbes = await Promise.all([
-    probeColumn('birthday_rewards', 'id'),
-    probeColumn('admin_audit_logs', 'id'),
-    probeColumn('clients', 'date_naissance'),
-    probeColumn('cartes', 'birthday_auto_enabled'),
-    probeColumn('admin_card_proposals', 'id'),
-    probeColumn('points_vente', 'ville'),
-    probeColumn('assistant_card_briefs', 'id'),
-    probeColumn('partners', 'id'),
-    probeColumn('partner_users', 'id'),
-    probeColumn('commerces', 'partner_id'),
-    probeColumn('clients', 'wallet_code'),
-  ]);
-
-  const migrations = {
-    birthday_rewards_table: migrationProbes[0],
-    admin_audit_logs_table: migrationProbes[1],
-    clients_birth_date_column: migrationProbes[2],
-    cartes_birthday_column: migrationProbes[3],
-    admin_card_proposals_table: migrationProbes[4],
-    points_vente_address_details: migrationProbes[5],
-    assistant_card_briefs_table: migrationProbes[6],
-    partners_table: migrationProbes[7],
-    partner_users_table: migrationProbes[8],
-    commerces_partner_column: migrationProbes[9],
-    clients_wallet_code_column: migrationProbes[10],
-  };
-  const migrationsOk = Object.values(migrations).every((entry) => entry.ok);
-
-  const services = {
-    database: {
-      ok: dbOk,
-      error: dbError,
-      latency_ms: Date.now() - startedAt,
-    },
-    stripe: {
-      ok: Boolean(process.env.STRIPE_SECRET_KEY),
-    },
-    wallet: {
-      apple_ok: Boolean(process.env.APPLE_SIGNER_CERT_PEM && process.env.APPLE_SIGNER_KEY_PEM),
-      google_ok: Boolean(process.env.GOOGLE_ISSUER_ID && process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
-    },
-    migrations: {
-      ok: migrationsOk,
-      checks: migrations,
-    },
-  };
-
-  const ok = services.database.ok && services.stripe.ok && services.migrations.ok;
-  return c.json({ ok, ts: new Date().toISOString(), services }, ok ? 200 : 503);
-});
 app.notFound((c) => c.json({ error: 'Route introuvable' }, 404));
 app.onError((err, c) => {
   console.error('[API Error]', err);

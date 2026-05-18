@@ -1,6 +1,5 @@
 ---
 import '../styles/global.css';
-import LanguageSwitcher from '../components/LanguageSwitcher.astro';
 
 interface Props {
   title?: string;
@@ -21,36 +20,27 @@ const { title = 'Fidelopass Scanner' } = Astro.props;
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <title>{title}</title>
-    <script src="/i18n.js" defer></script>
   </head>
-  <body class="min-h-[100dvh] bg-transparent text-slate-900 antialiased overflow-x-hidden">
+  <body class="min-h-[100dvh] bg-[#f5f9ff] text-slate-900 antialiased overflow-x-hidden">
     <div class="pointer-events-none fixed inset-0 overflow-hidden">
-      <div class="absolute -top-24 right-[-6rem] h-[18rem] w-[18rem] rounded-full bg-cyan-200/35 blur-3xl"></div>
-      <div class="absolute bottom-[-6rem] left-[-4rem] h-[14rem] w-[14rem] rounded-full bg-blue-100/65 blur-3xl"></div>
-      <div class="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/80 to-transparent"></div>
+      <div class="absolute -top-24 right-[-6rem] h-[18rem] w-[18rem] rounded-full bg-cyan-200/40 blur-3xl"></div>
+      <div class="absolute bottom-[-6rem] left-[-4rem] h-[14rem] w-[14rem] rounded-full bg-blue-100/70 blur-3xl"></div>
     </div>
     <slot />
-    <LanguageSwitcher />
   </body>
 </html>
 
 <script>
   import { createClient } from '@supabase/supabase-js';
+  import { requireFreshSession, showSessionOverlay } from '../lib/session-guard';
   const supabase = createClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
   );
-  const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 2500);
-  function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-    return Promise.race([
-      promise,
-      new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeoutMs)),
-    ]);
-  }
 
-  const sessionResult = await withTimeout(supabase.auth.getSession(), SESSION_PROBE_TIMEOUT_MS).catch(() => null);
-  const session = sessionResult?.data?.session ?? null;
-  if (!session) window.location.replace('/login');
+  const overlay = showSessionOverlay('Ouverture du scanner...', 'Nous vérifions la session avant d’activer la caméra.');
+  const session = await requireFreshSession(supabase, { overlay });
+  if (session) overlay.remove();
 
   // Enregistrement du Service Worker
   if ('serviceWorker' in navigator) {

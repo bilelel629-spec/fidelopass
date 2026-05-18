@@ -2,13 +2,6 @@ import * as admin from 'firebase-admin';
 
 let firebaseApp: admin.app.App | null = null;
 
-export type PushDeliveryResult = {
-  successCount: number;
-  failedCount: number;
-  successTokens: string[];
-  failedTokens: string[];
-};
-
 function getFirebaseApp(): admin.app.App {
   if (firebaseApp) return firebaseApp;
 
@@ -30,26 +23,38 @@ function getFirebaseApp(): admin.app.App {
   return firebaseApp;
 }
 
+const INVALID_FCM_ERRORS = new Set([
+  'messaging/registration-token-not-registered',
+  'messaging/invalid-registration-token',
+  'messaging/invalid-argument',
+]);
+
+export interface PushResult {
+  successCount: number;
+  successfulTokens: string[];
+  invalidTokens: string[];
+}
+
 /**
  * Envoie une notification push à une liste de tokens FCM.
- * Retourne le détail des notifications délivrées avec succès/échec.
+ * Retourne le nombre de succès, les tokens ayant réussi, et les tokens invalides à supprimer.
  */
-export async function sendPushNotificationDetailed(
+export async function sendPushNotification(
   tokens: string[],
   title: string,
   body: string,
   clickUrl = '/',
-): Promise<PushDeliveryResult> {
-  if (tokens.length === 0) {
-    return { successCount: 0, failedCount: 0, successTokens: [], failedTokens: [] };
-  }
+  iconUrl?: string,
+): Promise<PushResult> {
+  if (tokens.length === 0) return { successCount: 0, successfulTokens: [], invalidTokens: [] };
 
   const app = getFirebaseApp();
   const messaging = admin.messaging(app);
 
+  const icon = iconUrl || '/icons/icon-192.png';
   const BATCH_SIZE = 500;
-  const successTokens: string[] = [];
-  const failedTokens: string[] = [];
+  const successfulTokens: string[] = [];
+  const invalidTokens: string[] = [];
 
   for (let i = 0; i < tokens.length; i += BATCH_SIZE) {
     const batch = tokens.slice(i, i + BATCH_SIZE);
@@ -57,45 +62,27 @@ export async function sendPushNotificationDetailed(
     try {
       const response = await messaging.sendEachForMulticast({
         tokens: batch,
-        notification: { title, body },
-        data: { title, body, url: clickUrl, icon: '/icons/icon-192.png' },
+        data: { title, body, url: clickUrl, icon },
         webpush: {
-          notification: { title, body, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png' },
+          headers: { Urgency: 'high' },
           fcmOptions: { link: clickUrl },
         },
       });
-      response.responses.forEach((item, index) => {
-        const token = batch[index];
-        if (!token) return;
-        if (item.success) successTokens.push(token);
-        else failedTokens.push(token);
+
+      response.responses.forEach((res, idx) => {
+        const token = batch[idx];
+        if (res.success) {
+          successfulTokens.push(token);
+        } else if (res.error && INVALID_FCM_ERRORS.has(res.error.code)) {
+          invalidTokens.push(token);
+        }
       });
     } catch (err) {
-      console.error('[FCM] Erreur envoi batch:', err);
-      failedTokens.push(...batch);
+      console.error('[FCM] Erreur envoi batch (tokens', i, '-', i + batch.length - 1, '):', err);
     }
   }
 
-  return {
-    successCount: successTokens.length,
-    failedCount: failedTokens.length,
-    successTokens,
-    failedTokens,
-  };
-}
-
-/**
- * Envoie une notification push à une liste de tokens FCM.
- * Retourne le nombre de notifications délivrées avec succès.
- */
-export async function sendPushNotification(
-  tokens: string[],
-  title: string,
-  body: string,
-  clickUrl = '/',
-): Promise<number> {
-  const result = await sendPushNotificationDetailed(tokens, title, body, clickUrl);
-  return result.successCount;
+  return { successCount: successfulTokens.length, successfulTokens, invalidTokens };
 }
 
 /**
@@ -106,14 +93,17 @@ export async function sendPersonalizedPushNotifications(
   recipients: Array<{ token: string; clickUrl: string }>,
   title: string,
   body: string,
-): Promise<number> {
-  if (recipients.length === 0) return 0;
+  iconUrl?: string,
+): Promise<PushResult> {
+  if (recipients.length === 0) return { successCount: 0, successfulTokens: [], invalidTokens: [] };
 
   const app = getFirebaseApp();
   const messaging = admin.messaging(app);
 
+  const icon = iconUrl || '/icons/icon-192.png';
   const BATCH_SIZE = 500;
-  let successCount = 0;
+  const successfulTokens: string[] = [];
+  const invalidTokens: string[] = [];
 
   for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
     const batch = recipients.slice(i, i + BATCH_SIZE);
@@ -121,19 +111,26 @@ export async function sendPersonalizedPushNotifications(
     try {
       const messages = batch.map((r) => ({
         token: r.token,
-        notification: { title, body },
-        data: { title, body, url: r.clickUrl, icon: '/icons/icon-192.png' },
+        data: { title, body, url: r.clickUrl, icon },
         webpush: {
-          notification: { title, body, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png' },
+          headers: { Urgency: 'high' },
           fcmOptions: { link: r.clickUrl },
         },
       }));
       const response = await messaging.sendEach(messages);
-      successCount += response.successCount;
+
+      response.responses.forEach((res, idx) => {
+        const token = batch[idx].token;
+        if (res.success) {
+          successfulTokens.push(token);
+        } else if (res.error && INVALID_FCM_ERRORS.has(res.error.code)) {
+          invalidTokens.push(token);
+        }
+      });
     } catch (err) {
-      console.error('[FCM] Erreur envoi personnalisé batch:', err);
+      console.error('[FCM] Erreur envoi personnalisé batch (tokens', i, '-', i + batch.length - 1, '):', err);
     }
   }
 
-  return successCount;
+  return { successCount: successfulTokens.length, successfulTokens, invalidTokens };
 }

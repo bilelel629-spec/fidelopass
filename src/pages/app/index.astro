@@ -44,3 +44,12 @@ import AppLayout from '../../layouts/AppLayout.astro';
     </div>
   </div>
 </AppLayout>
+
+<script>
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+  if (isStandalone && window.location.pathname !== '/app/scan') {
+    window.location.replace('/app/scan');
+  }
+</script>

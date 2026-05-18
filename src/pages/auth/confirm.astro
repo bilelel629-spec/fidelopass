@@ -3,21 +3,19 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout title="Confirmation du compte — Fidelopass">
-  <div class="relative min-h-screen overflow-hidden px-4 py-12 flex items-center justify-center bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_62%,#ffffff_100%)]">
-    <div class="pointer-events-none absolute -top-28 right-[-8rem] h-[26rem] w-[26rem] rounded-full bg-cyan-200/35 blur-3xl"></div>
-    <div class="pointer-events-none absolute bottom-[-7rem] left-[-6rem] h-[22rem] w-[22rem] rounded-full bg-blue-100/80 blur-3xl"></div>
-    <div class="card w-full max-w-lg border border-slate-200/80 bg-white/95 p-8 shadow-[0_24px_56px_-32px_rgba(37,99,235,0.35)]">
+  <div class="min-h-screen flex items-center justify-center px-4 py-12">
+    <div class="card w-full max-w-lg p-8">
       <div class="text-center">
-        <a href="/" class="inline-flex items-center justify-center">
-          <img src="/logo-premium-cropped.png" alt="Fidelopass" class="h-16 w-auto object-contain" />
+        <a href="/" class="font-display font-bold text-2xl text-white inline-flex items-center gap-1">
+          Fidelopass
         </a>
-        <h1 class="font-display text-3xl font-bold text-slate-900 mt-6">
+        <h1 class="font-display text-3xl font-bold text-white mt-6">
           Confirmation de votre compte
         </h1>
-        <p id="confirm-message" class="text-slate-500 mt-4 leading-relaxed">
+        <p id="confirm-message" class="text-slate-300 mt-4 leading-relaxed">
           Validation en cours...
         </p>
-        <div id="confirm-error" class="hidden mt-6 text-red-700 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3"></div>
+        <div id="confirm-error" class="hidden mt-6 text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"></div>
         <a
           id="confirm-login-link"
           href="/login"
@@ -32,8 +30,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
 <script>
   import { createClient } from '@supabase/supabase-js';
-  import { resolvePostAuthDestination } from '../../lib/post-auth-destination';
-  import { clearSessionCookie, setSessionCookie } from '../../lib/session-cookie';
+  import { safeRedirectPath } from '../../lib/session-guard';
 
   const supabase = createClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
@@ -43,65 +40,29 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   const message = document.getElementById('confirm-message') as HTMLParagraphElement;
   const errorBox = document.getElementById('confirm-error') as HTMLDivElement;
   const loginLink = document.getElementById('confirm-login-link') as HTMLAnchorElement;
-  let redirectInFlight = false;
-  const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 1800);
+  const redirectTarget = safeRedirectPath(new URLSearchParams(window.location.search).get('redirect'));
+  loginLink.href = `/login?redirect=${encodeURIComponent(redirectTarget)}`;
 
-  function getPreferredDestination() {
-    const raw = new URLSearchParams(window.location.search).get('next');
-    if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return null;
-    return raw;
-  }
-
-  function loginUrlWithNext() {
-    const url = new URL('/login', window.location.origin);
-    const preferredDestination = getPreferredDestination();
-    if (preferredDestination) url.searchParams.set('next', preferredDestination);
-    return `${url.pathname}${url.search}`;
-  }
-
-  async function getValidSession() {
-    const sessionResult = await Promise.race([
-      supabase.auth.getSession(),
-      new Promise<null>((resolve) => window.setTimeout(() => resolve(null), SESSION_PROBE_TIMEOUT_MS)),
-    ]);
-    if (!sessionResult) return null;
-    const session = sessionResult?.data?.session ?? null;
-    if (session?.access_token) return session;
-
-    const refreshResult = await Promise.race([
-      supabase.auth.refreshSession(),
-      new Promise<null>((resolve) => window.setTimeout(() => resolve(null), SESSION_PROBE_TIMEOUT_MS)),
-    ]);
-    if (!refreshResult) return null;
-    const refreshed = refreshResult?.data?.session ?? null;
-    if (refreshed?.access_token) return refreshed;
-    return null;
+  function apiUrl(path: string) {
+    const API = (import.meta.env.PUBLIC_API_URL ?? '').trim();
+    return `${API}${path}`;
   }
 
   async function redirectAfterAuth() {
-    if (redirectInFlight) return;
-    redirectInFlight = true;
-    try {
-      const session = await getValidSession();
-      if (!session) {
-        clearSessionCookie();
-        window.location.href = loginUrlWithNext();
-        return;
-      }
-
-      setSessionCookie(session.access_token);
-      const target = await resolvePostAuthDestination(session.access_token, getPreferredDestination());
-      if (target === '/login') {
-        clearSessionCookie();
-        await supabase.auth.signOut().catch(() => undefined);
-        window.location.href = loginUrlWithNext();
-        return;
-      }
-
-      window.location.replace(target);
-    } finally {
-      redirectInFlight = false;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.href = `/login?redirect=${encodeURIComponent(redirectTarget)}`;
+      return;
     }
+
+    const check = await fetch(apiUrl('/api/commerces/me'), {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+    }).then((response) => response.json()).catch(() => ({}));
+
+    window.location.href = check.data?.nom ? redirectTarget : '/onboarding';
   }
 
   async function confirmFromEmailLink() {
@@ -135,21 +96,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   // Le SDK Supabase échange automatiquement le fragment #access_token au premier getSession().
   // Ce cas couvre les callbacks OAuth (Apple, Google) qui redirigent ici.
-  const hasOAuthHash = window.location.hash.includes('access_token=');
-  const oauthSession = await getValidSession();
+  const { data: { session: oauthSession } } = await supabase.auth.getSession();
   if (oauthSession) {
     message.textContent = 'Connexion réussie. Redirection...';
     await redirectAfterAuth();
-  } else if (hasOAuthHash) {
-    message.textContent = 'Finalisation de la connexion...';
-    await new Promise((resolve) => window.setTimeout(resolve, 700));
-    const retriedSession = await getValidSession();
-    if (retriedSession) {
-      await redirectAfterAuth();
-    } else {
-      message.textContent = 'La connexion a expiré. Merci de réessayer.';
-      loginLink.classList.remove('hidden');
-    }
   } else {
     await confirmFromEmailLink();
   }

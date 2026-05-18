@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import type { ApiEnv } from '../types';
 import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
@@ -8,7 +9,7 @@ import { pushApplePassUpdate } from '../services/apple-wallet';
 import { sendPushNotification } from '../services/push';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 
-export const transactionsRoutes = new Hono();
+export const transactionsRoutes = new Hono<ApiEnv>();
 
 transactionsRoutes.use('*', authMiddleware);
 transactionsRoutes.use('*', paidMiddleware);
@@ -36,29 +37,17 @@ transactionsRoutes.get('/', async (c) => {
 
   if (!commerce || !pointVente) return c.json({ data: [] });
 
-  let queryResult = await db
+  const { data, error } = await db
     .from('transactions')
-    .select('*, clients(nom, telephone)')
+    .select('*')
     .eq('commerce_id', commerce.id)
     .eq('point_vente_id', pointVente.id)
     .order('created_at', { ascending: false })
     .limit(limit);
 
-  // Some older schemas do not expose the client relationship in PostgREST yet.
-  // Keep the dashboard usable instead of failing the whole activity feed.
-  if (queryResult.error) {
-    queryResult = await db
-      .from('transactions')
-      .select('*')
-      .eq('commerce_id', commerce.id)
-      .eq('point_vente_id', pointVente.id)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-  }
+  if (error) return c.json({ error: 'Erreur lors de la récupération' }, 500);
 
-  if (queryResult.error) return c.json({ error: 'Erreur lors de la récupération' }, 500);
-
-  return c.json({ data: queryResult.data });
+  return c.json({ data });
 });
 
 /** POST /api/transactions — Ajoute points ou tampons (via scanner) */
@@ -207,11 +196,10 @@ transactionsRoutes.post('/', async (c) => {
 
   if (client.apple_pass_serial) {
     walletUpdates.push(
-      (async () => {
-        const { data, error } = await db.from('apple_pass_registrations')
-          .select('push_token, pass_type_identifier')
-          .eq('client_id', parsed.data.client_id);
-
+      Promise.resolve(db.from('apple_pass_registrations')
+      .select('push_token, pass_type_identifier')
+      .eq('client_id', parsed.data.client_id)
+      .then(({ data, error }) => {
         if (error) {
           console.error('[Apple Wallet registrations]', error);
           return { provider: 'apple', ok: false, count: 0, error: error.message };
@@ -233,7 +221,7 @@ transactionsRoutes.post('/', async (c) => {
           }
           return { provider: 'apple', ok: !failed, count: registrations.length };
         });
-      })(),
+      })),
     );
   }
 

@@ -1,71 +1,25 @@
 import { Hono } from 'hono';
+import type { ApiEnv } from '../types';
 import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
 import { getPlanLimits, normalizePlan } from './commerces';
-import { sendPushNotificationDetailed, sendPersonalizedPushNotifications } from '../services/push';
+import { sendPushNotification, sendPersonalizedPushNotifications } from '../services/push';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { sendGoogleWalletMessage } from '../services/google-wallet';
 import { sendSMS, personnaliserMessage } from '../../src/lib/brevo-sms';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
-import { getPublicSiteUrl } from '../utils/public-site-url';
+import { rateLimit } from '../middleware/rate-limit';
 
-const PUBLIC_SITE_URL_NOTIF = getPublicSiteUrl();
+const PUBLIC_SITE_URL_NOTIF = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
 const BIRTHDAY_TIMEZONE = 'Europe/Paris';
 const BIRTHDAY_SEND_HOUR = 10;
 const DEFAULT_BIRTHDAY_PUSH_TITLE = 'Joyeux anniversaire 🎉';
 const DEFAULT_BIRTHDAY_PUSH_MESSAGE = 'Votre bonus anniversaire est disponible sur votre carte Fidelopass.';
-const DEBUG_REVIEW_CAMPAIGN = process.env.DEBUG_REVIEW_CAMPAIGN === '1';
-const SMS_FEATURE_ENABLED = process.env.SMS_FEATURE_ENABLED === 'true';
 
-function reviewDebug(...args: unknown[]) {
-  if (!DEBUG_REVIEW_CAMPAIGN) return;
-  console.log(...args);
-}
-
-function isHexColor(value: string | null | undefined): value is string {
-  return /^#[0-9A-Fa-f]{6}$/.test(String(value ?? '').trim());
-}
-
-async function resolveScopedCarteIdsForPoint(
-  db: ReturnType<typeof createServiceClient>,
-  commerceId: string,
-  pointVenteId: string,
-): Promise<string[]> {
-  const ids = new Set<string>();
-
-  const cardsQuery = db
-    .from('cartes')
-    .select('id')
-    .eq('commerce_id', commerceId)
-    .eq('point_vente_id', pointVenteId);
-
-  const { data: pointCards } = await cardsQuery;
-
-  for (const card of pointCards ?? []) {
-    if (card?.id) ids.add(card.id);
-  }
-
-  const clientsQuery = db
-    .from('clients')
-    .select('carte_id')
-    .eq('commerce_id', commerceId)
-    .not('carte_id', 'is', null)
-    .eq('point_vente_id', pointVenteId);
-
-  const { data: clientCards } = await clientsQuery;
-
-  for (const row of clientCards ?? []) {
-    const carteId = (row as { carte_id?: string | null })?.carte_id;
-    if (carteId) ids.add(carteId);
-  }
-
-  return Array.from(ids);
-}
-
-export const notificationsRoutes = new Hono();
+export const notificationsRoutes = new Hono<ApiEnv>();
 
 notificationsRoutes.use('*', authMiddleware);
 notificationsRoutes.use('*', paidMiddleware);
@@ -82,12 +36,6 @@ type BirthdaySettingsRow = {
   birthday_reward_value?: number | null;
   birthday_push_title?: string | null;
   birthday_push_message?: string | null;
-};
-
-type CommercePlanRow = {
-  id: string;
-  plan: string | null;
-  plan_override?: string | null;
 };
 
 function getReviewAutoEnabled(flags: CommerceFlags | null): boolean {
@@ -139,84 +87,39 @@ async function persistReviewAutoEnabled(
   return { ok: false, message: lastErrorMessage };
 }
 
-async function resolveCommercePlanForUser(
-  db: ReturnType<typeof createServiceClient>,
-  userId: string,
-): Promise<CommercePlanRow | null> {
-  const { data, error } = await db
-    .from('commerces')
-    .select('id, plan, plan_override')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (!error) {
-    return (data as CommercePlanRow | null) ?? null;
-  }
-
-  const isMissingPlanOverrideColumn = /plan_override/i.test(error.message ?? '')
-    && (/does not exist/i.test(error.message ?? '') || /schema cache/i.test(error.message ?? ''));
-
-  if (!isMissingPlanOverrideColumn) {
-    throw error;
-  }
-
-  const fallback = await db
-    .from('commerces')
-    .select('id, plan')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (fallback.error) throw fallback.error;
-
-  return ((fallback.data as { id: string; plan: string | null } | null)
-    ? { ...fallback.data, plan_override: null }
-    : null) as CommercePlanRow | null;
-}
-
 function getBirthdayDefaultMessage(carteName?: string | null): string {
   if (!carteName) return DEFAULT_BIRTHDAY_PUSH_MESSAGE;
   return `Votre bonus anniversaire est disponible sur ${carteName}.`;
-}
-
-function buildScopedNotificationTitle(baseTitle: string, _senderName: string | null | undefined) {
-  const cleanBase = String(baseTitle ?? '').trim();
-  // iOS affiche déjà le nom de la carte/commerce au-dessus de la notification Wallet.
-  // On ne préfixe plus le titre avec le nom du commerce pour éviter le doublon visuel.
-  return cleanBase;
 }
 
 /** GET /api/notifications/review-reminder-settings — Réglage push auto avis Google (+1h) */
 notificationsRoutes.get('/review-reminder-settings', async (c) => {
   const userId = c.get('userId') as string;
   const db = createServiceClient();
-  try {
-    const commerce = await resolveCommercePlanForUser(db, userId);
-    if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
+  const requestedPointVenteId = readRequestedPointVenteId(c);
+  const { commerce } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, plan, plan_override',
+  );
 
-    const flags = await loadCommerceFlags(db, commerce.id);
-    const effectivePlan = getEffectivePlanRaw(commerce);
-    const planLimits = getPlanLimits(effectivePlan);
-    const normalizedPlan = normalizePlan(effectivePlan);
-    const billing = c.get('billing') as { trial_active?: boolean; billing_status?: string | null } | undefined;
-    const trialActive = Boolean(billing?.trial_active || billing?.billing_status === 'trialing');
-    const canUseReviewAuto = Boolean(planLimits.avisGoogle) || trialActive;
+  if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
 
-    return c.json({
-      data: {
-        enabled: getReviewAutoEnabled(flags),
-        plan: normalizedPlan,
-        raw_plan: commerce.plan ?? 'starter',
-        plan_override: commerce.plan_override ?? null,
-        is_pro: canUseReviewAuto,
-        plan_is_pro: Boolean(planLimits.avisGoogle),
-        trial_active: trialActive,
-        delay_minutes: 60,
-      },
-    });
-  } catch (error) {
-    console.error('[notifications review-reminder-settings GET]', error);
-    return c.json({ error: 'Impossible de charger le réglage pour le moment.' }, 500);
-  }
+  const flags = await loadCommerceFlags(db, commerce.id);
+  const effectivePlan = getEffectivePlanRaw(commerce);
+  const planLimits = getPlanLimits(effectivePlan);
+  const normalizedPlan = normalizePlan(effectivePlan);
+  return c.json({
+    data: {
+      enabled: getReviewAutoEnabled(flags),
+      plan: normalizedPlan,
+      raw_plan: commerce.plan ?? 'starter',
+      plan_override: commerce.plan_override ?? null,
+      is_pro: Boolean(planLimits.avisGoogle),
+      delay_minutes: 60,
+    },
+  });
 });
 
 /** PATCH /api/notifications/review-reminder-settings — Active/désactive le push auto avis Google (+1h) */
@@ -224,35 +127,30 @@ notificationsRoutes.patch('/review-reminder-settings', async (c) => {
   const userId = c.get('userId') as string;
   const body = await c.req.json().catch(() => null);
   const parsed = z.object({ enabled: z.boolean() }).safeParse(body);
+  const requestedPointVenteId = readRequestedPointVenteId(c);
 
   if (!parsed.success) {
     return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides' }, 400);
   }
 
   const db = createServiceClient();
-  try {
-    const commerce = await resolveCommercePlanForUser(db, userId);
-    if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
+  const { commerce } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id, plan, plan_override');
 
-    const planLimits = getPlanLimits(getEffectivePlanRaw(commerce));
-    const billing = c.get('billing') as { trial_active?: boolean; billing_status?: string | null } | undefined;
-    const trialActive = Boolean(billing?.trial_active || billing?.billing_status === 'trialing');
-    if (!planLimits.avisGoogle && !trialActive) {
-      return c.json({ error: 'Cette automatisation est réservée au plan Pro après la période d’essai.' }, 403);
-    }
+  if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
 
-    const writeResult = await persistReviewAutoEnabled(db, commerce.id, parsed.data.enabled);
-    if (!writeResult.ok) {
-      return c.json({
-        error: `Impossible de mettre à jour le réglage (${writeResult.message}). Vérifiez que les migrations Supabase sont bien à jour.`,
-      }, 500);
-    }
-
-    return c.json({ ok: true, data: { enabled: parsed.data.enabled, delay_minutes: 60 } });
-  } catch (error) {
-    console.error('[notifications review-reminder-settings PATCH]', error);
-    return c.json({ error: 'Impossible de mettre à jour le réglage pour le moment.' }, 500);
+  const planLimits = getPlanLimits(getEffectivePlanRaw(commerce));
+  if (!planLimits.avisGoogle) {
+    return c.json({ error: 'Cette automatisation est réservée au plan Pro.' }, 403);
   }
+
+  const writeResult = await persistReviewAutoEnabled(db, commerce.id, parsed.data.enabled);
+  if (!writeResult.ok) {
+    return c.json({
+      error: `Impossible de mettre à jour le réglage (${writeResult.message}). Vérifiez que les migrations Supabase sont bien à jour.`,
+    }, 500);
+  }
+
+  return c.json({ ok: true, data: { enabled: parsed.data.enabled, delay_minutes: 60 } });
 });
 
 /** GET /api/notifications/birthday-settings — Réglage auto anniversaire (jour J à 10h) */
@@ -437,33 +335,21 @@ notificationsRoutes.get('/push-icon-settings', async (c) => {
 
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
-  const scopedCarteIds = await resolveScopedCarteIdsForPoint(
-    db,
-    commerce.id,
-    pointVente.id,
-  );
-  const { data: cartes } = scopedCarteIds.length
-    ? await db
-      .from('cartes')
-      .select('id, couleur_fond, updated_at')
-      .in('id', scopedCarteIds)
-      .eq('commerce_id', commerce.id)
-      .order('updated_at', { ascending: false })
-    : { data: [] as Array<{ id: string; couleur_fond?: string | null; updated_at?: string | null }> };
+  const { data: cartes } = await db
+    .from('cartes')
+    .select('id, push_icon_bg_color, updated_at')
+    .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
+    .order('updated_at', { ascending: false });
 
   const carte = (cartes ?? [])[0] ?? null;
-  const iconBgColor = isHexColor((carte as { couleur_fond?: string | null } | null)?.couleur_fond)
-    ? (carte as { couleur_fond?: string | null }).couleur_fond as string
-    : '#6366f1';
 
   return c.json({
     data: {
       has_active_card: Boolean(carte),
       cards_count: (cartes ?? []).length,
-      scoped_cards_count: scopedCarteIds.length,
       point_vente_id: pointVente.id,
-      push_icon_bg_color: iconBgColor,
-      derived_from_card_background: true,
+      push_icon_bg_color: (carte as { push_icon_bg_color?: string | null } | null)?.push_icon_bg_color ?? '#6366f1',
     },
   });
 });
@@ -491,23 +377,26 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
 
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
-  const carteIds = await resolveScopedCarteIdsForPoint(
-    db,
-    commerce.id,
-    pointVente.id,
-  );
-  if (!carteIds.length) return c.json({ error: 'Aucune carte active sur ce point de vente.' }, 404);
-
   const { data: cartes } = await db
     .from('cartes')
-    .select('id, couleur_fond, updated_at')
+    .select('id')
+    .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id);
+
+  const carteIds = (cartes ?? []).map((row) => row.id).filter(Boolean);
+  if (!carteIds.length) return c.json({ error: 'Aucune carte active sur ce point de vente.' }, 404);
+
+  const { error } = await db
+    .from('cartes')
+    .update({
+      push_icon_bg_color: parsed.data.push_icon_bg_color,
+      updated_at: new Date().toISOString(),
+    })
     .in('id', carteIds)
     .eq('commerce_id', commerce.id)
-    .order('updated_at', { ascending: false });
+    .eq('point_vente_id', pointVente.id);
 
-  const effectiveColor = isHexColor((cartes?.[0] as { couleur_fond?: string | null } | undefined)?.couleur_fond)
-    ? (cartes?.[0] as { couleur_fond?: string | null }).couleur_fond as string
-    : '#6366f1';
+  if (error) return c.json({ error: 'Impossible de mettre à jour la couleur.' }, 500);
 
   let appleRefreshSent = 0;
 
@@ -515,7 +404,7 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
     .from('clients')
     .select('id')
     .eq('commerce_id', commerce.id)
-    .in('carte_id', carteIds)
+    .eq('point_vente_id', pointVente.id)
     .not('apple_pass_serial', 'is', null);
 
   if (appleClientsError) {
@@ -542,17 +431,6 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
       );
       appleRefreshSent = refreshResults.filter((result) => result.status === 'fulfilled').length;
 
-      // Second pass (best effort) to reduce perceived Wallet refresh latency on iOS.
-      if (uniqueRegistrations.length > 0) {
-        await new Promise((resolve) => setTimeout(resolve, 1200));
-        await Promise.allSettled(
-          uniqueRegistrations.map((registration) => pushApplePassUpdate(
-            registration.push_token,
-            passTypeId || registration.pass_type_identifier,
-          )),
-        );
-      }
-
       for (const result of refreshResults) {
         if (result.status === 'rejected') {
           console.error('[push-icon-settings apple refresh]', result.reason);
@@ -564,11 +442,10 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
   return c.json({
     ok: true,
     data: {
-      push_icon_bg_color: effectiveColor,
+      push_icon_bg_color: parsed.data.push_icon_bg_color,
       updated_cards_count: carteIds.length,
       point_vente_id: pointVente.id,
       apple_refresh_sent: appleRefreshSent,
-      derived_from_card_background: true,
     },
   });
 });
@@ -636,7 +513,7 @@ notificationsRoutes.get('/', async (c) => {
 });
 
 /** POST /api/notifications — Envoie une notification à tous les clients */
-notificationsRoutes.post('/', async (c) => {
+notificationsRoutes.post('/', rateLimit(5, 60_000), async (c) => {
   const userId = c.get('userId') as string;
   const body = await c.req.json().catch(() => null);
   const requestedPointVenteId = readRequestedPointVenteId(c);
@@ -656,20 +533,16 @@ notificationsRoutes.post('/', async (c) => {
   const { commerce, pointVente } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id, plan, plan_override');
 
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
-  const { data: activeCard } = await db
+
+  // Logo de la carte active pour l'icône FCM
+  const { data: carteActive } = await db
     .from('cartes')
-    .select('nom')
+    .select('logo_url')
     .eq('commerce_id', commerce.id)
     .eq('point_vente_id', pointVente.id)
     .eq('actif', true)
-    .order('updated_at', { ascending: false })
-    .order('created_at', { ascending: false })
-    .limit(1)
     .maybeSingle();
-  const senderName = (activeCard as { nom?: string | null } | null)?.nom
-    ?? (pointVente as { nom?: string | null }).nom
-    ?? null;
-  const scopedTitle = buildScopedNotificationTitle(parsed.data.titre, senderName);
+  const notifIconUrl = (carteActive as { logo_url?: string | null } | null)?.logo_url ?? undefined;
 
   // Récupère les clients joignables par web push ou Wallet
   const { data: clients } = await db
@@ -686,7 +559,7 @@ notificationsRoutes.post('/', async (c) => {
     .map((client) => client.fcm_token)
     .filter((t): t is string => !!t);
 
-  const googleWalletClients = (clients ?? []).filter((client) => !!client.google_pass_id);
+  const googleWalletClients = (clients ?? []).filter((client) => !!client.google_pass_id && !client.fcm_token);
   const appleWalletClients = (clients ?? []).filter((client) => !!client.apple_pass_serial);
 
   const targetedClientIds = new Set<string>([
@@ -700,7 +573,7 @@ notificationsRoutes.post('/', async (c) => {
     .insert({
       commerce_id: commerce.id,
       point_vente_id: pointVente.id,
-      titre: scopedTitle,
+      titre: parsed.data.titre,
       message: parsed.data.message,
       type: parsed.data.type,
       nb_destinataires: targetedClientIds.size,
@@ -715,20 +588,16 @@ notificationsRoutes.post('/', async (c) => {
   }
 
   let nbDelivreesWeb = 0;
+  let successfulTokens: string[] = [];
+  let invalidTokens: string[] = [];
   const walletDeliveredClientIds = new Set<string>();
 
   if (tokens.length > 0) {
     try {
-      const tokenToClientId = new Map<string, string>();
-      for (const client of webPushClients) {
-        if (client.fcm_token) tokenToClientId.set(client.fcm_token, client.id);
-      }
-      const pushResult = await sendPushNotificationDetailed(tokens, scopedTitle, parsed.data.message);
+      const pushResult = await sendPushNotification(tokens, parsed.data.titre, parsed.data.message, '/', notifIconUrl);
       nbDelivreesWeb = pushResult.successCount;
-      for (const token of pushResult.successTokens) {
-        const clientId = tokenToClientId.get(token);
-        if (clientId) walletDeliveredClientIds.add(clientId);
-      }
+      successfulTokens = pushResult.successfulTokens;
+      invalidTokens = pushResult.invalidTokens;
     } catch (err) {
       console.error('[notifications push]', err);
     }
@@ -739,7 +608,7 @@ notificationsRoutes.post('/', async (c) => {
       googleWalletClients.map(async (client) => {
         await sendGoogleWalletMessage(
           client.google_pass_id as string,
-          scopedTitle,
+          parsed.data.titre,
           parsed.data.message,
           notif.id,
         );
@@ -783,8 +652,24 @@ notificationsRoutes.post('/', async (c) => {
     }
   }
 
+  const deliveredClientIds = new Set<string>();
+  if (successfulTokens.length > 0) {
+    const deliveredTokenSet = new Set(successfulTokens);
+    webPushClients
+      .filter((client) => deliveredTokenSet.has(client.fcm_token!))
+      .forEach((client) => deliveredClientIds.add(client.id));
+  }
+  walletDeliveredClientIds.forEach((id) => deliveredClientIds.add(id));
+
+  if (invalidTokens.length > 0) {
+    await db.from('clients')
+      .update({ fcm_token: null, push_enabled: false })
+      .in('fcm_token', invalidTokens)
+      .eq('commerce_id', commerce.id);
+  }
+
   const nbDestinataires = targetedClientIds.size;
-  const nbDelivrees = walletDeliveredClientIds.size;
+  const nbDelivrees = deliveredClientIds.size;
 
   const { data: updatedNotif } = await db
     .from('notifications')
@@ -809,7 +694,7 @@ notificationsRoutes.post('/', async (c) => {
 notificationsRoutes.post('/review-campaign', async (c) => {
   const userId = c.get('userId') as string;
   const db = createServiceClient();
-  const PUBLIC_SITE_URL = getPublicSiteUrl();
+  const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
   const requestedPointVenteId = readRequestedPointVenteId(c);
 
   const { commerce, pointVente } = await resolveCommerceAndPointVente(
@@ -818,7 +703,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
     requestedPointVenteId,
     'id, plan, plan_override, nom',
   );
-  reviewDebug('[review-campaign] commerce:', commerce?.id, '| plan:', commerce?.plan);
+  console.log('[review-campaign] commerce:', commerce?.id, '| plan:', commerce?.plan);
 
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
   const flags = await loadCommerceFlags(db, commerce.id);
@@ -826,7 +711,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
   // Vérification plan : avis Google réservé au plan Pro
   const effectivePlan = getEffectivePlanRaw(commerce);
   const planLimits = getPlanLimits(effectivePlan);
-  reviewDebug('[review-campaign] planLimits.avisGoogle:', planLimits.avisGoogle);
+  console.log('[review-campaign] planLimits.avisGoogle:', planLimits.avisGoogle);
   if (!planLimits.avisGoogle) {
     return c.json({
       error: `La campagne avis Google est réservée au plan Pro. Plan actuel : ${effectivePlan}. Mettez à niveau votre abonnement.`,
@@ -837,13 +722,13 @@ notificationsRoutes.post('/review-campaign', async (c) => {
   // Vérifie que la fonctionnalité est activée sur la carte
   const { data: carte, error: carteError } = await db
     .from('cartes')
-    .select('id, nom, type, review_reward_enabled, review_reward_value, google_maps_url')
+    .select('id, nom, type, review_reward_enabled, review_reward_value, google_maps_url, logo_url')
     .eq('commerce_id', commerce.id)
     .eq('point_vente_id', pointVente.id)
     .eq('actif', true)
     .single();
 
-  reviewDebug('[review-campaign] carte:', carte?.id, '| review_reward_enabled:', carte?.review_reward_enabled, '| error:', carteError?.message);
+  console.log('[review-campaign] carte:', carte?.id, '| review_reward_enabled:', carte?.review_reward_enabled, '| error:', carteError?.message);
 
   if (!carte) return c.json({ error: 'Carte active introuvable' }, 404);
   if (!carte.review_reward_enabled) {
@@ -866,7 +751,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
 
   const eligibles = (clients ?? []).filter((cl) => !claimedIds.has(cl.id));
 
-  reviewDebug('[review-campaign] total clients:', (clients ?? []).length, '| eligibles:', eligibles.length, '| already claimed:', claimedIds.size);
+  console.log('[review-campaign] total clients:', (clients ?? []).length, '| eligibles:', eligibles.length, '| already claimed:', claimedIds.size);
 
   if (eligibles.length === 0) {
     return c.json({ message: 'Tous vos clients ont déjà réclamé leur récompense.', nb_envoyes: 0, nb_eligibles: 0, nb_deja_reclame: claimedIds.size }, 200);
@@ -874,10 +759,10 @@ notificationsRoutes.post('/review-campaign', async (c) => {
 
   // Canaux disponibles
   const fcmEligibles = eligibles.filter((cl) => cl.push_enabled && cl.fcm_token);
-  const googleEligibles = eligibles.filter((cl) => !!cl.google_pass_id);
+  const googleEligibles = eligibles.filter((cl) => !!cl.google_pass_id && !cl.fcm_token);
   const appleEligibles = eligibles.filter((cl) => !!cl.apple_pass_serial);
 
-  reviewDebug('[review-campaign] canaux — FCM:', fcmEligibles.length, '| Google Wallet:', googleEligibles.length, '| Apple Wallet:', appleEligibles.length);
+  console.log('[review-campaign] canaux — FCM:', fcmEligibles.length, '| Google Wallet:', googleEligibles.length, '| Apple Wallet:', appleEligibles.length);
 
   if (fcmEligibles.length === 0 && googleEligibles.length === 0 && appleEligibles.length === 0) {
     return c.json({
@@ -915,7 +800,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
     nb_destinataires: eligibles.length,
     nb_delivrees: 0,
   });
-  reviewDebug('[review-campaign] notification insérée dans la table pour que Apple Wallet la détecte au fetch du pass');
+  console.log('[review-campaign] notification insérée dans la table pour que Apple Wallet la détecte au fetch du pass');
 
   // 1. Web push (FCM) — lien personnalisé par client
   if (fcmEligibles.length > 0) {
@@ -923,12 +808,19 @@ notificationsRoutes.post('/review-campaign', async (c) => {
       token: cl.fcm_token as string,
       clickUrl: `${PUBLIC_SITE_URL}/review/${carte.id}?client_id=${cl.id}`,
     }));
-    const sent = await sendPersonalizedPushNotifications(fcmRecipients, titre, message).catch((err) => {
+    const reviewIconUrl = (carte as { logo_url?: string | null }).logo_url ?? undefined;
+    const pushResult = await sendPersonalizedPushNotifications(fcmRecipients, titre, message, reviewIconUrl).catch((err) => {
       console.error('[review-campaign fcm]', err);
-      return 0;
+      return { successCount: 0, successfulTokens: [] as string[], invalidTokens: [] as string[] };
     });
-    reviewDebug('[review-campaign] FCM envoyés:', sent, '/', fcmEligibles.length);
-    nbEnvoyes += sent;
+    console.log('[review-campaign] FCM envoyés:', pushResult.successCount, '/', fcmEligibles.length);
+    nbEnvoyes += pushResult.successCount;
+    if (pushResult.invalidTokens.length > 0) {
+      await db.from('clients')
+        .update({ fcm_token: null, push_enabled: false })
+        .in('fcm_token', pushResult.invalidTokens)
+        .eq('commerce_id', commerce.id);
+    }
   }
 
   // 2. Google Wallet — message avec lien cliquable
@@ -940,7 +832,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
       `${message}\n👉 ${reviewUrl}`,
     ).then(() => { nbEnvoyes++; }).catch((err) => console.error('[review-campaign google wallet]', err));
   }
-  reviewDebug('[review-campaign] Google Wallet traités:', googleEligibles.length);
+  console.log('[review-campaign] Google Wallet traités:', googleEligibles.length);
 
   // 3. Apple Wallet — push SILENCIEUX (payload={}, apns-push-type:background, priority:5)
   //    iOS reçoit le push → appelle GET /apple/v1/passes/:type/:serial
@@ -953,7 +845,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
       .select('client_id, push_token, pass_type_identifier')
       .in('client_id', appleIds);
 
-    reviewDebug('[review-campaign] Apple registrations trouvées:', (registrations ?? []).length, '/', appleEligibles.length);
+    console.log('[review-campaign] Apple registrations trouvées:', (registrations ?? []).length, '/', appleEligibles.length);
 
     const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
     const uniqueRegistrations = Array.from(
@@ -968,14 +860,14 @@ notificationsRoutes.post('/review-campaign', async (c) => {
     );
   }
 
-  reviewDebug('[review-campaign] TOTAL envoyés:', nbEnvoyes, '/ eligibles:', eligibles.length);
+  console.log('[review-campaign] TOTAL envoyés:', nbEnvoyes, '/ eligibles:', eligibles.length);
 
   // 4. SMS (si toggle activé et crédits disponibles)
   let nbSmsEnvoyes = 0;
-  if (SMS_FEATURE_ENABLED && Boolean(flags?.sms_review_enabled) && Number(flags?.sms_credits ?? 0) > 0) {
+  if (Boolean(flags?.sms_review_enabled) && Number(flags?.sms_credits ?? 0) > 0) {
     const lienAvis = (carte as { google_maps_url?: string | null }).google_maps_url ?? '';
     const smsEligibles = eligibles.filter((cl) => !!(cl as { telephone?: string | null }).telephone);
-    reviewDebug('[review-campaign] SMS éligibles:', smsEligibles.length);
+    console.log('[review-campaign] SMS éligibles:', smsEligibles.length);
 
     for (const cl of smsEligibles) {
       const telephone = (cl as { telephone: string }).telephone;
@@ -983,7 +875,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
         'Bonjour {prenom} ! Laissez un avis Google sur {commerce} et recevez votre récompense : {lien_avis}',
         {
           prenom: (cl as { nom?: string | null }).nom ?? '',
-          commerce: (pointVente.nom as string | null) ?? (commerce.nom as string | null) ?? '',
+          commerce: (commerce.nom as string | null) ?? '',
           lien_avis: lienAvis,
           lien_carte: `${PUBLIC_SITE_URL_NOTIF}/carte/${carte.id}`,
         },
@@ -991,7 +883,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
       const result = await sendSMS(telephone, msg, commerce.id, cl.id, 'review');
       if (result.success) nbSmsEnvoyes++;
     }
-    reviewDebug('[review-campaign] SMS envoyés:', nbSmsEnvoyes);
+    console.log('[review-campaign] SMS envoyés:', nbSmsEnvoyes);
   }
 
   return c.json({

@@ -124,10 +124,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
         <div id="step-error-1" class="step-error hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
         <div class="grid grid-cols-2 gap-3 mb-6">
-          <label id="type-tampons-label" class="cursor-pointer rounded-2xl border-2 p-4 transition-all" style="border-color:#60a5fa;background:rgb(239 246 255)">
+          <label id="type-tampons-label" class="cursor-pointer rounded-2xl border-2 p-4 transition-all" style="border-color:#f59e0b;background:#fffbeb;color:#78350f;box-shadow:0 18px 34px -28px rgba(217,119,6,0.7)">
             <input type="radio" name="type" value="tampons" class="hidden" checked />
             <div class="flex items-center gap-3">
-              <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
+              <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
                 <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M5 11h14"></path>
                   <path d="M7 8h10v8H7z"></path>
@@ -140,10 +140,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               </div>
             </div>
           </label>
-          <label id="type-points-label" class="cursor-pointer rounded-2xl border-2 p-4 transition-all" style="border-color:#dbeafe;background:#ffffff">
+          <label id="type-points-label" class="cursor-pointer rounded-2xl border-2 p-4 transition-all" style="border-color:#c7d2fe;background:#eef2ff;color:#312e81">
             <input type="radio" name="type" value="points" class="hidden" />
             <div class="flex items-center gap-3">
-              <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+              <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700">
                 <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="8"></circle>
                   <path d="M12 8v8"></path>
@@ -1009,6 +1009,19 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const completedSteps = new Set<WizardStep>();
   type RewardTier = { seuil: number; recompense: string };
   type VipTier = { nom: string; seuil: number; avantage?: string };
+
+  function setProgramTypeCardStyles(type: string) {
+    const tamponsLabel = document.getElementById('type-tampons-label');
+    const pointsLabel = document.getElementById('type-points-label');
+    if (!tamponsLabel || !pointsLabel) return;
+
+    tamponsLabel.style.cssText = type === 'tampons'
+      ? 'border-color:#f59e0b;background:#fffbeb;color:#78350f;box-shadow:0 18px 34px -28px rgba(217,119,6,0.7)'
+      : 'border-color:#fde68a;background:#fff7ed;color:#92400e';
+    pointsLabel.style.cssText = type === 'points'
+      ? 'border-color:#6366f1;background:#eef2ff;color:#312e81;box-shadow:0 18px 34px -28px rgba(79,70,229,0.7)'
+      : 'border-color:#c7d2fe;background:#f8fafc;color:#3730a3';
+  }
 
   function setDraftState(dirty: boolean, force = false) {
     if (!force && (suppressDirtyTracking || isSaving)) return;
@@ -2015,8 +2028,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   document.querySelectorAll('input[name="type"]').forEach(r=>r.addEventListener('change',()=>{
     const t=(document.querySelector('input[name="type"]:checked') as HTMLInputElement).value;
     applyTypeUI(t);
-    document.getElementById('type-tampons-label')!.style.cssText=t==='tampons'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff';
-    document.getElementById('type-points-label')!.style.cssText=t==='points'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff';
+    setProgramTypeCardStyles(t);
     if (savedProgramType && t !== savedProgramType) {
       typeChangePendingRevalidation = true;
       completedSteps.forEach((step) => {
@@ -2298,8 +2310,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const tp=data.type??'tampons'; sr('type',tp); applyTypeUI(tp);
       savedProgramType = tp === 'points' ? 'points' : 'tampons';
       typeChangePendingRevalidation = false;
-      document.getElementById('type-tampons-label')!.style.cssText=tp==='tampons'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff';
-      document.getElementById('type-points-label')!.style.cssText=tp==='points'?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff';
+      setProgramTypeCardStyles(tp);
       const bt=data.barcode_type??'QR'; sr('barcode_type',bt);
       ['QR','PDF417','AZTEC','NONE'].forEach(v=>document.getElementById(`barcode-${v.toLowerCase()}-label`)!.style.cssText=v===bt?'border-color:#60a5fa;background:rgb(239 246 255);color:#0f172a':'border-color:#dbeafe;background:#ffffff');
       if(data.logo_url){logoUrl=data.logo_url;setLogoPreview(logoUrl);}
@@ -2623,6 +2634,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   renderRewardTiers();
   renderVipTiers();
   updateScannerTools();
+  setProgramTypeCardStyles('tampons');
   showStep(1);
 
   (async () => {

@@ -82,6 +82,7 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
     title: string;
     body: string;
     action: string;
+    tone: 'blue' | 'amber' | 'emerald' | 'rose' | 'violet' | 'slate';
   };
 
   const TOUR_QUERY_KEY = 'fidelopass_tour_active';
@@ -96,6 +97,7 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       title: 'Votre poste de pilotage',
       body: 'Cette zone rassemble les actions les plus fréquentes: scanner en caisse, afficher le QR client et relancer vos clients.',
       action: 'Commencez ici quand vous voulez aller vite pendant la journée.',
+      tone: 'blue',
     },
     {
       path: '/dashboard',
@@ -103,6 +105,7 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       title: 'Les chiffres qui comptent',
       body: 'Clients, scans, récompenses et clients joignables vous donnent une lecture rapide de la santé du programme.',
       action: 'Surveillez surtout les scans du jour et les clients joignables Wallet.',
+      tone: 'violet',
     },
     {
       path: '/dashboard/carte',
@@ -111,6 +114,7 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       title: 'Construire la carte Wallet',
       body: 'La page Ma carte est le centre de création: identité, programme, design, messages et partage.',
       action: 'Avancez étape par étape, puis enregistrez pour garder une carte cohérente.',
+      tone: 'amber',
     },
     {
       path: '/dashboard/carte',
@@ -118,6 +122,7 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       title: 'Choisir la mécanique fidélité',
       body: 'Tampons pour une expérience simple en caisse, points pour plus de souplesse et des paliers avancés.',
       action: 'Choisissez le modèle le plus simple pour votre équipe avant de personnaliser le visuel.',
+      tone: 'emerald',
     },
     {
       path: '/dashboard/clients',
@@ -126,6 +131,7 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       title: 'Suivre vos clients fidèles',
       body: 'La base client vous permet de retrouver un membre, consulter son solde et corriger manuellement ses points ou tampons.',
       action: 'Cliquez sur un client pour ouvrir sa fiche et ajuster son solde si besoin.',
+      tone: 'violet',
     },
     {
       path: '/dashboard/notifications',
@@ -134,6 +140,7 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       title: 'Faire revenir les clients',
       body: 'Les notifications Wallet servent à annoncer une offre, rappeler une récompense ou automatiser des relances.',
       action: 'Gardez vos messages courts, utiles et liés à une vraie raison de revenir.',
+      tone: 'rose',
     },
     {
       path: '/dashboard/parametres?tab=abonnement',
@@ -142,8 +149,18 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       title: 'Gérer le compte commerçant',
       body: 'L’espace compte regroupe profil, abonnement, moyens de paiement, scanners et organisation des points de vente.',
       action: 'Revenez ici pour changer de plan, annuler, réactiver ou installer un scanner.',
+      tone: 'slate',
     },
   ];
+
+  const TOUR_TONES = {
+    blue: { label: 'text-blue-700/80', box: 'border-blue-100 bg-blue-50 text-blue-950', bar: 'bg-blue-600', button: 'bg-blue-600 hover:bg-blue-700', ring: 'rgba(37, 99, 235, 0.72)' },
+    amber: { label: 'text-amber-700/85', box: 'border-amber-100 bg-amber-50 text-amber-950', bar: 'bg-amber-500', button: 'bg-amber-600 hover:bg-amber-700', ring: 'rgba(245, 158, 11, 0.72)' },
+    emerald: { label: 'text-emerald-700/85', box: 'border-emerald-100 bg-emerald-50 text-emerald-950', bar: 'bg-emerald-600', button: 'bg-emerald-600 hover:bg-emerald-700', ring: 'rgba(5, 150, 105, 0.72)' },
+    rose: { label: 'text-rose-700/85', box: 'border-rose-100 bg-rose-50 text-rose-950', bar: 'bg-rose-600', button: 'bg-rose-600 hover:bg-rose-700', ring: 'rgba(225, 29, 72, 0.72)' },
+    violet: { label: 'text-violet-700/85', box: 'border-violet-100 bg-violet-50 text-violet-950', bar: 'bg-violet-600', button: 'bg-violet-600 hover:bg-violet-700', ring: 'rgba(124, 58, 237, 0.72)' },
+    slate: { label: 'text-slate-700/85', box: 'border-slate-200 bg-slate-100 text-slate-950', bar: 'bg-slate-700', button: 'bg-slate-700 hover:bg-slate-800', ring: 'rgba(51, 65, 85, 0.72)' },
+  };
 
   function getVisibleTarget(selector: string): HTMLElement | null {
     if (!selector) return null;
@@ -217,7 +234,7 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       .dashboard-tour-highlight {
         position: relative;
         z-index: 86 !important;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.75), 0 0 0 9999px rgba(15, 23, 42, 0.42), 0 20px 55px -30px rgba(8, 47, 73, 0.6);
+        box-shadow: 0 0 0 3px var(--tour-ring, rgba(14, 165, 233, 0.75)), 0 0 0 9999px rgba(15, 23, 42, 0.42), 0 20px 55px -30px rgba(8, 47, 73, 0.6);
         border-radius: 1rem;
       }
       .dashboard-tour-card {
@@ -251,6 +268,7 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
     const cleanupTarget = () => {
       if (!activeTarget) return;
       activeTarget.classList.remove('dashboard-tour-highlight');
+      activeTarget.style.removeProperty('--tour-ring');
       activeTarget = null;
     };
 
@@ -324,25 +342,27 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       }
 
       cleanupTarget();
+      const tone = TOUR_TONES[step.tone];
       activeTarget = getVisibleTarget(step.selector) ?? getVisibleTarget(step.navSelector ?? '');
+      activeTarget?.style.setProperty('--tour-ring', tone.ring);
       activeTarget?.classList.add('dashboard-tour-highlight');
       activeTarget?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
       window.setTimeout(() => positionCard(activeTarget), 180);
 
       card.innerHTML = `
         <div class="mb-3 flex items-center justify-between gap-3">
-          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-sky-700/75">Guide FideloPass (${index + 1}/${TOUR_STEPS.length})</p>
+          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.24em] ${tone.label}">Guide FideloPass (${index + 1}/${TOUR_STEPS.length})</p>
           <button type="button" id="tour-skip" class="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">
             Plus tard
           </button>
         </div>
         <h3 class="text-lg font-display font-bold text-slate-900">${step.title}</h3>
         <p class="mt-2 text-sm leading-6 text-slate-600">${step.body}</p>
-        <div class="mt-3 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-sm font-medium text-sky-900">
+        <div class="mt-3 rounded-xl border px-3 py-2 text-sm font-medium ${tone.box}">
           ${step.action}
         </div>
         <div class="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
-          <div class="h-full rounded-full bg-sky-600 transition-all" style="width:${((index + 1) / TOUR_STEPS.length) * 100}%"></div>
+          <div class="h-full rounded-full ${tone.bar} transition-all" style="width:${((index + 1) / TOUR_STEPS.length) * 100}%"></div>
         </div>
         <div class="mt-4 grid grid-cols-[auto_1fr_auto] items-center gap-2">
           <button type="button" id="tour-prev" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 ${index === 0 ? 'opacity-40 cursor-not-allowed' : ''}" ${index === 0 ? 'disabled' : ''}>
@@ -351,7 +371,7 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
           <a id="tour-open-page" href="${step.path}" class="text-center text-xs font-semibold text-sky-700 hover:text-sky-800">
             Explorer cette page
           </a>
-          <button type="button" id="tour-next" class="rounded-xl bg-sky-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-sky-700">
+          <button type="button" id="tour-next" class="rounded-xl px-3.5 py-2 text-xs font-semibold text-white ${tone.button}">
             ${index === TOUR_STEPS.length - 1 ? 'Terminer' : 'Suivant'}
           </button>
         </div>

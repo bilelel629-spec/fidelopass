@@ -143,16 +143,7 @@ stripeWebhookRoutes.post('/', async (c) => {
           await db.from('commerces').update(planUpdate).eq('id', commerceId);
           console.log('[stripe-webhook] → plan =', matchedPlan);
         } else if (priceMatchesSlot(firstPriceId, 'scanner', priceIds)) {
-          try {
-            await db.rpc('increment_scanners_count', { commerce_id_input: commerceId });
-          } catch {
-            await db.from('commerces')
-              .select('scanners_count')
-              .eq('id', commerceId)
-              .single()
-              .then(({ data }) => db.from('commerces').update({ scanners_count: (data?.scanners_count ?? 1) + 1 }).eq('id', commerceId));
-          }
-          console.log('[stripe-webhook] → scanners_count + 1');
+          console.log('[stripe-webhook] → scanner add-on ignored: scanners are unlimited');
         } else if (priceMatchesSlot(firstPriceId, 'sms_100', priceIds)) {
           const { data } = await db.from('commerces').select('sms_credits').eq('id', commerceId).single();
           await db.from('commerces').update({ sms_credits: (data?.sms_credits ?? 0) + 100 }).eq('id', commerceId);

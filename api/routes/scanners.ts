@@ -4,7 +4,6 @@ import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
-import { getPlanLimits } from './commerces';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
 
@@ -48,15 +47,12 @@ scannersRoutes.get('/status', async (c) => {
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
   const effectivePlan = getEffectivePlanRaw(commerce);
-  const limits = getPlanLimits(effectivePlan);
-  const maxScanners = limits.maxScanners ?? 3;
   const tokens = await loadOrderedScannerTokens(db, commerce.id, pointVente.id);
-  const activeTokens = tokens.slice(0, maxScanners);
-  const currentCount = activeTokens.length;
+  const currentCount = tokens.length;
 
   let registeredForToken = false;
   if (scannerToken) {
-    registeredForToken = activeTokens.includes(scannerToken);
+    registeredForToken = tokens.includes(scannerToken);
     if (tokens.includes(scannerToken)) {
       await db
         .from('scanner_devices')
@@ -72,12 +68,13 @@ scannersRoutes.get('/status', async (c) => {
       plan: effectivePlan,
       raw_plan: commerce.plan ?? 'starter',
       plan_override: commerce.plan_override ?? null,
-      max_scanners: maxScanners,
+      max_scanners: null,
       current_scanners: currentCount,
       total_scanners: tokens.length,
-      remaining_scanners: Math.max(maxScanners - currentCount, 0),
+      remaining_scanners: null,
       registered_for_token: registeredForToken,
-      overflow_scanners: Math.max(tokens.length - maxScanners, 0),
+      overflow_scanners: 0,
+      unlimited_scanners: true,
       point_vente_id: pointVente.id,
     },
   });
@@ -97,10 +94,7 @@ scannersRoutes.post('/register', async (c) => {
   const { db, commerce, pointVente } = await loadCommerceForUser(userId, requestedPointVenteId);
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
 
-  const limits = getPlanLimits(getEffectivePlanRaw(commerce));
-  const maxScanners = limits.maxScanners ?? 3;
   const tokens = await loadOrderedScannerTokens(db, commerce.id, pointVente.id);
-  const activeTokens = tokens.slice(0, maxScanners);
 
   const { data: existing } = await db
     .from('scanner_devices')
@@ -111,20 +105,6 @@ scannersRoutes.post('/register', async (c) => {
     .maybeSingle();
 
   if (existing) {
-    const isActiveToken = activeTokens.includes(scannerToken);
-    if (!isActiveToken) {
-      return c.json({
-        error: `Ce scanner n'est plus actif sur ce plan (limite ${maxScanners}).`,
-        code: 'SCANNER_LIMIT_REACHED',
-        data: {
-          max_scanners: maxScanners,
-          current_scanners: activeTokens.length,
-          total_scanners: tokens.length,
-          remaining_scanners: 0,
-        },
-      }, 403);
-    }
-
     await db
       .from('scanner_devices')
       .update({ last_seen_at: new Date().toISOString() })
@@ -133,26 +113,13 @@ scannersRoutes.post('/register', async (c) => {
     return c.json({
       data: {
         already_registered: true,
-        max_scanners: maxScanners,
-        current_scanners: activeTokens.length,
+        max_scanners: null,
+        current_scanners: tokens.length,
         total_scanners: tokens.length,
-        remaining_scanners: Math.max(maxScanners - activeTokens.length, 0),
+        remaining_scanners: null,
+        unlimited_scanners: true,
       },
     });
-  }
-
-  const currentCount = activeTokens.length;
-  if (currentCount >= maxScanners) {
-    return c.json({
-      error: `Limite de scanners atteinte pour votre plan (${maxScanners}).`,
-      code: 'SCANNER_LIMIT_REACHED',
-      data: {
-        max_scanners: maxScanners,
-        current_scanners: currentCount,
-        total_scanners: tokens.length,
-        remaining_scanners: 0,
-      },
-    }, 403);
   }
 
   const { error: insertError } = await db
@@ -171,14 +138,14 @@ scannersRoutes.post('/register', async (c) => {
   }
 
   const nextTokens = await loadOrderedScannerTokens(db, commerce.id, pointVente.id);
-  const nextCurrentCount = Math.min(nextTokens.length, maxScanners);
   return c.json({
     data: {
       already_registered: false,
-      max_scanners: maxScanners,
-      current_scanners: nextCurrentCount,
+      max_scanners: null,
+      current_scanners: nextTokens.length,
       total_scanners: nextTokens.length,
-      remaining_scanners: Math.max(maxScanners - nextCurrentCount, 0),
+      remaining_scanners: null,
+      unlimited_scanners: true,
     },
   }, 201);
 });

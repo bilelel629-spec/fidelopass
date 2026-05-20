@@ -330,7 +330,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
     const statusRes = await authFetchWithTimeout(`/api/scanners/status?scanner_token=${encodeURIComponent(token)}`);
     const statusPayload = await statusRes.json().catch(() => null);
     if (!statusRes.ok) {
-      throw new Error(statusPayload?.error ?? 'Impossible de vérifier le quota scanner.');
+      throw new Error(statusPayload?.error ?? 'Impossible de vérifier l’accès scanner.');
     }
 
     const statusData = statusPayload?.data;
@@ -338,10 +338,6 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
     if (statusData.registered_for_token) {
       return;
-    }
-
-    if (statusData.remaining_scanners <= 0) {
-      throw new Error(`Limite de scanners atteinte (${statusData.max_scanners}). Passez au plan supérieur pour ajouter un nouvel appareil.`);
     }
 
     const registerRes = await authFetchWithTimeout('/api/scanners/register', {

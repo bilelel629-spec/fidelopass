@@ -291,8 +291,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   async function loadAdminShortcut() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const email = session?.user?.email?.toLowerCase();
-      const isAdmin = ['bilelel@live.fr', 'bilel@pulse-agency.fr'].includes(email ?? '');
+      if (!session?.access_token) return;
+      const res = await authFetch('/api/admin/stats');
+      const isAdmin = res.ok;
       document.getElementById('admin-shortcut')!.classList.toggle('hidden', !isAdmin);
     } catch {
       // best effort

@@ -58,9 +58,9 @@ const pointVenteUpdateSchema = z.object({
 });
 
 export const PLAN_LIMITS = {
-  starter: { maxClients: 500, maxPointsDeVente: 1, anniversaire: false, avisGoogle: false, maxScanners: 3 },
-  pro:     { maxClients: 2000, maxPointsDeVente: 3, anniversaire: true,  avisGoogle: true,  maxScanners: 6 },
-  'sur-mesure': { maxClients: 20000, maxPointsDeVente: 10, anniversaire: true, avisGoogle: true, maxScanners: 20 },
+  starter: { maxClients: 500, maxPointsDeVente: 1, anniversaire: false, avisGoogle: false, maxScanners: null },
+  pro:     { maxClients: 2000, maxPointsDeVente: 3, anniversaire: true,  avisGoogle: true,  maxScanners: null },
+  'sur-mesure': { maxClients: 20000, maxPointsDeVente: 10, anniversaire: true, avisGoogle: true, maxScanners: null },
 } as const;
 
 export function normalizePlan(plan: string | null | undefined): keyof typeof PLAN_LIMITS {

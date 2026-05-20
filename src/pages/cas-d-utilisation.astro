@@ -3,126 +3,212 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import PublicFooter from '../components/marketing/PublicFooter.astro';
 import PublicNav from '../components/marketing/PublicNav.astro';
 
-const cardCases = [
-  {
-    title: 'Carte de points cashback',
-    description: 'Permettez à vos clients de gagner des points à chaque achat, puis de les transformer en récompenses, remises ou avantages concrets.',
-  },
-  {
-    title: 'Carte de tampons numérique',
-    description: 'Récompensez les visites répétées avec un système de fidélité simple, visible et très facile à comprendre pour le client.',
-  },
-  {
-    title: 'Carte de membre',
-    description: 'Gérez un accès, un niveau ou un statut membre pour un club, une salle de sport, un événement ou une activité premium.',
-  },
-];
+type UseCase = {
+  title: string;
+  description: string;
+  reward: string;
+  image: string;
+  imageAlt: string;
+  tone: string;
+  iconPaths: string[];
+};
 
-const featureCases = [
-  'Notifications push et messages Wallet',
-  'Récompenses d’anniversaire',
-  'Relances clients inactifs',
-  'QR code en comptoir ou en vitrine',
-  'Scanner mobile pour valider les passages',
-  'Segmentation simple selon le programme choisi',
-];
-
-const businessCases = [
-  'Boulangeries',
-  'Snacks',
-  'Restaurants',
-  'Boucheries',
-  'Coiffeurs',
-  'Spas',
-  'Diététiciens',
-  'Esthéticiennes',
-  'Instituts',
-  'Concept stores',
-  'Salles de sport',
-  'Bars et coffee shops',
+const useCases: UseCase[] = [
+  {
+    title: 'Cafés & Restaurants',
+    description: 'Récompensez vos clients fidèles, encouragez les visites régulières et augmentez votre fréquentation.',
+    reward: 'Ex. : 1 café offert après 9 achats',
+    image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=900&q=80',
+    imageAlt: 'Restaurant chaleureux avec tables dressées',
+    tone: 'from-violet-500 to-blue-500 text-violet-700 bg-violet-50 border-violet-100',
+    iconPaths: ['M6 8h11a4 4 0 0 1 0 8h-1', 'M6 8v7a5 5 0 0 0 10 0V8', 'M4 20h14'],
+  },
+  {
+    title: 'Commerces & Boutiques',
+    description: 'Fidélisez vos clients, boostez vos ventes et créez une relation durable après chaque passage.',
+    reward: 'Ex. : remise spéciale après 5 achats',
+    image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=900&q=80',
+    imageAlt: 'Boutique moderne avec vêtements en rayon',
+    tone: 'from-blue-500 to-sky-500 text-blue-700 bg-blue-50 border-blue-100',
+    iconPaths: ['M6 7h12l1 13H5L6 7Z', 'M9 7a3 3 0 0 1 6 0'],
+  },
+  {
+    title: 'Salons de coiffure & Esthétique',
+    description: 'Fidélisez votre clientèle et remplissez vos créneaux plus facilement.',
+    reward: 'Ex. : 1 soin offert après 5 visites',
+    image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=900&q=80',
+    imageAlt: 'Salon de coiffure lumineux',
+    tone: 'from-emerald-500 to-teal-400 text-emerald-700 bg-emerald-50 border-emerald-100',
+    iconPaths: ['M4 7l16 10', 'M4 17L20 7', 'M7 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0', 'M7 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0'],
+  },
+  {
+    title: 'Beauté & Nail Art',
+    description: 'Récompensez vos clientes et augmentez la fréquence de leurs visites.',
+    reward: 'Ex. : 1 nail art offert après 4 prestations',
+    image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=900&q=80',
+    imageAlt: 'Manucure et nail art',
+    tone: 'from-pink-500 to-rose-400 text-pink-700 bg-pink-50 border-pink-100',
+    iconPaths: ['M8 20h8', 'M9 20l1-12a2 2 0 0 1 4 0l1 12', 'M10 8h4', 'M12 3v3'],
+  },
+  {
+    title: 'Salles de sport & Bien-être',
+    description: 'Motivez vos membres et valorisez leur engagement dans la durée.',
+    reward: 'Ex. : séance offerte après 10 visites',
+    image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=900&q=80',
+    imageAlt: 'Salle de sport équipée',
+    tone: 'from-amber-400 to-orange-500 text-orange-700 bg-orange-50 border-orange-100',
+    iconPaths: ['M4 12h16', 'M6 9v6', 'M18 9v6', 'M8 10v4', 'M16 10v4'],
+  },
+  {
+    title: 'Santé & Médical',
+    description: 'Remerciez vos patients et améliorez leur expérience avec des avantages simples.',
+    reward: 'Ex. : bilan offert après plusieurs consultations',
+    image: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=900&q=80',
+    imageAlt: 'Cabinet médical clair et moderne',
+    tone: 'from-sky-400 to-blue-400 text-sky-700 bg-sky-50 border-sky-100',
+    iconPaths: ['M12 5v14', 'M5 12h14'],
+  },
+  {
+    title: 'Services & Auto',
+    description: 'Encouragez la fidélité et augmentez la fréquence des visites en atelier.',
+    reward: 'Ex. : contrôle offert après 4 entretiens',
+    image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?auto=format&fit=crop&w=900&q=80',
+    imageAlt: 'Atelier automobile avec véhicule en entretien',
+    tone: 'from-orange-500 to-red-400 text-orange-700 bg-orange-50 border-orange-100',
+    iconPaths: ['M5 13l2-5h10l2 5', 'M5 13v5h14v-5', 'M7 18h2', 'M15 18h2', 'M8 13h8'],
+  },
+  {
+    title: 'Hôtels & Hébergements',
+    description: 'Offrez des avantages exclusifs et fidélisez vos voyageurs.',
+    reward: 'Ex. : 1 nuit offerte après 10 séjours',
+    image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80',
+    imageAlt: 'Réception d’hôtel premium',
+    tone: 'from-purple-500 to-violet-400 text-purple-700 bg-purple-50 border-purple-100',
+    iconPaths: ['M6 10h12v10H6z', 'M8 10V7h8v3', 'M8 15h8', 'M9 20v-3', 'M15 20v-3'],
+  },
+  {
+    title: 'Boulangeries & Pâtisseries',
+    description: 'Fidélisez vos clients de quartier et augmentez les achats réguliers.',
+    reward: 'Ex. : 1 produit offert après 8 achats',
+    image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=900&q=80',
+    imageAlt: 'Vitrine de boulangerie avec pains et viennoiseries',
+    tone: 'from-stone-500 to-amber-500 text-stone-700 bg-stone-50 border-stone-100',
+    iconPaths: ['M6 14a6 6 0 0 1 12 0v5H6v-5Z', 'M8 14c0-3 8-3 8 0', 'M9 10l-1-3', 'M15 10l1-3'],
+  },
+  {
+    title: 'Animaux & Pet Shops',
+    description: 'Prenez soin de vos clients et de leurs compagnons avec des récompenses adaptées.',
+    reward: 'Ex. : 1 accessoire offert après 6 achats',
+    image: 'https://images.unsplash.com/photo-1601758124510-52d02ddb7cbd?auto=format&fit=crop&w=900&q=80',
+    imageAlt: 'Chien dans une boutique pour animaux',
+    tone: 'from-lime-500 to-green-500 text-lime-700 bg-lime-50 border-lime-100',
+    iconPaths: ['M8 12a2 2 0 1 0-4 0 2 2 0 0 0 4 0', 'M20 12a2 2 0 1 0-4 0 2 2 0 0 0 4 0', 'M11 9a2 2 0 1 0-4 0 2 2 0 0 0 4 0', 'M17 9a2 2 0 1 0-4 0 2 2 0 0 0 4 0', 'M8 17c1-3 7-3 8 0 1.2 3-9.2 3-8 0Z'],
+  },
+  {
+    title: 'Éducation & Formation',
+    description: 'Valorisez l’assiduité et encouragez la progression de vos apprenants.',
+    reward: 'Ex. : 1 cours offert après 8 séances',
+    image: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=900&q=80',
+    imageAlt: 'Espace de formation avec livres',
+    tone: 'from-yellow-400 to-amber-500 text-amber-700 bg-amber-50 border-amber-100',
+    iconPaths: ['M4 8l8-4 8 4-8 4-8-4Z', 'M7 10v5c3 2 7 2 10 0v-5', 'M20 9v5'],
+  },
+  {
+    title: 'Événements & Loisirs',
+    description: 'Fidélisez votre public et boostez la participation à vos événements.',
+    reward: 'Ex. : 1 place offerte après 5 événements',
+    image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=900&q=80',
+    imageAlt: 'Concert et public en soirée',
+    tone: 'from-rose-500 to-pink-500 text-rose-700 bg-rose-50 border-rose-100',
+    iconPaths: ['M5 9h14v4a2 2 0 0 0 0 4v2H5v-2a2 2 0 0 0 0-4V9Z', 'M9 9v10', 'M15 9v10'],
+  },
 ];
 ---
 
 <BaseLayout
   theme="light"
   title="Cas d'utilisation — Fidelopass"
-  description="Découvrez tous les cas d'utilisation de Fidelopass : cartes à points, cartes à tampons, cartes de membre, notifications push, récompenses d’anniversaire et commerces compatibles."
+  description="Découvrez les secteurs où Fidelopass peut être utilisé pour fidéliser les clients avec des cartes Wallet, des points, des tampons et des récompenses simples."
 >
   <PublicNav currentPath="/cas-d-utilisation" />
 
-  <section class="relative overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_65%,#ffffff_100%)] pt-14 pb-14">
-    <div class="pointer-events-none absolute inset-0">
-      <div class="absolute -top-20 right-0 h-72 w-72 rounded-full bg-sky-200/35 blur-3xl"></div>
-      <div class="absolute top-20 left-0 h-64 w-64 rounded-full bg-indigo-200/25 blur-3xl"></div>
-    </div>
-    <div class="relative max-w-4xl mx-auto px-4 sm:px-6 text-center">
-      <span class="mb-5 inline-flex items-center rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700 shadow-sm">Cas d'utilisation</span>
-      <h1 class="font-display text-5xl sm:text-6xl font-bold text-slate-900 leading-tight">
-        Une solution pensée pour plusieurs façons de fidéliser
-      </h1>
-      <p class="text-slate-500 text-lg leading-relaxed mt-6 max-w-3xl mx-auto">
-        Fidelopass s’adapte à votre activité, à votre type de récompense et à la manière dont vous voulez faire revenir vos clients.
-      </p>
-    </div>
-  </section>
-
-  <section class="bg-slate-50/70 py-16">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6">
-      <div class="text-center mb-12">
-        <h2 class="font-display text-4xl font-bold text-slate-900">Programmes principaux</h2>
+  <main class="overflow-hidden bg-[radial-gradient(circle_at_top,#eef6ff_0%,#ffffff_36%,#f8fbff_100%)]">
+    <section class="px-4 pb-10 pt-14 sm:px-6 lg:pb-12">
+      <div class="mx-auto max-w-4xl text-center">
+        <h1 class="font-display text-5xl font-bold leading-tight text-slate-950 sm:text-6xl lg:text-7xl">
+          Cas d’utilisation
+        </h1>
+        <p class="mt-4 text-xl font-bold text-blue-600 sm:text-2xl">
+          Une solution polyvalente adaptée à tous les secteurs
+        </p>
+        <p class="mx-auto mt-5 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
+          Fidelopass s’adapte à votre activité et vous aide à fidéliser vos clients, quel que soit votre domaine.
+        </p>
       </div>
-      <div class="grid lg:grid-cols-3 gap-6">
-        {cardCases.map((item) => (
-          <article class="rounded-[1.75rem] border border-slate-200 bg-white p-7 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
-            <h3 class="font-display text-2xl font-bold text-slate-900">{item.title}</h3>
-            <p class="text-slate-500 text-sm leading-relaxed mt-4">{item.description}</p>
+    </section>
+
+    <section class="px-4 pb-8 sm:px-6 lg:pb-10">
+      <div class="mx-auto grid max-w-[92rem] grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        {useCases.map((item) => (
+          <article class="group overflow-hidden rounded-[1.35rem] border border-slate-200/80 bg-white shadow-[0_20px_50px_-34px_rgba(15,23,42,0.42)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_-34px_rgba(37,99,235,0.48)]">
+            <div class="relative h-36 overflow-hidden sm:h-40">
+              <img
+                src={item.image}
+                alt={item.imageAlt}
+                loading="lazy"
+                class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/15 to-transparent"></div>
+            </div>
+
+            <div class="relative px-5 pb-5 pt-8 text-center">
+              <div class={`absolute left-1/2 top-0 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-gradient-to-br ${item.tone.split(' ').slice(0, 2).join(' ')} text-white shadow-lg ring-4 ring-white`}>
+                <svg viewBox="0 0 24 24" class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  {item.iconPaths.map((path) => <path d={path}></path>)}
+                </svg>
+              </div>
+              <h2 class="text-base font-extrabold text-slate-950">
+                {item.title}
+              </h2>
+              <p class="mt-3 min-h-[4.5rem] text-sm leading-6 text-slate-600">
+                {item.description}
+              </p>
+              <p class={`mt-3 rounded-full border px-3 py-2 text-xs font-bold ${item.tone.split(' ').slice(2).join(' ')}`}>
+                {item.reward}
+              </p>
+            </div>
           </article>
         ))}
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="bg-white py-16">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-8">
-      <div class="rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-8 shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
-        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">Fonctionnalités utiles</p>
-        <h2 class="font-display text-3xl font-bold text-slate-900 mt-3">Au-delà de la carte elle-même</h2>
-        <div class="mt-6 space-y-3">
-          {featureCases.map((item) => (
-            <div class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
-              <span class="mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full bg-indigo-500"></span>
-              <span class="text-slate-600">{item}</span>
-            </div>
-          ))}
+    <section class="px-4 pb-16 pt-2 sm:px-6 lg:pb-20">
+      <div class="mx-auto flex max-w-[92rem] flex-col gap-5 rounded-[1.5rem] border border-blue-100 bg-white/85 p-5 shadow-[0_24px_70px_-44px_rgba(37,99,235,0.55)] backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:p-6 lg:px-8">
+        <div class="flex items-start gap-4">
+          <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-sky-400 text-white shadow-[0_18px_36px_-22px_rgba(37,99,235,0.9)]">
+            <svg viewBox="0 0 24 24" class="h-8 w-8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3Z"></path>
+              <path d="M7 9h10"></path>
+              <path d="M8 14h4"></path>
+              <path d="M17 14l1 1 2-3"></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="font-display text-2xl font-bold text-slate-950 lg:text-3xl">
+              Quel que soit votre domaine, Fidelopass vous accompagne.
+            </h2>
+            <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base">
+              Une solution simple, efficace et adaptée à votre activité pour fidéliser vos clients au quotidien.
+            </p>
+          </div>
         </div>
-      </div>
-
-      <div class="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
-        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">Secteurs adaptés</p>
-        <h2 class="font-display text-3xl font-bold text-slate-900 mt-3">Commerces et métiers compatibles</h2>
-        <div class="mt-6 flex flex-wrap gap-3">
-          {businessCases.map((item) => (
-            <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700">{item}</span>
-          ))}
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="bg-[linear-gradient(135deg,#0f172a_0%,#312e81_55%,#0284c7_100%)] py-20">
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 text-center">
-      <h2 class="font-display text-4xl font-bold text-white">Prêt à trouver le bon format pour votre commerce ?</h2>
-      <p class="text-indigo-200 text-lg mt-4">Testez Fidelopass gratuitement pendant 14 jours et choisissez le programme le plus adapté à votre activité.</p>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-        <a href="/register" class="inline-flex items-center justify-center bg-white text-indigo-700 font-bold px-8 py-4 rounded-xl hover:bg-indigo-50 transition-colors text-base shadow-lg">
-          Démarrer l'essai gratuit
-        </a>
-        <a href="/contact" class="inline-flex items-center justify-center bg-white/10 text-white font-medium px-8 py-4 rounded-xl hover:bg-white/20 border border-white/20 transition-colors text-base">
-          Parler à l'équipe
+        <a href="/contact" class="inline-flex shrink-0 items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-[0_18px_34px_-22px_rgba(37,99,235,0.9)] transition hover:bg-blue-700">
+          Demander une démonstration
+          <span class="ml-2" aria-hidden="true">→</span>
         </a>
       </div>
-    </div>
-  </section>
+    </section>
+  </main>
 
   <PublicFooter />
 </BaseLayout>

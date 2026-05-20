@@ -61,18 +61,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   </div>
 
   <div class="mb-6 grid gap-6 xl:grid-cols-[1.4fr_0.6fr]">
-    <div class="card p-6">
-      <div class="mb-5 flex items-center justify-between">
+    <div class="card overflow-hidden p-6">
+      <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 class="font-display font-bold text-slate-900">Activité des 7 derniers jours</h2>
-          <p class="mt-0.5 text-xs text-slate-500">Scans et récompenses</p>
+          <h2 class="font-display text-xl font-bold text-slate-900">Visites par jour</h2>
+          <p class="mt-1 text-sm text-slate-500">Scans clients sur les 14 derniers jours</p>
         </div>
-        <div class="flex items-center gap-4 text-xs text-slate-500">
-          <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-3 rounded-sm bg-sky-500"></span>Scans</span>
-          <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-3 rounded-sm bg-emerald-400"></span>Récompenses</span>
+        <div class="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-right">
+          <p class="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-blue-600/75">Total période</p>
+          <p id="visits-total" class="font-mono text-2xl font-bold text-slate-950">—</p>
         </div>
       </div>
-      <div id="chart-container" class="flex h-44 items-end gap-1.5" data-tour="dashboard-activity">
+      <div id="chart-container" class="relative h-72 rounded-[1.25rem] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)]" data-tour="dashboard-activity">
         <p class="m-auto text-sm text-slate-400">Chargement...</p>
       </div>
     </div>
@@ -151,6 +151,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   async function loadChart() {
     const container = document.getElementById('chart-container')!;
+    const totalNode = document.getElementById('visits-total');
     try {
       const res = await authFetch('/api/dashboard/weekly-scans');
       if (!res.ok) throw new Error();
@@ -158,28 +159,71 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       if (!data?.length) {
         container.innerHTML = '<p class="text-slate-400 text-sm m-auto">Aucune activité cette semaine.</p>';
+        if (totalNode) totalNode.textContent = '0';
         return;
       }
 
-      const maxVal = Math.max(...data.map((d: { scans: number; recompenses: number }) => d.scans + d.recompenses), 1);
-      const chartHeight = 160;
+      const rows = data.map((d: { date: string; scans: number; recompenses: number }) => ({
+        date: d.date,
+        visits: Number(d.scans ?? 0) + Number(d.recompenses ?? 0),
+      }));
+      const total = rows.reduce((sum: number, item: { visits: number }) => sum + item.visits, 0);
+      if (totalNode) totalNode.textContent = String(total);
 
-      container.innerHTML = data.map((d: { date: string; scans: number; recompenses: number }) => {
-        const scansH = Math.round((d.scans / maxVal) * chartHeight);
-        const recH = Math.round((d.recompenses / maxVal) * chartHeight);
-        const label = new Date(d.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
-        return `
-          <div class="flex-1 flex flex-col items-center gap-1 min-w-0">
-            <div class="w-full flex flex-col-reverse items-center gap-0.5" style="height:${chartHeight}px">
-              <div class="w-full rounded-t-lg bg-sky-500 transition-all" style="height:${scansH}px" title="${d.scans} scan(s)"></div>
-              ${recH > 0 ? `<div class="w-full rounded-t-lg bg-emerald-400 transition-all" style="height:${recH}px" title="${d.recompenses} récompense(s)"></div>` : ''}
-            </div>
-            <p class="text-[0.62rem] text-slate-500 text-center truncate w-full">${escapeHtml(label)}</p>
-          </div>
-        `;
+      const width = 1000;
+      const height = 260;
+      const paddingX = 22;
+      const paddingTop = 22;
+      const paddingBottom = 42;
+      const chartHeight = height - paddingTop - paddingBottom;
+      const maxVal = Math.max(...rows.map((d: { visits: number }) => d.visits), 1);
+      const step = rows.length > 1 ? (width - paddingX * 2) / (rows.length - 1) : 0;
+      const points = rows.map((d: { visits: number }, index: number) => {
+        const x = paddingX + index * step;
+        const y = paddingTop + chartHeight - (d.visits / maxVal) * chartHeight;
+        return { ...d, x, y };
+      });
+      const linePath = points.map((point: { x: number; y: number }, index: number) => (
+        `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`
+      )).join(' ');
+      const areaPath = `${linePath} L ${(width - paddingX).toFixed(1)} ${(height - paddingBottom).toFixed(1)} L ${paddingX.toFixed(1)} ${(height - paddingBottom).toFixed(1)} Z`;
+      const labels = points.map((point: { date: string; x: number }, index: number) => {
+        if (index % 2 !== 0 && index !== points.length - 1) return '';
+        const label = new Date(`${point.date}T12:00:00`).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+        return `<text x="${point.x.toFixed(1)}" y="248" text-anchor="middle" class="fill-slate-400 text-[22px]">${escapeHtml(label)}</text>`;
       }).join('');
+      const lastPoint = points[points.length - 1];
+      const firstHalf = rows.slice(0, Math.ceil(rows.length / 2)).reduce((sum: number, item: { visits: number }) => sum + item.visits, 0);
+      const secondHalf = rows.slice(Math.ceil(rows.length / 2)).reduce((sum: number, item: { visits: number }) => sum + item.visits, 0);
+      const trend = firstHalf > 0 ? Math.round(((secondHalf - firstHalf) / firstHalf) * 100) : (secondHalf > 0 ? 100 : 0);
+      const trendText = trend === 0
+        ? 'Activité stable'
+        : trend > 0
+          ? `+${trend}% vs semaine précédente`
+          : `${trend}% vs semaine précédente`;
+      const trendClass = trend >= 0 ? 'text-emerald-700 bg-emerald-50 border-emerald-100' : 'text-amber-700 bg-amber-50 border-amber-100';
+
+      container.innerHTML = `
+        <div class="absolute left-4 top-4 z-10 rounded-full border ${trendClass} px-3 py-1.5 text-xs font-semibold">
+          ${escapeHtml(trendText)}
+        </div>
+        <svg viewBox="0 0 ${width} ${height}" class="h-full w-full" preserveAspectRatio="none" role="img" aria-label="Visites par jour">
+          <defs>
+            <linearGradient id="visitsAreaGradient" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#3b5bfd" stop-opacity="0.34"></stop>
+              <stop offset="68%" stop-color="#3b5bfd" stop-opacity="0.12"></stop>
+              <stop offset="100%" stop-color="#3b5bfd" stop-opacity="0"></stop>
+            </linearGradient>
+          </defs>
+          <path d="${areaPath}" fill="url(#visitsAreaGradient)"></path>
+          <path d="${linePath}" fill="none" stroke="#3b5bfd" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
+          <circle cx="${lastPoint.x.toFixed(1)}" cy="${lastPoint.y.toFixed(1)}" r="9" fill="#3b5bfd"></circle>
+          ${labels}
+        </svg>
+      `;
     } catch {
       container.innerHTML = '<p class="text-slate-400 text-sm m-auto">Impossible de charger le graphique.</p>';
+      if (totalNode) totalNode.textContent = '—';
     }
   }
 

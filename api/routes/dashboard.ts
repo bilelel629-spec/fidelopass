@@ -100,7 +100,7 @@ dashboardRoutes.get('/plan', async (c) => {
   });
 });
 
-/** GET /api/dashboard/weekly-scans — Scans par jour sur les 7 derniers jours */
+/** GET /api/dashboard/weekly-scans — Scans par jour sur les 14 derniers jours */
 dashboardRoutes.get('/weekly-scans', async (c) => {
   const userId = c.get('userId') as string;
   const db = createServiceClient();
@@ -116,7 +116,7 @@ dashboardRoutes.get('/weekly-scans', async (c) => {
   if (!commerce || !pointVente) return c.json({ data: [] });
 
   const since = new Date();
-  since.setDate(since.getDate() - 6);
+  since.setDate(since.getDate() - 13);
   since.setHours(0, 0, 0, 0);
 
   const { data: transactions } = await db
@@ -129,7 +129,7 @@ dashboardRoutes.get('/weekly-scans', async (c) => {
 
   // Agrège par jour
   const days: Record<string, { scans: number; recompenses: number }> = {};
-  for (let i = 6; i >= 0; i--) {
+  for (let i = 13; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
     days[d.toISOString().slice(0, 10)] = { scans: 0, recompenses: 0 };

@@ -35,15 +35,35 @@ import PublicNav from '../components/marketing/PublicNav.astro';
 
         <!-- Visuel mobile (placé avant le CTA principal) -->
         <div class="relative mt-5 mb-1 flex justify-center lg:hidden">
-          <div class="absolute inset-6 rounded-[3rem] bg-gradient-to-br from-indigo-300/30 to-sky-300/25 blur-3xl"></div>
-          <div class="relative w-full max-w-[20rem]">
-            <img
-              src="/hero-wallet-cards.png"
-              alt="Exemples de cartes fidélité Fidelopass"
-              class="w-full h-auto object-contain drop-shadow-[0_28px_55px_rgba(15,23,42,0.2)]"
-              loading="eager"
-              decoding="async"
-            />
+          <div class="hero-phone-wrap hero-phone-wrap--compact">
+            <div class="hero-phone">
+              <div class="hero-phone__screen">
+                <div class="hero-phone__status"><span>9:41</span><span>Wallet</span></div>
+                <div class="hero-wallet-card">
+                  <div>
+                    <p class="hero-wallet-card__eyebrow">Dreams Donuts</p>
+                    <p class="hero-wallet-card__title">Carte fidélité</p>
+                  </div>
+                  <span class="hero-wallet-card__badge">8/10</span>
+                  <div class="hero-wallet-card__stamps">
+                    {Array.from({ length: 10 }).map((_, index) => (
+                      <span class={index < 8 ? 'is-filled' : ''}>★</span>
+                    ))}
+                  </div>
+                  <p class="hero-wallet-card__reward">Encore 2 passages avant une box offerte</p>
+                </div>
+                <div class="hero-phone__timeline">
+                  <span></span>
+                  <div>
+                    <strong>Ajoutée au Wallet</strong>
+                    <small>Prête à scanner en caisse</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="hero-float hero-float--one"><strong>20 sec</strong><span>pour ajouter la carte</span></div>
+            <div class="hero-float hero-float--two"><strong>+27%</strong><span>de rétention</span></div>
+            <div class="hero-float hero-float--three"><strong>0 app</strong><span>à télécharger</span></div>
           </div>
         </div>
 
@@ -78,15 +98,35 @@ import PublicNav from '../components/marketing/PublicNav.astro';
 
       <!-- Visuel principal (desktop only) -->
       <div class="relative hidden justify-center lg:flex">
-        <div class="absolute inset-6 rounded-[3rem] bg-gradient-to-br from-indigo-300/30 to-sky-300/25 blur-3xl"></div>
-        <div class="relative w-full max-w-[38rem]">
-          <img
-            src="/hero-wallet-cards.png"
-            alt="Exemples de cartes fidélité Fidelopass"
-            class="w-full h-auto object-contain drop-shadow-[0_34px_65px_rgba(15,23,42,0.22)]"
-            loading="eager"
-            decoding="async"
-          />
+        <div class="hero-phone-wrap">
+          <div class="hero-phone">
+            <div class="hero-phone__screen">
+              <div class="hero-phone__status"><span>9:41</span><span>Wallet</span></div>
+              <div class="hero-wallet-card">
+                <div>
+                  <p class="hero-wallet-card__eyebrow">Dreams Donuts</p>
+                  <p class="hero-wallet-card__title">Carte fidélité</p>
+                </div>
+                <span class="hero-wallet-card__badge">8/10</span>
+                <div class="hero-wallet-card__stamps">
+                  {Array.from({ length: 10 }).map((_, index) => (
+                    <span class={index < 8 ? 'is-filled' : ''}>★</span>
+                  ))}
+                </div>
+                <p class="hero-wallet-card__reward">Encore 2 passages avant une box offerte</p>
+              </div>
+              <div class="hero-phone__timeline">
+                <span></span>
+                <div>
+                  <strong>Ajoutée au Wallet</strong>
+                  <small>Prête à scanner en caisse</small>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hero-float hero-float--one"><strong>20 sec</strong><span>pour ajouter la carte</span></div>
+          <div class="hero-float hero-float--two"><strong>+27%</strong><span>de rétention</span></div>
+          <div class="hero-float hero-float--three"><strong>0 app</strong><span>à télécharger</span></div>
         </div>
       </div>
     </div>
@@ -216,59 +256,93 @@ import PublicNav from '../components/marketing/PublicNav.astro';
     </div>
   </section>
 
-  <!-- COMMENT ÇA FONCTIONNE -->
+  <!-- EXPÉRIENCE CLIENT -->
   <section class="bg-white py-12 sm:py-20 dark:bg-slate-950">
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
       <div class="mb-10 text-center sm:mb-16">
-        <span class="mb-4 inline-flex items-center rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-sky-300">Simple comme bonjour</span>
-        <h2 class="font-display text-4xl sm:text-5xl font-bold text-slate-900 mt-2 dark:text-slate-100">Comment ça fonctionne ?</h2>
+        <span class="mb-4 inline-flex items-center rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-sky-300">Expérience fluide</span>
+        <h2 class="font-display text-4xl sm:text-5xl font-bold text-slate-900 mt-2 dark:text-slate-100">Vos clients adorent. Vous ne levez pas le petit doigt.</h2>
         <p class="text-slate-500 text-lg mt-4 max-w-2xl mx-auto dark:text-slate-300">
-          Trois étapes pour passer d'un commerce sans programme à une fidélité active et mesurable.
+          Le parcours est pensé pour le comptoir: rapide à comprendre, simple à ajouter, facile à suivre dans le Wallet.
         </p>
       </div>
       <div class="grid gap-5 lg:grid-cols-3 lg:gap-8">
         {[
           {
             num: '01',
-            tag: 'Création',
-            title: 'Créez votre carte en 5 min',
-            desc: 'Choisissez le type de programme, vos couleurs et votre identité. La carte est immédiatement prête à être partagée.',
-            image: '/images/how-it-works/etape-dashboard-premium.png',
-            alt: 'Interface Fidelopass de création et prévisualisation de carte Wallet',
+            tag: 'Vous configurez',
+            title: 'Votre carte est prête en quelques minutes',
+            desc: 'Choisissez tampons ou points, ajoutez votre logo, vos couleurs et la récompense. Fidelopass prépare le QR code et la carte Wallet.',
+            accent: 'from-sky-500 to-blue-600',
+            preview: 'card',
           },
           {
             num: '02',
-            tag: 'Diffusion',
-            title: 'Partagez le QR code',
-            desc: 'Affichez le QR en magasin ou envoyez votre lien. Vos clients ajoutent leur carte au Wallet en quelques secondes.',
-            image: '/images/how-it-works/etape-diffusion-premium.png',
-            alt: 'Affiche QR code Fidelopass posée en commerce',
+            tag: 'Ils ajoutent',
+            title: 'Le client scanne et ajoute sans application',
+            desc: 'Un QR code au comptoir suffit. Le client ajoute sa carte dans Apple Wallet ou Google Wallet sans créer de compte compliqué.',
+            accent: 'from-violet-500 to-fuchsia-500',
+            preview: 'qr',
           },
           {
             num: '03',
-            tag: 'Activation',
-            title: 'Scannez & relancez',
-            desc: 'À chaque passage, la carte est scannée, mise à jour et prête à déclencher vos récompenses ou messages Wallet.',
-            image: '/images/how-it-works/etape-activation-premium.png',
-            alt: 'Client présentant sa carte Wallet pendant un scan en caisse',
+            tag: 'Vous fidélisez',
+            title: 'Chaque passage devient mesurable',
+            desc: 'Votre équipe scanne, les points se mettent à jour, les récompenses se déclenchent et le dashboard suit l’activité.',
+            accent: 'from-emerald-500 to-teal-500',
+            preview: 'scan',
           },
         ].map((s) => (
-          <div class="overflow-hidden rounded-[1.55rem] border border-slate-200 bg-white shadow-[0_20px_45px_rgba(15,23,42,0.06)] transition-transform hover:-translate-y-1 sm:rounded-[1.75rem] dark:border-slate-700 dark:bg-slate-900">
-            <div class="aspect-[16/10] overflow-hidden bg-slate-100 dark:bg-slate-800">
-              <img
-                src={s.image}
-                alt={s.alt}
-                class="h-full w-full object-cover transition duration-500 hover:scale-[1.03]"
-                loading="lazy"
-              />
+          <div class="group overflow-hidden rounded-[1.55rem] border border-slate-200 bg-white shadow-[0_22px_55px_rgba(15,23,42,0.08)] transition-all hover:-translate-y-1 hover:shadow-[0_28px_70px_rgba(15,23,42,0.12)] sm:rounded-[1.75rem] dark:border-slate-700 dark:bg-slate-900">
+            <div class={`relative min-h-[13.5rem] overflow-hidden bg-gradient-to-br ${s.accent} p-6`}>
+              <div class="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.42),transparent_32%),radial-gradient(circle_at_80%_75%,rgba(255,255,255,0.28),transparent_28%)]"></div>
+              {s.preview === 'card' && (
+                <div class="relative mx-auto mt-2 max-w-[15rem] rounded-[1.5rem] bg-white/95 p-4 shadow-[0_20px_45px_rgba(15,23,42,0.2)]">
+                  <div class="flex items-center justify-between">
+                    <span class="h-10 w-10 rounded-2xl bg-slate-950"></span>
+                    <span class="rounded-full bg-sky-100 px-3 py-1 text-xs font-bold text-sky-700">Wallet</span>
+                  </div>
+                  <div class="mt-5 h-3 w-28 rounded-full bg-slate-900"></div>
+                  <div class="mt-3 grid grid-cols-5 gap-2">
+                    {Array.from({ length: 10 }).map((_, index) => (
+                      <span class={`aspect-square rounded-full ${index < 6 ? 'bg-sky-500' : 'bg-slate-200'}`}></span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {s.preview === 'qr' && (
+                <div class="relative mx-auto mt-1 flex max-w-[16rem] items-center gap-4 rounded-[1.5rem] bg-white/95 p-4 shadow-[0_20px_45px_rgba(15,23,42,0.2)]">
+                  <div class="grid h-24 w-24 shrink-0 grid-cols-4 gap-1 rounded-xl bg-slate-950 p-2">
+                    {Array.from({ length: 16 }).map((_, index) => (
+                      <span class={index % 3 === 0 || index === 5 || index === 10 ? 'rounded-sm bg-white' : 'rounded-sm bg-slate-950'}></span>
+                    ))}
+                  </div>
+                  <div>
+                    <p class="text-sm font-bold text-slate-950">Scan comptoir</p>
+                    <p class="mt-2 text-xs leading-5 text-slate-500">Ajout Wallet en 20 secondes.</p>
+                  </div>
+                </div>
+              )}
+              {s.preview === 'scan' && (
+                <div class="relative mx-auto mt-1 max-w-[16rem] rounded-[1.5rem] bg-white/95 p-4 shadow-[0_20px_45px_rgba(15,23,42,0.2)]">
+                  <div class="flex items-center justify-between">
+                    <p class="text-sm font-bold text-slate-950">Scan validé</p>
+                    <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">+1</span>
+                  </div>
+                  <div class="mt-5 h-2 rounded-full bg-slate-100">
+                    <div class="h-2 w-4/5 rounded-full bg-emerald-500"></div>
+                  </div>
+                  <div class="mt-5 rounded-2xl bg-slate-50 p-3 text-xs font-semibold text-slate-600">Récompense bientôt disponible</div>
+                </div>
+              )}
             </div>
             <div class="p-6 sm:p-8">
-            <div class="flex items-center justify-between gap-4 mb-6">
-              <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-sm font-bold text-white shadow-[0_14px_30px_rgba(15,23,42,0.16)]">{s.num}</span>
-              <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{s.tag}</span>
-            </div>
-            <h3 class="font-display text-xl font-bold text-slate-900 dark:text-slate-100">{s.title}</h3>
-            <p class="text-slate-500 text-sm leading-relaxed mt-3 dark:text-slate-300">{s.desc}</p>
+              <div class="flex items-center justify-between gap-4 mb-6">
+                <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-sm font-bold text-white shadow-[0_14px_30px_rgba(15,23,42,0.16)]">{s.num}</span>
+                <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{s.tag}</span>
+              </div>
+              <h3 class="font-display text-xl font-bold text-slate-900 dark:text-slate-100">{s.title}</h3>
+              <p class="text-slate-500 text-sm leading-relaxed mt-3 dark:text-slate-300">{s.desc}</p>
             </div>
           </div>
         ))}
@@ -313,39 +387,123 @@ import PublicNav from '../components/marketing/PublicNav.astro';
     </div>
   </section>
 
-  <!-- PREUVES & CAS CONCRETS -->
+  <!-- DASHBOARD -->
   <section class="bg-white py-12 sm:py-20 dark:bg-slate-950">
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
-      <div class="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
-        <div class="lg:sticky lg:top-28">
-          <span class="mb-4 inline-flex items-center rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-sky-300">Ce que vous gagnez</span>
+      <div class="grid gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-center">
+        <div>
+          <span class="mb-4 inline-flex items-center rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-sky-300">Votre dashboard</span>
           <h2 class="font-display text-4xl font-bold tracking-[-0.04em] text-slate-900 sm:text-5xl dark:text-slate-100">
-            Une fidélité plus visible, plus simple, plus rentable.
+            Pilotez votre fidélité avec des chiffres utiles.
           </h2>
           <p class="mt-4 text-lg leading-relaxed text-slate-500 dark:text-slate-300">
-            Fidelopass transforme un simple passage en caisse en lien durable avec votre client. La carte reste dans son Wallet, vos relances arrivent au bon endroit, et chaque scan devient une donnée utile.
+            Suivez les visites, les cartes actives, les récompenses déclenchées et les clients à relancer. L’objectif: comprendre rapidement ce qui fait revenir.
           </p>
-          <div class="mt-7 rounded-[1.6rem] border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-900">
-            <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">À retenir</p>
-            <p class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-              Un client fidèle dépense davantage sur la durée, revient plus facilement quand il sait qu’une récompense l’attend, et choisit plus souvent le commerce où il a déjà un avantage.
-            </p>
+          <div class="mt-7 grid gap-3 sm:grid-cols-2">
+            {[
+              { label: 'Visites scannées', value: '+18%', color: 'bg-blue-50 text-blue-700 border-blue-100' },
+              { label: 'Cartes actives', value: '842', color: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+              { label: 'Récompenses', value: '64', color: 'bg-violet-50 text-violet-700 border-violet-100' },
+              { label: 'Clients à relancer', value: '129', color: 'bg-amber-50 text-amber-700 border-amber-100' },
+            ].map((item) => (
+              <div class={`rounded-[1.35rem] border p-4 ${item.color}`}>
+                <p class="text-2xl font-bold tracking-[-0.03em]">{item.value}</p>
+                <p class="mt-1 text-sm font-medium">{item.label}</p>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2">
-          {[
-            { value: '+27%', label: 'de rétention clients en moyenne', desc: 'Un programme visible dans Wallet crée un rappel permanent sans application à installer.' },
-            { value: '20 sec', label: 'pour ajouter la carte', desc: 'Le client scanne un QR code, remplit ses infos et ajoute sa carte au Wallet.' },
-            { value: '0 app', label: 'à télécharger', desc: 'Moins de friction pour le client, donc plus de cartes installées en magasin.' },
-            { value: 'x3', label: 'en valeur client potentielle', desc: 'Les clients fidèles peuvent générer plus de valeur qu’un client acquis une seule fois.' },
-          ].map((item) => (
-            <article class="rounded-[1.55rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)] dark:border-slate-700 dark:bg-slate-900">
-              <p class="font-display text-4xl font-bold tracking-[-0.05em] text-slate-950 dark:text-white">{item.value}</p>
-              <h3 class="mt-3 text-base font-bold text-slate-900 dark:text-slate-100">{item.label}</h3>
-              <p class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-300">{item.desc}</p>
-            </article>
-          ))}
+        <div class="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_30px_80px_rgba(15,23,42,0.12)] sm:p-6 dark:border-slate-700 dark:bg-slate-900">
+          <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="text-sm font-semibold text-slate-500 dark:text-slate-300">Performance fidélité</p>
+              <h3 class="mt-1 font-display text-2xl font-bold text-slate-950 dark:text-white">Visites par jour</h3>
+            </div>
+            <div class="flex gap-2">
+              <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">7 jours</span>
+              <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-300">30 jours</span>
+            </div>
+          </div>
+          <div class="dashboard-chart" aria-hidden="true">
+            <svg viewBox="0 0 720 260" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="visitsFillHome" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stop-color="#4f6bff" stop-opacity="0.34" />
+                  <stop offset="100%" stop-color="#4f6bff" stop-opacity="0.02" />
+                </linearGradient>
+              </defs>
+              <path d="M0 208 L60 176 L120 190 L180 145 L240 158 L300 108 L360 124 L420 82 L480 104 L540 54 L600 76 L660 44 L720 20 L720 260 L0 260 Z" fill="url(#visitsFillHome)" />
+              <path d="M0 208 L60 176 L120 190 L180 145 L240 158 L300 108 L360 124 L420 82 L480 104 L540 54 L600 76 L660 44 L720 20" fill="none" stroke="#3158ff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+              <circle cx="720" cy="20" r="8" fill="#3158ff" />
+            </svg>
+          </div>
+          <div class="mt-6 grid gap-3 sm:grid-cols-3">
+            {[
+              { label: 'Meilleur jour', value: 'Samedi' },
+              { label: 'Taux retour', value: '37%' },
+              { label: 'Gain à déclencher', value: '23' },
+            ].map((item) => (
+              <div class="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800">
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{item.label}</p>
+                <p class="mt-2 text-lg font-bold text-slate-950 dark:text-white">{item.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ÉTUDE DE CAS -->
+  <section class="bg-[linear-gradient(180deg,#f8fbff_0%,#ffffff_100%)] py-12 sm:py-20 dark:bg-slate-950">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+      <div class="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_28px_75px_rgba(15,23,42,0.1)] dark:border-slate-700 dark:bg-slate-900">
+        <div class="grid lg:grid-cols-[0.92fr_1.08fr]">
+          <div class="bg-[linear-gradient(135deg,#0f172a_0%,#1d4ed8_58%,#38bdf8_100%)] p-7 text-white sm:p-10">
+            <span class="inline-flex rounded-full bg-white/12 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-sky-100">Étude de cas</span>
+            <h2 class="mt-6 font-display text-4xl font-bold tracking-[-0.04em] sm:text-5xl">Dreams Donuts Annemasse</h2>
+            <p class="mt-4 text-lg leading-relaxed text-sky-100">
+              Une carte Wallet pensée pour transformer les passages au comptoir en habitudes: inscription rapide, scan simple et récompense claire.
+            </p>
+            <div class="mt-8 grid gap-3 sm:grid-cols-3">
+              {[
+                { value: '20 sec', label: 'ajout client' },
+                { value: '0 app', label: 'à installer' },
+                { value: '1 scan', label: 'par passage' },
+              ].map((item) => (
+                <div class="rounded-2xl border border-white/15 bg-white/10 p-4">
+                  <p class="text-2xl font-bold">{item.value}</p>
+                  <p class="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-sky-100">{item.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div class="p-7 sm:p-10">
+            <div class="grid gap-4 sm:grid-cols-3">
+              {[
+                { title: 'Objectif', desc: 'Faire revenir les clients locaux après leur premier achat.' },
+                { title: 'Mise en place', desc: 'QR code au comptoir, carte tampons et récompense simple.' },
+                { title: 'Pilotage', desc: 'Suivi des passages, des cartes actives et des récompenses.' },
+              ].map((item) => (
+                <article class="rounded-[1.4rem] border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-800">
+                  <h3 class="font-display text-lg font-bold text-slate-950 dark:text-white">{item.title}</h3>
+                  <p class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-300">{item.desc}</p>
+                </article>
+              ))}
+            </div>
+            <div class="mt-6 rounded-[1.5rem] border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+              <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Exemple de mécanique</p>
+              <p class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-300">
+                Le client ajoute sa carte Dreams Donuts dans son Wallet, cumule ses passages après chaque scan et voit immédiatement sa progression vers sa prochaine récompense.
+              </p>
+              <div class="mt-5 flex flex-wrap gap-2">
+                {['Carte tampons', 'QR comptoir', 'Scanner mobile', 'Relance Wallet'].map((tag) => (
+                  <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">{tag}</span>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -458,6 +616,79 @@ import PublicNav from '../components/marketing/PublicNav.astro';
     </div>
   </section>
 
+  <!-- TARIFS -->
+  <section class="bg-white py-12 sm:py-20 dark:bg-slate-950">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+      <div class="mb-10 text-center sm:mb-14">
+        <span class="mb-4 inline-flex items-center rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-sky-300">Tarifs</span>
+        <h2 class="font-display text-4xl font-bold tracking-[-0.04em] text-slate-900 sm:text-5xl dark:text-slate-100">Des plans simples, scanners illimités inclus.</h2>
+        <p class="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-slate-500 dark:text-slate-300">
+          Commencez avec l’essai gratuit, choisissez ensuite le plan adapté à votre volume de cartes et à vos besoins de relance.
+        </p>
+      </div>
+
+      <div class="grid gap-5 lg:grid-cols-3">
+        {[
+          {
+            name: 'Starter',
+            price: '25€',
+            note: 'par mois en annuel',
+            monthly: '35€/mois en mensuel',
+            desc: 'Pour lancer une carte de fidélité Wallet rapidement.',
+            highlight: false,
+            features: ['Jusqu’à 500 cartes actives', '1 point de vente', 'Scanners illimités', 'Tampons, points ou VIP', 'Notifications push illimitées', 'Analytics de base'],
+          },
+          {
+            name: 'Pro',
+            price: '49€',
+            note: 'par mois en annuel',
+            monthly: '65€/mois en mensuel',
+            desc: 'Pour piloter plus finement vos relances et votre croissance.',
+            highlight: true,
+            features: ['Jusqu’à 2000 cartes actives', '3 points de vente', 'Scanners illimités', 'Push ciblées & campagnes', 'Avis Google automatique', 'Analytics avancés'],
+          },
+          {
+            name: 'Sur mesure',
+            price: 'Sur devis',
+            note: 'réseau ou franchise',
+            monthly: 'Accompagnement dédié',
+            desc: 'Pour les enseignes avec plusieurs établissements ou besoins spécifiques.',
+            highlight: false,
+            features: ['Cartes actives adaptées', 'Multi-établissements', 'Scanners illimités', 'Paramétrage avancé', 'Support prioritaire', 'Déploiement accompagné'],
+          },
+        ].map((plan) => (
+          <article class={`relative rounded-[1.8rem] border p-6 shadow-[0_22px_55px_rgba(15,23,42,0.08)] sm:p-7 ${plan.highlight ? 'border-blue-200 bg-[linear-gradient(180deg,#eff6ff_0%,#ffffff_100%)] ring-2 ring-blue-100 dark:border-blue-500/40 dark:bg-slate-900' : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900'}`}>
+            {plan.highlight && (
+              <span class="absolute right-5 top-5 rounded-full bg-blue-600 px-3 py-1 text-xs font-bold text-white">Populaire</span>
+            )}
+            <h3 class="font-display text-2xl font-bold text-slate-950 dark:text-white">{plan.name}</h3>
+            <p class="mt-3 min-h-[3rem] text-sm leading-6 text-slate-500 dark:text-slate-300">{plan.desc}</p>
+            <div class="mt-6">
+              <div class="flex items-end gap-2">
+                <span class="font-display text-5xl font-bold tracking-[-0.06em] text-slate-950 dark:text-white">{plan.price}</span>
+                {plan.price !== 'Sur devis' && <span class="pb-2 text-sm font-semibold text-slate-500">HT</span>}
+              </div>
+              <p class="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">{plan.note}</p>
+              <p class="mt-1 text-sm text-slate-400">{plan.monthly}</p>
+            </div>
+            <ul class="mt-6 space-y-3">
+              {plan.features.map((feature) => (
+                <li class="flex gap-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                  <span class="mt-1 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">✓</span>
+                  <span>{feature}</span>
+                </li>
+              ))}
+            </ul>
+            <a href={plan.name === 'Sur mesure' ? '/contact' : '/register'} class={`mt-7 inline-flex w-full items-center justify-center rounded-2xl px-5 py-3.5 text-sm font-bold transition-all ${plan.highlight ? 'bg-blue-600 text-white shadow-[0_18px_38px_rgba(37,99,235,0.25)] hover:bg-blue-700' : 'border border-slate-200 bg-white text-slate-800 hover:border-blue-200 hover:text-blue-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100'}`}>
+              {plan.name === 'Sur mesure' ? 'Demander une démo' : 'Démarrer l’essai gratuit'}
+            </a>
+          </article>
+        ))}
+      </div>
+      <p class="mt-5 text-center text-sm text-slate-400">Frais de configuration: 20€ une seule fois sur Starter et Pro.</p>
+    </div>
+  </section>
+
   <!-- FAQ -->
   <section class="bg-white py-14 sm:py-24 dark:bg-slate-950">
     <div class="max-w-3xl mx-auto px-4 sm:px-6">
@@ -512,6 +743,288 @@ import PublicNav from '../components/marketing/PublicNav.astro';
 
   <PublicFooter />
 </BaseLayout>
+
+<style>
+  .hero-phone-wrap {
+    position: relative;
+    width: min(100%, 36rem);
+    min-height: 37rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    isolation: isolate;
+  }
+
+  .hero-phone-wrap::before {
+    content: '';
+    position: absolute;
+    inset: 2rem 0;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.28), rgba(99, 102, 241, 0.2));
+    filter: blur(52px);
+    z-index: -1;
+  }
+
+  .hero-phone-wrap--compact {
+    min-height: 28rem;
+    transform: scale(0.86);
+    transform-origin: center top;
+  }
+
+  .hero-phone {
+    width: 18.5rem;
+    min-height: 36rem;
+    border-radius: 3.1rem;
+    padding: 0.85rem;
+    background: linear-gradient(145deg, #111827, #020617);
+    box-shadow: 0 34px 70px rgba(15, 23, 42, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    animation: phone-float 6s ease-in-out infinite;
+  }
+
+  .hero-phone__screen {
+    position: relative;
+    min-height: 34.2rem;
+    overflow: hidden;
+    border-radius: 2.35rem;
+    background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 48%, #ffffff 100%);
+    padding: 1.1rem;
+  }
+
+  .hero-phone__screen::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0.7rem;
+    width: 5rem;
+    height: 1.3rem;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: #020617;
+  }
+
+  .hero-phone__status {
+    margin-top: 1.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #0f172a;
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+
+  .hero-wallet-card {
+    position: relative;
+    margin-top: 1.4rem;
+    min-height: 18.5rem;
+    border-radius: 2rem;
+    padding: 1.25rem;
+    color: white;
+    background:
+      radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.28), transparent 28%),
+      linear-gradient(135deg, #1d4ed8 0%, #7c3aed 58%, #0f172a 100%);
+    box-shadow: 0 24px 48px rgba(37, 99, 235, 0.26);
+  }
+
+  .hero-wallet-card__eyebrow {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  .hero-wallet-card__title {
+    margin-top: 0.25rem;
+    font-size: 1.3rem;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+  }
+
+  .hero-wallet-card__badge {
+    position: absolute;
+    right: 1.1rem;
+    top: 1.2rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    padding: 0.45rem 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 900;
+  }
+
+  .hero-wallet-card__stamps {
+    margin-top: 4.5rem;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+
+  .hero-wallet-card__stamps span {
+    display: grid;
+    aspect-ratio: 1;
+    place-items: center;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.42);
+    font-size: 0.78rem;
+  }
+
+  .hero-wallet-card__stamps .is-filled {
+    background: #fbbf24;
+    border-color: #fde68a;
+    color: #7c2d12;
+  }
+
+  .hero-wallet-card__reward {
+    margin-top: 1.3rem;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.14);
+    padding: 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.45;
+  }
+
+  .hero-phone__timeline {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    border-radius: 1.35rem;
+    background: white;
+    padding: 0.9rem;
+    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
+  }
+
+  .hero-phone__timeline span {
+    width: 2.4rem;
+    height: 2.4rem;
+    flex: 0 0 auto;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, #22c55e, #14b8a6);
+  }
+
+  .hero-phone__timeline strong,
+  .hero-phone__timeline small {
+    display: block;
+  }
+
+  .hero-phone__timeline strong {
+    color: #0f172a;
+    font-size: 0.9rem;
+  }
+
+  .hero-phone__timeline small {
+    margin-top: 0.1rem;
+    color: #64748b;
+    font-size: 0.72rem;
+  }
+
+  .hero-float {
+    position: absolute;
+    border: 1px solid rgba(226, 232, 240, 0.92);
+    border-radius: 1.25rem;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 0.8rem 1rem;
+    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
+    backdrop-filter: blur(14px);
+    animation: float-card 5.5s ease-in-out infinite;
+  }
+
+  .hero-float strong,
+  .hero-float span {
+    display: block;
+  }
+
+  .hero-float strong {
+    color: #0f172a;
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .hero-float span {
+    margin-top: 0.25rem;
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .hero-float--one {
+    left: 0.8rem;
+    top: 7.2rem;
+  }
+
+  .hero-float--two {
+    right: 0.3rem;
+    top: 15rem;
+    animation-delay: -1.4s;
+  }
+
+  .hero-float--three {
+    left: 2rem;
+    bottom: 5rem;
+    animation-delay: -2.7s;
+  }
+
+  .dashboard-chart {
+    height: 17.5rem;
+    overflow: hidden;
+    border-radius: 1.55rem;
+    background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+  }
+
+  .dashboard-chart svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  @keyframes phone-float {
+    0%,
+    100% {
+      transform: translateY(0) rotate(-1deg);
+    }
+    50% {
+      transform: translateY(-14px) rotate(1deg);
+    }
+  }
+
+  @keyframes float-card {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .hero-phone-wrap--compact {
+      min-height: 25rem;
+      transform: scale(0.74);
+    }
+
+    .hero-float--one {
+      left: -0.6rem;
+    }
+
+    .hero-float--two {
+      right: -0.4rem;
+    }
+
+    .hero-float--three {
+      left: 0.2rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-phone,
+    .hero-float {
+      animation: none;
+    }
+  }
+</style>
 
 <script>
   document.querySelectorAll('#faq-list [data-faq]').forEach((item) => {

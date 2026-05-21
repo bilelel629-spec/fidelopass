@@ -13,6 +13,7 @@ export const commercesRoutes = new Hono<ApiEnv>();
 
 commercesRoutes.use('*', authMiddleware);
 commercesRoutes.use('/me', paidMiddleware);
+commercesRoutes.use('/me/*', paidMiddleware);
 commercesRoutes.use('/points-vente*', paidMiddleware);
 
 const updateSchema = z.object({
@@ -390,6 +391,32 @@ commercesRoutes.patch('/me', async (c) => {
         longitude: updatedPoint?.longitude ?? null,
         rayon_geo: updatedPoint?.rayon_geo ?? parsed.data.rayon_geo ?? 1000,
       }),
+    },
+  });
+});
+
+/** POST /api/commerces/me/wallet-sync — Force la mise à jour Wallet du point de vente actif */
+commercesRoutes.post('/me/wallet-sync', async (c) => {
+  const userId = c.get('userId') as string;
+  const db = createServiceClient();
+  const requestedPointVenteId = readRequestedPointVenteId(c);
+
+  const { commerce, pointVente } = await resolveCommerceAndPointVente(
+    db,
+    userId,
+    requestedPointVenteId,
+    'id, plan',
+  );
+
+  if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
+  if (!pointVente) return c.json({ error: 'Point de vente introuvable' }, 404);
+
+  const stats = await syncWalletForPointVente(pointVente.id);
+  return c.json({
+    ok: true,
+    data: {
+      point_vente_id: pointVente.id,
+      ...stats,
     },
   });
 });

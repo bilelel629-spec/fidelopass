@@ -580,6 +580,25 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               </div>
               <p class="text-slate-500 text-xs mt-1.5">Définissez la distance à laquelle Wallet peut remonter la carte autour du commerce.</p>
             </div>
+            <div id="geo-wallet-status" class="rounded-2xl border border-slate-200 bg-white p-4">
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p id="geo-wallet-status-title" class="text-sm font-extrabold text-slate-900">Statut Wallet de proximité</p>
+                  <p id="geo-wallet-status-detail" class="mt-1 text-xs leading-5 text-slate-500">Renseignez une adresse précise pour activer la suggestion Wallet à proximité.</p>
+                </div>
+                <span id="geo-wallet-status-pill" class="w-fit rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[0.66rem] font-extrabold uppercase tracking-[0.16em] text-amber-700">À configurer</span>
+              </div>
+              <div class="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-3">
+                <span id="geo-address-check" class="rounded-xl bg-slate-50 px-3 py-2">Adresse: —</span>
+                <span id="geo-coordinates-check" class="rounded-xl bg-slate-50 px-3 py-2">Coordonnées: —</span>
+                <span id="geo-radius-check" class="rounded-xl bg-slate-50 px-3 py-2">Rayon: —</span>
+              </div>
+              <div class="mt-3 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs leading-5 text-blue-800">
+                Apple Wallet et Google Wallet décident du moment exact d’affichage selon les autorisations du client. Fidelopass met à jour les coordonnées et le message de proximité.
+              </div>
+              <button id="geo-wallet-sync-btn" type="button" class="btn-secondary mt-3 w-full px-4 py-2.5 text-sm">Mettre à jour les cartes Wallet</button>
+              <p id="geo-wallet-sync-feedback" class="mt-2 hidden rounded-xl border px-3 py-2 text-xs"></p>
+            </div>
           </div>
         </div>
 
@@ -1486,6 +1505,74 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const geoToggle = document.getElementById('geo-toggle') as HTMLButtonElement;
   const geoKnob = document.getElementById('geo-knob') as HTMLSpanElement;
   const geoSettings = document.getElementById('geo-settings') as HTMLDivElement;
+  const geoWalletStatusTitle = document.getElementById('geo-wallet-status-title') as HTMLParagraphElement;
+  const geoWalletStatusDetail = document.getElementById('geo-wallet-status-detail') as HTMLParagraphElement;
+  const geoWalletStatusPill = document.getElementById('geo-wallet-status-pill') as HTMLSpanElement;
+  const geoAddressCheck = document.getElementById('geo-address-check') as HTMLSpanElement;
+  const geoCoordinatesCheck = document.getElementById('geo-coordinates-check') as HTMLSpanElement;
+  const geoRadiusCheck = document.getElementById('geo-radius-check') as HTMLSpanElement;
+  const geoWalletSyncBtn = document.getElementById('geo-wallet-sync-btn') as HTMLButtonElement;
+  const geoWalletSyncFeedback = document.getElementById('geo-wallet-sync-feedback') as HTMLParagraphElement;
+
+  function styleGeoCheck(element: HTMLElement, ok: boolean, text: string) {
+    element.textContent = text;
+    element.className = ok
+      ? 'rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-emerald-700'
+      : 'rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-amber-700';
+  }
+
+  function setGeoWalletFeedback(message = '', tone: 'success' | 'error' | 'info' = 'info') {
+    if (!message) {
+      geoWalletSyncFeedback.classList.add('hidden');
+      geoWalletSyncFeedback.textContent = '';
+      return;
+    }
+    geoWalletSyncFeedback.textContent = message;
+    geoWalletSyncFeedback.className = tone === 'success'
+      ? 'mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700'
+      : tone === 'error'
+        ? 'mt-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700'
+        : 'mt-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700';
+  }
+
+  function updateGeoWalletStatus(data?: { geo?: { ready?: boolean; reason?: string } | null } | null) {
+    const addressInput = document.getElementById('adresse-commerce') as HTMLInputElement | null;
+    const radiusInput = document.getElementById('rayon-geo') as HTMLInputElement | null;
+    if (!addressInput || !radiusInput) return;
+    const address = addressInput.value.trim();
+    const payload = getAddressPayload(addressInput);
+    const radius = parseInt(radiusInput.value || '0', 10);
+    const hasAddress = address.length > 0;
+    const hasCoordinates = typeof payload.latitude === 'number' && typeof payload.longitude === 'number';
+    const hasRadius = Number.isFinite(radius) && radius >= 100;
+    const ready = Boolean(data?.geo?.ready) || (geoEnabled && hasAddress && hasCoordinates && hasRadius);
+
+    styleGeoCheck(geoAddressCheck, hasAddress, `Adresse: ${hasAddress ? 'OK' : 'manquante'}`);
+    styleGeoCheck(geoCoordinatesCheck, hasCoordinates, `Coordonnées: ${hasCoordinates ? 'OK' : 'à détecter'}`);
+    styleGeoCheck(geoRadiusCheck, hasRadius, `Rayon: ${hasRadius ? `${radius.toLocaleString('fr-FR')} m` : 'invalide'}`);
+
+    if (!geoEnabled) {
+      geoWalletStatusTitle.textContent = 'Géolocalisation désactivée';
+      geoWalletStatusDetail.textContent = 'Activez cette option pour suggérer la carte Wallet quand le client est proche du commerce.';
+      geoWalletStatusPill.textContent = 'Désactivé';
+      geoWalletStatusPill.className = 'w-fit rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[0.66rem] font-extrabold uppercase tracking-[0.16em] text-slate-600';
+      geoWalletSyncBtn.disabled = true;
+      geoWalletSyncBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      return;
+    }
+
+    geoWalletStatusTitle.textContent = ready ? 'Wallet prêt pour la proximité' : 'Configuration Wallet incomplète';
+    geoWalletStatusDetail.textContent = ready
+      ? 'Les cartes Wallet peuvent être mises à jour avec cette adresse, ce rayon et ce message de proximité.'
+      : 'Sélectionnez une adresse proposée pour obtenir des coordonnées GPS fiables, puis enregistrez la carte.';
+    geoWalletStatusPill.textContent = ready ? 'Prêt' : 'À compléter';
+    geoWalletStatusPill.className = ready
+      ? 'w-fit rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[0.66rem] font-extrabold uppercase tracking-[0.16em] text-emerald-700'
+      : 'w-fit rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[0.66rem] font-extrabold uppercase tracking-[0.16em] text-amber-700';
+    geoWalletSyncBtn.disabled = !ready;
+    geoWalletSyncBtn.classList.toggle('opacity-50', !ready);
+    geoWalletSyncBtn.classList.toggle('cursor-not-allowed', !ready);
+  }
 
   function setGeoToggle(enabled: boolean, silent = false) {
     geoEnabled = enabled;
@@ -1493,6 +1580,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     geoKnob.style.left = enabled ? '26px' : '2px';
     geoToggle.setAttribute('aria-pressed', String(enabled));
     geoSettings.classList.toggle('hidden', !enabled);
+    updateGeoWalletStatus();
     if (!silent) markDirty();
   }
 
@@ -2497,7 +2585,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         : await authFetch('/api/cartes',{method:'POST',body:JSON.stringify(payload)});
       if(!res.ok) throw new Error((await res.json()).error??'Erreur');
 
-      await authFetch('/api/commerces/me', {
+      const commerceGeoRes = await authFetch('/api/commerces/me', {
         method: 'PATCH',
         body: JSON.stringify({
           rayon_geo: parseInt((document.getElementById('rayon-geo') as HTMLInputElement).value, 10),
@@ -2505,6 +2593,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           ...getAddressPayload(adresseCommerceInput),
         }),
       });
+      const commerceGeoPayload = await commerceGeoRes.json().catch(() => null);
+      if (!commerceGeoRes.ok) {
+        throw new Error(commerceGeoPayload?.error ?? 'Carte enregistrée, mais la géolocalisation n’a pas pu être mise à jour.');
+      }
+      updateGeoWalletStatus(commerceGeoPayload?.data ?? null);
 
       const { data } = await res.json();
       if(!carteId){
@@ -2608,10 +2701,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     onSelect: () => {
       markDirty();
       renderReviewSummary();
+      updateGeoWalletStatus();
     },
+  });
+  adresseCommerceInput.addEventListener('input', () => {
+    setGeoWalletFeedback('');
+    updateGeoWalletStatus();
   });
   rayonSlider.addEventListener('input', () => {
     rayonLabel.textContent = `${parseInt(rayonSlider.value).toLocaleString('fr-FR')} m`;
+    setGeoWalletFeedback('');
+    updateGeoWalletStatus();
   });
 
   async function loadCommerceGeo() {
@@ -2641,8 +2741,34 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       rayonSlider.value = String(rayon);
       rayonLabel.textContent = `${rayon.toLocaleString('fr-FR')} m`;
       if (data?.adresse) setGeoToggle(true, true);
+      updateGeoWalletStatus(data ?? null);
     } catch {}
   }
+
+  geoWalletSyncBtn.addEventListener('click', async () => {
+    if (geoWalletSyncBtn.disabled) return;
+    const previousLabel = geoWalletSyncBtn.textContent;
+    geoWalletSyncBtn.disabled = true;
+    geoWalletSyncBtn.textContent = 'Mise à jour...';
+    setGeoWalletFeedback('');
+    try {
+      const res = await authFetch('/api/commerces/me/wallet-sync', { method: 'POST' });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error ?? 'Impossible de mettre à jour les cartes Wallet.');
+      const data = payload?.data ?? {};
+      setGeoWalletFeedback(
+        `Mise à jour lancée: ${data.googleUpdated ?? 0} Google Wallet, ${data.applePushed ?? 0} Apple Wallet, ${data.clients ?? 0} client(s) concerné(s).`,
+        'success',
+      );
+    } catch (error: unknown) {
+      setGeoWalletFeedback(error instanceof Error ? error.message : 'Erreur réseau.', 'error');
+    } finally {
+      geoWalletSyncBtn.disabled = false;
+      geoWalletSyncBtn.textContent = previousLabel ?? 'Mettre à jour les cartes Wallet';
+      updateGeoWalletStatus();
+    }
+  });
+  updateGeoWalletStatus();
 
   // ── Restrictions par plan ──────────────────────────────────────────
   async function loadPlanRestrictions() {

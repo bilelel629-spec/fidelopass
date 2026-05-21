@@ -182,6 +182,70 @@ const useCases: UseCase[] = [
       </div>
     </section>
 
+    <section class="px-4 py-10 sm:px-6 lg:py-16">
+      <div class="case-study-card mx-auto grid max-w-[87.5rem] overflow-hidden rounded-[2.25rem] border border-slate-200 bg-white shadow-[0_34px_90px_-58px_rgba(15,23,42,0.55)] lg:grid-cols-[0.45fr_0.55fr]">
+        <div class="case-study-visual relative overflow-hidden bg-[linear-gradient(135deg,#0B1F5E_0%,#2563EB_55%,#38BDF8_100%)] p-7 text-white sm:p-10 lg:p-12">
+          <div class="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/20 blur-3xl"></div>
+          <div class="pointer-events-none absolute -bottom-24 left-10 h-72 w-72 rounded-full bg-cyan-200/25 blur-3xl"></div>
+          <div class="relative">
+            <span class="inline-flex rounded-full border border-white/20 bg-white/12 px-4 py-2 text-[0.68rem] font-extrabold uppercase tracking-[0.28em] text-sky-100 backdrop-blur">
+              Étude de cas
+            </span>
+            <h2 class="mt-8 font-display text-5xl font-extrabold leading-[0.95] tracking-[-0.05em] sm:text-6xl lg:text-7xl">
+              Dreams Donuts<br />Annemasse
+            </h2>
+            <p class="mt-6 max-w-xl text-base leading-8 text-blue-50 sm:text-lg">
+              Une carte Wallet pensée pour transformer les passages au comptoir en habitudes : inscription rapide, scan simple et récompense claire.
+            </p>
+          </div>
+
+          <div class="relative mt-10 grid gap-3 sm:grid-cols-3 lg:mt-16">
+            {[
+              { value: '20 sec', label: 'Ajout client' },
+              { value: '0 app', label: 'À installer' },
+              { value: '1 scan', label: 'Par passage' },
+            ].map((item) => (
+              <div class="case-study-kpi rounded-3xl border border-white/18 bg-white/[0.13] p-4 shadow-[0_22px_52px_-34px_rgba(15,23,42,0.8)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-white/[0.18]">
+                <p class="font-display text-3xl font-extrabold tracking-[-0.04em] text-white">{item.value}</p>
+                <p class="mt-2 text-[0.66rem] font-extrabold uppercase tracking-[0.2em] text-sky-100">{item.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div class="case-study-content bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-6 sm:p-8 lg:p-10">
+          <div class="grid gap-4 md:grid-cols-3">
+            {[
+              { title: 'Objectif', desc: 'Faire revenir les clients locaux après leur premier achat.' },
+              { title: 'Mise en place', desc: 'QR code au comptoir, carte tampons et récompense simple.' },
+              { title: 'Pilotage', desc: 'Suivi des passages, des cartes actives et des récompenses.' },
+            ].map((item) => (
+              <article class="case-study-info rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_45px_-34px_rgba(15,23,42,0.32)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_-36px_rgba(37,99,235,0.4)]">
+                <h3 class="font-display text-lg font-extrabold text-slate-950">{item.title}</h3>
+                <p class="mt-3 text-sm leading-6 text-slate-600">{item.desc}</p>
+              </article>
+            ))}
+          </div>
+
+          <div class="case-study-info mt-5 rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.35)] sm:p-7">
+            <p class="font-display text-2xl font-extrabold tracking-[-0.03em] text-slate-950">
+              Exemple de mécanique
+            </p>
+            <p class="mt-3 max-w-3xl text-base leading-8 text-slate-600">
+              Le client ajoute sa carte Dreams Donuts dans son Wallet, cumule ses passages après chaque scan et voit immédiatement sa progression vers sa prochaine récompense.
+            </p>
+            <div class="mt-6 flex flex-wrap gap-2.5">
+              {['Carte tampons', 'QR comptoir', 'Scanner mobile', 'Relance Wallet'].map((tag) => (
+                <span class="rounded-full bg-blue-50 px-4 py-2 text-xs font-extrabold text-blue-700 ring-1 ring-blue-100">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="px-4 pb-16 pt-2 sm:px-6 lg:pb-20">
       <div class="mx-auto flex max-w-[92rem] flex-col gap-5 rounded-[1.5rem] border border-blue-100 bg-white/85 p-5 shadow-[0_24px_70px_-44px_rgba(37,99,235,0.55)] backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:p-6 lg:px-8">
         <div class="flex items-start gap-4">
@@ -212,3 +276,43 @@ const useCases: UseCase[] = [
 
   <PublicFooter />
 </BaseLayout>
+
+<style>
+  .case-study-card {
+    animation: case-fade-up 760ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .case-study-visual > *,
+  .case-study-content > * {
+    animation: case-fade-up 860ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .case-study-kpi:nth-child(2),
+  .case-study-info:nth-child(2) {
+    animation-delay: 90ms;
+  }
+
+  .case-study-kpi:nth-child(3),
+  .case-study-info:nth-child(3) {
+    animation-delay: 160ms;
+  }
+
+  @keyframes case-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .case-study-card,
+    .case-study-visual > *,
+    .case-study-content > * {
+      animation: none;
+    }
+  }
+</style>

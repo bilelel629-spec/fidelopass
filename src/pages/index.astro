@@ -39,18 +39,8 @@ import PublicNav from '../components/marketing/PublicNav.astro';
             <div class="hero-phone">
               <div class="hero-phone__screen">
                 <div class="hero-phone__status"><span>9:41</span><span>Wallet</span></div>
-                <div class="hero-wallet-card">
-                  <div>
-                    <p class="hero-wallet-card__eyebrow">Dreams Donuts</p>
-                    <p class="hero-wallet-card__title">Carte fidélité</p>
-                  </div>
-                  <span class="hero-wallet-card__badge">8/10</span>
-                  <div class="hero-wallet-card__stamps">
-                    {Array.from({ length: 10 }).map((_, index) => (
-                      <span class={index < 8 ? 'is-filled' : ''}>★</span>
-                    ))}
-                  </div>
-                  <p class="hero-wallet-card__reward">Encore 2 passages avant une box offerte</p>
+                <div class="hero-wallet-card hero-wallet-card--real" aria-label="Aperçu d'une carte fidélité Fidelopass dans Wallet">
+                  <img src="/images/hero/somstar-wallet-card.png" alt="Carte fidélité Somstar dans Apple Wallet" />
                 </div>
                 <div class="hero-phone__timeline">
                   <span></span>
@@ -102,18 +92,8 @@ import PublicNav from '../components/marketing/PublicNav.astro';
           <div class="hero-phone">
             <div class="hero-phone__screen">
               <div class="hero-phone__status"><span>9:41</span><span>Wallet</span></div>
-              <div class="hero-wallet-card">
-                <div>
-                  <p class="hero-wallet-card__eyebrow">Dreams Donuts</p>
-                  <p class="hero-wallet-card__title">Carte fidélité</p>
-                </div>
-                <span class="hero-wallet-card__badge">8/10</span>
-                <div class="hero-wallet-card__stamps">
-                  {Array.from({ length: 10 }).map((_, index) => (
-                    <span class={index < 8 ? 'is-filled' : ''}>★</span>
-                  ))}
-                </div>
-                <p class="hero-wallet-card__reward">Encore 2 passages avant une box offerte</p>
+              <div class="hero-wallet-card hero-wallet-card--real" aria-label="Aperçu d'une carte fidélité Fidelopass dans Wallet">
+                <img src="/images/hero/somstar-wallet-card.png" alt="Carte fidélité Somstar dans Apple Wallet" />
               </div>
               <div class="hero-phone__timeline">
                 <span></span>
@@ -882,6 +862,35 @@ import PublicNav from '../components/marketing/PublicNav.astro';
     font-size: 0.8rem;
     font-weight: 700;
     line-height: 1.45;
+  }
+
+  .hero-wallet-card--real {
+    min-height: auto;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    border-radius: 1.65rem;
+    background: #064936;
+    box-shadow:
+      0 28px 58px rgba(2, 48, 43, 0.28),
+      0 0 0 1px rgba(255, 255, 255, 0.28) inset;
+  }
+
+  .hero-wallet-card--real::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 34%, rgba(255, 255, 255, 0.08) 68%, transparent);
+    pointer-events: none;
+    mix-blend-mode: screen;
+  }
+
+  .hero-wallet-card--real img {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
   }
 
   .hero-phone__timeline {

@@ -173,6 +173,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <div class="mt-4 grid gap-3 sm:grid-cols-2"><div><label class="label" for="birthday-reward-value">Bonus anniversaire</label><input id="birthday-reward-value" type="number" min="1" max="50" value="1" class="input" /></div><div><label class="label" for="birthday-title">Titre du push</label><input id="birthday-title" type="text" maxlength="80" class="input" placeholder="Joyeux anniversaire" /></div></div>
           <div class="mt-3"><label class="label" for="birthday-message">Message du push</label><textarea id="birthday-message" maxlength="180" class="input h-24 resize-none" placeholder="Votre bonus anniversaire est disponible sur votre carte Fidelopass."></textarea></div>
           <div class="mt-4 flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3"><div><p class="text-sm font-bold text-slate-900">Activer l’automatisation anniversaire</p><p class="mt-0.5 text-xs text-slate-500">Exécution Europe/Paris à 10h.</p></div><button id="birthday-toggle" type="button" class="relative h-7 w-14 flex-shrink-0 rounded-full transition-colors" style="background:#334155" aria-pressed="false"><span id="birthday-knob" class="absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all" style="left:2px"></span></button></div>
+          <button id="birthday-save-btn" type="button" class="mt-4 w-full rounded-2xl border border-pink-200 bg-white px-4 py-3 text-sm font-extrabold text-pink-700 transition hover:-translate-y-0.5 hover:bg-pink-50">Enregistrer le réglage anniversaire</button>
           <p id="birthday-status" class="mt-3 text-center text-xs text-slate-500">Chargement du statut...</p>
         </div>
       </div>
@@ -387,6 +388,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const birthdayRewardValue = document.getElementById('birthday-reward-value') as HTMLInputElement;
   const birthdayTitle = document.getElementById('birthday-title') as HTMLInputElement;
   const birthdayMessage = document.getElementById('birthday-message') as HTMLTextAreaElement;
+  const birthdaySaveBtn = document.getElementById('birthday-save-btn') as HTMLButtonElement;
   const pushIconColorInput = document.getElementById('push-icon-bg-color') as HTMLInputElement;
   const pushIconColorInputManual = document.getElementById('push-icon-bg-color-manual') as HTMLInputElement | null;
   const pushIconPreview = document.getElementById('push-icon-preview') as HTMLDivElement;
@@ -458,8 +460,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     birthdayRewardValue.disabled = disabled;
     birthdayTitle.disabled = disabled;
     birthdayMessage.disabled = disabled;
+    birthdaySaveBtn.disabled = disabled;
     birthdayToggle.classList.toggle('opacity-40', disabled);
     birthdayToggle.classList.toggle('cursor-not-allowed', disabled);
+    birthdaySaveBtn.classList.toggle('opacity-40', disabled);
+    birthdaySaveBtn.classList.toggle('cursor-not-allowed', disabled);
   }
 
   function syncPushIconInputs(color: string, source?: HTMLInputElement) {
@@ -816,19 +821,34 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   });
 
+  birthdaySaveBtn.addEventListener('click', async () => {
+    if (!birthdayIsPro) return;
+    birthdayError.classList.add('hidden');
+    birthdaySuccess.classList.add('hidden');
+    birthdaySaveBtn.disabled = true;
+    const previousLabel = birthdaySaveBtn.textContent;
+    birthdaySaveBtn.textContent = 'Enregistrement...';
+    try {
+      const payload = await persistBirthdaySettings(birthdayEnabled);
+      setBirthdayToggle(Boolean(payload?.data?.enabled));
+      birthdaySuccess.textContent = 'Réglage anniversaire enregistré.';
+      birthdaySuccess.classList.remove('hidden');
+    } catch (error: unknown) {
+      birthdayError.textContent = error instanceof Error ? error.message : 'Erreur réseau.';
+      birthdayError.classList.remove('hidden');
+    } finally {
+      birthdaySaveBtn.disabled = !birthdayIsPro;
+      birthdaySaveBtn.textContent = previousLabel ?? 'Enregistrer le réglage anniversaire';
+    }
+  });
+
   [birthdayRewardValue, birthdayTitle, birthdayMessage].forEach((field) => {
-    field.addEventListener('change', async () => {
+    field.addEventListener('input', () => {
       if (!birthdayIsPro) return;
-      birthdayError.classList.add('hidden');
       birthdaySuccess.classList.add('hidden');
-      try {
-        await persistBirthdaySettings(birthdayEnabled);
-        birthdaySuccess.textContent = 'Réglage anniversaire enregistré.';
-        birthdaySuccess.classList.remove('hidden');
-      } catch (error: unknown) {
-        birthdayError.textContent = error instanceof Error ? error.message : 'Erreur réseau.';
-        birthdayError.classList.remove('hidden');
-      }
+      birthdayStatus.textContent = birthdayEnabled
+        ? 'Réglage modifié. Enregistrez pour appliquer à la prochaine programmation.'
+        : 'Réglage modifié. Enregistrez avant d’activer l’automatisation.';
     });
   });
 

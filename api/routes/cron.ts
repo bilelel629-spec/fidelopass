@@ -635,33 +635,42 @@ async function sendScheduledBirthdayPushes(db: ReturnType<typeof createServiceCl
           const next = computeBirthdayReward(carte, client, rewardValue);
           const afterScore = carte.type === 'tampons' ? next.newTampons : next.newPoints;
 
-          const [{ error: clientUpdateError }, { error: txError }] = await Promise.all([
-            db
-              .from('clients')
-              .update({
-                points_actuels: next.newPoints,
-                tampons_actuels: next.newTampons,
-                recompenses_obtenues: next.recompensesObtenues,
-                updated_at: now.toISOString(),
-              })
-              .eq('id', client.id),
-            db
-              .from('transactions')
-              .insert({
-                client_id: client.id,
-                commerce_id: commerce.id,
-                point_vente_id: carte.point_vente_id,
-                type: carte.type === 'tampons' ? 'ajout_tampon' : 'ajout_points',
-                valeur: rewardValue,
-                points_avant: beforeScore,
-                points_apres: afterScore,
-                note: 'Bonus anniversaire automatique',
-              }),
-          ]);
+          const { error: clientUpdateError } = await db
+            .from('clients')
+            .update({
+              points_actuels: next.newPoints,
+              tampons_actuels: next.newTampons,
+              recompenses_obtenues: next.recompensesObtenues,
+              updated_at: now.toISOString(),
+            })
+            .eq('id', client.id);
 
-          if (clientUpdateError || txError) {
-            console.error('[cron birthday] Erreur update client/transaction:', clientUpdateError?.message ?? txError?.message);
+          if (clientUpdateError) {
+            await db
+              .from('birthday_rewards')
+              .delete()
+              .eq('client_id', client.id)
+              .eq('carte_id', carte.id)
+              .eq('birth_year', parisDate.year);
+            console.error('[cron birthday] Erreur update client:', clientUpdateError.message);
             continue;
+          }
+
+          const { error: txError } = await db
+            .from('transactions')
+            .insert({
+              client_id: client.id,
+              commerce_id: commerce.id,
+              point_vente_id: carte.point_vente_id,
+              type: carte.type === 'tampons' ? 'ajout_tampon' : 'ajout_points',
+              valeur: rewardValue,
+              points_avant: beforeScore,
+              points_apres: afterScore,
+              note: 'Bonus anniversaire automatique',
+            });
+
+          if (txError) {
+            console.error('[cron birthday] Erreur insertion transaction:', txError.message);
           }
 
           rewarded++;

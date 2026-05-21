@@ -70,8 +70,19 @@ async function isValidApplePassAuth(c: Context, serialNumber: string): Promise<b
     .eq('id', serialNumber)
     .maybeSingle();
   if (!client) return false;
-  const expectedToken = (client as { apple_auth_token?: string | null }).apple_auth_token ?? client.id;
-  return auth === `ApplePass ${expectedToken}`;
+  const appleAuthToken = (client as { apple_auth_token?: string | null }).apple_auth_token;
+  const acceptedTokens = new Set([client.id]);
+  if (appleAuthToken) acceptedTokens.add(appleAuthToken);
+  return acceptedTokens.has(auth.replace('ApplePass ', ''));
+}
+
+function latestValidDate(...values: Array<string | null | undefined>): Date {
+  const timestamps = values
+    .map((value) => value ? new Date(value).getTime() : NaN)
+    .filter((value) => Number.isFinite(value));
+
+  if (timestamps.length === 0) return new Date();
+  return new Date(Math.max(...timestamps));
 }
 
 async function loadApplePassByClient(serialNumber: string) {
@@ -168,9 +179,11 @@ walletRoutes.get('/apple/v1/passes/:passTypeIdentifier/:serialNumber', async (c)
   const { carte, client, latestNotification } = await loadApplePassByClient(serialNumber);
   if (!carte || !client) return c.json({ error: 'Pass introuvable' }, 404);
 
-  const lastModifiedDate = (client as { updated_at?: string | null }).updated_at
-    ? new Date((client as { updated_at: string }).updated_at)
-    : new Date();
+  const lastModifiedDate = latestValidDate(
+    (client as { updated_at?: string | null }).updated_at,
+    (carte as { updated_at?: string | null }).updated_at,
+    (latestNotification as { created_at?: string | null } | null)?.created_at,
+  );
 
   const ifModifiedSince = c.req.header('If-Modified-Since');
   if (ifModifiedSince) {

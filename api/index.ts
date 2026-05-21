@@ -22,6 +22,8 @@ import { cronRoutes } from './routes/cron';
 import { refreshRecentlyChangedWallets } from './routes/cron';
 import { billingRoutes } from './routes/billing';
 import { scannersRoutes } from './routes/scanners';
+import { geocodingRoutes } from './routes/geocoding';
+import { assistantCardRoutes } from './routes/assistant-card';
 import { createServiceClient } from '../src/lib/supabase';
 
 const app = new Hono<ApiEnv>();
@@ -59,6 +61,8 @@ app.route('/api/stripe-webhook', stripeWebhookRoutes);
 app.route('/api/sms', smsRoutes);
 app.route('/api/cron', cronRoutes);
 app.route('/api/scanners', scannersRoutes);
+app.route('/api/geocoding', geocodingRoutes);
+app.route('/api/assistant-card', assistantCardRoutes);
 
 app.get('/api/health', (c) => c.json({ ok: true, ts: new Date().toISOString() }));
 app.notFound((c) => c.json({ error: 'Route introuvable' }, 404));

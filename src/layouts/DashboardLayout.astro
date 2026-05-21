@@ -264,6 +264,7 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
 
     let index = startIndex;
     let activeTarget: HTMLElement | null = null;
+    let reposition = () => {};
 
     const cleanupTarget = () => {
       if (!activeTarget) return;
@@ -274,6 +275,8 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
 
     const finish = async () => {
       cleanupTarget();
+      window.removeEventListener('resize', reposition);
+      window.removeEventListener('scroll', reposition);
       overlay.remove();
       style.remove();
       window.sessionStorage.removeItem(TOUR_QUERY_KEY);
@@ -285,6 +288,8 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
 
     const postpone = async () => {
       cleanupTarget();
+      window.removeEventListener('resize', reposition);
+      window.removeEventListener('scroll', reposition);
       overlay.remove();
       style.remove();
       window.sessionStorage.removeItem(TOUR_QUERY_KEY);
@@ -299,6 +304,8 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       const viewportW = window.innerWidth;
       const viewportH = window.innerHeight;
       const cardW = Math.min(430, viewportW - 32);
+      const availableHeight = Math.max(220, viewportH - margin * 2);
+      card.style.maxHeight = `${availableHeight}px`;
 
       if (!target || viewportW < 640) {
         card.style.left = '';
@@ -313,7 +320,9 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       const rect = target.getBoundingClientRect();
       const preferRight = rect.left + rect.width + cardW + margin < viewportW;
       const preferLeft = rect.left - cardW - margin > 0;
-      const top = Math.min(Math.max(rect.top, margin), viewportH - 260);
+      const measuredHeight = Math.min(card.getBoundingClientRect().height || 260, availableHeight);
+      const maxTop = Math.max(margin, viewportH - measuredHeight - margin);
+      const top = Math.min(Math.max(rect.top, margin), maxTop);
 
       card.style.width = `${cardW}px`;
       card.style.top = `${top}px`;
@@ -330,9 +339,13 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
         card.style.left = '50%';
         card.style.right = 'auto';
         card.style.transform = 'translateX(-50%)';
-        card.style.top = `${Math.min(rect.bottom + margin, viewportH - 260)}px`;
+        card.style.top = `${Math.min(Math.max(rect.bottom + margin, margin), maxTop)}px`;
       }
     };
+
+    reposition = () => positionCard(activeTarget);
+    window.addEventListener('resize', reposition);
+    window.addEventListener('scroll', reposition, { passive: true });
 
     const render = () => {
       const step = TOUR_STEPS[index];
@@ -347,7 +360,6 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       activeTarget?.style.setProperty('--tour-ring', tone.ring);
       activeTarget?.classList.add('dashboard-tour-highlight');
       activeTarget?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-      window.setTimeout(() => positionCard(activeTarget), 180);
 
       card.innerHTML = `
         <div class="mb-3 flex items-center justify-between gap-3">
@@ -380,6 +392,10 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       const nextBtn = card.querySelector<HTMLButtonElement>('#tour-next');
       const prevBtn = card.querySelector<HTMLButtonElement>('#tour-prev');
       const skipBtn = card.querySelector<HTMLButtonElement>('#tour-skip');
+      window.requestAnimationFrame(() => {
+        positionCard(activeTarget);
+        window.setTimeout(() => positionCard(activeTarget), 180);
+      });
       nextBtn?.addEventListener('click', async () => {
         if (index >= TOUR_STEPS.length - 1) {
           await finish();

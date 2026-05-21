@@ -99,10 +99,10 @@ function getVipText(carte: CarteData): string | null {
 }
 
 function getMerchantLocations(carte: CarteData): Array<{ latitude: number; longitude: number }> | undefined {
-  const latitude = carte.commerces.latitude;
-  const longitude = carte.commerces.longitude;
+  const latitude = Number(carte.commerces.latitude);
+  const longitude = Number(carte.commerces.longitude);
 
-  if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
     return undefined;
   }
 

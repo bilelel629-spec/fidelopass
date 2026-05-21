@@ -340,12 +340,15 @@ export async function generateApplePass(
   }
 
   // Géolocalisation
-  if (carte.commerces.latitude && carte.commerces.longitude) {
+  const latitude = Number(carte.commerces.latitude);
+  const longitude = Number(carte.commerces.longitude);
+  const maxDistance = Number(carte.commerces.rayon_geo);
+  if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
     passJson.locations = [{
-      latitude: carte.commerces.latitude,
-      longitude: carte.commerces.longitude,
-      relevantText: carte.message_geo,
-      maxDistance: carte.commerces.rayon_geo,
+      latitude,
+      longitude,
+      relevantText: carte.message_geo || 'Votre carte de fidélité vous attend !',
+      ...(Number.isFinite(maxDistance) ? { maxDistance } : {}),
     }];
   }
 

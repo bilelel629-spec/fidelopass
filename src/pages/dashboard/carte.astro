@@ -922,6 +922,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
 <script>
   import { authFetch } from '../../lib/api';
+  import { clearAddressPayload, getAddressPayload, initAddressAutocomplete } from '../../lib/address-autocomplete';
   import { createClient } from '@supabase/supabase-js';
 
   const supabase = createClient(import.meta.env.PUBLIC_SUPABASE_URL, import.meta.env.PUBLIC_SUPABASE_ANON_KEY);
@@ -1106,7 +1107,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     5: () => null,
     6: () => {
       if (!geoEnabled) return null;
-      if (!(document.getElementById('adresse-commerce') as HTMLInputElement).value.trim()) return 'Ajoutez l’adresse du commerce pour activer la géolocalisation.';
+      if (!adresseCommerceInput.value.trim()) return 'Ajoutez l’adresse du commerce pour activer la géolocalisation.';
       return null;
     },
     7: () => null,
@@ -2266,7 +2267,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       {
         title: 'Proximité',
         value: `${parseInt((document.getElementById('rayon-geo') as HTMLInputElement).value || '1000', 10).toLocaleString('fr-FR')} m`,
-        detail: (document.getElementById('adresse-commerce') as HTMLInputElement).value || (document.getElementById('message-geo') as HTMLInputElement).value || 'Adresse et message de proximité à compléter',
+        detail: adresseCommerceInput.value || (document.getElementById('message-geo') as HTMLInputElement).value || 'Adresse et message de proximité à compléter',
       },
     ];
 
@@ -2500,7 +2501,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         method: 'PATCH',
         body: JSON.stringify({
           rayon_geo: parseInt((document.getElementById('rayon-geo') as HTMLInputElement).value, 10),
-          adresse: (document.getElementById('adresse-commerce') as HTMLInputElement).value || null,
+          adresse: adresseCommerceInput.value || null,
+          ...getAddressPayload(adresseCommerceInput),
         }),
       });
 
@@ -2600,6 +2602,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   const rayonSlider = document.getElementById('rayon-geo') as HTMLInputElement;
   const rayonLabel = document.getElementById('rayon-label')!;
+  const adresseCommerceInput = document.getElementById('adresse-commerce') as HTMLInputElement;
+  initAddressAutocomplete({
+    input: adresseCommerceInput,
+    onSelect: () => {
+      markDirty();
+      renderReviewSummary();
+    },
+  });
   rayonSlider.addEventListener('input', () => {
     rayonLabel.textContent = `${parseInt(rayonSlider.value).toLocaleString('fr-FR')} m`;
   });
@@ -2614,7 +2624,20 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         activePointName.textContent = data?.point_vente_nom ?? data?.nom ?? 'Principal';
       }
       const rayon = data?.rayon_geo ?? 1000;
-      (document.getElementById('adresse-commerce') as HTMLInputElement).value = data?.adresse ?? '';
+      adresseCommerceInput.value = data?.adresse ?? '';
+      const latitude = Number(data?.latitude);
+      const longitude = Number(data?.longitude);
+      if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+        adresseCommerceInput.dataset.addressLabel = adresseCommerceInput.value;
+        adresseCommerceInput.dataset.latitude = String(latitude);
+        adresseCommerceInput.dataset.longitude = String(longitude);
+        adresseCommerceInput.dataset.rue = data?.rue ?? '';
+        adresseCommerceInput.dataset.ville = data?.ville ?? '';
+        adresseCommerceInput.dataset.codePostal = data?.code_postal ?? '';
+        adresseCommerceInput.dataset.pays = data?.pays ?? '';
+      } else {
+        clearAddressPayload(adresseCommerceInput);
+      }
       rayonSlider.value = String(rayon);
       rayonLabel.textContent = `${rayon.toLocaleString('fr-FR')} m`;
       if (data?.adresse) setGeoToggle(true, true);

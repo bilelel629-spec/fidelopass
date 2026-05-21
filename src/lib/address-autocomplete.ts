@@ -52,6 +52,7 @@ function iconSvg(path: string) {
 }
 
 function setAddressDataset(input: HTMLInputElement, suggestion: AddressSuggestion) {
+  input.dataset.addressLabel = suggestion.label;
   input.dataset.latitude = String(suggestion.latitude);
   input.dataset.longitude = String(suggestion.longitude);
   input.dataset.rue = suggestion.rue ?? '';
@@ -61,6 +62,7 @@ function setAddressDataset(input: HTMLInputElement, suggestion: AddressSuggestio
 }
 
 export function clearAddressPayload(input: HTMLInputElement) {
+  delete input.dataset.addressLabel;
   delete input.dataset.latitude;
   delete input.dataset.longitude;
   delete input.dataset.rue;
@@ -195,6 +197,10 @@ export function initAddressAutocomplete({ input, currentLocationLabel = 'Utilise
 
   async function search() {
     const query = input.value.trim();
+    if (input.dataset.addressLabel === query) {
+      close();
+      return;
+    }
     clearAddressPayload(input);
     if (query.length < 3) {
       suggestions = [];

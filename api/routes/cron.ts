@@ -205,7 +205,7 @@ async function loadWalletRefreshCandidateIds(
   return Array.from(candidateIds).slice(0, WALLET_REFRESH_LIMIT);
 }
 
-async function refreshRecentlyChangedWallets(db: ReturnType<typeof createServiceClient>) {
+export async function refreshRecentlyChangedWallets(db: ReturnType<typeof createServiceClient>) {
   const since = new Date(Date.now() - WALLET_REFRESH_WINDOW_MINUTES * 60 * 1000).toISOString();
   const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
   const candidateIds = await loadWalletRefreshCandidateIds(db, since);

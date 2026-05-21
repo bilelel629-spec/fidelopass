@@ -19,8 +19,10 @@ import { checkoutRoutes } from './routes/checkout';
 import { stripeWebhookRoutes } from './routes/stripe-webhook';
 import { smsRoutes } from './routes/sms';
 import { cronRoutes } from './routes/cron';
+import { refreshRecentlyChangedWallets } from './routes/cron';
 import { billingRoutes } from './routes/billing';
 import { scannersRoutes } from './routes/scanners';
+import { createServiceClient } from '../src/lib/supabase';
 
 const app = new Hono<ApiEnv>();
 
@@ -69,3 +71,29 @@ const port = Number(process.env.PORT ?? 3001);
 console.log(`API Fidelopass démarrée sur http://localhost:${port}`);
 
 serve({ fetch: app.fetch, port });
+
+const walletRefreshIntervalMs = Number(process.env.WALLET_REFRESH_INTERVAL_MS ?? 60_000);
+const walletRefreshEnabled = process.env.WALLET_REFRESH_INTERVAL_ENABLED !== 'false';
+let walletRefreshRunning = false;
+
+if (walletRefreshEnabled && walletRefreshIntervalMs >= 30_000) {
+  const runWalletRefresh = async () => {
+    if (walletRefreshRunning) return;
+    walletRefreshRunning = true;
+    try {
+      const result = await refreshRecentlyChangedWallets(createServiceClient());
+      if (result.candidates > 0 || result.errors > 0) {
+        console.log(
+          `[wallet-refresh interval] candidats=${result.candidates}, google=${result.google_updated}, apple=${result.apple_pushed}, erreurs=${result.errors}`,
+        );
+      }
+    } catch (error) {
+      console.error('[wallet-refresh interval]', error);
+    } finally {
+      walletRefreshRunning = false;
+    }
+  };
+
+  setInterval(runWalletRefresh, walletRefreshIntervalMs);
+  setTimeout(runWalletRefresh, 10_000);
+}

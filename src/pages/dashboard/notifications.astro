@@ -3,165 +3,300 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 ---
 
 <DashboardLayout title="Notifications push — Fidelopass" activeNav="notifications">
-  <div class="mb-6">
-    <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Communication client</p>
-    <h1 class="mt-2 font-display text-3xl font-bold text-slate-900">Notifications push</h1>
-    <p class="mt-2 text-sm text-slate-600">Envoyez un message immédiat ou activez des automatisations pour vos clients Wallet.</p>
-  </div>
-
-  <div class="mb-5 grid gap-4 sm:grid-cols-2" data-tour="notifications-summary">
-    <div class="card p-5">
-      <p class="text-slate-500 text-xs uppercase tracking-wide">Clients joignables Wallet</p>
-      <p id="summary-wallet" class="mt-2 text-2xl font-display font-bold text-slate-900">—</p>
-      <p class="mt-1 text-xs text-slate-500">Apple Wallet + Google Wallet</p>
-    </div>
-    <div class="card p-5">
-      <p class="text-slate-500 text-xs uppercase tracking-wide">Campagnes envoyées</p>
-      <p id="summary-history" class="mt-2 text-2xl font-display font-bold text-slate-900">—</p>
-      <p class="mt-1 text-xs text-slate-500">Historique du point de vente actif</p>
-    </div>
-  </div>
-
-  <div class="mb-5 rounded-2xl border border-sky-100 bg-white p-2">
-    <div class="grid gap-2 sm:grid-cols-3">
-      <button type="button" data-tab="manual" class="notif-tab rounded-xl bg-sky-100 px-4 py-2.5 text-sm font-semibold text-sky-800">Envoi manuel</button>
-      <button type="button" data-tab="automation" class="notif-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Automatisations</button>
-      <button type="button" data-tab="history" class="notif-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Historique</button>
-    </div>
-  </div>
-
-  <section id="tab-manual" class="notif-panel card p-6" data-tour="notifications-compose">
-    <h2 class="mb-4 font-display font-bold text-slate-900">Nouveau message client</h2>
-    <form id="notif-form" class="flex flex-col gap-4">
+  <div class="notif-page space-y-6">
+    <header class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
       <div>
-        <label class="label" for="titre">Titre</label>
-        <input id="titre" type="text" class="input" placeholder="Ex: Offre du weekend" maxlength="50" required />
+        <p class="text-[0.7rem] font-extrabold uppercase tracking-[0.32em] text-blue-600">Communication client</p>
+        <h1 class="mt-3 font-display text-4xl font-extrabold tracking-[-0.04em] text-slate-950 sm:text-5xl lg:text-6xl">Notifications push</h1>
+        <p class="mt-4 max-w-3xl text-base leading-8 text-slate-600 sm:text-lg">Envoyez des offres ciblées directement dans Apple Wallet et Google Wallet.</p>
       </div>
-      <div>
-        <label class="label" for="message">Message</label>
-        <textarea id="message" class="input h-24 resize-none" placeholder="Ex: -20% ce samedi pour les membres fidélité." maxlength="150" required></textarea>
-        <span class="mt-1 block text-right text-xs text-slate-500"><span id="char-count">0</span>/150</span>
+      <div class="inline-flex w-fit items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-3 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.45)]">
+        <span class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+          <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        </span>
+        <div>
+          <p id="summary-wallet-badge" class="text-sm font-extrabold text-slate-950">— clients abonnés</p>
+          <p class="text-xs font-medium text-slate-500">Wallet/push actifs</p>
+        </div>
       </div>
-      <div id="error-msg" class="hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
-      <div id="success-msg" class="hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
-      <button type="submit" class="btn-primary py-3">Envoyer le message</button>
-    </form>
+    </header>
 
-    <div class="mt-6 rounded-2xl border border-sky-100 bg-sky-50/35 p-4">
-      <div class="mb-3 flex items-start justify-between gap-3">
-        <div>
-          <h3 class="font-semibold text-slate-900">Fond du logo des notifications</h3>
-          <p class="mt-0.5 text-xs text-slate-500">Réglage identique à l’onglet Automatisations, appliqué au point de vente sélectionné.</p>
-        </div>
-        <div id="push-icon-preview-manual" class="h-10 w-10 rounded-xl border border-slate-200 shadow-inner"></div>
-      </div>
-      <div id="push-icon-error-manual" class="mb-2 hidden rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"></div>
-      <div id="push-icon-success-manual" class="mb-2 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"></div>
-      <div class="space-y-2">
-        <label class="label" for="push-icon-bg-color-manual">Couleur du fond</label>
-        <input id="push-icon-bg-color-manual" type="color" value="#6366f1" class="h-11 w-full cursor-pointer rounded-xl border border-slate-200 bg-white" />
-        <p id="push-icon-status-manual" class="text-xs text-slate-500">Chargement du réglage...</p>
-      </div>
-    </div>
-  </section>
-
-  <section id="tab-automation" class="notif-panel hidden space-y-5">
-    <div class="card border-sky-100 bg-sky-50/40 p-6">
-      <div class="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <h2 class="font-display font-bold text-slate-900">Avis Google automatique (+1h)</h2>
-          <p class="mt-1 text-sm text-slate-500">Push envoyé 60 minutes après l’installation de la carte.</p>
-        </div>
-        <span class="rounded-full border border-amber-200 bg-amber-100 px-2 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-700">Pro uniquement</span>
-      </div>
-      <div class="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-        Plan actuel: <span id="review-auto-plan-value" class="font-semibold text-slate-900">Chargement...</span>
-      </div>
-      <div id="review-auto-locked" class="mb-4 hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-        Cette fonctionnalité est réservée au plan Pro.
-      </div>
-      <div id="review-auto-error" class="mb-3 hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
-      <div id="review-auto-success" class="mb-3 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
-      <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
-        <div>
-          <p class="text-sm font-medium text-slate-800">Activer l’automatisation</p>
-          <p class="mt-0.5 text-xs text-slate-500">Utilise le lien Google Maps du point de vente actif.</p>
-        </div>
-        <button id="review-auto-toggle" type="button" class="relative h-6 w-12 flex-shrink-0 rounded-full transition-colors" style="background:#334155" aria-pressed="false">
-          <span id="review-auto-knob" class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all" style="left:2px"></span>
-        </button>
-      </div>
-      <p id="review-auto-status" class="mt-2 text-center text-xs text-slate-500">Chargement du statut...</p>
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" data-tour="notifications-summary">
+      <article class="notif-kpi-card">
+        <span class="notif-kpi-icon bg-blue-50 text-blue-600"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
+        <p class="mt-5 text-sm font-semibold text-slate-500">Clients abonnés</p>
+        <p id="summary-wallet" class="mt-2 font-display text-4xl font-extrabold tracking-[-0.05em] text-slate-950">—</p>
+        <p class="mt-1 text-xs font-medium text-slate-500">Apple Wallet + Google Wallet</p>
+      </article>
+      <article class="notif-kpi-card">
+        <span class="notif-kpi-icon bg-indigo-50 text-indigo-600"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3Z"></path><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path></svg></span>
+        <p class="mt-5 text-sm font-semibold text-slate-500">Campagnes envoyées</p>
+        <p id="summary-history" class="mt-2 font-display text-4xl font-extrabold tracking-[-0.05em] text-slate-950">—</p>
+        <p class="mt-1 text-xs font-medium text-slate-500">Historique total</p>
+      </article>
+      <article class="notif-kpi-card">
+        <span class="notif-kpi-icon bg-emerald-50 text-emerald-600"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
+        <p class="mt-5 text-sm font-semibold text-slate-500">Taux d’ouverture</p>
+        <p id="summary-open-rate" class="mt-2 font-display text-4xl font-extrabold tracking-[-0.05em] text-slate-950">—</p>
+        <p class="mt-1 text-xs font-medium text-slate-500">Suivi à connecter</p>
+      </article>
+      <article class="notif-kpi-card">
+        <span class="notif-kpi-icon bg-orange-50 text-orange-600"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg></span>
+        <p class="mt-5 text-sm font-semibold text-slate-500">Notifications ouvertes</p>
+        <p id="summary-opened" class="mt-2 font-display text-4xl font-extrabold tracking-[-0.05em] text-slate-950">—</p>
+        <p class="mt-1 text-xs font-medium text-slate-500">Total cumulé</p>
+      </article>
     </div>
 
-    <div class="card border-pink-100 bg-pink-50/40 p-6">
-      <div class="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <h2 class="font-display font-bold text-slate-900">Anniversaire automatique (jour J à 10h)</h2>
-          <p class="mt-1 text-sm text-slate-500">Push anniversaire + bonus automatique sur la carte client.</p>
-        </div>
-        <span class="rounded-full border border-amber-200 bg-amber-100 px-2 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-700">Pro uniquement</span>
+    <div class="rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-[0_18px_45px_-34px_rgba(15,23,42,0.35)]">
+      <div class="grid gap-2 sm:grid-cols-3">
+        <button type="button" data-tab="manual" class="notif-tab rounded-[1.1rem] px-4 py-4 text-sm font-extrabold transition">Envoi manuel</button>
+        <button type="button" data-tab="automation" class="notif-tab rounded-[1.1rem] px-4 py-4 text-sm font-extrabold transition">Automatisations</button>
+        <button type="button" data-tab="history" class="notif-tab rounded-[1.1rem] px-4 py-4 text-sm font-extrabold transition">Historique</button>
       </div>
-      <div class="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-        Plan actuel: <span id="birthday-plan-value" class="font-semibold text-slate-900">Chargement...</span>
-      </div>
-      <div id="birthday-locked" class="mb-4 hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-        Cette fonctionnalité est réservée au plan Pro.
-      </div>
-      <div id="birthday-error" class="mb-3 hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
-      <div id="birthday-success" class="mb-3 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
-
-      <div class="mb-4 space-y-3">
-        <div>
-          <label class="label" for="birthday-reward-value">Bonus anniversaire (tampon/point)</label>
-          <input id="birthday-reward-value" type="number" min="1" max="50" value="1" class="input" />
-        </div>
-        <div>
-          <label class="label" for="birthday-title">Titre du push</label>
-          <input id="birthday-title" type="text" maxlength="80" class="input" placeholder="Joyeux anniversaire 🎉" />
-        </div>
-        <div>
-          <label class="label" for="birthday-message">Message du push</label>
-          <textarea id="birthday-message" maxlength="180" class="input h-24 resize-none" placeholder="Votre bonus anniversaire est disponible sur votre carte Fidelopass."></textarea>
-        </div>
-      </div>
-      <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
-        <div>
-          <p class="text-sm font-medium text-slate-800">Activer l’automatisation anniversaire</p>
-          <p class="mt-0.5 text-xs text-slate-500">Execution Europe/Paris à 10h.</p>
-        </div>
-        <button id="birthday-toggle" type="button" class="relative h-6 w-12 flex-shrink-0 rounded-full transition-colors" style="background:#334155" aria-pressed="false">
-          <span id="birthday-knob" class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all" style="left:2px"></span>
-        </button>
-      </div>
-      <p id="birthday-status" class="mt-2 text-center text-xs text-slate-500">Chargement du statut...</p>
     </div>
 
-    <div class="card border-sky-100 bg-white p-6">
-      <div class="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <h2 class="font-display font-bold text-slate-900">Fond du logo des notifications</h2>
-          <p class="mt-1 text-sm text-slate-500">Couleur affichée derrière le logo commerçant dans les notifications Wallet.</p>
+    <section id="tab-manual" class="notif-panel space-y-6" data-tour="notifications-compose">
+      <div class="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(22rem,0.65fr)]">
+        <div class="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.5)] sm:p-7">
+          <div class="mb-6">
+            <h2 class="font-display text-2xl font-extrabold tracking-[-0.03em] text-slate-950">Nouveau message client</h2>
+            <p class="mt-2 text-sm leading-6 text-slate-500">Créez une notification visible directement sur l’écran verrouillé.</p>
+          </div>
+          <form id="notif-form" class="flex flex-col gap-5">
+            <div>
+              <label class="label" for="titre">Titre</label>
+              <input id="titre" type="text" class="input" placeholder="Offre du week-end" maxlength="50" required />
+            </div>
+            <div>
+              <label class="label" for="message">Message</label>
+              <textarea id="message" class="input h-28 resize-none" placeholder="-20% ce samedi pour les membres fidélité." maxlength="150" required></textarea>
+              <div class="mt-2 flex items-center justify-between gap-3 text-xs text-slate-500">
+                <span id="message-validity" class="font-semibold text-emerald-600">Prêt à rédiger</span>
+                <span><span id="char-count">0</span>/150</span>
+              </div>
+            </div>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div>
+                <label class="label" for="audience-select">Audience</label>
+                <select id="audience-select" class="input">
+                  <option>Tous les clients abonnés</option>
+                  <option>Clients inactifs</option>
+                  <option>Clients VIP</option>
+                  <option>Nouveaux clients</option>
+                </select>
+              </div>
+              <div>
+                <label class="label" for="schedule-select">Planification</label>
+                <select id="schedule-select" class="input">
+                  <option>Envoyer maintenant</option>
+                  <option>Programmer</option>
+                  <option>Demain matin</option>
+                  <option>Ce week-end</option>
+                </select>
+              </div>
+            </div>
+            <div id="error-msg" class="hidden rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+            <div id="success-msg" class="hidden rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
+            <button type="submit" class="rounded-[1.1rem] bg-[linear-gradient(135deg,#2563EB_0%,#7C3AED_100%)] px-5 py-4 text-base font-extrabold text-white shadow-[0_20px_42px_-24px_rgba(37,99,235,0.95)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_58px_-28px_rgba(124,58,237,0.95)]">Envoyer la notification</button>
+            <p id="send-helper" class="text-center text-xs font-medium text-slate-500">Envoi instantané aux clients abonnés.</p>
+          </form>
         </div>
-        <div id="push-icon-preview" class="h-11 w-11 rounded-xl border border-slate-200 shadow-inner"></div>
+
+        <aside class="space-y-5">
+          <div class="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.5)]">
+            <h2 class="font-display text-xl font-extrabold text-slate-950">Aperçu</h2>
+            <div class="mx-auto mt-5 max-w-[18rem] rounded-[2.2rem] bg-slate-950 p-3 shadow-[0_28px_60px_-34px_rgba(15,23,42,0.75)]">
+              <div class="overflow-hidden rounded-[1.75rem] bg-[linear-gradient(160deg,#dbeafe_0%,#ffffff_46%,#c7d2fe_100%)] p-4">
+                <div class="flex items-center justify-between text-xs font-extrabold text-slate-950"><span>9:41</span><span>5G</span></div>
+                <div class="mt-14 rounded-[1.35rem] bg-white/88 p-3 shadow-[0_16px_38px_-26px_rgba(15,23,42,0.7)] backdrop-blur">
+                  <div class="flex gap-3">
+                    <div id="push-icon-preview-manual" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/70 shadow-inner"><span class="text-sm font-extrabold text-white">F</span></div>
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center justify-between gap-2"><p class="truncate text-xs font-extrabold text-slate-950">FideloPass</p><span class="text-[0.66rem] text-slate-400">maintenant</span></div>
+                      <p id="preview-title" class="mt-1 text-sm font-extrabold text-slate-950">Offre du week-end</p>
+                      <p id="preview-message" class="mt-0.5 text-xs leading-5 text-slate-600">-20% ce samedi pour les membres fidélité.</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="mt-24 h-1.5 w-24 rounded-full bg-slate-950/70 mx-auto"></div>
+              </div>
+            </div>
+          </div>
+          <div class="rounded-[1.5rem] border border-blue-100 bg-blue-50/55 p-5">
+            <div class="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <h3 class="font-extrabold text-slate-950">Fond du logo</h3>
+                <p class="mt-1 text-xs leading-5 text-slate-500">Appliqué aux notifications Wallet du point de vente.</p>
+              </div>
+            </div>
+            <div id="push-icon-error-manual" class="mb-2 hidden rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"></div>
+            <div id="push-icon-success-manual" class="mb-2 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"></div>
+            <label class="label" for="push-icon-bg-color-manual">Couleur du fond</label>
+            <input id="push-icon-bg-color-manual" type="color" value="#6366f1" class="h-11 w-full cursor-pointer rounded-xl border border-slate-200 bg-white" />
+            <p id="push-icon-status-manual" class="mt-2 text-xs text-slate-500">Chargement du réglage...</p>
+          </div>
+        </aside>
       </div>
-      <div id="push-icon-error" class="mb-3 hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
-      <div id="push-icon-success" class="mb-3 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
-      <div class="space-y-2">
+
+      <div class="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_20px_60px_-48px_rgba(15,23,42,0.45)] sm:p-6">
+        <h2 class="font-display text-2xl font-extrabold text-slate-950">Idées rapides</h2>
+        <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <button type="button" class="quick-idea" data-title="Offre du week-end" data-message="-20% ce samedi pour les membres fidélité."><span>Offre du week-end</span><small>Promotion simple et immédiate.</small></button>
+          <button type="button" class="quick-idea" data-title="Nouveau produit" data-message="Une nouveauté vous attend en boutique cette semaine."><span>Nouveau produit</span><small>Annonce courte et claire.</small></button>
+          <button type="button" class="quick-idea" data-title="Récompense débloquée" data-message="Votre récompense fidélité est disponible sur votre carte."><span>Récompense débloquée</span><small>Incite au retour en caisse.</small></button>
+          <button type="button" class="quick-idea" data-title="Joyeux anniversaire" data-message="Votre bonus anniversaire est disponible aujourd’hui."><span>Joyeux anniversaire</span><small>Message personnel.</small></button>
+          <button type="button" class="quick-idea" data-title="Dernière chance" data-message="Dernier jour pour profiter de votre avantage fidélité."><span>Dernière chance</span><small>Créer une urgence mesurée.</small></button>
+          <button type="button" class="quick-idea" data-title="On vous attend" data-message="Votre carte fidélité vous attend, passez nous voir cette semaine."><span>Client inactif</span><small>Relance douce.</small></button>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-automation" class="notif-panel hidden space-y-5">
+      <div class="grid gap-5 xl:grid-cols-2">
+        <div class="automation-card border-sky-100 bg-sky-50/50">
+          <div class="flex items-start justify-between gap-3"><div><h2 class="font-display text-xl font-extrabold text-slate-950">Avis Google automatique</h2><p class="mt-1 text-sm leading-6 text-slate-500">Push envoyé 60 minutes après l’installation de la carte.</p></div><span class="pro-pill">Pro</span></div>
+          <div class="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">Plan actuel: <span id="review-auto-plan-value" class="font-semibold text-slate-900">Chargement...</span></div>
+          <div id="review-auto-locked" class="mt-4 hidden rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">Cette fonctionnalité est réservée au plan Pro.</div>
+          <div id="review-auto-error" class="mt-3 hidden rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+          <div id="review-auto-success" class="mt-3 hidden rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
+          <div class="mt-4 flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3"><div><p class="text-sm font-bold text-slate-900">Activer l’automatisation</p><p class="mt-0.5 text-xs text-slate-500">Utilise le lien Google Maps du point de vente actif.</p></div><button id="review-auto-toggle" type="button" class="relative h-7 w-14 flex-shrink-0 rounded-full transition-colors" style="background:#334155" aria-pressed="false"><span id="review-auto-knob" class="absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all" style="left:2px"></span></button></div>
+          <p id="review-auto-status" class="mt-3 text-center text-xs text-slate-500">Chargement du statut...</p>
+        </div>
+
+        <div class="automation-card border-pink-100 bg-pink-50/50">
+          <div class="flex items-start justify-between gap-3"><div><h2 class="font-display text-xl font-extrabold text-slate-950">Joyeux anniversaire</h2><p class="mt-1 text-sm leading-6 text-slate-500">Push anniversaire + bonus automatique sur la carte client.</p></div><span class="pro-pill">Pro</span></div>
+          <div class="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">Plan actuel: <span id="birthday-plan-value" class="font-semibold text-slate-900">Chargement...</span></div>
+          <div id="birthday-locked" class="mt-4 hidden rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">Cette fonctionnalité est réservée au plan Pro.</div>
+          <div id="birthday-error" class="mt-3 hidden rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+          <div id="birthday-success" class="mt-3 hidden rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
+          <div class="mt-4 grid gap-3 sm:grid-cols-2"><div><label class="label" for="birthday-reward-value">Bonus anniversaire</label><input id="birthday-reward-value" type="number" min="1" max="50" value="1" class="input" /></div><div><label class="label" for="birthday-title">Titre du push</label><input id="birthday-title" type="text" maxlength="80" class="input" placeholder="Joyeux anniversaire" /></div></div>
+          <div class="mt-3"><label class="label" for="birthday-message">Message du push</label><textarea id="birthday-message" maxlength="180" class="input h-24 resize-none" placeholder="Votre bonus anniversaire est disponible sur votre carte Fidelopass."></textarea></div>
+          <div class="mt-4 flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3"><div><p class="text-sm font-bold text-slate-900">Activer l’automatisation anniversaire</p><p class="mt-0.5 text-xs text-slate-500">Exécution Europe/Paris à 10h.</p></div><button id="birthday-toggle" type="button" class="relative h-7 w-14 flex-shrink-0 rounded-full transition-colors" style="background:#334155" aria-pressed="false"><span id="birthday-knob" class="absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all" style="left:2px"></span></button></div>
+          <p id="birthday-status" class="mt-3 text-center text-xs text-slate-500">Chargement du statut...</p>
+        </div>
+      </div>
+
+      <div class="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_-48px_rgba(15,23,42,0.45)]">
+        <div class="mb-4 flex items-start justify-between gap-3"><div><h2 class="font-display text-xl font-extrabold text-slate-950">Fond du logo des notifications</h2><p class="mt-1 text-sm leading-6 text-slate-500">Couleur affichée derrière le logo commerçant dans les notifications Wallet.</p></div><div id="push-icon-preview" class="h-12 w-12 rounded-xl border border-slate-200 shadow-inner"></div></div>
+        <div id="push-icon-error" class="mb-3 hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+        <div id="push-icon-success" class="mb-3 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
         <label class="label" for="push-icon-bg-color">Couleur du fond</label>
         <input id="push-icon-bg-color" type="color" value="#6366f1" class="h-11 w-full cursor-pointer rounded-xl border border-slate-200 bg-white" />
-        <p id="push-icon-status" class="text-xs text-slate-500">Chargement du réglage...</p>
+        <p id="push-icon-status" class="mt-2 text-xs text-slate-500">Chargement du réglage...</p>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section id="tab-history" class="notif-panel hidden card p-6">
-    <h2 class="mb-4 font-display font-bold text-slate-900">Historique des messages</h2>
-    <div id="notif-history" class="flex flex-col gap-3">
-      <p class="text-sm text-slate-500">Chargement...</p>
-    </div>
-  </section>
+    <section id="tab-history" class="notif-panel hidden rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.5)] sm:p-7">
+      <div class="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><h2 class="font-display text-2xl font-extrabold text-slate-950">Historique</h2><p class="mt-1 text-sm text-slate-500">Campagnes envoyées sur le point de vente actif.</p></div></div>
+      <div id="notif-history" class="overflow-hidden rounded-2xl border border-slate-200"><p class="p-4 text-sm text-slate-500">Chargement...</p></div>
+    </section>
+  </div>
 </DashboardLayout>
+
+<style>
+  .notif-page {
+    animation: notif-fade-up 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .notif-kpi-card {
+    border: 1px solid rgb(226 232 240);
+    border-radius: 1.5rem;
+    background: #fff;
+    padding: 1.35rem;
+    box-shadow: 0 24px 70px -52px rgba(15, 23, 42, 0.55);
+    transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+  }
+
+  .notif-kpi-card:hover,
+  .automation-card:hover,
+  .quick-idea:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 30px 75px -52px rgba(37, 99, 235, 0.52);
+    border-color: rgb(191 219 254);
+  }
+
+  .notif-kpi-icon {
+    display: flex;
+    height: 3rem;
+    width: 3rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 1rem;
+  }
+
+  .notif-kpi-icon svg {
+    height: 1.25rem;
+    width: 1.25rem;
+  }
+
+  .quick-idea {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    border: 1px solid rgb(226 232 240);
+    border-radius: 1.25rem;
+    background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+    padding: 1rem;
+    text-align: left;
+    transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+  }
+
+  .quick-idea span {
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: #0f172a;
+  }
+
+  .quick-idea small {
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: #64748b;
+  }
+
+  .automation-card {
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 1.6rem;
+    padding: 1.5rem;
+    box-shadow: 0 22px 64px -52px rgba(15, 23, 42, 0.5);
+    transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+  }
+
+  .pro-pill {
+    flex-shrink: 0;
+    border-radius: 9999px;
+    border: 1px solid rgb(253 230 138);
+    background: rgb(254 243 199);
+    padding: 0.35rem 0.65rem;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(180 83 9);
+  }
+
+  @keyframes notif-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .notif-page,
+    .notif-kpi-card,
+    .automation-card,
+    .quick-idea {
+      animation: none;
+      transition: none;
+    }
+  }
+</style>
 
 <script>
   import { ACTIVE_POINT_VENTE_STORAGE_KEY, authFetch } from '../../lib/api';
@@ -184,8 +319,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     document.querySelectorAll<HTMLElement>('.notif-tab').forEach((btn) => {
       const active = btn.dataset.tab === tab;
       btn.className = active
-        ? 'notif-tab rounded-xl bg-sky-100 px-4 py-2.5 text-sm font-semibold text-sky-800'
-        : 'notif-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50';
+        ? 'notif-tab rounded-[1.1rem] bg-[linear-gradient(135deg,#2563EB_0%,#7C3AED_100%)] px-4 py-4 text-sm font-extrabold text-white shadow-[0_16px_34px_-22px_rgba(37,99,235,0.95)] transition'
+        : 'notif-tab rounded-[1.1rem] px-4 py-4 text-sm font-extrabold text-slate-600 transition hover:bg-slate-50';
     });
   }
 
@@ -194,13 +329,37 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   });
 
   const messageInput = document.getElementById('message') as HTMLTextAreaElement;
+  const titleInput = document.getElementById('titre') as HTMLInputElement;
   const charCount = document.getElementById('char-count') as HTMLSpanElement;
+  const messageValidity = document.getElementById('message-validity') as HTMLSpanElement | null;
+  const previewTitle = document.getElementById('preview-title');
+  const previewMessage = document.getElementById('preview-message');
+  const sendHelper = document.getElementById('send-helper');
   const errorMsg = document.getElementById('error-msg') as HTMLDivElement;
   const successMsg = document.getElementById('success-msg') as HTMLDivElement;
   const form = document.getElementById('notif-form') as HTMLFormElement;
 
-  messageInput.addEventListener('input', () => {
+  function syncMessagePreview() {
     charCount.textContent = String(messageInput.value.length);
+    if (previewTitle) previewTitle.textContent = titleInput.value.trim() || 'Offre du week-end';
+    if (previewMessage) previewMessage.textContent = messageInput.value.trim() || '-20% ce samedi pour les membres fidélité.';
+    if (messageValidity) {
+      const hasContent = titleInput.value.trim().length > 0 && messageInput.value.trim().length > 0;
+      messageValidity.textContent = hasContent ? 'Message prêt' : 'Prêt à rédiger';
+      messageValidity.className = hasContent ? 'font-semibold text-emerald-600' : 'font-semibold text-slate-400';
+    }
+  }
+
+  messageInput.addEventListener('input', syncMessagePreview);
+  titleInput.addEventListener('input', syncMessagePreview);
+
+  document.querySelectorAll<HTMLButtonElement>('.quick-idea').forEach((button) => {
+    button.addEventListener('click', () => {
+      titleInput.value = button.dataset.title ?? '';
+      messageInput.value = button.dataset.message ?? '';
+      syncMessagePreview();
+      titleInput.focus();
+    });
   });
 
   let summaryWallet = 0;
@@ -368,9 +527,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       document.getElementById('summary-wallet')!.textContent = String(summaryWallet);
       document.getElementById('summary-history')!.textContent = String(summaryHistory);
+      document.getElementById('summary-wallet-badge')!.textContent = `${summaryWallet} client${summaryWallet > 1 ? 's' : ''} abonné${summaryWallet > 1 ? 's' : ''}`;
+      document.getElementById('summary-open-rate')!.textContent = '—';
+      document.getElementById('summary-opened')!.textContent = '—';
+      if (sendHelper) {
+        sendHelper.textContent = `Envoi instantané à ${summaryWallet} client${summaryWallet > 1 ? 's' : ''} abonné${summaryWallet > 1 ? 's' : ''}.`;
+      }
     } catch {
       document.getElementById('summary-wallet')!.textContent = '—';
       document.getElementById('summary-history')!.textContent = '—';
+      document.getElementById('summary-wallet-badge')!.textContent = '— clients abonnés';
     }
   }
 
@@ -382,24 +548,47 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const { data } = await res.json();
 
       if (!data?.length) {
-        container.innerHTML = '<p class="text-slate-500 text-sm">Aucune notification envoyée.</p>';
+        container.innerHTML = '<p class="p-4 text-sm text-slate-500">Aucune notification envoyée.</p>';
         return;
       }
 
-      container.innerHTML = data.map((n: { titre: string; message: string; nb_destinataires: number; nb_delivrees: number | null; created_at: string }) => `
-        <div class="border-b border-slate-200 pb-3 last:border-0 last:pb-0">
-          <div class="flex items-start justify-between gap-2">
-            <div>
-              <p class="text-sm font-medium text-slate-900">${escapeHtml(n.titre)}</p>
-              <p class="mt-0.5 text-xs text-slate-600">${escapeHtml(n.message)}</p>
-            </div>
-            <span class="badge badge-info shrink-0">${n.nb_delivrees ?? 0}/${n.nb_destinataires}</span>
-          </div>
-          <p class="mt-1 text-xs text-slate-500">${new Date(n.created_at).toLocaleString('fr-FR')}</p>
+      container.innerHTML = `
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="px-4 py-3 text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">Date</th>
+                <th class="px-4 py-3 text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">Titre</th>
+                <th class="px-4 py-3 text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">Audience</th>
+                <th class="px-4 py-3 text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">Taux d’ouverture</th>
+                <th class="px-4 py-3 text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">Statut</th>
+                <th class="px-4 py-3 text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 bg-white">
+              ${data.map((n: { titre: string; message: string; nb_destinataires: number; nb_delivrees: number | null; created_at: string }) => `
+                <tr class="transition hover:bg-slate-50/70">
+                  <td class="whitespace-nowrap px-4 py-4 text-xs font-medium text-slate-500">${new Date(n.created_at).toLocaleDateString('fr-FR')}</td>
+                  <td class="px-4 py-4">
+                    <p class="font-bold text-slate-950">${escapeHtml(n.titre)}</p>
+                    <p class="mt-1 max-w-md truncate text-xs text-slate-500">${escapeHtml(n.message)}</p>
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-4 text-slate-600">${n.nb_destinataires} client(s)</td>
+                  <td class="whitespace-nowrap px-4 py-4 text-slate-400">—</td>
+                  <td class="whitespace-nowrap px-4 py-4">
+                    <span class="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Envoyée</span>
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-4">
+                    <span class="rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">${n.nb_delivrees ?? 0}/${n.nb_destinataires}</span>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
         </div>
-      `).join('');
+      `;
     } catch {
-      container.innerHTML = '<p class="text-red-600 text-sm">Erreur lors du chargement.</p>';
+      container.innerHTML = '<p class="p-4 text-sm text-red-600">Erreur lors du chargement.</p>';
     }
   }
 
@@ -432,14 +621,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         : `Message envoyé à ${data?.nb_delivrees ?? 0}/${data?.nb_destinataires ?? 0} client(s).`;
       successMsg.classList.remove('hidden');
       form.reset();
-      charCount.textContent = '0';
+      syncMessagePreview();
       await Promise.all([loadSummary(), loadHistory()]);
     } catch (error: unknown) {
       errorMsg.textContent = error instanceof Error ? error.message : 'Erreur réseau.';
       errorMsg.classList.remove('hidden');
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Envoyer le message';
+      btn.textContent = 'Envoyer la notification';
     }
   });
 
@@ -665,6 +854,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   pushIconInputs.forEach(bindPushIconInput);
 
   setNotifTab('manual');
+  syncMessagePreview();
   loadSummary();
   loadHistory();
   loadPlanFallback().then(() => Promise.all([

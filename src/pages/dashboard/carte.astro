@@ -789,14 +789,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               <p id="g-solde" class="font-mono font-bold" style="color:#ffffff">0/10</p>
             </div>
           </div>
-          <div class="bg-white p-4">
+          <div id="g-details-panel" class="p-4" style="background:#0f172a;color:#ffffff">
             <div class="flex items-center justify-between mb-3">
               <div><p id="g-label-client" class="text-gray-400 text-xs uppercase">Client</p><p id="g-client-name" class="text-gray-900 font-semibold text-sm">Votre prénom</p></div>
               <div id="g-barcode-wrap"><svg viewBox="0 0 21 21" class="w-10 h-10" style="image-rendering:pixelated"><rect x="0" y="0" width="7" height="7" fill="#111" rx="1"/><rect x="1" y="1" width="5" height="5" fill="white"/><rect x="2" y="2" width="3" height="3" fill="#111"/><rect x="14" y="0" width="7" height="7" fill="#111" rx="1"/><rect x="15" y="1" width="5" height="5" fill="white"/><rect x="16" y="2" width="3" height="3" fill="#111"/><rect x="0" y="14" width="7" height="7" fill="#111" rx="1"/><rect x="1" y="15" width="5" height="5" fill="white"/><rect x="2" y="16" width="3" height="3" fill="#111"/></svg></div>
             </div>
             <div id="g-stamps-wrap"><div id="g-stamps" class="flex flex-wrap justify-center gap-1.5 mb-2"></div></div>
             <div id="g-points-wrap" class="hidden mb-2"><div class="h-2 bg-gray-100 rounded-full"><div id="g-points-bar" class="h-full rounded-full w-0" style="background:#6366f1"></div></div><p id="g-points-text" class="text-gray-400 text-xs mt-1">0/100 pts</p></div>
-            <div class="border-t border-gray-100 pt-2 mt-1"><p class="text-gray-400 text-xs">Récompense</p><p id="g-recompense" class="text-gray-800 text-sm font-medium">—</p></div>
+            <div class="pt-2 mt-1" style="border-top:1px solid rgba(255,255,255,0.16)"><p id="g-recompense-label" class="text-xs opacity-55">Récompense</p><p id="g-recompense" class="text-sm font-medium">—</p></div>
             <p id="g-branding" class="mt-3 text-right text-[0.62rem] tracking-[0.14em] uppercase text-slate-400/80">Propulsé par Fidelopass</p>
           </div>
         </div>
@@ -2298,10 +2298,19 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const gp=document.getElementById('g-pattern-overlay')!; gp.style.backgroundImage=pat.image; gp.style.backgroundSize=pat.size;
     const gDark=document.getElementById('g-strip-dark-overlay')!;
     gDark.style.background = 'rgba(2,6,23,0)';
+    const gDetails=document.getElementById('g-details-panel')!;
+    gDetails.style.background=bg;
+    gDetails.style.color=texte;
     [
       'g-card-name',
       'g-type-lbl',
       'g-solde',
+      'g-label-client',
+      'g-client-name',
+      'g-recompense-label',
+      'g-recompense',
+      'g-branding',
+      'g-points-text',
     ].forEach((id) => {
       const node = document.getElementById(id) as HTMLElement | null;
       if (node) node.style.color = texte;
@@ -2317,7 +2326,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       document.getElementById('g-solde')!.textContent=`1/${total}`;
       document.getElementById('g-stamps-wrap')!.classList.remove('hidden');
       document.getElementById('g-points-wrap')!.classList.add('hidden');
-      renderStamps(document.getElementById('g-stamps')!,1,display,accent,'#111');
+      renderStamps(document.getElementById('g-stamps')!,1,display,accent,texte);
     }else{
       document.getElementById('g-solde')!.textContent='0';
       document.getElementById('g-stamps-wrap')!.classList.add('hidden');

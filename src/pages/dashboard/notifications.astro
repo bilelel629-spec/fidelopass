@@ -408,6 +408,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   let pushIconSaveTimer: ReturnType<typeof setTimeout> | null = null;
   let pushIconLastSavedColor = '#6366f1';
   let pushIconIsSaving = false;
+  let pushIconPendingColor: string | null = null;
 
   function withPointVente(path: string): string {
     if (typeof window === 'undefined') return path;
@@ -746,31 +747,41 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   }
 
-  async function persistPushIconColor(color: string) {
-    if (pushIconIsSaving) return null;
+  async function persistPushIconColorRequest(color: string) {
     if (color === pushIconLastSavedColor) return null;
-    pushIconIsSaving = true;
-    try {
-      const res = await authFetch(withPointVente('/api/notifications/push-icon-settings'), {
-        method: 'PATCH',
-        body: JSON.stringify({ push_icon_bg_color: color }),
-      });
-      const payload = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(payload?.error ?? 'Impossible de mettre à jour la couleur.');
-      }
-      pushIconLastSavedColor = color;
-      return payload;
-    } finally {
-      pushIconIsSaving = false;
+    const res = await authFetch(withPointVente('/api/notifications/push-icon-settings'), {
+      method: 'PATCH',
+      body: JSON.stringify({ push_icon_bg_color: color }),
+    });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new Error(payload?.error ?? 'Impossible de mettre à jour la couleur.');
     }
+    pushIconLastSavedColor = color;
+    return payload;
   }
 
   async function savePushIconColorNow(color: string) {
     if (pushIconInputs.every((input) => input.disabled)) return;
+    if (pushIconIsSaving) {
+      pushIconPendingColor = color;
+      setPushIconStatusText('Enregistrement de la dernière couleur...');
+      return;
+    }
     hidePushIconAlerts();
     try {
-      const payload = await persistPushIconColor(color);
+      pushIconIsSaving = true;
+      let nextColor: string | null = color;
+      let payload: any = null;
+      while (nextColor) {
+        const colorToSave = nextColor;
+        pushIconPendingColor = null;
+        const result = await persistPushIconColorRequest(colorToSave);
+        if (result) payload = result;
+        nextColor = pushIconPendingColor && pushIconPendingColor !== pushIconLastSavedColor
+          ? pushIconPendingColor
+          : null;
+      }
       if (!payload) return;
       const refreshed = Number(payload?.data?.apple_refresh_sent ?? 0);
       showPushIconSuccess(refreshed > 0
@@ -779,6 +790,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       setPushIconStatusText('Réglage actif pour la carte du point de vente sélectionné.');
     } catch (error: unknown) {
       showPushIconError(error instanceof Error ? error.message : 'Erreur réseau.');
+    } finally {
+      pushIconIsSaving = false;
+      if (pushIconPendingColor && pushIconPendingColor !== pushIconLastSavedColor) {
+        const pendingColor = pushIconPendingColor;
+        pushIconPendingColor = null;
+        void savePushIconColorNow(pendingColor);
+      }
     }
   }
 

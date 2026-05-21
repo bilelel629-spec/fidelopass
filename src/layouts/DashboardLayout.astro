@@ -240,6 +240,7 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       .dashboard-tour-card {
         max-height: min(72vh, 560px);
         overflow: auto;
+        overscroll-behavior: contain;
       }
       @media (max-width: 640px) {
         .dashboard-tour-card {
@@ -248,6 +249,7 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
           top: auto !important;
           bottom: calc(env(safe-area-inset-bottom) + 1rem) !important;
           width: auto !important;
+          max-height: min(76dvh, calc(100dvh - env(safe-area-inset-bottom) - 2rem)) !important;
           transform: none !important;
         }
       }
@@ -301,19 +303,29 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
 
     const positionCard = (target: HTMLElement | null) => {
       const margin = 18;
-      const viewportW = window.innerWidth;
-      const viewportH = window.innerHeight;
+      const viewportW = window.visualViewport?.width ?? window.innerWidth;
+      const viewportH = window.visualViewport?.height ?? window.innerHeight;
       const cardW = Math.min(430, viewportW - 32);
       const availableHeight = Math.max(220, viewportH - margin * 2);
       card.style.maxHeight = `${availableHeight}px`;
 
-      if (!target || viewportW < 640) {
+      if (viewportW < 640) {
         card.style.left = '';
         card.style.right = '';
         card.style.top = '';
         card.style.bottom = '';
         card.style.width = '';
         card.style.transform = '';
+        return;
+      }
+
+      if (!target) {
+        card.style.width = `${cardW}px`;
+        card.style.left = '50%';
+        card.style.right = 'auto';
+        card.style.top = `${Math.max(margin, Math.round(viewportH * 0.18))}px`;
+        card.style.bottom = 'auto';
+        card.style.transform = 'translateX(-50%)';
         return;
       }
 

@@ -120,6 +120,52 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   </div>
 </DashboardLayout>
 
+<style>
+  #chart-container {
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  }
+
+  .chart-grid-line {
+    stroke: rgba(148, 163, 184, 0.16);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .chart-axis-label {
+    fill: #94a3b8;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+
+  .chart-point {
+    fill: #ffffff;
+    stroke: #2563eb;
+    stroke-width: 2.5;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .chart-active-dot {
+    fill: #2563eb;
+    stroke: #ffffff;
+    stroke-width: 3;
+    filter: drop-shadow(0 6px 12px rgba(37, 99, 235, 0.24));
+    vector-effect: non-scaling-stroke;
+  }
+
+  .chart-active-line {
+    stroke: rgba(37, 99, 235, 0.18);
+    stroke-width: 1;
+    stroke-dasharray: 4 6;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .chart-hit-area {
+    cursor: crosshair;
+  }
+</style>
+
 <script>
   import { authFetch } from '../../lib/api';
   import { supabase } from '../../lib/supabase';
@@ -133,6 +179,33 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       '"': '&quot;',
       "'": '&#039;',
     }[char] ?? char));
+  }
+
+  function formatChartDate(value: string, options: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit' }) {
+    return new Date(`${value}T12:00:00`).toLocaleDateString('fr-FR', options);
+  }
+
+  function buildSmoothPath(points: Array<{ x: number; y: number }>) {
+    if (points.length === 0) return '';
+    if (points.length === 1) return `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+    if (points.length === 2) {
+      return `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)} L ${points[1].x.toFixed(1)} ${points[1].y.toFixed(1)}`;
+    }
+
+    const commands = [`M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`];
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[Math.max(0, i - 1)];
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const p3 = points[Math.min(points.length - 1, i + 2)];
+      const smoothing = 0.18;
+      const cp1x = p1.x + (p2.x - p0.x) * smoothing;
+      const cp1y = p1.y + (p2.y - p0.y) * smoothing;
+      const cp2x = p2.x - (p3.x - p1.x) * smoothing;
+      const cp2y = p2.y - (p3.y - p1.y) * smoothing;
+      commands.push(`C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)} ${cp2x.toFixed(1)} ${cp2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`);
+    }
+    return commands.join(' ');
   }
 
   async function loadStats() {
@@ -171,56 +244,137 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (totalNode) totalNode.textContent = String(total);
 
       const width = 1000;
-      const height = 260;
-      const paddingX = 22;
-      const paddingTop = 22;
-      const paddingBottom = 42;
+      const height = 300;
+      const paddingLeft = 44;
+      const paddingRight = 32;
+      const paddingTop = 46;
+      const paddingBottom = 58;
       const chartHeight = height - paddingTop - paddingBottom;
-      const maxVal = Math.max(...rows.map((d: { visits: number }) => d.visits), 1);
-      const step = rows.length > 1 ? (width - paddingX * 2) / (rows.length - 1) : 0;
+      const baseline = height - paddingBottom;
+      const maxRaw = Math.max(...rows.map((d: { visits: number }) => d.visits), 0);
+      const maxVal = Math.max(maxRaw, 3);
+      const step = rows.length > 1 ? (width - paddingLeft - paddingRight) / (rows.length - 1) : 0;
       const points = rows.map((d: { visits: number }, index: number) => {
-        const x = paddingX + index * step;
-        const y = paddingTop + chartHeight - (d.visits / maxVal) * chartHeight;
+        const x = rows.length > 1 ? paddingLeft + index * step : width / 2;
+        const y = total === 0
+          ? paddingTop + chartHeight * 0.58 + Math.sin(index * 0.9) * 5
+          : paddingTop + chartHeight - (d.visits / maxVal) * chartHeight;
         return { ...d, x, y };
       });
-      const linePath = points.map((point: { x: number; y: number }, index: number) => (
-        `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`
-      )).join(' ');
-      const areaPath = `${linePath} L ${(width - paddingX).toFixed(1)} ${(height - paddingBottom).toFixed(1)} L ${paddingX.toFixed(1)} ${(height - paddingBottom).toFixed(1)} Z`;
+      const linePath = buildSmoothPath(points);
+      const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${baseline.toFixed(1)} L ${points[0].x.toFixed(1)} ${baseline.toFixed(1)} Z`;
+      const labelIndexes = new Set<number>([0, rows.length - 1]);
+      rows.forEach((_: unknown, index: number) => {
+        if (rows.length <= 7 || index % 3 === 0) labelIndexes.add(index);
+      });
       const labels = points.map((point: { date: string; x: number }, index: number) => {
-        if (index % 2 !== 0 && index !== points.length - 1) return '';
-        const label = new Date(`${point.date}T12:00:00`).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
-        return `<text x="${point.x.toFixed(1)}" y="248" text-anchor="middle" class="fill-slate-400 text-[22px]">${escapeHtml(label)}</text>`;
+        if (!labelIndexes.has(index)) return '';
+        const label = formatChartDate(point.date);
+        return `<text x="${point.x.toFixed(1)}" y="280" text-anchor="middle" class="chart-axis-label">${escapeHtml(label)}</text>`;
       }).join('');
+      const gridLines = [0.25, 0.5, 0.75].map((ratio) => {
+        const y = paddingTop + chartHeight * ratio;
+        return `<line x1="${paddingLeft}" y1="${y.toFixed(1)}" x2="${width - paddingRight}" y2="${y.toFixed(1)}" class="chart-grid-line"></line>`;
+      }).join('');
+      const hitAreas = points.map((point: { date: string; visits: number; x: number; y: number }, index: number) => {
+        const hitWidth = Math.max(34, step || 80);
+        const left = index === 0 ? paddingLeft - hitWidth / 2 : point.x - hitWidth / 2;
+        return `
+          <rect class="chart-hit-area" x="${left.toFixed(1)}" y="${paddingTop}" width="${hitWidth.toFixed(1)}" height="${chartHeight}" fill="transparent"
+            data-index="${index}"
+            data-date="${escapeHtml(formatChartDate(point.date, { weekday: 'short', day: '2-digit', month: 'short' }))}"
+            data-visits="${point.visits}"
+            data-x="${point.x.toFixed(1)}"
+            data-y="${point.y.toFixed(1)}"></rect>
+        `;
+      }).join('');
+      const activePoints = points
+        .filter((point: { visits: number }, index: number) => point.visits > 0 || index === points.length - 1)
+        .map((point: { x: number; y: number; visits: number }) => `
+          <circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${point.visits > 0 ? 4.5 : 3}" class="chart-point"></circle>
+        `).join('');
       const lastPoint = points[points.length - 1];
       const firstHalf = rows.slice(0, Math.ceil(rows.length / 2)).reduce((sum: number, item: { visits: number }) => sum + item.visits, 0);
       const secondHalf = rows.slice(Math.ceil(rows.length / 2)).reduce((sum: number, item: { visits: number }) => sum + item.visits, 0);
       const trend = firstHalf > 0 ? Math.round(((secondHalf - firstHalf) / firstHalf) * 100) : (secondHalf > 0 ? 100 : 0);
-      const trendText = trend === 0
+      const reliableTrend = total >= 3 && rows.filter((item: { visits: number }) => item.visits > 0).length >= 2;
+      const trendText = !reliableTrend
+        ? 'Tendance en cours'
+        : trend === 0
         ? 'Activité stable'
         : trend > 0
           ? `+${trend}% vs semaine précédente`
           : `${trend}% vs semaine précédente`;
-      const trendClass = trend >= 0 ? 'text-emerald-700 bg-emerald-50 border-emerald-100' : 'text-amber-700 bg-amber-50 border-amber-100';
+      const trendClass = !reliableTrend
+        ? 'text-sky-700 bg-sky-50 border-sky-100'
+        : trend >= 0
+          ? 'text-emerald-700 bg-emerald-50 border-emerald-100'
+          : 'text-amber-700 bg-amber-50 border-amber-100';
+      const helper = total <= 2
+        ? '<p class="absolute left-5 bottom-5 max-w-[19rem] rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 text-xs leading-5 text-slate-500 shadow-sm backdrop-blur">Pas encore assez de données pour afficher une tendance fiable.</p>'
+        : '';
 
       container.innerHTML = `
-        <div class="absolute left-4 top-4 z-10 rounded-full border ${trendClass} px-3 py-1.5 text-xs font-semibold">
+        <div class="absolute left-5 top-5 z-10 rounded-full border ${trendClass} px-3 py-1.5 text-xs font-semibold shadow-sm">
           ${escapeHtml(trendText)}
+        </div>
+        ${helper}
+        <div id="visits-tooltip" class="pointer-events-none absolute z-20 hidden rounded-2xl border border-slate-200 bg-white/95 px-3.5 py-2.5 text-xs shadow-[0_18px_38px_rgba(15,23,42,0.12)] backdrop-blur">
+          <p id="visits-tooltip-date" class="font-semibold text-slate-900"></p>
+          <p class="mt-1 text-slate-500"><span id="visits-tooltip-value" class="font-mono font-bold text-blue-600"></span> visite(s)</p>
         </div>
         <svg viewBox="0 0 ${width} ${height}" class="h-full w-full" preserveAspectRatio="none" role="img" aria-label="Visites par jour">
           <defs>
             <linearGradient id="visitsAreaGradient" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stop-color="#3b5bfd" stop-opacity="0.34"></stop>
-              <stop offset="68%" stop-color="#3b5bfd" stop-opacity="0.12"></stop>
-              <stop offset="100%" stop-color="#3b5bfd" stop-opacity="0"></stop>
+              <stop offset="0%" stop-color="#2563eb" stop-opacity="0.2"></stop>
+              <stop offset="60%" stop-color="#38bdf8" stop-opacity="0.07"></stop>
+              <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"></stop>
             </linearGradient>
           </defs>
+          ${gridLines}
           <path d="${areaPath}" fill="url(#visitsAreaGradient)"></path>
-          <path d="${linePath}" fill="none" stroke="#3b5bfd" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
-          <circle cx="${lastPoint.x.toFixed(1)}" cy="${lastPoint.y.toFixed(1)}" r="9" fill="#3b5bfd"></circle>
+          <path d="${linePath}" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
+          ${activePoints}
+          <circle id="chart-active-dot" cx="${lastPoint.x.toFixed(1)}" cy="${lastPoint.y.toFixed(1)}" r="6" class="chart-active-dot"></circle>
+          <line id="chart-active-line" x1="${lastPoint.x.toFixed(1)}" y1="${paddingTop}" x2="${lastPoint.x.toFixed(1)}" y2="${baseline}" class="chart-active-line hidden"></line>
           ${labels}
+          ${hitAreas}
         </svg>
       `;
+
+      const tooltip = container.querySelector('#visits-tooltip') as HTMLDivElement | null;
+      const tooltipDate = container.querySelector('#visits-tooltip-date');
+      const tooltipValue = container.querySelector('#visits-tooltip-value');
+      const activeDot = container.querySelector('#chart-active-dot') as SVGCircleElement | null;
+      const activeLine = container.querySelector('#chart-active-line') as SVGLineElement | null;
+      container.querySelectorAll<SVGRectElement>('.chart-hit-area').forEach((area) => {
+        area.addEventListener('pointerenter', () => {
+          tooltip?.classList.remove('hidden');
+          activeLine?.classList.remove('hidden');
+        });
+        area.addEventListener('pointermove', (event) => {
+          const x = Number(area.dataset.x ?? 0);
+          const y = Number(area.dataset.y ?? 0);
+          if (tooltipDate) tooltipDate.textContent = area.dataset.date ?? '';
+          if (tooltipValue) tooltipValue.textContent = area.dataset.visits ?? '0';
+          activeDot?.setAttribute('cx', String(x));
+          activeDot?.setAttribute('cy', String(y));
+          activeLine?.setAttribute('x1', String(x));
+          activeLine?.setAttribute('x2', String(x));
+          if (tooltip) {
+            const bounds = container.getBoundingClientRect();
+            const tooltipWidth = tooltip.offsetWidth || 150;
+            const left = Math.min(Math.max(event.clientX - bounds.left + 14, 12), bounds.width - tooltipWidth - 12);
+            const top = Math.max(event.clientY - bounds.top - 54, 12);
+            tooltip.style.left = `${left}px`;
+            tooltip.style.top = `${top}px`;
+          }
+        });
+        area.addEventListener('pointerleave', () => {
+          tooltip?.classList.add('hidden');
+          activeLine?.classList.add('hidden');
+        });
+      });
     } catch {
       container.innerHTML = '<p class="text-slate-400 text-sm m-auto">Impossible de charger le graphique.</p>';
       if (totalNode) totalNode.textContent = '—';

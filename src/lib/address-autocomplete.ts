@@ -9,7 +9,7 @@ export type AddressSuggestion = {
   pays: string | null;
   latitude: number;
   longitude: number;
-  provider: 'geoapify' | 'nominatim';
+  provider: 'geoapify' | 'adresse-data-gouv' | 'nominatim';
 };
 
 type InitOptions = {

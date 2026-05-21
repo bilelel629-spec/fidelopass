@@ -10,7 +10,7 @@ export interface AddressSuggestion extends Coordinates {
   ville: string | null;
   code_postal: string | null;
   pays: string | null;
-  provider: 'geoapify' | 'nominatim';
+  provider: 'geoapify' | 'adresse-data-gouv' | 'nominatim';
 }
 
 const GEOAPIFY_API_KEY = process.env.GEOAPIFY_API_KEY?.trim() ?? '';
@@ -56,6 +56,30 @@ function fromGeoapifyFeature(feature: any): AddressSuggestion | null {
     latitude,
     longitude,
     provider: 'geoapify',
+  };
+}
+
+function fromDataGouvFeature(feature: any): AddressSuggestion | null {
+  const props = feature?.properties ?? {};
+  const coords = Array.isArray(feature?.geometry?.coordinates) ? feature.geometry.coordinates : [];
+  const longitude = toNumber(coords[0]);
+  const latitude = toNumber(coords[1]);
+  if (latitude === null || longitude === null) return null;
+
+  const label = clean(props.label) ?? clean(props.name);
+  if (!label) return null;
+
+  const street = clean(props.street) ?? clean(props.name);
+  return {
+    id: clean(props.id) ?? `${latitude},${longitude},${label}`,
+    label,
+    rue: street,
+    ville: clean(props.city),
+    code_postal: clean(props.postcode),
+    pays: 'France',
+    latitude,
+    longitude,
+    provider: 'adresse-data-gouv',
   };
 }
 
@@ -123,6 +147,23 @@ async function fetchNominatimSearch(query: string, limit: number): Promise<Addre
     .filter((item): item is AddressSuggestion => Boolean(item));
 }
 
+async function fetchDataGouvAutocomplete(query: string, limit: number): Promise<AddressSuggestion[]> {
+  const url = new URL('https://api-adresse.data.gouv.fr/search/');
+  url.searchParams.set('q', query);
+  url.searchParams.set('limit', String(limit));
+  url.searchParams.set('autocomplete', '1');
+
+  const res = await fetch(url.toString(), {
+    headers: { 'User-Agent': USER_AGENT },
+  });
+  if (!res.ok) return [];
+
+  const payload = await res.json() as { features?: any[] };
+  return (payload.features ?? [])
+    .map(fromDataGouvFeature)
+    .filter((item): item is AddressSuggestion => Boolean(item));
+}
+
 async function fetchGeoapifyReverse(latitude: number, longitude: number): Promise<AddressSuggestion | null> {
   if (!GEOAPIFY_API_KEY) return null;
 
@@ -155,6 +196,20 @@ async function fetchNominatimReverse(latitude: number, longitude: number): Promi
   return fromNominatimResult(result);
 }
 
+async function fetchDataGouvReverse(latitude: number, longitude: number): Promise<AddressSuggestion | null> {
+  const url = new URL('https://api-adresse.data.gouv.fr/reverse/');
+  url.searchParams.set('lat', String(latitude));
+  url.searchParams.set('lon', String(longitude));
+
+  const res = await fetch(url.toString(), {
+    headers: { 'User-Agent': USER_AGENT },
+  });
+  if (!res.ok) return null;
+
+  const payload = await res.json() as { features?: any[] };
+  return fromDataGouvFeature(payload.features?.[0]);
+}
+
 export async function autocompleteAddress(query: string, limit = 6): Promise<AddressSuggestion[]> {
   const trimmed = query.trim();
   if (trimmed.length < 3) return [];
@@ -165,6 +220,13 @@ export async function autocompleteAddress(query: string, limit = 6): Promise<Add
     if (geoapifyResults.length > 0) return geoapifyResults;
   } catch (error) {
     console.warn('[geocoding] Geoapify autocomplete failed, using fallback', error);
+  }
+
+  try {
+    const dataGouvResults = await fetchDataGouvAutocomplete(trimmed, safeLimit);
+    if (dataGouvResults.length > 0) return dataGouvResults;
+  } catch (error) {
+    console.warn('[geocoding] api-adresse.data.gouv.fr autocomplete failed, using fallback', error);
   }
 
   try {
@@ -183,6 +245,13 @@ export async function reverseGeocode(latitude: number, longitude: number): Promi
     if (geoapifyResult) return geoapifyResult;
   } catch (error) {
     console.warn('[geocoding] Geoapify reverse failed, using fallback', error);
+  }
+
+  try {
+    const dataGouvResult = await fetchDataGouvReverse(latitude, longitude);
+    if (dataGouvResult) return dataGouvResult;
+  } catch (error) {
+    console.warn('[geocoding] api-adresse.data.gouv.fr reverse failed, using fallback', error);
   }
 
   try {

@@ -54,9 +54,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <span class="text-slate-500 text-xs">Total</span>
     </div>
     <div class="stat-card">
-      <span class="text-slate-500 text-xs uppercase tracking-wide">Clients joignables</span>
+      <span class="text-slate-500 text-xs uppercase tracking-wide">Notifications envoyées</span>
       <span id="stat-push" class="font-mono text-3xl font-bold text-slate-900">—</span>
-      <span class="text-slate-500 text-xs">Wallet/push</span>
+      <span class="text-slate-500 text-xs">Campagnes push</span>
     </div>
   </div>
 
@@ -216,7 +216,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       document.getElementById('stat-clients')!.textContent = String(data.totalClients ?? 0);
       document.getElementById('stat-scans')!.textContent = String(data.scansAujourdhui ?? 0);
       document.getElementById('stat-recompenses')!.textContent = String(data.totalRecompenses ?? 0);
-      document.getElementById('stat-push')!.textContent = String(data.clientsPushActifs ?? 0);
+      document.getElementById('stat-push')!.textContent = String(data.notificationsEnvoyees ?? 0);
     } catch {
       // best effort
     }

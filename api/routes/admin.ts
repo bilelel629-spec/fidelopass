@@ -929,7 +929,7 @@ adminRoutes.patch('/commerces/:id/card-assistance', async (c) => {
     payload.gradient_angle = input.gradient_angle ?? 135;
     payload.pattern_type = input.pattern_type ?? 'none';
     payload.strip_position = input.strip_position ?? '50:50';
-    payload.barcode_type = input.barcode_type ?? 'QR';
+    payload.barcode_type = input.barcode_type ?? 'CODE128';
     payload.label_client = input.label_client ?? 'Client';
     payload.tampon_icon_scale = input.tampon_icon_scale ?? 1;
   }

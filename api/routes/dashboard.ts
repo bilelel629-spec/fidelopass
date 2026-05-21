@@ -26,12 +26,12 @@ dashboardRoutes.get('/stats', async (c) => {
   );
 
   if (!commerce || !pointVente) {
-    return c.json({ totalClients: 0, scansAujourdhui: 0, totalRecompenses: 0, clientsPushActifs: 0 });
+    return c.json({ totalClients: 0, scansAujourdhui: 0, totalRecompenses: 0, clientsPushActifs: 0, notificationsEnvoyees: 0 });
   }
 
   const today = new Date().toISOString().slice(0, 10);
 
-  const [clientsRes, scansRes, recompensesRes, pushRes] = await Promise.all([
+  const [clientsRes, scansRes, recompensesRes, pushRes, notificationsRes] = await Promise.all([
     db.from('clients').select('id', { count: 'exact', head: true })
       .eq('commerce_id', commerce.id)
       .eq('point_vente_id', pointVente.id),
@@ -47,6 +47,9 @@ dashboardRoutes.get('/stats', async (c) => {
       .eq('commerce_id', commerce.id)
       .eq('point_vente_id', pointVente.id)
       .eq('push_enabled', true),
+    db.from('notifications').select('id', { count: 'exact', head: true })
+      .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id),
   ]);
 
   const totalRecompenses = (recompensesRes.data ?? []).reduce(
@@ -58,6 +61,7 @@ dashboardRoutes.get('/stats', async (c) => {
     scansAujourdhui: scansRes.count ?? 0,
     totalRecompenses,
     clientsPushActifs: pushRes.count ?? 0,
+    notificationsEnvoyees: notificationsRes.count ?? 0,
   });
 });
 

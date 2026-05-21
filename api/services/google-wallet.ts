@@ -215,7 +215,7 @@ export async function generateGooglePass(
   const GOOGLE_BARCODE_MAP: Record<string, string> = {
     QR: 'QR_CODE', PDF417: 'PDF_417', AZTEC: 'AZTEC', CODE128: 'CODE_128',
   };
-  const barcodeType = carte.barcode_type ?? 'QR';
+  const barcodeType = carte.barcode_type ?? 'CODE128';
 
   const loyaltyObject: Record<string, unknown> = {
     id: objectId,

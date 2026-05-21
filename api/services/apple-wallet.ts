@@ -209,7 +209,7 @@ export async function generateApplePass(
   client: ClientData,
   walletMessage?: WalletMessage | null,
 ): Promise<Buffer> {
-  const barcodeType = carte.barcode_type ?? 'QR';
+  const barcodeType = carte.barcode_type ?? 'CODE128';
   const barcodeValue = getWalletScanCode(client);
   const labelClient = carte.label_client ?? 'Client';
 

@@ -482,6 +482,7 @@ export async function pushApplePassUpdate(pushToken: string, passTypeIdentifier:
       'apns-topic': passTypeIdentifier,
       'apns-priority': '5',
       'apns-push-type': 'background',
+      'content-type': 'application/json',
     });
 
     request.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
@@ -497,6 +498,6 @@ export async function pushApplePassUpdate(pushToken: string, passTypeIdentifier:
       finish(new Error(`APNs Wallet update failed (${status}) ${body}`));
     });
     request.on('error', finish);
-    request.end();
+    request.end('{}');
   });
 }

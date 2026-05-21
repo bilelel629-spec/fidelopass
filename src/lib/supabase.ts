@@ -1,17 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 
+const processEnv = typeof process !== 'undefined' ? process.env : {};
+
 // PUBLIC_ = accessible navigateur + serveur Astro
 // Sans préfixe = serveur uniquement (API Hono / Node.js)
 const supabaseUrl =
   (typeof import.meta !== 'undefined' ? (import.meta.env?.PUBLIC_SUPABASE_URL || import.meta.env?.SUPABASE_URL) : undefined)
-  ?? process.env.PUBLIC_SUPABASE_URL
-  ?? process.env.SUPABASE_URL
+  ?? processEnv.PUBLIC_SUPABASE_URL
+  ?? processEnv.SUPABASE_URL
   ?? '';
 
 const supabaseAnonKey =
   (typeof import.meta !== 'undefined' ? (import.meta.env?.PUBLIC_SUPABASE_ANON_KEY || import.meta.env?.SUPABASE_ANON_KEY) : undefined)
-  ?? process.env.PUBLIC_SUPABASE_ANON_KEY
-  ?? process.env.SUPABASE_ANON_KEY
+  ?? processEnv.PUBLIC_SUPABASE_ANON_KEY
+  ?? processEnv.SUPABASE_ANON_KEY
   ?? '';
 
 if (!supabaseUrl || !supabaseAnonKey) {
@@ -27,7 +29,7 @@ export const supabase = createClient(
 export function createServiceClient() {
   const serviceKey =
     (typeof import.meta !== 'undefined' ? import.meta.env?.SUPABASE_SERVICE_ROLE_KEY : undefined)
-    ?? process.env.SUPABASE_SERVICE_ROLE_KEY
+    ?? processEnv.SUPABASE_SERVICE_ROLE_KEY
     ?? '';
   if (!serviceKey) throw new Error('SUPABASE_SERVICE_ROLE_KEY est requis');
   return createClient(supabaseUrl, serviceKey, {

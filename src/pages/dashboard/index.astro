@@ -72,7 +72,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <p id="visits-total" class="font-mono text-2xl font-bold text-slate-950">—</p>
         </div>
       </div>
-      <div id="chart-container" class="relative h-72 rounded-[1.25rem] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)]" data-tour="dashboard-activity">
+      <div id="chart-container" class="relative h-[22rem] rounded-[1.25rem] bg-white" data-tour="dashboard-activity">
         <p class="m-auto text-sm text-slate-400">Chargement...</p>
       </div>
     </div>
@@ -122,12 +122,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
 <style>
   #chart-container {
-    border: 1px solid rgba(226, 232, 240, 0.8);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    isolation: isolate;
   }
 
   .chart-grid-line {
-    stroke: rgba(148, 163, 184, 0.16);
+    stroke: rgba(148, 163, 184, 0.12);
     stroke-width: 1;
     vector-effect: non-scaling-stroke;
   }
@@ -139,18 +138,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     letter-spacing: 0;
   }
 
-  .chart-point {
-    fill: #ffffff;
-    stroke: #2563eb;
-    stroke-width: 2.5;
-    vector-effect: non-scaling-stroke;
-  }
-
   .chart-active-dot {
-    fill: #2563eb;
+    fill: #38bdf8;
     stroke: #ffffff;
-    stroke-width: 3;
-    filter: drop-shadow(0 6px 12px rgba(37, 99, 235, 0.24));
+    stroke-width: 4;
+    filter: drop-shadow(0 8px 18px rgba(37, 99, 235, 0.26));
     vector-effect: non-scaling-stroke;
   }
 
@@ -163,6 +155,43 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   .chart-hit-area {
     cursor: crosshair;
+  }
+
+  .chart-line {
+    animation: chart-draw 1200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .chart-area {
+    animation: chart-fade 900ms ease-out both;
+  }
+
+  @keyframes chart-draw {
+    from {
+      stroke-dasharray: 1400;
+      stroke-dashoffset: 1400;
+      opacity: 0.35;
+    }
+    to {
+      stroke-dasharray: 1400;
+      stroke-dashoffset: 0;
+      opacity: 1;
+    }
+  }
+
+  @keyframes chart-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .chart-line,
+    .chart-area {
+      animation: none;
+    }
   }
 </style>
 
@@ -244,21 +273,30 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (totalNode) totalNode.textContent = String(total);
 
       const width = 1000;
-      const height = 300;
-      const paddingLeft = 44;
+      const height = 340;
+      const paddingLeft = 40;
       const paddingRight = 32;
-      const paddingTop = 46;
-      const paddingBottom = 58;
+      const paddingTop = 52;
+      const paddingBottom = 62;
       const chartHeight = height - paddingTop - paddingBottom;
       const baseline = height - paddingBottom;
       const maxRaw = Math.max(...rows.map((d: { visits: number }) => d.visits), 0);
-      const maxVal = Math.max(maxRaw, 3);
+      const zeroLift = maxRaw > 0 ? Math.max(maxRaw * 0.14, 0.22) : 0;
+      const visualValues = rows.map((d: { visits: number }, index: number) => {
+        if (total === 0) return 0.42 + Math.sin(index * 0.92) * 0.06;
+        return d.visits > 0 ? d.visits : zeroLift;
+      });
+      const minVisual = Math.min(...visualValues);
+      const maxVisual = Math.max(...visualValues);
+      const visualRange = Math.max(maxVisual - minVisual, 1);
+      const scaleMin = Math.max(0, minVisual - visualRange * 0.55);
+      const scaleMax = maxVisual + visualRange * 0.38;
       const step = rows.length > 1 ? (width - paddingLeft - paddingRight) / (rows.length - 1) : 0;
       const points = rows.map((d: { visits: number }, index: number) => {
         const x = rows.length > 1 ? paddingLeft + index * step : width / 2;
-        const y = total === 0
-          ? paddingTop + chartHeight * 0.58 + Math.sin(index * 0.9) * 5
-          : paddingTop + chartHeight - (d.visits / maxVal) * chartHeight;
+        const visualValue = visualValues[index];
+        const ratio = (visualValue - scaleMin) / Math.max(scaleMax - scaleMin, 1);
+        const y = paddingTop + chartHeight - Math.min(Math.max(ratio, 0.08), 0.92) * chartHeight;
         return { ...d, x, y };
       });
       const linePath = buildSmoothPath(points);
@@ -288,11 +326,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             data-y="${point.y.toFixed(1)}"></rect>
         `;
       }).join('');
-      const activePoints = points
-        .filter((point: { visits: number }, index: number) => point.visits > 0 || index === points.length - 1)
-        .map((point: { x: number; y: number; visits: number }) => `
-          <circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${point.visits > 0 ? 4.5 : 3}" class="chart-point"></circle>
-        `).join('');
       const lastPoint = points[points.length - 1];
       const firstHalf = rows.slice(0, Math.ceil(rows.length / 2)).reduce((sum: number, item: { visits: number }) => sum + item.visits, 0);
       const secondHalf = rows.slice(Math.ceil(rows.length / 2)).reduce((sum: number, item: { visits: number }) => sum + item.visits, 0);
@@ -319,23 +352,26 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           ${escapeHtml(trendText)}
         </div>
         ${helper}
-        <div id="visits-tooltip" class="pointer-events-none absolute z-20 hidden rounded-2xl border border-slate-200 bg-white/95 px-3.5 py-2.5 text-xs shadow-[0_18px_38px_rgba(15,23,42,0.12)] backdrop-blur">
-          <p id="visits-tooltip-date" class="font-semibold text-slate-900"></p>
-          <p class="mt-1 text-slate-500"><span id="visits-tooltip-value" class="font-mono font-bold text-blue-600"></span> visite(s)</p>
+        <div id="visits-tooltip" class="pointer-events-none absolute z-20 hidden rounded-2xl border border-slate-800 bg-slate-950/95 px-4 py-3 text-xs text-white shadow-[0_20px_48px_rgba(15,23,42,0.28)] backdrop-blur">
+          <p id="visits-tooltip-date" class="font-semibold text-white"></p>
+          <p class="mt-1 text-slate-300"><span id="visits-tooltip-value" class="font-mono font-bold text-cyan-300"></span> visite(s)</p>
         </div>
         <svg viewBox="0 0 ${width} ${height}" class="h-full w-full" preserveAspectRatio="none" role="img" aria-label="Visites par jour">
           <defs>
             <linearGradient id="visitsAreaGradient" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stop-color="#2563eb" stop-opacity="0.2"></stop>
-              <stop offset="60%" stop-color="#38bdf8" stop-opacity="0.07"></stop>
+              <stop offset="0%" stop-color="#2563eb" stop-opacity="0.18"></stop>
+              <stop offset="60%" stop-color="#38bdf8" stop-opacity="0.06"></stop>
               <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"></stop>
+            </linearGradient>
+            <linearGradient id="visitsLineGradient" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0%" stop-color="#2563eb"></stop>
+              <stop offset="100%" stop-color="#06b6d4"></stop>
             </linearGradient>
           </defs>
           ${gridLines}
-          <path d="${areaPath}" fill="url(#visitsAreaGradient)"></path>
-          <path d="${linePath}" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
-          ${activePoints}
-          <circle id="chart-active-dot" cx="${lastPoint.x.toFixed(1)}" cy="${lastPoint.y.toFixed(1)}" r="6" class="chart-active-dot"></circle>
+          <path d="${areaPath}" fill="url(#visitsAreaGradient)" class="chart-area"></path>
+          <path d="${linePath}" fill="none" stroke="url(#visitsLineGradient)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" class="chart-line"></path>
+          <circle id="chart-active-dot" cx="${lastPoint.x.toFixed(1)}" cy="${lastPoint.y.toFixed(1)}" r="6" class="chart-active-dot hidden"></circle>
           <line id="chart-active-line" x1="${lastPoint.x.toFixed(1)}" y1="${paddingTop}" x2="${lastPoint.x.toFixed(1)}" y2="${baseline}" class="chart-active-line hidden"></line>
           ${labels}
           ${hitAreas}
@@ -350,6 +386,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       container.querySelectorAll<SVGRectElement>('.chart-hit-area').forEach((area) => {
         area.addEventListener('pointerenter', () => {
           tooltip?.classList.remove('hidden');
+          activeDot?.classList.remove('hidden');
           activeLine?.classList.remove('hidden');
         });
         area.addEventListener('pointermove', (event) => {
@@ -372,6 +409,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         });
         area.addEventListener('pointerleave', () => {
           tooltip?.classList.add('hidden');
+          activeDot?.classList.add('hidden');
           activeLine?.classList.add('hidden');
         });
       });

@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import type { ApiEnv } from '../types';
 import { createServiceClient } from '../../src/lib/supabase';
 import { sendSMS } from '../../src/lib/brevo-sms';
@@ -7,6 +7,7 @@ import { sendGoogleWalletMessage, updateGooglePassObject } from '../services/goo
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { getPlanLimits } from './commerces';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
+import { withEffectiveCommerceLogo } from '../utils/commerce-logo';
 
 export const cronRoutes = new Hono<ApiEnv>();
 const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
@@ -15,6 +16,8 @@ const BIRTHDAY_SEND_HOUR = 10;
 const BIRTHDAY_WINDOW_MAX_MINUTE = 5;
 const DEFAULT_BIRTHDAY_PUSH_TITLE = 'Joyeux anniversaire 🎉';
 const DEFAULT_BIRTHDAY_PUSH_MESSAGE = 'Votre bonus anniversaire est disponible sur votre carte Fidelopass.';
+const WALLET_REFRESH_WINDOW_MINUTES = 3;
+const WALLET_REFRESH_LIMIT = 500;
 
 type CronCarteRow = {
   id: string;
@@ -60,6 +63,23 @@ type CronClientRow = {
   recompenses_obtenues: number;
 };
 
+type WalletRefreshClientRow = {
+  id: string;
+  wallet_code: string | null;
+  nom: string | null;
+  points_actuels: number;
+  tampons_actuels: number;
+  recompenses_obtenues: number;
+  google_pass_id: string | null;
+  apple_pass_serial: string | null;
+  carte_id: string;
+  cartes: Record<string, unknown> & {
+    id: string;
+    commerces?: Record<string, unknown> | Record<string, unknown>[] | null;
+    points_vente?: Record<string, unknown> | Record<string, unknown>[] | null;
+  };
+};
+
 function getParisDateParts(now: Date): { year: number; month: number; day: number; hour: number; minute: number; monthDay: string } {
   const formatter = new Intl.DateTimeFormat('en-GB', {
     timeZone: BIRTHDAY_TIMEZONE,
@@ -97,6 +117,210 @@ function monthDayFromBirthDate(value: string | null | undefined): string | null 
   const match = value.match(/^\d{4}-(\d{2})-(\d{2})$/);
   if (!match) return null;
   return `${match[1]}-${match[2]}`;
+}
+
+function requireCronSecret(c: Context) {
+  const expectedSecret = process.env.CRON_SECRET;
+  const authHeader = c.req.header('Authorization');
+  const token = authHeader?.replace('Bearer ', '').trim();
+  return Boolean(expectedSecret && token === expectedSecret);
+}
+
+function buildWalletRefreshCard(client: WalletRefreshClientRow): Parameters<typeof updateGooglePassObject>[1] {
+  const carte = Array.isArray(client.cartes) ? client.cartes[0] : client.cartes;
+  const commerceRef = Array.isArray(carte.commerces) ? carte.commerces[0] : carte.commerces;
+  const pointVenteRef = Array.isArray(carte.points_vente) ? carte.points_vente[0] : carte.points_vente;
+
+  return withEffectiveCommerceLogo({
+    ...carte,
+    commerces: {
+      ...(commerceRef ?? {}),
+      latitude: pointVenteRef?.latitude ?? null,
+      longitude: pointVenteRef?.longitude ?? null,
+      rayon_geo: pointVenteRef?.rayon_geo ?? null,
+    },
+  }) as Parameters<typeof updateGooglePassObject>[1];
+}
+
+async function loadWalletRefreshCandidateIds(
+  db: ReturnType<typeof createServiceClient>,
+  sinceIso: string,
+): Promise<string[]> {
+  const candidateIds = new Set<string>();
+
+  const { data: changedClients, error: clientsError } = await db
+    .from('clients')
+    .select('id')
+    .or('google_pass_id.not.is.null,apple_pass_serial.not.is.null')
+    .gte('updated_at', sinceIso)
+    .limit(WALLET_REFRESH_LIMIT);
+
+  if (clientsError) console.error('[cron wallet-refresh clients]', clientsError.message);
+  for (const client of changedClients ?? []) candidateIds.add(client.id);
+
+  const { data: changedCards, error: cardsError } = await db
+    .from('cartes')
+    .select('id')
+    .gte('updated_at', sinceIso)
+    .limit(WALLET_REFRESH_LIMIT);
+
+  if (cardsError) console.error('[cron wallet-refresh cards]', cardsError.message);
+  const changedCardIds = (changedCards ?? []).map((card) => card.id).filter(Boolean);
+
+  if (changedCardIds.length > 0 && candidateIds.size < WALLET_REFRESH_LIMIT) {
+    const { data: cardClients, error } = await db
+      .from('clients')
+      .select('id')
+      .or('google_pass_id.not.is.null,apple_pass_serial.not.is.null')
+      .in('carte_id', changedCardIds)
+      .limit(WALLET_REFRESH_LIMIT);
+
+    if (error) console.error('[cron wallet-refresh card clients]', error.message);
+    for (const client of cardClients ?? []) candidateIds.add(client.id);
+  }
+
+  const { data: recentNotifications, error: notificationsError } = await db
+    .from('notifications')
+    .select('point_vente_id')
+    .gte('created_at', sinceIso)
+    .limit(WALLET_REFRESH_LIMIT);
+
+  if (notificationsError) console.error('[cron wallet-refresh notifications]', notificationsError.message);
+  const pointVenteIds = Array.from(new Set((recentNotifications ?? [])
+    .map((notification) => notification.point_vente_id)
+    .filter(Boolean)));
+
+  if (pointVenteIds.length > 0 && candidateIds.size < WALLET_REFRESH_LIMIT) {
+    const { data: notificationClients, error } = await db
+      .from('clients')
+      .select('id')
+      .or('google_pass_id.not.is.null,apple_pass_serial.not.is.null')
+      .in('point_vente_id', pointVenteIds)
+      .limit(WALLET_REFRESH_LIMIT);
+
+    if (error) console.error('[cron wallet-refresh notification clients]', error.message);
+    for (const client of notificationClients ?? []) candidateIds.add(client.id);
+  }
+
+  return Array.from(candidateIds).slice(0, WALLET_REFRESH_LIMIT);
+}
+
+async function refreshRecentlyChangedWallets(db: ReturnType<typeof createServiceClient>) {
+  const since = new Date(Date.now() - WALLET_REFRESH_WINDOW_MINUTES * 60 * 1000).toISOString();
+  const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
+  const candidateIds = await loadWalletRefreshCandidateIds(db, since);
+
+  if (candidateIds.length === 0) {
+    return {
+      since,
+      candidates: 0,
+      google_updated: 0,
+      apple_pushed: 0,
+      errors: 0,
+    };
+  }
+
+  const { data: clients, error: clientsError } = await db
+    .from('clients')
+    .select(`
+      id,
+      wallet_code,
+      nom,
+      points_actuels,
+      tampons_actuels,
+      recompenses_obtenues,
+      google_pass_id,
+      apple_pass_serial,
+      carte_id,
+      cartes(
+        *,
+        commerces(id, nom, logo_url, plan),
+        points_vente(id, nom, adresse, latitude, longitude, rayon_geo)
+      )
+    `)
+    .in('id', candidateIds)
+    .limit(WALLET_REFRESH_LIMIT);
+
+  if (clientsError) {
+    console.error('[cron wallet-refresh load clients]', clientsError.message);
+    return {
+      since,
+      candidates: candidateIds.length,
+      google_updated: 0,
+      apple_pushed: 0,
+      errors: 1,
+    };
+  }
+
+  const walletClients = (clients ?? []) as unknown as WalletRefreshClientRow[];
+  const googleClients = walletClients.filter((client) => Boolean(client.google_pass_id));
+  const appleClients = walletClients.filter((client) => Boolean(client.apple_pass_serial));
+
+  let googleUpdated = 0;
+  let applePushed = 0;
+  let errors = 0;
+
+  const googleResults = await Promise.allSettled(
+    googleClients.map((client) => {
+      const carteForWallet = buildWalletRefreshCard(client);
+      return updateGooglePassObject(client.google_pass_id as string, carteForWallet, {
+        id: client.id,
+        wallet_code: client.wallet_code,
+        nom: client.nom,
+        points_actuels: client.points_actuels,
+        tampons_actuels: client.tampons_actuels,
+        recompenses_obtenues: client.recompenses_obtenues ?? 0,
+      });
+    }),
+  );
+
+  for (let index = 0; index < googleResults.length; index++) {
+    const result = googleResults[index];
+    if (result.status === 'fulfilled') {
+      googleUpdated++;
+      continue;
+    }
+    errors++;
+    console.error('[cron wallet-refresh google]', result.reason);
+  }
+
+  if (appleClients.length > 0) {
+    const { data: registrations, error: registrationsError } = await db
+      .from('apple_pass_registrations')
+      .select('client_id, push_token, pass_type_identifier')
+      .in('client_id', appleClients.map((client) => client.id));
+
+    if (registrationsError) {
+      errors++;
+      console.error('[cron wallet-refresh apple registrations]', registrationsError.message);
+    } else {
+      const uniqueRegistrations = Array.from(
+        new Map((registrations ?? []).map((registration) => [registration.push_token, registration])).values(),
+      );
+      const appleResults = await Promise.allSettled(
+        uniqueRegistrations.map((registration) =>
+          pushApplePassUpdate(registration.push_token, passTypeId || registration.pass_type_identifier),
+        ),
+      );
+
+      for (const result of appleResults) {
+        if (result.status === 'fulfilled') {
+          applePushed++;
+        } else {
+          errors++;
+          console.error('[cron wallet-refresh apple]', result.reason);
+        }
+      }
+    }
+  }
+
+  return {
+    since,
+    candidates: candidateIds.length,
+    google_updated: googleUpdated,
+    apple_pushed: applePushed,
+    errors,
+  };
 }
 
 function computeBirthdayReward(
@@ -574,16 +798,29 @@ async function sendScheduledBirthdayPushes(db: ReturnType<typeof createServiceCl
   };
 }
 
+/** GET /api/cron/wallet-refresh
+ * Rattrapage Wallet à lancer toutes les minutes.
+ * Header requis : Authorization: Bearer CRON_SECRET
+ */
+cronRoutes.get('/wallet-refresh', async (c) => {
+  if (!requireCronSecret(c)) {
+    return c.json({ error: 'Non autorisé' }, 401);
+  }
+
+  const result = await refreshRecentlyChangedWallets(createServiceClient());
+  console.log(
+    `[cron] wallet-refresh: candidats=${result.candidates}, google=${result.google_updated}, apple=${result.apple_pushed}, erreurs=${result.errors}`,
+  );
+
+  return c.json({ wallet_refresh: result });
+});
+
 /** GET /api/cron/send-scheduled-sms
  * Déclenché toutes les 5 minutes par Railway cron.
  * Header requis : Authorization: Bearer CRON_SECRET
  */
 cronRoutes.get('/send-scheduled-sms', async (c) => {
-  const expectedSecret = process.env.CRON_SECRET;
-  const authHeader = c.req.header('Authorization');
-  const token = authHeader?.replace('Bearer ', '').trim();
-
-  if (!expectedSecret || token !== expectedSecret) {
+  if (!requireCronSecret(c)) {
     return c.json({ error: 'Non autorisé' }, 401);
   }
 

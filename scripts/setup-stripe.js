@@ -92,22 +92,7 @@ async function create() {
   });
   console.log('\n✅  Accompagnement Setup :', accompagnementPrice.id);
 
-  // ── 4. Scanner supplémentaire (one-time) ───────────────────────────
-  const scanner = await stripe.products.create({
-    name: 'Scanner supplémentaire',
-    description: 'Accès scanner pour un point de vente additionnel',
-    metadata: { type: 'one_time', action: 'scanner_add' },
-  });
-  const scannerPrice = await stripe.prices.create({
-    product: scanner.id,
-    unit_amount: 500,
-    currency: 'eur',
-    nickname: 'Scanner supplémentaire',
-    metadata: { type: 'one_time', action: 'scanner_add' },
-  });
-  console.log('✅  Scanner supplémentaire :', scannerPrice.id);
-
-  // ── 5. Pack SMS 100 ─────────────────────────────────────────────────
+  // ── 4. Pack SMS 100 ─────────────────────────────────────────────────
   const sms = await stripe.products.create({
     name: 'Pack SMS',
     description: 'Crédits SMS pour campagnes clients',
@@ -148,7 +133,6 @@ async function create() {
     pro_mensuel:     proMensuel.id,
     pro_annuel:      proAnnuel.id,
     accompagnement:  accompagnementPrice.id,
-    scanner:         scannerPrice.id,
     sms_100:         sms100.id,
     sms_500:         sms500.id,
     sms_2000:        sms2000.id,

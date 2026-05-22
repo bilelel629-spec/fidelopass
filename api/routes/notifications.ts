@@ -18,6 +18,7 @@ const BIRTHDAY_TIMEZONE = 'Europe/Paris';
 const BIRTHDAY_SEND_HOUR = 10;
 const DEFAULT_BIRTHDAY_PUSH_TITLE = 'Joyeux anniversaire 🎉';
 const DEFAULT_BIRTHDAY_PUSH_MESSAGE = 'Votre bonus anniversaire est disponible sur votre carte Fidelopass.';
+const WALLET_ICON_PREFRESH_DELAY_MS = 2500;
 
 export const notificationsRoutes = new Hono<ApiEnv>();
 
@@ -37,6 +38,52 @@ type BirthdaySettingsRow = {
   birthday_push_title?: string | null;
   birthday_push_message?: string | null;
 };
+
+type AppleWalletClient = {
+  id: string;
+  apple_pass_serial?: string | null;
+};
+
+async function pushAppleWalletRefreshForClients(
+  db: ReturnType<typeof createServiceClient>,
+  clients: AppleWalletClient[],
+  logScope: string,
+): Promise<number> {
+  if (clients.length === 0) return 0;
+  const appleClientIds = clients.map((client) => client.id);
+  const { data: registrations, error: registrationsError } = await db
+    .from('apple_pass_registrations')
+    .select('client_id, push_token, pass_type_identifier')
+    .in('client_id', appleClientIds);
+
+  if (registrationsError) {
+    console.error(`[${logScope} registrations]`, registrationsError);
+    return 0;
+  }
+
+  const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
+  const uniqueRegistrations = Array.from(
+    new Map((registrations ?? []).map((registration) => [registration.push_token, registration])).values(),
+  );
+
+  const results = await Promise.allSettled(
+    uniqueRegistrations.map((registration) =>
+      pushApplePassUpdate(registration.push_token, passTypeId || registration.pass_type_identifier),
+    ),
+  );
+
+  for (const result of results) {
+    if (result.status === 'rejected') {
+      console.error(`[${logScope}]`, result.reason);
+    }
+  }
+
+  return results.filter((result) => result.status === 'fulfilled').length;
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function getReviewAutoEnabled(flags: CommerceFlags | null): boolean {
   if (!flags) return false;
@@ -589,6 +636,18 @@ notificationsRoutes.post('/', rateLimit(5, 60_000), async (c) => {
 
   const googleWalletClients = (clients ?? []).filter((client) => !!client.google_pass_id && !client.fcm_token);
   const appleWalletClients = (clients ?? []).filter((client) => !!client.apple_pass_serial);
+  let appleIconPreRefreshSent = 0;
+
+  if (Object.prototype.hasOwnProperty.call(parsed.data, 'push_icon_bg_color') && appleWalletClients.length > 0) {
+    appleIconPreRefreshSent = await pushAppleWalletRefreshForClients(
+      db,
+      appleWalletClients,
+      'notifications wallet apple icon-prefresh',
+    );
+    if (appleIconPreRefreshSent > 0) {
+      await wait(WALLET_ICON_PREFRESH_DELAY_MS);
+    }
+  }
 
   const targetedClientIds = new Set<string>([
     ...webPushClients.map((client) => client.id),
@@ -652,31 +711,9 @@ notificationsRoutes.post('/', rateLimit(5, 60_000), async (c) => {
   }
 
   if (appleWalletClients.length > 0) {
-    const appleClientIds = appleWalletClients.map((client) => client.id);
-    const { data: registrations, error: registrationsError } = await db
-      .from('apple_pass_registrations')
-      .select('client_id, push_token, pass_type_identifier')
-      .in('client_id', appleClientIds);
-
-    if (registrationsError) {
-      console.error('[notifications wallet apple registrations]', registrationsError);
-    } else {
-      const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
-      const uniqueRegistrations = Array.from(
-        new Map((registrations ?? []).map((registration) => [registration.push_token, registration])).values(),
-      );
-      const appleResults = await Promise.allSettled(
-        uniqueRegistrations.map(async (registration) => {
-          await pushApplePassUpdate(registration.push_token, passTypeId || registration.pass_type_identifier);
-          walletDeliveredClientIds.add(registration.client_id);
-        }),
-      );
-
-      for (const result of appleResults) {
-        if (result.status === 'rejected') {
-          console.error('[notifications wallet apple]', result.reason);
-        }
-      }
+    const appleUpdated = await pushAppleWalletRefreshForClients(db, appleWalletClients, 'notifications wallet apple');
+    if (appleUpdated > 0) {
+      appleWalletClients.forEach((client) => walletDeliveredClientIds.add(client.id));
     }
   }
 
@@ -715,6 +752,7 @@ notificationsRoutes.post('/', rateLimit(5, 60_000), async (c) => {
     nb_delivrees: nbDelivrees,
     nb_wallet: walletDeliveredClientIds.size,
     nb_web_push: nbDelivreesWeb,
+    apple_icon_prefresh: appleIconPreRefreshSent,
   }, 201);
 });
 

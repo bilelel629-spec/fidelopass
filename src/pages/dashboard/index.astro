@@ -6,10 +6,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   <div class="mb-6 flex items-start justify-between gap-3">
     <div>
       <p class="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-sky-700/70">Pilotage</p>
-      <h1 class="mt-2 font-display text-3xl font-bold text-slate-900">Tableau de bord</h1>
+      <h1 class="mt-2 font-display text-3xl font-extrabold tracking-[-0.04em] text-slate-950">Tableau de bord</h1>
       <p class="mt-2 text-sm text-slate-600">Tout ce qui compte aujourd’hui: scanner, partager la carte, suivre l’activité.</p>
     </div>
-    <button id="refresh-btn" type="button" class="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 flex items-center gap-1.5">
+    <button id="refresh-btn" type="button" class="premium-button rounded-2xl border border-slate-200 bg-white/90 px-3 py-2.5 text-sm font-semibold text-slate-600 transition flex items-center gap-1.5">
       <svg id="refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
         <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
         <path d="M21 3v5h-5"></path>
@@ -20,7 +20,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </button>
   </div>
 
-  <div class="card mb-6 p-5" data-tour="dashboard-actions">
+  <div class="card dashboard-action-card mb-6 p-5" data-tour="dashboard-actions">
     <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
       <div>
         <p class="text-[0.64rem] font-semibold uppercase tracking-[0.24em] text-sky-700/70">Actions du jour</p>
@@ -30,9 +30,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </p>
       </div>
       <div class="flex flex-wrap gap-2">
-        <a href="/app/scan" class="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-sky-700">Scanner en caisse</a>
-        <a id="dashboard-client-qr-btn" href="/dashboard/carte" class="rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-50">Afficher le QR client</a>
-        <a href="/dashboard/notifications" class="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50">Envoyer une notification</a>
+        <a href="/app/scan" class="rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_16px_34px_-22px_rgba(37,99,235,0.9)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_42px_-24px_rgba(37,99,235,0.95)]">Scanner en caisse</a>
+        <a id="dashboard-client-qr-btn" href="/dashboard/carte" class="premium-button rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-semibold text-sky-700 transition">Afficher le QR client</a>
+        <a href="/dashboard/notifications" class="premium-button rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition">Envoyer une notification</a>
       </div>
     </div>
   </div>
@@ -61,50 +61,50 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   </div>
 
   <div class="mb-6 grid gap-6 xl:grid-cols-[1.4fr_0.6fr]">
-    <div class="card overflow-hidden p-6">
+    <div class="card dashboard-chart-card overflow-hidden p-6">
       <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 class="font-display text-xl font-bold text-slate-900">Visites par jour</h2>
           <p class="mt-1 text-sm text-slate-500">Scans clients sur les 14 derniers jours</p>
         </div>
-        <div class="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-right">
+        <div class="rounded-2xl border border-blue-100 bg-[linear-gradient(180deg,#eff6ff_0%,#f8fbff_100%)] px-4 py-3 text-right shadow-inner">
           <p class="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-blue-600/75">Total période</p>
           <p id="visits-total" class="font-mono text-2xl font-bold text-slate-950">—</p>
         </div>
       </div>
-      <div id="chart-container" class="relative h-[22rem] rounded-[1.25rem] bg-white" data-tour="dashboard-activity">
+      <div id="chart-container" class="chart-surface relative h-[22rem] rounded-[1.35rem] bg-white" data-tour="dashboard-activity">
         <p class="m-auto text-sm text-slate-400">Chargement...</p>
       </div>
     </div>
 
-    <div class="card p-6">
-      <div class="mb-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+    <div class="card dashboard-side-card p-6">
+      <div class="retention-panel mb-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
         <p class="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Rétention clients</p>
         <div class="mt-2 flex items-end justify-between gap-2">
           <p class="text-sm text-slate-600">Clients revenus au moins 2 fois sur 30 jours</p>
           <p id="retention-rate" class="font-mono text-2xl font-bold text-slate-900">—</p>
         </div>
-        <div id="retention-chart" class="mt-3 flex h-20 items-end gap-1.5">
+        <div id="retention-chart" class="retention-chart mt-3 flex h-20 items-end gap-1.5">
           <p class="m-auto text-xs text-slate-400">Chargement...</p>
         </div>
       </div>
 
       <p class="text-[0.64rem] font-semibold uppercase tracking-[0.24em] text-sky-700/70">Parcours rapide</p>
       <div class="mt-3 space-y-3" data-tour="dashboard-quick-path">
-        <a href="/dashboard/carte" class="block rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3 transition hover:border-sky-200 hover:bg-sky-100/70">
+        <a href="/dashboard/carte" class="quick-path-card quick-path-card--active block rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3 transition">
           <p class="text-sm font-semibold text-slate-900">1. Personnaliser la carte</p>
           <p class="mt-1 text-xs text-slate-600">Template, visuels, programme et géolocalisation.</p>
         </a>
-        <a href="/app/install" class="block rounded-2xl border border-slate-200 bg-white px-4 py-3 transition hover:border-slate-300 hover:bg-slate-50">
+        <a href="/app/install" class="quick-path-card block rounded-2xl border border-slate-200 bg-white px-4 py-3 transition">
           <p class="text-sm font-semibold text-slate-900">2. Installer le scanner équipe</p>
           <p class="mt-1 text-xs text-slate-600">QRCode d’installation pour la caisse.</p>
         </a>
-        <a href="/dashboard/points-vente" class="block rounded-2xl border border-slate-200 bg-white px-4 py-3 transition hover:border-slate-300 hover:bg-slate-50">
+        <a href="/dashboard/points-vente" class="quick-path-card block rounded-2xl border border-slate-200 bg-white px-4 py-3 transition">
           <p class="text-sm font-semibold text-slate-900">3. Gérer vos points de vente</p>
           <p id="points-vente-usage" class="mt-1 text-xs text-slate-600">Chargement du quota...</p>
         </a>
       </div>
-      <div id="admin-shortcut" class="hidden mt-4 rounded-2xl border border-sky-100 bg-sky-50/80 p-4">
+      <div id="admin-shortcut" class="hidden mt-4 rounded-2xl border border-sky-100 bg-sky-50/80 p-4 shadow-sm">
         <p class="text-xs uppercase tracking-[0.24em] text-sky-600/75">Accès fondateur</p>
         <p class="mt-1 text-sm text-slate-700">Administration globale plateforme.</p>
         <a href="/admin" class="btn-secondary mt-3 inline-flex px-4 py-2.5 text-sm">Ouvrir l’admin</a>
@@ -112,7 +112,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </div>
   </div>
 
-  <div class="card p-6">
+  <div class="card dashboard-activity-card p-6">
     <h2 class="mb-4 font-display font-bold text-slate-900">Activité récente</h2>
     <div id="recent-transactions" class="flex flex-col gap-3">
       <p class="text-sm text-slate-500">Chargement...</p>
@@ -121,24 +121,102 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 </DashboardLayout>
 
 <style>
+  .dashboard-action-card,
+  .dashboard-chart-card,
+  .dashboard-side-card,
+  .dashboard-activity-card,
+  .stat-card {
+    border-color: rgba(226, 232, 240, 0.82);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 251, 255, 0.9));
+    box-shadow:
+      0 28px 70px -54px rgba(15, 23, 42, 0.48),
+      0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    backdrop-filter: blur(18px);
+    transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+  }
+
+  .dashboard-action-card:hover,
+  .dashboard-chart-card:hover,
+  .dashboard-side-card:hover,
+  .dashboard-activity-card:hover,
+  .stat-card:hover {
+    border-color: rgba(147, 197, 253, 0.62);
+    box-shadow: 0 34px 86px -58px rgba(37, 99, 235, 0.42);
+  }
+
+  .stat-card {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at 82% 12%, rgba(56, 189, 248, 0.14), transparent 32%);
+  }
+
+  .stat-card span {
+    position: relative;
+  }
+
+  .premium-button {
+    box-shadow: 0 16px 34px -28px rgba(15, 23, 42, 0.45);
+  }
+
+  .premium-button:hover {
+    transform: translateY(-2px);
+    border-color: rgba(125, 211, 252, 0.9);
+    background: rgba(248, 252, 255, 0.98);
+    box-shadow: 0 22px 44px -30px rgba(37, 99, 235, 0.55);
+  }
+
   #chart-container {
     isolation: isolate;
   }
 
-  .chart-grid-line {
-    stroke: rgba(148, 163, 184, 0.12);
+  .chart-surface {
+    overflow: hidden;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.92),
+      inset 0 -46px 80px rgba(37, 99, 235, 0.035);
+  }
+
+  .chart-surface::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 72% 30%, rgba(56, 189, 248, 0.12), transparent 30%),
+      linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+    background-size: auto, 100% 25%;
+  }
+
+  :global(.chart-grid-line) {
+    stroke: rgba(148, 163, 184, 0.16);
     stroke-width: 1;
     vector-effect: non-scaling-stroke;
   }
 
-  .chart-axis-label {
-    fill: #94a3b8;
+  :global(.chart-axis-label) {
+    fill: #64748b;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 0;
   }
 
-  .chart-active-dot {
+  :global(.chart-peak-dot) {
+    fill: #ffffff;
+    stroke: #2563eb;
+    stroke-width: 3;
+    filter: drop-shadow(0 8px 16px rgba(37, 99, 235, 0.22));
+    vector-effect: non-scaling-stroke;
+  }
+
+  :global(.chart-active-dot) {
     fill: #38bdf8;
     stroke: #ffffff;
     stroke-width: 4;
@@ -146,23 +224,66 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     vector-effect: non-scaling-stroke;
   }
 
-  .chart-active-line {
+  :global(.chart-active-line) {
     stroke: rgba(37, 99, 235, 0.18);
     stroke-width: 1;
     stroke-dasharray: 4 6;
     vector-effect: non-scaling-stroke;
   }
 
-  .chart-hit-area {
+  :global(.chart-hit-area) {
     cursor: crosshair;
   }
 
-  .chart-line {
+  :global(.chart-line) {
     animation: chart-draw 1200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    filter: drop-shadow(0 10px 18px rgba(37, 99, 235, 0.18));
   }
 
-  .chart-area {
+  :global(.chart-area) {
     animation: chart-fade 900ms ease-out both;
+  }
+
+  .retention-panel {
+    background:
+      radial-gradient(circle at 84% 14%, rgba(56, 189, 248, 0.13), transparent 34%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.88));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88), 0 20px 50px -42px rgba(15, 23, 42, 0.4);
+  }
+
+  .quick-path-card {
+    box-shadow: 0 18px 46px -40px rgba(15, 23, 42, 0.38);
+  }
+
+  .quick-path-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(147, 197, 253, 0.85);
+    background: rgba(248, 252, 255, 0.98);
+    box-shadow: 0 26px 58px -44px rgba(37, 99, 235, 0.48);
+  }
+
+  .quick-path-card--active {
+    background: linear-gradient(180deg, rgba(239, 246, 255, 0.94), rgba(240, 249, 255, 0.86));
+    box-shadow: 0 22px 54px -44px rgba(37, 99, 235, 0.56);
+  }
+
+  :global(.retention-bar-track) {
+    position: relative;
+    height: 4rem;
+    overflow: hidden;
+    border-radius: 0.8rem;
+    background: rgba(226, 232, 240, 0.82);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  }
+
+  :global(.retention-bar-fill) {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    border-radius: 0.8rem;
+    background: linear-gradient(180deg, #67e8f9 0%, #0284c7 100%);
+    box-shadow: 0 10px 22px -12px rgba(14, 165, 233, 0.72);
+    transition: height 800ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   @keyframes chart-draw {
@@ -188,9 +309,19 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .chart-line,
-    .chart-area {
+    :global(.chart-line),
+    :global(.chart-area) {
       animation: none;
+    }
+
+    .premium-button,
+    .quick-path-card,
+    .dashboard-action-card,
+    .dashboard-chart-card,
+    .dashboard-side-card,
+    .dashboard-activity-card,
+    .stat-card {
+      transition: none;
     }
   }
 </style>
@@ -314,6 +445,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         const y = paddingTop + chartHeight * ratio;
         return `<line x1="${paddingLeft}" y1="${y.toFixed(1)}" x2="${width - paddingRight}" y2="${y.toFixed(1)}" class="chart-grid-line"></line>`;
       }).join('');
+      const peakDots = points.map((point: { visits: number; x: number; y: number }, index: number) => {
+        const previous = rows[index - 1]?.visits ?? 0;
+        const next = rows[index + 1]?.visits ?? 0;
+        const isPeak = point.visits > 0 && (point.visits === maxRaw || (point.visits >= previous && point.visits >= next && point.visits >= Math.max(1, maxRaw * 0.55)));
+        return isPeak ? `<circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="4.5" class="chart-peak-dot"></circle>` : '';
+      }).join('');
       const hitAreas = points.map((point: { date: string; visits: number; x: number; y: number }, index: number) => {
         const hitWidth = Math.max(34, step || 80);
         const left = index === 0 ? paddingLeft - hitWidth / 2 : point.x - hitWidth / 2;
@@ -365,12 +502,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             </linearGradient>
             <linearGradient id="visitsLineGradient" x1="0" x2="1" y1="0" y2="0">
               <stop offset="0%" stop-color="#2563eb"></stop>
+              <stop offset="55%" stop-color="#3b82f6"></stop>
               <stop offset="100%" stop-color="#06b6d4"></stop>
             </linearGradient>
           </defs>
           ${gridLines}
           <path d="${areaPath}" fill="url(#visitsAreaGradient)" class="chart-area"></path>
           <path d="${linePath}" fill="none" stroke="url(#visitsLineGradient)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" class="chart-line"></path>
+          ${peakDots}
           <circle id="chart-active-dot" cx="${lastPoint.x.toFixed(1)}" cy="${lastPoint.y.toFixed(1)}" r="6" class="chart-active-dot hidden"></circle>
           <line id="chart-active-line" x1="${lastPoint.x.toFixed(1)}" y1="${paddingTop}" x2="${lastPoint.x.toFixed(1)}" y2="${baseline}" class="chart-active-line hidden"></line>
           ${labels}
@@ -469,13 +608,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
       const maxRate = Math.max(...weekly.map((item: { retention_rate?: number }) => Number(item.retention_rate ?? 0)), 1);
       chart.innerHTML = weekly.map((item: { week_start: string; retention_rate: number }) => {
-        const ratio = Math.round((Number(item.retention_rate ?? 0) / maxRate) * 100);
+        const rawRate = Number(item.retention_rate ?? 0);
+        const ratio = Math.max(rawRate > 0 ? 12 : 0, Math.round((rawRate / maxRate) * 100));
         const label = new Date(`${item.week_start}T12:00:00`).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
         return `
           <div class="min-w-0 flex-1">
-            <div class="group relative h-16 rounded-lg bg-slate-200/70">
-              <div class="absolute inset-x-0 bottom-0 rounded-lg bg-gradient-to-t from-sky-600 to-cyan-500 transition-all" style="height:${ratio}%"></div>
-              <span class="pointer-events-none absolute -top-6 left-1/2 hidden -translate-x-1/2 rounded-md bg-slate-900 px-2 py-1 text-[10px] text-white group-hover:block">${Number(item.retention_rate ?? 0)}%</span>
+            <div class="group retention-bar-track">
+              <div class="retention-bar-fill" style="height:${ratio}%"></div>
+              <span class="pointer-events-none absolute -top-6 left-1/2 hidden -translate-x-1/2 rounded-md bg-slate-900 px-2 py-1 text-[10px] text-white shadow-lg group-hover:block">${rawRate}%</span>
             </div>
             <p class="mt-1 truncate text-center text-[0.62rem] text-slate-500">${escapeHtml(label)}</p>
           </div>

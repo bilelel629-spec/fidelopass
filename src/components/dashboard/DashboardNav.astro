@@ -8,8 +8,8 @@ const { activeNav = '' } = Astro.props;
 const navItems = DASHBOARD_NAV_ITEMS;
 const navToneClasses = {
   blue: {
-    active: 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-[0_18px_30px_-24px_rgba(37,99,235,0.9)]',
-    inactive: 'text-slate-600 hover:bg-blue-50 hover:text-blue-900',
+    active: 'bg-gradient-to-r from-blue-600 via-sky-500 to-cyan-400 text-white shadow-[0_22px_42px_-24px_rgba(37,99,235,0.95)] ring-1 ring-white/20',
+    inactive: 'text-slate-600 hover:bg-blue-50/85 hover:text-blue-900 hover:shadow-sm',
     icon: 'border-blue-100 bg-blue-50 text-blue-700 group-hover:border-blue-200 group-hover:bg-blue-100',
     mobileActive: 'bg-blue-100 text-blue-800 font-semibold',
   },
@@ -64,7 +64,7 @@ const navToneClasses = {
 };
 ---
 
-<aside class="hidden lg:flex w-72 shrink-0 h-full min-h-0 flex-col border-r border-sky-100/90 bg-white/82 backdrop-blur-2xl shadow-[0_18px_50px_-30px_rgba(37,99,235,0.25)]">
+<aside class="hidden lg:flex w-72 shrink-0 h-full min-h-0 flex-col border-r border-sky-100/90 bg-white/78 backdrop-blur-2xl shadow-[0_24px_70px_-42px_rgba(37,99,235,0.38)]">
   <div class="px-6 py-6 border-b border-sky-100/90">
     <a href="/dashboard" class="flex flex-col gap-2">
       <img src="/logo-premium.png" alt="Fidelopass" class="h-14 w-48 object-cover object-center" />
@@ -93,7 +93,7 @@ const navToneClasses = {
       <a
         href={href}
         data-tour-nav={id}
-        class={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-all duration-200
+        class={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-all duration-300 hover:-translate-y-0.5
           ${activeNav === id
             ? navToneClasses[tone].active
             : navToneClasses[tone].inactive
@@ -115,7 +115,7 @@ const navToneClasses = {
   </nav>
 
   <div class="px-4 pb-4 space-y-2 border-t border-sky-100/90 pt-4">
-    <a href="/app" class="flex items-center justify-between rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-medium text-sky-800 transition hover:border-sky-300 hover:bg-sky-100">
+    <a href="/app" class="flex items-center justify-between rounded-2xl border border-sky-200 bg-sky-50/90 px-4 py-3 text-sm font-semibold text-sky-800 shadow-[0_18px_36px_-28px_rgba(37,99,235,0.55)] transition hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-100">
       <span>Ouvrir le scanner</span>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
         <path d="M7 3H5a2 2 0 0 0-2 2v2"></path>

@@ -436,51 +436,88 @@ import PublicNav from '../components/marketing/PublicNav.astro';
   </section>
 
   <!-- ÉTUDE DE CAS -->
-  <section class="bg-[linear-gradient(180deg,#f8fbff_0%,#ffffff_100%)] py-12 sm:py-20 dark:bg-slate-950">
+  <section class="home-case-section relative overflow-hidden bg-[linear-gradient(180deg,#f8fbff_0%,#ffffff_100%)] py-12 sm:py-20 dark:bg-slate-950">
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
-      <div class="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_28px_75px_rgba(15,23,42,0.1)] dark:border-slate-700 dark:bg-slate-900">
+      <div class="home-case-card overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_28px_75px_rgba(15,23,42,0.1)] dark:border-slate-700 dark:bg-slate-900">
         <div class="grid lg:grid-cols-[0.92fr_1.08fr]">
-          <div class="bg-[linear-gradient(135deg,#0f172a_0%,#1d4ed8_58%,#38bdf8_100%)] p-7 text-white sm:p-10">
-            <span class="inline-flex rounded-full bg-white/12 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-sky-100">Étude de cas</span>
-            <h2 class="mt-6 font-display text-4xl font-bold tracking-[-0.04em] sm:text-5xl">Dreams Donuts Annemasse</h2>
-            <p class="mt-4 text-lg leading-relaxed text-sky-100">
+          <div class="home-case-visual relative overflow-hidden p-7 text-white sm:p-10">
+            <div class="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-white/24 blur-3xl"></div>
+            <div class="pointer-events-none absolute -bottom-28 left-0 h-80 w-80 rounded-full bg-cyan-200/24 blur-3xl"></div>
+            <div class="pointer-events-none absolute inset-y-0 right-[-4rem] w-40 bg-gradient-to-l from-white/18 to-transparent blur-2xl"></div>
+            <div class="relative">
+              <span class="inline-flex rounded-full border border-white/18 bg-white/12 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-sky-100 shadow-inner backdrop-blur">Étude de cas</span>
+              <h2 class="mt-7 font-display text-4xl font-extrabold leading-[0.94] tracking-[-0.045em] sm:text-5xl lg:text-6xl">
+                <span class="block">Dreams Donuts</span>
+                <span class="block text-[0.86em] text-sky-100/95">Annemasse</span>
+              </h2>
+            </div>
+            <p class="relative mt-5 max-w-xl text-lg leading-relaxed text-sky-100">
               Une carte Wallet pensée pour transformer les passages au comptoir en habitudes: inscription rapide, scan simple et récompense claire.
             </p>
-            <div class="mt-8 grid gap-3 sm:grid-cols-3">
+            <div class="relative mt-8 grid gap-3 sm:grid-cols-3">
               {[
                 { value: '20 sec', label: 'ajout client' },
                 { value: '0 app', label: 'à installer' },
                 { value: '1 scan', label: 'par passage' },
               ].map((item) => (
-                <div class="rounded-2xl border border-white/15 bg-white/10 p-4">
-                  <p class="text-2xl font-bold">{item.value}</p>
-                  <p class="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-sky-100">{item.label}</p>
+                <div class="home-case-kpi rounded-2xl border border-white/15 bg-white/10 p-4">
+                  <p class="font-display text-3xl font-extrabold tracking-[-0.05em] text-white">{item.value}</p>
+                  <p class="mt-1 text-xs font-extrabold uppercase tracking-[0.18em] text-sky-100">{item.label}</p>
                 </div>
               ))}
             </div>
           </div>
-          <div class="p-7 sm:p-10">
+          <div class="home-case-content p-7 sm:p-10">
             <div class="grid gap-4 sm:grid-cols-3">
               {[
-                { title: 'Objectif', desc: 'Faire revenir les clients locaux après leur premier achat.' },
-                { title: 'Mise en place', desc: 'QR code au comptoir, carte tampons et récompense simple.' },
-                { title: 'Pilotage', desc: 'Suivi des passages, des cartes actives et des récompenses.' },
+                { title: 'Objectif', desc: 'Faire revenir les clients locaux après leur premier achat.', icon: 'M4 12h16 M12 4v16' },
+                { title: 'Mise en place', desc: 'QR code au comptoir, carte tampons et récompense simple.', icon: 'M7 7h4v4H7z M13 7h4v4h-4z M7 13h4v4H7z M14 14h3v3h-3z' },
+                { title: 'Pilotage', desc: 'Suivi des passages, des cartes actives et des récompenses.', icon: 'M4 18V8 M10 18V5 M16 18v-8 M21 18H3' },
               ].map((item) => (
-                <article class="rounded-[1.4rem] border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-800">
+                <article class="home-case-info rounded-[1.4rem] border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-800">
+                  <span class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
+                    <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d={item.icon}></path>
+                    </svg>
+                  </span>
                   <h3 class="font-display text-lg font-bold text-slate-950 dark:text-white">{item.title}</h3>
                   <p class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-300">{item.desc}</p>
                 </article>
               ))}
             </div>
-            <div class="mt-6 rounded-[1.5rem] border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
-              <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Exemple de mécanique</p>
-              <p class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-300">
-                Le client ajoute sa carte Dreams Donuts dans son Wallet, cumule ses passages après chaque scan et voit immédiatement sa progression vers sa prochaine récompense.
-              </p>
-              <div class="mt-5 flex flex-wrap gap-2">
-                {['Carte tampons', 'QR comptoir', 'Scanner mobile', 'Relance Wallet'].map((tag) => (
-                  <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">{tag}</span>
-                ))}
+            <div class="home-case-info mt-6 rounded-[1.5rem] border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+              <div class="grid gap-5 lg:grid-cols-[1fr_14rem] lg:items-center">
+                <div>
+                  <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Exemple de mécanique</p>
+                  <p class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-300">
+                    Le client ajoute sa carte Dreams Donuts dans son Wallet, cumule ses passages après chaque scan et voit immédiatement sa progression vers sa prochaine récompense.
+                  </p>
+                  <div class="mt-5 flex flex-wrap gap-2">
+                    {['Carte tampons', 'QR comptoir', 'Scanner mobile', 'Relance Wallet'].map((tag) => (
+                      <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 ring-1 ring-blue-100/80">{tag}</span>
+                    ))}
+                  </div>
+                </div>
+                <div class="home-case-flow hidden rounded-[1.25rem] border border-blue-100 bg-blue-50/60 p-4 lg:block">
+                  <div class="flex items-center justify-between">
+                    {['QR', 'Wallet', 'Scan'].map((label, index) => (
+                      <div class="flex items-center">
+                        <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[0.65rem] font-extrabold text-blue-700 shadow-sm ring-1 ring-blue-100">{label}</span>
+                        {index < 2 && <span class="mx-2 h-px w-5 bg-blue-200"></span>}
+                      </div>
+                    ))}
+                  </div>
+                  <div class="mt-4 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-blue-100">
+                    <div class="h-2 rounded-full bg-blue-100">
+                      <div class="h-2 w-2/3 rounded-full bg-gradient-to-r from-blue-600 to-cyan-400"></div>
+                    </div>
+                    <div class="mt-3 grid grid-cols-5 gap-1.5">
+                      {Array.from({ length: 5 }).map((_, index) => (
+                        <span class={`h-7 rounded-full ${index < 3 ? 'bg-blue-600' : 'bg-blue-100'}`}></span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -584,8 +621,8 @@ import PublicNav from '../components/marketing/PublicNav.astro';
         {[
           { title: 'Restaurant & snack', desc: '10 passages = 1 plat offert, relance avant les heures creuses.' },
           { title: 'Café & pâtisserie', desc: 'Carte tampons rapide: café, dessert ou formule offerte.' },
-          { title: 'Coiffeur & beauté', desc: 'Points ou VIP pour récompenser la fréquence et les prestations premium.' },
-          { title: 'Sport & bien-être', desc: 'Carte membre, paliers VIP et rappels pour entretenir l’engagement.' },
+          { title: 'Coiffeur & beauté', desc: 'Points ou paliers pour récompenser la fréquence et les prestations premium.' },
+          { title: 'Sport & bien-être', desc: 'Carte membre, paliers de fidélité et rappels pour entretenir l’engagement.' },
         ].map((usecase) => (
           <article class="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(15,23,42,0.08)] dark:border-slate-700 dark:bg-slate-900">
             <h3 class="font-display text-lg font-bold text-slate-900 dark:text-slate-100">{usecase.title}</h3>
@@ -616,7 +653,7 @@ import PublicNav from '../components/marketing/PublicNav.astro';
             monthly: '35€/mois en mensuel',
             desc: 'Pour lancer une carte de fidélité Wallet rapidement.',
             highlight: false,
-            features: ['Jusqu’à 500 cartes actives', '1 point de vente', 'Scanners illimités', 'Tampons, points ou VIP', 'Notifications push illimitées', 'Analytics de base'],
+            features: ['Jusqu’à 500 cartes actives', '1 point de vente', 'Scanners illimités', 'Tampons, points ou paliers', 'Notifications push illimitées', 'Analytics de base'],
           },
           {
             name: 'Pro',
@@ -680,9 +717,8 @@ import PublicNav from '../components/marketing/PublicNav.astro';
           { q: 'Mes clients doivent-ils télécharger une application ?', a: 'Non. Vos clients reçoivent la carte directement dans Apple Wallet (iPhone) ou Google Wallet (Android), déjà installés sur tous les smartphones. Aucun téléchargement supplémentaire.' },
           { q: 'Comment fonctionne l\'essai gratuit de 14 jours ?', a: 'Vous choisissez un forfait et ajoutez votre carte bancaire pour activer l’essai. Vous pouvez résilier à tout moment pendant les 14 jours. Sans résiliation, l’abonnement démarre automatiquement sur le forfait choisi.' },
           { q: 'La carte fonctionne-t-elle sur iPhone et Android ?', a: 'Oui. Fidelopass génère automatiquement une carte Apple Wallet (iPhone) et Google Wallet (Android). Vos clients reçoivent le bon format selon leur téléphone.' },
-          { q: 'Combien de temps pour créer sa première carte ?', a: 'Moins de 5 minutes. Choisissez le type (tampons, points ou VIP), personnalisez couleurs et logo — votre carte est prête.' },
+          { q: 'Combien de temps pour créer sa première carte ?', a: 'Moins de 5 minutes. Choisissez le type (tampons, points ou paliers), personnalisez couleurs et logo — votre carte est prête.' },
           { q: 'Puis-je changer de plan à tout moment ?', a: 'Oui. Passez à un plan supérieur ou résiliez à tout moment. Pas d\'engagement minimum sur les plans mensuels.' },
-          { q: 'C\'est quoi la carte VIP / paliers ?', a: 'La carte VIP crée des niveaux de fidélité (ex: Bronze, Silver, Gold). Chaque palier débloque des avantages différents. Idéal pour salons, spas ou commerces premium.' },
         ].map((item, i) => (
           <div class="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900" data-faq={i}>
             <button class="w-full px-6 py-5 text-left flex items-center justify-between gap-4" aria-expanded="false">
@@ -987,6 +1023,127 @@ import PublicNav from '../components/marketing/PublicNav.astro';
     display: block;
   }
 
+  .home-case-section::before,
+  .home-case-section::after {
+    content: '';
+    position: absolute;
+    pointer-events: none;
+    border-radius: 999px;
+    filter: blur(54px);
+  }
+
+  .home-case-section::before {
+    inset: 5rem auto auto 8%;
+    width: 24rem;
+    height: 24rem;
+    background: rgba(56, 189, 248, 0.16);
+  }
+
+  .home-case-section::after {
+    right: 10%;
+    bottom: 4rem;
+    width: 28rem;
+    height: 28rem;
+    background: rgba(37, 99, 235, 0.1);
+  }
+
+  .home-case-card {
+    position: relative;
+    isolation: isolate;
+    box-shadow:
+      0 42px 110px -68px rgba(15, 23, 42, 0.55),
+      0 1px 0 rgba(255, 255, 255, 0.8) inset;
+    animation: premium-rise 780ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .home-case-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background-image:
+      radial-gradient(circle at 28% 20%, rgba(255, 255, 255, 0.55), transparent 22%),
+      radial-gradient(circle at 58% 8%, rgba(56, 189, 248, 0.12), transparent 28%),
+      linear-gradient(90deg, transparent 44%, rgba(37, 99, 235, 0.08) 50%, transparent 58%);
+  }
+
+  .home-case-visual {
+    background:
+      radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.18), transparent 22%),
+      radial-gradient(circle at 84% 28%, rgba(125, 211, 252, 0.22), transparent 26%),
+      linear-gradient(135deg, #081a4a 0%, #1d3fa7 48%, #38bdf8 100%);
+    box-shadow:
+      inset -1px 0 0 rgba(255, 255, 255, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.22),
+      inset 0 -38px 90px rgba(15, 23, 42, 0.18);
+  }
+
+  .home-case-visual::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.18;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 28px 28px;
+    mask-image: linear-gradient(135deg, #000 0%, transparent 78%);
+  }
+
+  .home-case-kpi {
+    backdrop-filter: blur(18px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      inset 0 -20px 42px rgba(15, 23, 42, 0.12),
+      0 24px 55px -34px rgba(15, 23, 42, 0.8);
+    transition: transform 260ms ease, background 260ms ease, box-shadow 260ms ease;
+  }
+
+  .home-case-kpi:hover {
+    transform: translateY(-3px);
+    background: rgba(255, 255, 255, 0.16);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.26),
+      0 28px 64px -34px rgba(8, 47, 73, 0.9);
+  }
+
+  .home-case-content {
+    position: relative;
+    background:
+      radial-gradient(circle at 0% 22%, rgba(37, 99, 235, 0.08), transparent 30%),
+      linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  }
+
+  .home-case-info {
+    box-shadow:
+      0 20px 55px -42px rgba(15, 23, 42, 0.44),
+      0 1px 0 rgba(255, 255, 255, 0.88) inset;
+    transition: transform 260ms ease, border-color 260ms ease, box-shadow 260ms ease;
+  }
+
+  .home-case-info:hover {
+    transform: translateY(-3px);
+    border-color: rgba(147, 197, 253, 0.8);
+    box-shadow: 0 28px 70px -46px rgba(37, 99, 235, 0.5);
+  }
+
+  .home-case-flow {
+    animation: premium-rise 900ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
+  }
+
+  @keyframes premium-rise {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   @keyframes phone-float {
     0%,
     100% {
@@ -1028,8 +1185,15 @@ import PublicNav from '../components/marketing/PublicNav.astro';
 
   @media (prefers-reduced-motion: reduce) {
     .hero-phone,
-    .hero-float {
+    .hero-float,
+    .home-case-card,
+    .home-case-flow {
       animation: none;
+    }
+
+    .home-case-kpi,
+    .home-case-info {
+      transition: none;
     }
   }
 </style>

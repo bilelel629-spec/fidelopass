@@ -136,13 +136,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
               Code envoyé
             </p>
             <p class="text-indigo-600 text-sm mt-1">Vérifiez votre boîte mail : <span id="verify-email" class="font-semibold"></span></p>
+            <p class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800">
+              Pensez aussi à vérifier vos courriers indésirables / spams, surtout avec Outlook, Hotmail ou Gmail.
+            </p>
           </div>
           <form id="verify-form" class="flex flex-col gap-4">
             <div>
               <label class="label" for="verification-code">Code de vérification</label>
               <input id="verification-code" type="text" class="input text-center text-lg tracking-[0.3em] font-mono" placeholder="12345678" inputmode="numeric" autocomplete="one-time-code" maxlength="8" required />
               <p class="mt-2 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-xs leading-relaxed text-sky-800">
-                Le code est composé de chiffres. Si l’email arrive dans les indésirables, déplacez-le dans votre boîte principale avant de copier le code.
+                Le code est composé de chiffres. Si l’email est dans les indésirables, marquez-le comme légitime puis copiez le code.
               </p>
             </div>
             <div id="verify-error-msg" class="hidden text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3"></div>
@@ -466,7 +469,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       }
       savePending({ email, password });
       setStep('verify', email);
-      show(verifySuccessMsg, 'Code envoyé. Vérifiez votre boîte mail.');
+      show(verifySuccessMsg, 'Code envoyé. Vérifiez votre boîte mail, y compris les spams / indésirables.');
     } catch (err: unknown) { show(errorMsg, getError(err, 'Une erreur est survenue.', 'register')); }
     finally { requestCodeBtn.disabled = false; requestCodeBtn.textContent = 'Recevoir mon code'; }
   });
@@ -492,7 +495,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     resendBtn.disabled = true; resendBtn.textContent = 'Renvoi...';
     try {
       await requestCode(pending.email, pending.password, 'resend');
-      show(verifySuccessMsg, 'Nouveau code envoyé.');
+      show(verifySuccessMsg, 'Nouveau code envoyé. Pensez à vérifier les spams / indésirables.');
     } catch (err: unknown) { show(verifyErrorMsg, getError(err, 'Impossible de renvoyer.', 'verify')); }
     finally { resendBtn.disabled = false; resendBtn.textContent = 'Renvoyer le code'; }
   });

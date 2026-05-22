@@ -2,10 +2,11 @@ import { getPublicSiteUrl } from '../utils/public-site-url';
 
 type RegistrationEmailInput = {
   toEmail: string;
+  code: string;
 };
 
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
-const DEFAULT_CONTACT_EMAIL = 'contact@duo-agency.com';
+const DEFAULT_CONTACT_EMAIL = 'contact@fidelopass.com';
 
 function htmlEscape(value: string) {
   return value
@@ -19,45 +20,56 @@ function htmlEscape(value: string) {
 function buildHtml(input: RegistrationEmailInput) {
   const publicSiteUrl = (getPublicSiteUrl() || 'https://www.fidelopass.com').replace(/\/$/, '');
   const safeEmail = htmlEscape(input.toEmail);
+  const safeCode = htmlEscape(input.code);
 
   return `
-  <div style="margin:0;padding:0;background:#f8fbff;font-family:Inter,Arial,sans-serif;color:#0f172a;">
-    <div style="max-width:640px;margin:0 auto;padding:28px 18px 40px;">
-      <div style="background:linear-gradient(135deg,#ffffff 0%,#f5f9ff 68%,#eef7ff 100%);border:1px solid #dbeafe;border-radius:24px;overflow:hidden;box-shadow:0 24px 48px -26px rgba(15,23,42,.22);">
-        <div style="padding:28px;background:linear-gradient(135deg,#0f172a 0%,#1d4ed8 60%,#06b6d4 100%);">
-          <img src="${publicSiteUrl}/logo-premium-cropped.png" alt="Fidelopass" style="height:48px;width:auto;display:block;" />
-          <p style="margin:18px 0 0;font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:#bfdbfe;font-weight:700;">Inscription en cours</p>
-          <h1 style="margin:10px 0 0;color:#fff;font-size:30px;line-height:1.1;font-weight:800;">
-            Confirmez votre email pour activer Fidelopass.
+  <div style="margin:0;padding:0;background:#eef6ff;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+    <div style="display:none;max-height:0;overflow:hidden;color:transparent;opacity:0;">
+      Votre code de confirmation Fidelopass est ${safeCode}. Il expire rapidement.
+    </div>
+    <div style="max-width:640px;margin:0 auto;padding:32px 16px 42px;">
+      <div style="background:#ffffff;border:1px solid #dbeafe;border-radius:28px;overflow:hidden;box-shadow:0 26px 70px -42px rgba(15,23,42,.45);">
+        <div style="padding:30px 30px 28px;background:#0f172a;background-image:linear-gradient(135deg,#0f172a 0%,#1d4ed8 62%,#0ea5e9 100%);">
+          <p style="margin:0;font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:#dbeafe;font-weight:800;">Fidelopass</p>
+          <h1 style="margin:14px 0 0;color:#ffffff;font-size:32px;line-height:1.12;font-weight:800;">
+            Activez votre compte commerçant
           </h1>
+          <p style="margin:14px 0 0;color:#e0f2fe;font-size:15px;line-height:1.65;">
+            Saisissez ce code dans Fidelopass pour confirmer votre adresse email et terminer votre inscription.
+          </p>
         </div>
 
-        <div style="padding:26px 28px 8px;">
-          <p style="margin:0;font-size:16px;line-height:1.65;color:#334155;">
-            Nous avons lancé la création du compte <strong style="color:#0f172a;">${safeEmail}</strong>.
-            Copiez le code reçu par email dans l’écran Fidelopass pour finaliser l’inscription.
+        <div style="padding:30px;">
+          <p style="margin:0;font-size:15px;line-height:1.65;color:#334155;">
+            Compte concerné : <strong style="color:#0f172a;">${safeEmail}</strong>
           </p>
 
-          <div style="margin:18px 0 0;padding:16px;border:1px solid #bae6fd;background:#f0f9ff;border-radius:16px;">
-            <p style="margin:0;font-size:13px;color:#0369a1;font-weight:800;">Astuce importante</p>
-            <p style="margin:8px 0 0;font-size:14px;color:#0f172a;line-height:1.6;">
-              Si le code arrive dans les indésirables, déplacez l’email dans votre boîte principale.
-              Cela aide les prochains emails Fidelopass à arriver au bon endroit.
+          <div style="margin:22px 0 0;padding:22px;border:1px solid #bfdbfe;background:#f8fbff;border-radius:20px;text-align:center;">
+            <p style="margin:0 0 12px;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:#2563eb;font-weight:800;">
+              Code de confirmation
+            </p>
+            <p style="margin:0;color:#0f172a;font-size:42px;line-height:1;font-weight:800;letter-spacing:.18em;">
+              ${safeCode}
+            </p>
+          </div>
+
+          <a href="${publicSiteUrl}/register" style="display:inline-block;margin:24px 0 0;border-radius:14px;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:800;padding:13px 20px;font-size:15px;">
+            Retourner à l’inscription
+          </a>
+
+          <div style="margin:26px 0 0;padding:16px;border:1px solid #fde68a;background:#fffbeb;border-radius:16px;">
+            <p style="margin:0;font-size:13px;color:#78350f;line-height:1.6;">
+              Ce code est personnel et temporaire. Ne le partagez avec personne.
             </p>
           </div>
         </div>
 
-        <div style="padding:14px 28px 26px;">
-          <a href="${publicSiteUrl}/register" style="display:inline-block;border-radius:14px;background:linear-gradient(135deg,#2563eb,#4f46e5);color:#fff;text-decoration:none;font-weight:800;padding:13px 22px;font-size:15px;box-shadow:0 16px 32px -18px rgba(37,99,235,.7);">
-            Retourner à l’inscription
-          </a>
-        </div>
-
-        <div style="padding:14px 28px 26px;background:#f8fafc;border-top:1px solid #e2e8f0;">
+        <div style="padding:18px 30px 24px;background:#f8fafc;border-top:1px solid #e2e8f0;">
           <p style="margin:0;font-size:12px;color:#64748b;line-height:1.7;">
-            Besoin d’aide ? Contactez-nous à
-            <a href="mailto:${DEFAULT_CONTACT_EMAIL}" style="color:#1d4ed8;text-decoration:none;">${DEFAULT_CONTACT_EMAIL}</a>.
+            Si vous n’êtes pas à l’origine de cette inscription, ignorez simplement cet email.
+            Besoin d’aide ? Écrivez-nous à <a href="mailto:${DEFAULT_CONTACT_EMAIL}" style="color:#2563eb;text-decoration:none;">${DEFAULT_CONTACT_EMAIL}</a>.
           </p>
+          <p style="margin:14px 0 0;font-size:11px;color:#94a3b8;">Fidelopass • Cartes de fidélité digitales pour commerces exigeants</p>
         </div>
       </div>
     </div>
@@ -71,9 +83,11 @@ function buildText(input: RegistrationEmailInput) {
     'Inscription Fidelopass en cours',
     '',
     `Compte: ${input.toEmail}`,
-    'Copiez le code reçu par email dans l’écran Fidelopass pour finaliser votre inscription.',
+    `Code de confirmation: ${input.code}`,
     '',
-    'Si le code arrive dans les indésirables, déplacez l’email dans votre boîte principale.',
+    'Copiez ce code dans l’écran Fidelopass pour finaliser votre inscription.',
+    '',
+    'Ce code est personnel et temporaire. Ne le partagez avec personne.',
     `Retour inscription: ${publicSiteUrl}/register`,
     `Support: ${DEFAULT_CONTACT_EMAIL}`,
   ].join('\n');
@@ -99,7 +113,8 @@ export async function sendRegistrationEmail(input: RegistrationEmailInput) {
     body: JSON.stringify({
       sender: { email: senderEmail, name: senderName },
       to: [{ email: input.toEmail }],
-      subject: 'Votre inscription Fidelopass est lancée',
+      replyTo: { email: process.env.BREVO_REPLY_TO_EMAIL || DEFAULT_CONTACT_EMAIL, name: 'Fidelopass' },
+      subject: `${input.code} est votre code Fidelopass`,
       htmlContent: buildHtml(input),
       textContent: buildText(input),
       tags: ['auth', 'registration'],

@@ -3,6 +3,8 @@ import type { ApiEnv } from '../types';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { rateLimit } from '../middleware/rate-limit';
+import { sendRegistrationEmail } from '../services/registration-email';
+import { getPublicSiteUrl } from '../utils/public-site-url';
 
 export const authRoutes = new Hono<ApiEnv>();
 
@@ -50,16 +52,21 @@ async function findUserByEmail(email: string) {
   }
 }
 
-async function requestRegistrationCode(email: string, password: string) {
-  return supabase.auth.signUp({
+async function generateRegistrationCode(email: string, password: string) {
+  const publicSiteUrl = (getPublicSiteUrl() || 'https://www.fidelopass.com').replace(/\/$/, '');
+  return supabaseAdmin.auth.admin.generateLink({
+    type: 'signup',
     email,
     password,
+    options: {
+      redirectTo: `${publicSiteUrl}/auth/confirm`,
+    },
   });
 }
 
-async function resendRegistrationCode(email: string) {
-  return supabase.auth.resend({
-    type: 'signup',
+async function generateExistingRegistrationCode(email: string) {
+  return supabaseAdmin.auth.admin.generateLink({
+    type: 'magiclink',
     email,
   });
 }
@@ -102,8 +109,8 @@ async function handleRegisterRequest(body: unknown) {
     }
 
     const { data, error } = existingUser
-      ? await resendRegistrationCode(email)
-      : await requestRegistrationCode(email, password);
+      ? await generateExistingRegistrationCode(email)
+      : await generateRegistrationCode(email, password);
 
     if (error) {
       return {
@@ -112,15 +119,31 @@ async function handleRegisterRequest(body: unknown) {
       };
     }
 
+    const code = data.properties?.email_otp;
+    if (!code) {
+      console.error('[auth register request] missing generated OTP');
+      return {
+        status: 500,
+        payload: { error: 'Code de vérification indisponible. Réessayez dans quelques minutes.' },
+      };
+    }
+
+    const emailResult = await sendRegistrationEmail({ toEmail: email, code });
+    if (!emailResult.ok) {
+      console.error('[auth register request] registration email failed:', emailResult);
+      return {
+        status: 502,
+        payload: { error: 'Impossible d\'envoyer le code de vérification pour le moment.' },
+      };
+    }
+
     return {
       status: 200,
       payload: {
-        requires_email_verification: existingUser ? true : !data.session && !data.user?.email_confirmed_at,
+        requires_email_verification: true,
         message: existingUser
           ? 'Nouveau code envoyé. Vérifiez votre boîte mail.'
-          : (!data.session && !data.user?.email_confirmed_at
-            ? 'Code envoyé. Vérifiez votre boîte mail.'
-            : 'Compte créé. Connexion en cours.'),
+          : 'Code envoyé. Vérifiez votre boîte mail.',
       },
     };
   } catch (error) {

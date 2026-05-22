@@ -180,6 +180,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   );
 
   const API = (import.meta.env.PUBLIC_API_URL || '').trim();
+  const ALLOW_SUPABASE_AUTH_FALLBACK = import.meta.env.PUBLIC_ALLOW_SUPABASE_AUTH_FALLBACK === 'true';
   const PENDING_KEY = 'fidelopass.pending-registration';
   const NEXT_STORAGE_KEY = 'fidelopass.register-next';
 
@@ -317,7 +318,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       if (!res.ok) throw new Error(data.error ?? 'Impossible d\'envoyer le code.');
       return data;
     } catch (err: unknown) {
-      if (err instanceof Error && err.message === 'Failed to fetch') return sendCode(email, password, mode);
+      if (ALLOW_SUPABASE_AUTH_FALLBACK && err instanceof Error && err.message === 'Failed to fetch') {
+        return sendCode(email, password, mode);
+      }
       throw err;
     }
   }

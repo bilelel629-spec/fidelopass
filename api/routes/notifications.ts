@@ -533,6 +533,7 @@ notificationsRoutes.post('/', rateLimit(5, 60_000), async (c) => {
     titre: z.string().min(1).max(50),
     message: z.string().min(1).max(150),
     type: z.enum(['promo', 'info', 'urgence']).default('promo'),
+    push_icon_bg_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable().optional(),
   });
 
   const parsed = schema.safeParse(body);
@@ -544,6 +545,22 @@ notificationsRoutes.post('/', rateLimit(5, 60_000), async (c) => {
   const { commerce, pointVente } = await resolveCommerceAndPointVente(db, userId, requestedPointVenteId, 'id, plan, plan_override');
 
   if (!commerce || !pointVente) return c.json({ error: 'Commerce introuvable' }, 404);
+
+  if (Object.prototype.hasOwnProperty.call(parsed.data, 'push_icon_bg_color')) {
+    const { error: colorError } = await db
+      .from('cartes')
+      .update({
+        push_icon_bg_color: parsed.data.push_icon_bg_color,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id);
+
+    if (colorError) {
+      console.error('[notifications push icon color]', colorError);
+      return c.json({ error: 'Impossible d’appliquer la couleur de notification avant l’envoi.' }, 500);
+    }
+  }
 
   // Logo de la carte active pour l'icône FCM
   const { data: carteActive } = await db

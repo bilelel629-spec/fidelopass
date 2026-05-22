@@ -419,8 +419,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   let pushIconLastSavedColor: string | null = null;
   let pushIconMode: 'auto' | 'custom' = 'auto';
   let pushIconCardColor = '#6366f1';
-  let pushIconIsSaving = false;
   let pushIconPendingColor: string | null | undefined;
+  let pushIconSavePromise: Promise<void> | null = null;
+  let pushIconLastSaveError: Error | null = null;
 
   function withPointVente(path: string): string {
     if (typeof window === 'undefined') return path;
@@ -644,14 +645,20 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         pushIconSaveTimer = null;
       }
       if (pushIconMode === 'custom') {
-        await savePushIconColorNow(pushIconInputs[0]?.value ?? '#6366f1');
+        await savePushIconColorNow(pushIconInputs[0]?.value ?? '#6366f1', { throwOnError: true });
+      } else if (pushIconSavePromise) {
+        await pushIconSavePromise;
+        if (pushIconLastSaveError) throw pushIconLastSaveError;
       }
 
       const titre = (document.getElementById('titre') as HTMLInputElement).value.trim();
       const message = messageInput.value.trim();
+      const pushIconColorPayload = pushIconMode === 'custom'
+        ? (pushIconInputs[0]?.value ?? '#6366f1')
+        : null;
       const res = await authFetch(withPointVente('/api/notifications'), {
         method: 'POST',
-        body: JSON.stringify({ titre, message }),
+        body: JSON.stringify({ titre, message, push_icon_bg_color: pushIconColorPayload }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error ?? 'Erreur lors de l’envoi.');
@@ -800,45 +807,45 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     return payload;
   }
 
-  async function savePushIconColorNow(color: string | null) {
+  async function savePushIconColorNow(color: string | null, options: { throwOnError?: boolean } = {}) {
     if (pushIconModeButtons.every((button) => button.disabled)) return;
-    if (pushIconIsSaving) {
-      pushIconPendingColor = color;
+    pushIconPendingColor = color;
+    if (pushIconSavePromise) {
       setPushIconStatusText('Enregistrement du réglage...');
+      await pushIconSavePromise;
+      if (options.throwOnError && pushIconLastSaveError) throw pushIconLastSaveError;
       return;
     }
     hidePushIconAlerts();
-    try {
-      pushIconIsSaving = true;
-      let nextColor: string | null | undefined = color;
-      let payload: any = null;
-      while (nextColor !== undefined) {
-        const colorToSave = nextColor;
-        pushIconPendingColor = undefined;
-        const result = await persistPushIconColorRequest(colorToSave);
-        if (result) payload = result;
-        nextColor = pushIconPendingColor !== undefined && pushIconPendingColor !== pushIconLastSavedColor
-          ? pushIconPendingColor
-          : undefined;
+    pushIconSavePromise = (async () => {
+      let latestPayload: any = null;
+      let latestColor: string | null = color;
+      try {
+        while (pushIconPendingColor !== undefined) {
+          const colorToSave = pushIconPendingColor;
+          pushIconPendingColor = undefined;
+          latestColor = colorToSave;
+          const result = await persistPushIconColorRequest(colorToSave);
+          if (result) latestPayload = result;
+        }
+        pushIconLastSaveError = null;
+        if (!latestPayload) return;
+        const refreshed = Number(latestPayload?.data?.apple_refresh_sent ?? 0);
+        showPushIconSuccess(refreshed > 0
+          ? `Couleur appliquée. ${refreshed} carte(s) Apple Wallet mise(s) à jour.`
+          : (latestColor === null ? 'Mode automatique enregistré.' : 'Couleur de fond des notifications enregistrée.'));
+        setPushIconStatusText(latestColor === null
+          ? 'Mode automatique: la couleur suit le fond de votre carte.'
+          : 'Couleur personnalisée active pour ce point de vente.');
+      } catch (error: unknown) {
+        pushIconLastSaveError = error instanceof Error ? error : new Error('Erreur réseau.');
+        showPushIconError(pushIconLastSaveError.message);
+      } finally {
+        pushIconSavePromise = null;
       }
-      if (!payload) return;
-      const refreshed = Number(payload?.data?.apple_refresh_sent ?? 0);
-      showPushIconSuccess(refreshed > 0
-        ? `Couleur appliquée. ${refreshed} carte(s) Apple Wallet mise(s) à jour.`
-        : (color === null ? 'Mode automatique enregistré.' : 'Couleur de fond des notifications enregistrée.'));
-      setPushIconStatusText(color === null
-        ? 'Mode automatique: la couleur suit le fond de votre carte.'
-        : 'Couleur personnalisée active pour ce point de vente.');
-    } catch (error: unknown) {
-      showPushIconError(error instanceof Error ? error.message : 'Erreur réseau.');
-    } finally {
-      pushIconIsSaving = false;
-      if (pushIconPendingColor !== undefined && pushIconPendingColor !== pushIconLastSavedColor) {
-        const pendingColor = pushIconPendingColor;
-        pushIconPendingColor = undefined;
-        void savePushIconColorNow(pendingColor);
-      }
-    }
+    })();
+    await pushIconSavePromise;
+    if (options.throwOnError && pushIconLastSaveError) throw pushIconLastSaveError;
   }
 
   async function persistBirthdaySettings(nextEnabled: boolean) {

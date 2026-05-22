@@ -127,7 +127,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             <div class="mb-3 flex items-start justify-between gap-3">
               <div>
                 <h3 class="font-extrabold text-slate-950">Fond du logo</h3>
-                <p class="mt-1 text-xs leading-5 text-slate-500">Appliqué aux notifications Wallet du point de vente.</p>
+                <p class="mt-1 text-xs leading-5 text-slate-500">Utilisé par Wallet à l'installation de la carte. iOS peut garder l'ancienne icône en cache.</p>
               </div>
             </div>
             <div id="push-icon-error-manual" class="mb-2 hidden rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"></div>
@@ -139,6 +139,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             <label class="label" for="push-icon-bg-color-manual">Couleur du fond</label>
             <input id="push-icon-bg-color-manual" type="color" value="#6366f1" class="h-11 w-full cursor-pointer rounded-xl border border-slate-200 bg-white" />
             <p id="push-icon-status-manual" class="mt-2 text-xs text-slate-500">Chargement du réglage...</p>
+            <p class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">Sur iPhone, ce fond peut ne changer qu'après redémarrage pour les cartes déjà installées. Les nouvelles cartes utiliseront la bonne couleur.</p>
           </div>
         </aside>
       </div>
@@ -183,7 +184,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
 
       <div class="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_-48px_rgba(15,23,42,0.45)]">
-        <div class="mb-4 flex items-start justify-between gap-3"><div><h2 class="font-display text-xl font-extrabold text-slate-950">Fond du logo des notifications</h2><p class="mt-1 text-sm leading-6 text-slate-500">Couleur affichée derrière le logo commerçant dans les notifications Wallet.</p></div><div id="push-icon-preview" class="h-12 w-12 rounded-xl border border-slate-200 shadow-inner"></div></div>
+        <div class="mb-4 flex items-start justify-between gap-3"><div><h2 class="font-display text-xl font-extrabold text-slate-950">Fond du logo Wallet</h2><p class="mt-1 text-sm leading-6 text-slate-500">Couleur utilisée derrière le logo dans l'icône Wallet. Les cartes déjà installées peuvent garder l'ancienne icône en cache iOS.</p></div><div id="push-icon-preview" class="h-12 w-12 rounded-xl border border-slate-200 shadow-inner"></div></div>
         <div id="push-icon-error" class="mb-3 hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
         <div id="push-icon-success" class="mb-3 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
         <div class="mb-4 grid grid-cols-2 gap-2 rounded-2xl border border-blue-100 bg-blue-50/60 p-1">
@@ -193,7 +194,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <label class="label" for="push-icon-bg-color">Couleur du fond</label>
         <input id="push-icon-bg-color" type="color" value="#6366f1" class="h-11 w-full cursor-pointer rounded-xl border border-slate-200 bg-white" />
         <p id="push-icon-status" class="mt-2 text-xs text-slate-500">Chargement du réglage...</p>
-        <p class="mt-2 text-xs leading-5 text-slate-500">En automatique, la notification suit la couleur de fond de la carte. Sur iPhone, Apple Wallet peut appliquer le changement avec un délai.</p>
+        <p class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">En automatique, les nouvelles cartes suivent la couleur de fond. Sur iPhone, Apple Wallet peut conserver l'ancienne icône des cartes déjà installées jusqu'au redémarrage du téléphone.</p>
       </div>
     </section>
 
@@ -782,8 +783,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       setPushIconMode(mode, color);
       setPushIconStatusText(payload?.data?.has_active_card
         ? (mode === 'auto'
-          ? 'Mode automatique: la couleur suit le fond de votre carte.'
-          : 'Couleur personnalisée active pour ce point de vente.')
+          ? 'Mode automatique: les nouvelles cartes suivent le fond de votre carte.'
+          : 'Couleur personnalisée enregistrée. Les cartes déjà installées peuvent garder l’ancienne icône en cache iOS.')
         : 'Aucune carte active sur ce point de vente.');
       setPushIconInputsDisabled(!payload?.data?.has_active_card);
     } catch (error: unknown) {
@@ -832,11 +833,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         if (!latestPayload) return;
         const refreshed = Number(latestPayload?.data?.apple_refresh_sent ?? 0);
         showPushIconSuccess(refreshed > 0
-          ? `Couleur appliquée. ${refreshed} carte(s) Apple Wallet mise(s) à jour.`
-          : (latestColor === null ? 'Mode automatique enregistré.' : 'Couleur de fond des notifications enregistrée.'));
+          ? `Réglage enregistré. ${refreshed} carte(s) Apple Wallet notifiée(s), mais iOS peut garder l'ancienne icône en cache jusqu'au redémarrage.`
+          : (latestColor === null ? 'Mode automatique enregistré pour les prochaines cartes.' : 'Couleur enregistrée pour les prochaines cartes.'));
         setPushIconStatusText(latestColor === null
-          ? 'Mode automatique: la couleur suit le fond de votre carte.'
-          : 'Couleur personnalisée active pour ce point de vente.');
+          ? 'Mode automatique: les nouvelles cartes suivent le fond de votre carte.'
+          : 'Couleur personnalisée enregistrée. Les cartes déjà installées peuvent garder l’ancienne icône en cache iOS.');
       } catch (error: unknown) {
         pushIconLastSaveError = error instanceof Error ? error : new Error('Erreur réseau.');
         showPushIconError(pushIconLastSaveError.message);

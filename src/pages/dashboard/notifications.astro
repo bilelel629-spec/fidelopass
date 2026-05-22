@@ -132,6 +132,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             </div>
             <div id="push-icon-error-manual" class="mb-2 hidden rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"></div>
             <div id="push-icon-success-manual" class="mb-2 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"></div>
+            <div class="mb-3 grid grid-cols-2 gap-2 rounded-2xl border border-blue-100 bg-white/75 p-1">
+              <button type="button" class="push-icon-mode-btn rounded-xl px-3 py-2 text-xs font-extrabold transition" data-push-icon-mode="auto">Automatique</button>
+              <button type="button" class="push-icon-mode-btn rounded-xl px-3 py-2 text-xs font-extrabold transition" data-push-icon-mode="custom">Personnalisée</button>
+            </div>
             <label class="label" for="push-icon-bg-color-manual">Couleur du fond</label>
             <input id="push-icon-bg-color-manual" type="color" value="#6366f1" class="h-11 w-full cursor-pointer rounded-xl border border-slate-200 bg-white" />
             <p id="push-icon-status-manual" class="mt-2 text-xs text-slate-500">Chargement du réglage...</p>
@@ -182,9 +186,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <div class="mb-4 flex items-start justify-between gap-3"><div><h2 class="font-display text-xl font-extrabold text-slate-950">Fond du logo des notifications</h2><p class="mt-1 text-sm leading-6 text-slate-500">Couleur affichée derrière le logo commerçant dans les notifications Wallet.</p></div><div id="push-icon-preview" class="h-12 w-12 rounded-xl border border-slate-200 shadow-inner"></div></div>
         <div id="push-icon-error" class="mb-3 hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
         <div id="push-icon-success" class="mb-3 hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
+        <div class="mb-4 grid grid-cols-2 gap-2 rounded-2xl border border-blue-100 bg-blue-50/60 p-1">
+          <button type="button" class="push-icon-mode-btn rounded-xl px-3 py-2 text-sm font-extrabold transition" data-push-icon-mode="auto">Automatique</button>
+          <button type="button" class="push-icon-mode-btn rounded-xl px-3 py-2 text-sm font-extrabold transition" data-push-icon-mode="custom">Personnalisée</button>
+        </div>
         <label class="label" for="push-icon-bg-color">Couleur du fond</label>
         <input id="push-icon-bg-color" type="color" value="#6366f1" class="h-11 w-full cursor-pointer rounded-xl border border-slate-200 bg-white" />
         <p id="push-icon-status" class="mt-2 text-xs text-slate-500">Chargement du réglage...</p>
+        <p class="mt-2 text-xs leading-5 text-slate-500">En automatique, la notification suit la couleur de fond de la carte. Sur iPhone, Apple Wallet peut appliquer le changement avec un délai.</p>
       </div>
     </section>
 
@@ -404,11 +413,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const pushIconStatuses = [pushIconStatus, pushIconStatusManual].filter(Boolean) as HTMLParagraphElement[];
   const pushIconErrors = [pushIconError, pushIconErrorManual].filter(Boolean) as HTMLDivElement[];
   const pushIconSuccesses = [pushIconSuccess, pushIconSuccessManual].filter(Boolean) as HTMLDivElement[];
+  const pushIconModeButtons = Array.from(document.querySelectorAll('.push-icon-mode-btn')) as HTMLButtonElement[];
   let cachedPlan: string = 'starter';
   let pushIconSaveTimer: ReturnType<typeof setTimeout> | null = null;
-  let pushIconLastSavedColor = '#6366f1';
+  let pushIconLastSavedColor: string | null = null;
+  let pushIconMode: 'auto' | 'custom' = 'auto';
+  let pushIconCardColor = '#6366f1';
   let pushIconIsSaving = false;
-  let pushIconPendingColor: string | null = null;
+  let pushIconPendingColor: string | null | undefined;
 
   function withPointVente(path: string): string {
     if (typeof window === 'undefined') return path;
@@ -481,12 +493,32 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     });
   }
 
+  function setPushIconMode(mode: 'auto' | 'custom', color?: string) {
+    pushIconMode = mode;
+    const effectiveColor = color ?? (mode === 'auto' ? pushIconCardColor : (pushIconInputs[0]?.value ?? pushIconCardColor));
+    syncPushIconInputs(effectiveColor);
+    updatePushIconPreview(effectiveColor);
+    pushIconInputs.forEach((input) => {
+      input.disabled = mode === 'auto';
+      input.classList.toggle('opacity-60', mode === 'auto');
+      input.classList.toggle('cursor-not-allowed', mode === 'auto');
+    });
+    pushIconModeButtons.forEach((button) => {
+      const active = button.dataset.pushIconMode === mode;
+      button.classList.toggle('bg-white', active);
+      button.classList.toggle('text-blue-700', active);
+      button.classList.toggle('shadow-sm', active);
+      button.classList.toggle('text-slate-500', !active);
+    });
+  }
+
   function setPushIconStatusText(text: string) {
     pushIconStatuses.forEach((status) => { status.textContent = text; });
   }
 
   function setPushIconInputsDisabled(disabled: boolean) {
-    pushIconInputs.forEach((input) => { input.disabled = disabled; });
+    pushIconInputs.forEach((input) => { input.disabled = disabled || pushIconMode === 'auto'; });
+    pushIconModeButtons.forEach((button) => { button.disabled = disabled; });
   }
 
   function hidePushIconAlerts() {
@@ -611,7 +643,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         clearTimeout(pushIconSaveTimer);
         pushIconSaveTimer = null;
       }
-      await savePushIconColorNow(pushIconInputs[0]?.value ?? '#6366f1');
+      if (pushIconMode === 'custom') {
+        await savePushIconColorNow(pushIconInputs[0]?.value ?? '#6366f1');
+      }
 
       const titre = (document.getElementById('titre') as HTMLInputElement).value.trim();
       const message = messageInput.value.trim();
@@ -733,11 +767,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const payload = await res.json().catch(() => null);
       if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage.');
       const color = String(payload?.data?.push_icon_bg_color ?? payload?.data?.couleur_fond ?? '#6366f1');
-      syncPushIconInputs(color);
-      pushIconLastSavedColor = color;
-      updatePushIconPreview(color);
+      pushIconCardColor = String(payload?.data?.couleur_fond ?? color);
+      const mode = payload?.data?.mode === 'custom' ? 'custom' : 'auto';
+      pushIconLastSavedColor = mode === 'custom'
+        ? String(payload?.data?.stored_push_icon_bg_color ?? color)
+        : null;
+      setPushIconMode(mode, color);
       setPushIconStatusText(payload?.data?.has_active_card
-        ? 'Réglage actif pour la carte du point de vente sélectionné.'
+        ? (mode === 'auto'
+          ? 'Mode automatique: la couleur suit le fond de votre carte.'
+          : 'Couleur personnalisée active pour ce point de vente.')
         : 'Aucune carte active sur ce point de vente.');
       setPushIconInputsDisabled(!payload?.data?.has_active_card);
     } catch (error: unknown) {
@@ -747,7 +786,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   }
 
-  async function persistPushIconColorRequest(color: string) {
+  async function persistPushIconColorRequest(color: string | null) {
     if (color === pushIconLastSavedColor) return null;
     const res = await authFetch(withPointVente('/api/notifications/push-icon-settings'), {
       method: 'PATCH',
@@ -761,40 +800,42 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     return payload;
   }
 
-  async function savePushIconColorNow(color: string) {
-    if (pushIconInputs.every((input) => input.disabled)) return;
+  async function savePushIconColorNow(color: string | null) {
+    if (pushIconModeButtons.every((button) => button.disabled)) return;
     if (pushIconIsSaving) {
       pushIconPendingColor = color;
-      setPushIconStatusText('Enregistrement de la dernière couleur...');
+      setPushIconStatusText('Enregistrement du réglage...');
       return;
     }
     hidePushIconAlerts();
     try {
       pushIconIsSaving = true;
-      let nextColor: string | null = color;
+      let nextColor: string | null | undefined = color;
       let payload: any = null;
-      while (nextColor) {
+      while (nextColor !== undefined) {
         const colorToSave = nextColor;
-        pushIconPendingColor = null;
+        pushIconPendingColor = undefined;
         const result = await persistPushIconColorRequest(colorToSave);
         if (result) payload = result;
-        nextColor = pushIconPendingColor && pushIconPendingColor !== pushIconLastSavedColor
+        nextColor = pushIconPendingColor !== undefined && pushIconPendingColor !== pushIconLastSavedColor
           ? pushIconPendingColor
-          : null;
+          : undefined;
       }
       if (!payload) return;
       const refreshed = Number(payload?.data?.apple_refresh_sent ?? 0);
       showPushIconSuccess(refreshed > 0
         ? `Couleur appliquée. ${refreshed} carte(s) Apple Wallet mise(s) à jour.`
-        : 'Couleur de fond des notifications enregistrée.');
-      setPushIconStatusText('Réglage actif pour la carte du point de vente sélectionné.');
+        : (color === null ? 'Mode automatique enregistré.' : 'Couleur de fond des notifications enregistrée.'));
+      setPushIconStatusText(color === null
+        ? 'Mode automatique: la couleur suit le fond de votre carte.'
+        : 'Couleur personnalisée active pour ce point de vente.');
     } catch (error: unknown) {
       showPushIconError(error instanceof Error ? error.message : 'Erreur réseau.');
     } finally {
       pushIconIsSaving = false;
-      if (pushIconPendingColor && pushIconPendingColor !== pushIconLastSavedColor) {
+      if (pushIconPendingColor !== undefined && pushIconPendingColor !== pushIconLastSavedColor) {
         const pendingColor = pushIconPendingColor;
-        pushIconPendingColor = null;
+        pushIconPendingColor = undefined;
         void savePushIconColorNow(pendingColor);
       }
     }
@@ -873,6 +914,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   function bindPushIconInput(input: HTMLInputElement) {
     input.addEventListener('input', () => {
       const color = input.value;
+      if (pushIconMode !== 'custom') setPushIconMode('custom', color);
       syncPushIconInputs(color, input);
       updatePushIconPreview(color);
       if (pushIconSaveTimer) clearTimeout(pushIconSaveTimer);
@@ -883,6 +925,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     input.addEventListener('change', async () => {
       if (pushIconSaveTimer) clearTimeout(pushIconSaveTimer);
+      if (pushIconMode !== 'custom') setPushIconMode('custom', input.value);
       syncPushIconInputs(input.value, input);
       updatePushIconPreview(input.value);
       await savePushIconColorNow(input.value);
@@ -890,6 +933,25 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   pushIconInputs.forEach(bindPushIconInput);
+
+  pushIconModeButtons.forEach((button) => {
+    button.addEventListener('click', async () => {
+      const mode = button.dataset.pushIconMode === 'custom' ? 'custom' : 'auto';
+      hidePushIconAlerts();
+      if (pushIconSaveTimer) {
+        clearTimeout(pushIconSaveTimer);
+        pushIconSaveTimer = null;
+      }
+      if (mode === 'auto') {
+        setPushIconMode('auto', pushIconCardColor);
+        await savePushIconColorNow(null);
+        return;
+      }
+      const color = pushIconLastSavedColor ?? pushIconCardColor;
+      setPushIconMode('custom', color);
+      await savePushIconColorNow(color);
+    });
+  });
 
   setNotifTab('manual');
   syncMessagePreview();

@@ -346,7 +346,8 @@ notificationsRoutes.get('/push-icon-settings', async (c) => {
 
   const rawPushColor = (carte as { push_icon_bg_color?: string | null } | null)?.push_icon_bg_color;
   const cardBgColor = (carte as { couleur_fond?: string | null } | null)?.couleur_fond;
-  const pushIconBgColor = rawPushColor && rawPushColor.toLowerCase() !== '#6366f1'
+  const isCustomPushColor = Boolean(rawPushColor && rawPushColor.toLowerCase() !== '#6366f1');
+  const pushIconBgColor = isCustomPushColor
     ? rawPushColor
     : (cardBgColor ?? '#6366f1');
 
@@ -355,6 +356,9 @@ notificationsRoutes.get('/push-icon-settings', async (c) => {
       has_active_card: Boolean(carte),
       cards_count: (cartes ?? []).length,
       point_vente_id: pointVente.id,
+      mode: isCustomPushColor ? 'custom' : 'auto',
+      couleur_fond: cardBgColor ?? '#6366f1',
+      stored_push_icon_bg_color: isCustomPushColor ? rawPushColor : null,
       push_icon_bg_color: pushIconBgColor,
     },
   });
@@ -365,7 +369,7 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
   const userId = c.get('userId') as string;
   const body = await c.req.json().catch(() => null);
   const parsed = z.object({
-    push_icon_bg_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+    push_icon_bg_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable(),
   }).safeParse(body);
   const requestedPointVenteId = readRequestedPointVenteId(c);
 
@@ -449,6 +453,7 @@ notificationsRoutes.patch('/push-icon-settings', async (c) => {
     ok: true,
     data: {
       push_icon_bg_color: parsed.data.push_icon_bg_color,
+      mode: parsed.data.push_icon_bg_color ? 'custom' : 'auto',
       updated_cards_count: carteIds.length,
       point_vente_id: pointVente.id,
       apple_refresh_sent: appleRefreshSent,

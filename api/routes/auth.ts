@@ -64,17 +64,6 @@ async function generateRegistrationCode(email: string, password: string) {
   });
 }
 
-async function generateExistingRegistrationCode(email: string) {
-  return supabaseAdmin.auth.admin.generateLink({
-    type: 'magiclink',
-    email,
-  });
-}
-
-async function updatePendingRegistrationPassword(userId: string, password: string) {
-  return supabaseAdmin.auth.admin.updateUserById(userId, { password });
-}
-
 async function handleRegisterRequest(body: unknown) {
   const parsed = registerRequestSchema.safeParse(body);
 
@@ -99,18 +88,16 @@ async function handleRegisterRequest(body: unknown) {
     }
 
     if (existingUser) {
-      const { error: updateError } = await updatePendingRegistrationPassword(existingUser.id, password);
-      if (updateError) {
+      const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(existingUser.id);
+      if (deleteError) {
         return {
           status: 400,
-          payload: { error: updateError.message ?? 'Impossible de mettre a jour le mot de passe temporaire.' },
+          payload: { error: deleteError.message ?? 'Impossible de réinitialiser l’inscription temporaire.' },
         };
       }
     }
 
-    const { data, error } = existingUser
-      ? await generateExistingRegistrationCode(email)
-      : await generateRegistrationCode(email, password);
+    const { data, error } = await generateRegistrationCode(email, password);
 
     if (error) {
       return {

@@ -337,19 +337,25 @@ notificationsRoutes.get('/push-icon-settings', async (c) => {
 
   const { data: cartes } = await db
     .from('cartes')
-    .select('id, push_icon_bg_color, updated_at')
+    .select('id, couleur_fond, push_icon_bg_color, updated_at')
     .eq('commerce_id', commerce.id)
     .eq('point_vente_id', pointVente.id)
     .order('updated_at', { ascending: false });
 
   const carte = (cartes ?? [])[0] ?? null;
 
+  const rawPushColor = (carte as { push_icon_bg_color?: string | null } | null)?.push_icon_bg_color;
+  const cardBgColor = (carte as { couleur_fond?: string | null } | null)?.couleur_fond;
+  const pushIconBgColor = rawPushColor && rawPushColor.toLowerCase() !== '#6366f1'
+    ? rawPushColor
+    : (cardBgColor ?? '#6366f1');
+
   return c.json({
     data: {
       has_active_card: Boolean(carte),
       cards_count: (cartes ?? []).length,
       point_vente_id: pointVente.id,
-      push_icon_bg_color: (carte as { push_icon_bg_color?: string | null } | null)?.push_icon_bg_color ?? '#6366f1',
+      push_icon_bg_color: pushIconBgColor,
     },
   });
 });

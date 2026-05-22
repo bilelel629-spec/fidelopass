@@ -389,8 +389,13 @@ export async function generateApplePass(
   // iOS 15+ affiche une icône de notification Wallet plus grande.
   // Apple recommande maintenant 38x38 minimum à l'échelle 1x.
   // Source of truth: notification icon background follows the dedicated push setting.
-  const iconBgColor = isHexColor(carte.push_icon_bg_color)
+  // The old purple default is treated as unset so existing cards inherit their card background.
+  const customPushBg = isHexColor(carte.push_icon_bg_color)
+    && carte.push_icon_bg_color.toLowerCase() !== '#6366f1'
     ? carte.push_icon_bg_color
+    : null;
+  const iconBgColor = customPushBg
+    ? customPushBg
     : (isHexColor(carte.couleur_fond)
       ? carte.couleur_fond
       : (isHexColor(carte.couleur_accent) ? carte.couleur_accent : '#6366f1'));

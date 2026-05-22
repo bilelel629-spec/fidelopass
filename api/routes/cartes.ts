@@ -71,7 +71,7 @@ const carteSchema = z.object({
   tampon_icon_url: z.string().url().nullable().optional(),
   barcode_type: z.enum(['QR', 'PDF417', 'AZTEC', 'CODE128', 'NONE']).default('CODE128'),
   label_client: z.string().max(50).default('Client'),
-  push_icon_bg_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default('#6366f1'),
+  push_icon_bg_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable().optional(),
   // Champs avancés (migration 003)
   couleur_fond_2: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable().optional(),
   gradient_angle: z.number().int().min(0).max(360).default(135),
@@ -211,7 +211,7 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   if (parsed.data.tampon_icon_url !== undefined) extFields.tampon_icon_url = parsed.data.tampon_icon_url;
   if (parsed.data.barcode_type !== undefined) extFields.barcode_type = parsed.data.barcode_type;
   if (parsed.data.label_client !== undefined) extFields.label_client = parsed.data.label_client;
-  if (parsed.data.push_icon_bg_color !== undefined) extFields.push_icon_bg_color = parsed.data.push_icon_bg_color;
+  extFields.push_icon_bg_color = parsed.data.push_icon_bg_color ?? parsed.data.couleur_fond;
 
   const advFields: Record<string, unknown> = {};
   if (parsed.data.couleur_fond_2 !== undefined) advFields.couleur_fond_2 = parsed.data.couleur_fond_2;

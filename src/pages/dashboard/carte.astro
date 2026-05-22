@@ -168,12 +168,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
         <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {[
-            {name:'Café cosy', badge:'CF', fond:'#2b1608', texte:'#fff7ed', accent:'#d97706', fond2:'#5f3214', pattern:'waves', layout:'bottom', stamp:'☕', type:'tampons', total:'10', reward:'1 boisson offerte', label:'Client', desc:'10 passages = 1 boisson offerte', message:'Votre café vous attend !'},
-            {name:'Restaurant', badge:'RS', fond:'#111827', texte:'#fff7ed', accent:'#f97316', fond2:'#7c2d12', pattern:'diagonal', layout:'top', stamp:'🍽️', type:'tampons', total:'8', reward:'1 dessert offert', label:'Table fidèle', desc:'Cumulez des tampons à chaque repas', message:'Une récompense vous attend au restaurant.'},
-            {name:'Institut beauté', badge:'BE', fond:'#4a102a', texte:'#fff1f2', accent:'#f472b6', fond2:'#831843', pattern:'confetti', layout:'bottom', stamp:'✨', type:'tampons', total:'6', reward:'-20% sur un soin', label:'Cliente', desc:'Votre carte privilège beauté', message:'Votre avantage beauté est disponible.'},
-            {name:'Barber shop', badge:'BR', fond:'#0f172a', texte:'#f8fafc', accent:'#38bdf8', fond2:'#1e3a8a', pattern:'grid', layout:'top', stamp:'✂️', type:'tampons', total:'8', reward:'1 coupe offerte', label:'Client', desc:'Une coupe offerte après 8 passages', message:'Votre barber vous attend.'},
-            {name:'Boutique premium', badge:'BT', fond:'#030712', texte:'#fefce8', accent:'#d4af37', fond2:'#422006', pattern:'dots', layout:'background', stamp:'🛍️', type:'points', total:'10', reward:'10€ de réduction', label:'Membre', desc:'Cumulez des points à chaque achat', message:'Votre avantage fidélité est disponible en boutique.'},
-            {name:'Sport & coaching', badge:'SP', fond:'#022c22', texte:'#ecfdf5', accent:'#22c55e', fond2:'#064e3b', pattern:'diagonal', layout:'background', stamp:'🏆', type:'points', total:'10', reward:'1 séance offerte', label:'Athlète', desc:'Transformez vos visites en récompenses', message:'Votre coach vous attend.'},
+            {name:'Pizzeria', badge:'PZ', fond:'#590306', texte:'#ffffff', accent:'#fc851d', fond2:'#7c1608', pattern:'none', layout:'background', stamp:'🍕', type:'tampons', total:'10', reward:'1 pizza offerte', label:'Client', desc:'10 passages = 1 pizza offerte', message:'Votre pizza vous attend !', banner:'/banner-templates/template-01.png'},
+            {name:'Restaurant', badge:'RS', fond:'#064e3b', texte:'#ffffff', accent:'#34d399', fond2:'#065f46', pattern:'none', layout:'background', stamp:'🍽️', type:'tampons', total:'8', reward:'1 dessert offert', label:'Table fidèle', desc:'Cumulez des tampons à chaque repas', message:'Une récompense vous attend au restaurant.', banner:'/banner-templates/restaurant.png'},
+            {name:'Pâtisserie', badge:'PT', fond:'#e4e2fd', texte:'#000000', accent:'#bbf2d8', fond2:'#ede9fe', pattern:'none', layout:'background', stamp:'🧁', type:'tampons', total:'8', reward:'1 produit offert', label:'Client', desc:'Votre carte gourmande pâtisserie', message:'Votre douceur vous attend !', banner:'/banner-templates/patisserie.png'},
+            {name:'Fleuriste', badge:'FL', fond:'#f7f2ec', texte:'#1f2937', accent:'#bc85bf', fond2:'#f4e8f4', pattern:'none', layout:'background', stamp:'🌸', type:'tampons', total:'10', reward:'1 bouquet remisé', label:'Client', desc:'Des attentions fleuries à chaque passage', message:'Une attention fleurie vous attend.', banner:'/banner-templates/template-02.png'},
+            {name:'Boucherie', badge:'BC', fond:'#111827', texte:'#fff3d1', accent:'#ffe7bd', fond2:'#1f2937', pattern:'none', layout:'background', stamp:'🥩', type:'tampons', total:'8', reward:'1 avantage maison', label:'Client', desc:'Votre carte fidélité boucherie', message:'Votre avantage boucherie est disponible.', banner:'/banner-templates/template-03.png'},
+            {name:'Café cosy', badge:'CF', fond:'#2b1608', texte:'#fff7ed', accent:'#d97706', fond2:'#5f3214', pattern:'none', layout:'bottom', stamp:'☕', type:'tampons', total:'10', reward:'1 boisson offerte', label:'Client', desc:'10 passages = 1 boisson offerte', message:'Votre café vous attend !', banner:''},
+            {name:'Coiffeur', badge:'CF', fond:'#1d1f1e', texte:'#f8fafc', accent:'#f8fafc', fond2:'#111827', pattern:'none', layout:'background', stamp:'✂️', type:'tampons', total:'8', reward:'1 coupe offerte', label:'Client', desc:'Une coupe offerte après 8 passages', message:'Votre salon vous attend.', banner:'/banner-templates/template-17.png'},
+            {name:'Nail salon', badge:'NA', fond:'#fff0e5', texte:'#df652a', accent:'#fee1d0', fond2:'#fee1d0', pattern:'none', layout:'background', stamp:'💅', type:'tampons', total:'6', reward:'1 nail art offert', label:'Cliente', desc:'Votre carte privilège nail salon', message:'Votre avantage beauté est disponible.', banner:'/banner-templates/nail-art.png'},
+            {name:'Sport & coaching', badge:'SP', fond:'#045698', texte:'#ffffff', accent:'#dee7e6', fond2:'#0c4a6e', pattern:'none', layout:'background', stamp:'🏆', type:'points', total:'10', reward:'1 séance offerte', label:'Athlète', desc:'Transformez vos visites en récompenses', message:'Votre coach vous attend.', banner:'/banner-templates/template-06.png'},
           ].map((preset, index) => (
             <button
               type="button"
@@ -193,6 +196,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               data-label={preset.label}
               data-desc={preset.desc}
               data-message={preset.message}
+              data-banner={preset.banner}
             >
               <div class="flex items-center gap-3">
                 <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-sm font-bold tracking-[0.12em] text-sky-700">{preset.badge}</span>
@@ -273,7 +277,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             <div id="tampon-emoji-zone" class="hidden">
               <p class="text-slate-500 text-xs mb-1.5">Sélectionnez un emoji</p>
               <div class="grid grid-cols-6 gap-1">
-                {['☕','🍩','⭐','🎁','❤️','🏆','🍕','🎫','💎','🔥','🎉','✨','🍦','🥐','🛍️','🌟','🎵','🍰','🍽️','✂️','💅','🏋️'].map(e => (
+                {['☕','🍩','⭐','🎁','❤️','🏆','🍕','🎫','💎','🔥','🎉','✨','🍦','🥐','🛍️','🌟','🎵','🍰','🧁','🌸','🥩','🍽️','✂️','💅','🏋️'].map(e => (
                   <button type="button" class="emoji-stamp-btn w-9 h-9 rounded-lg text-xl hover:bg-white/10 transition-all flex items-center justify-center border-2 border-transparent" data-emoji={e}>{e}</button>
                 ))}
               </div>
@@ -458,6 +462,35 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <div class="mt-1 mb-5">
             <h3 class="font-semibold text-slate-900 mb-3">Bannière</h3>
             <div class="flex flex-col gap-2">
+              <div class="rounded-2xl border border-sky-100 bg-sky-50/55 p-3">
+                <div class="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p class="text-sm font-semibold text-slate-900">Templates de bannière</p>
+                    <p class="mt-0.5 text-xs text-slate-500">Cliquez sur un template pour l’appliquer et le voir dans l’aperçu Wallet.</p>
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {[
+                    { label: 'Pizza', url: '/banner-templates/template-01.png' },
+                    { label: 'Restaurant', url: '/banner-templates/restaurant.png' },
+                    { label: 'Pâtisserie', url: '/banner-templates/patisserie.png' },
+                    { label: 'Fleuriste', url: '/banner-templates/template-02.png' },
+                    { label: 'Boucherie', url: '/banner-templates/template-03.png' },
+                    { label: 'Sport', url: '/banner-templates/template-06.png' },
+                    { label: 'Coiffeur', url: '/banner-templates/template-17.png' },
+                    { label: 'Nail art', url: '/banner-templates/nail-art.png' },
+                    { label: 'Beauté', url: '/banner-templates/template-20.png' },
+                    { label: 'Café', url: '/banner-templates/template-18.png' },
+                    { label: 'Snack', url: '/banner-templates/template-14.png' },
+                    { label: 'Premium', url: '/banner-templates/template-13.png' },
+                  ].map((template) => (
+                    <button type="button" class="banner-template-btn group overflow-hidden rounded-xl border border-white bg-white p-1 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_16px_36px_-26px_rgba(37,99,235,0.45)]" data-banner-url={template.url}>
+                      <img src={template.url} alt={`Template bannière ${template.label}`} loading="lazy" class="h-14 w-full rounded-lg object-cover transition duration-300 group-hover:scale-[1.03]" />
+                      <span class="mt-1 block px-1 text-[0.68rem] font-semibold text-slate-600">{template.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div id="strip-drag-area" class="w-full h-16 rounded-xl border border-white/10 overflow-hidden flex items-center justify-center relative select-none touch-none" style="background:#1e293b">
                 <img id="strip-preview-img" class="hidden w-full h-full object-cover" style="object-position:center" />
                 <span id="strip-preview-icon" class="text-slate-500 text-xs">Aucune image</span>
@@ -2063,6 +2096,26 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     if (button) button.click();
   }
 
+  function resolvePublicAssetUrl(path: string) {
+    if (!path) return '';
+    try {
+      return new URL(path, window.location.origin).toString();
+    } catch {
+      return '';
+    }
+  }
+
+  function applyBannerTemplate(path: string) {
+    const url = resolvePublicAssetUrl(path);
+    if (!url) return;
+    stripUrl = url;
+    setStripScale(1);
+    setStripFocus(50, 50, { silent: true });
+    setStripPreview(stripUrl);
+    markDirty();
+    updatePreview();
+  }
+
   document.querySelectorAll('.preset-btn').forEach(btn=>btn.addEventListener('click',()=>{
     const el=btn as HTMLElement;
     (document.getElementById('couleur-fond') as HTMLInputElement).value=el.dataset.fond!;
@@ -2112,11 +2165,25 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     setInput('points-recompense', el.dataset.type === 'points' ? '100' : '100');
     setRadio('barcode_type', 'CODE128');
     selectEmojiStamp(el.dataset.stamp ?? '✓');
+    if (el.dataset.banner) {
+      applyBannerTemplate(el.dataset.banner);
+    } else {
+      stripUrl = '';
+      setStripPreview('');
+    }
     renderRewardTiers(defaultRewardTiers());
     renderVipTiers();
     updatePreview();
     document.getElementById('success-msg')!.textContent='Modèle appliqué. Vous pouvez ajuster puis enregistrer.';
     document.getElementById('success-msg')!.classList.remove('hidden');
+  }));
+
+  document.querySelectorAll('.banner-template-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    applyBannerTemplate((btn as HTMLElement).dataset.bannerUrl ?? '');
+    document.querySelectorAll('.banner-template-btn').forEach((button) => {
+      button.classList.remove('ring-2', 'ring-sky-400', 'border-sky-300');
+    });
+    (btn as HTMLElement).classList.add('ring-2', 'ring-sky-400', 'border-sky-300');
   }));
 
   // Type

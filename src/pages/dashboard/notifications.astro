@@ -732,7 +732,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const res = await authFetch(withPointVente('/api/notifications/push-icon-settings'));
       const payload = await res.json().catch(() => null);
       if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le réglage.');
-      const color = String(payload?.data?.push_icon_bg_color ?? '#6366f1');
+      const color = String(payload?.data?.push_icon_bg_color ?? payload?.data?.couleur_fond ?? '#6366f1');
       syncPushIconInputs(color);
       pushIconLastSavedColor = color;
       updatePushIconPreview(color);

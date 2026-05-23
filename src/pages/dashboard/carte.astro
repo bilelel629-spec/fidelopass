@@ -684,7 +684,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
         <div id="step-error-7" class="step-error hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
         <div id="step7-lock-msg" class="hidden mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Enregistrez d'abord votre carte pour débloquer le scanner et le partage.
+          Dernière étape : créez la carte pour publier le QR client, le scanner et les liens de partage.
         </div>
         <div id="public-link-banner" class="hidden mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 shadow-[0_18px_40px_-34px_rgba(16,185,129,0.5)] flex items-center justify-between gap-4">
           <div>
@@ -1205,6 +1205,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     });
     saveContinueButtons.forEach((button) => {
       button.disabled = isSaving;
+      if (!isSaving) {
+        button.textContent = !carteId
+          ? currentStep === TOTAL_STEPS
+            ? 'Créer ma carte'
+            : 'Continuer'
+          : currentStep === TOTAL_STEPS
+            ? 'Enregistrer'
+            : 'Enregistrer et continuer';
+      }
       button.classList.toggle('opacity-50', button.disabled);
       button.classList.toggle('cursor-not-allowed', button.disabled);
     });
@@ -1235,9 +1244,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   function showStep(step: number) {
     const target = Math.max(1, Math.min(TOTAL_STEPS, step));
     const accessibleStep = Math.min(target, maxUnlockedStep);
-    if (target >= TOTAL_STEPS && !carteId) {
+    if (target >= TOTAL_STEPS && !carteId && maxUnlockedStep < TOTAL_STEPS) {
       currentStep = (TOTAL_STEPS - 1) as WizardStep;
-      showStepError(6, "Créez d'abord votre carte avant d'accéder au scanner et au partage.");
+      showStepError(6, "Validez d'abord les étapes précédentes avant d'accéder au scanner et au partage.");
     } else {
       currentStep = accessibleStep as WizardStep;
     }
@@ -2736,6 +2745,22 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       return;
     }
     clearStepError(currentStep);
+
+    if (!carteId && currentStep < TOTAL_STEPS) {
+      const suc = document.getElementById('success-msg') as HTMLDivElement;
+      document.getElementById('error-msg')?.classList.add('hidden');
+      markStepCompleted(currentStep);
+      const nextStep = (currentStep + 1) as WizardStep;
+      setMaxUnlockedStep(Math.max(maxUnlockedStep, nextStep));
+      setDraftState(true, true);
+      suc.textContent = currentStep === TOTAL_STEPS - 1
+        ? 'Dernière vérification : créez la carte à l’étape finale pour la publier.'
+        : 'Étape validée. La carte sera enregistrée définitivement à la dernière étape.';
+      suc.classList.remove('hidden');
+      showStep(nextStep);
+      return;
+    }
+
     await persistCard(true);
   }
   document.getElementById('save-continue-btn')!.addEventListener('click', handleSaveContinue);

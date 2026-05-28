@@ -31,7 +31,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       id="search"
       type="search"
       class="input max-w-sm"
-      placeholder="Rechercher un client..."
+      placeholder="Rechercher un client ou un code FID..."
     />
   </div>
 
@@ -100,6 +100,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     recompenses_obtenues: number;
     carte_id: string | null;
     derniere_visite: string | null;
+    wallet_code: string | null;
   }
 
   let currentClients: Client[] = [];
@@ -136,6 +137,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <thead class="border-b border-slate-200">
             <tr class="text-left">
               <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Client</th>
+              <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Code</th>
               <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Points / Tampons</th>
               <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Récompenses dispo</th>
               <th class="px-6 py-3 text-slate-500 text-xs uppercase tracking-wide font-medium">Dernière visite</th>
@@ -150,6 +152,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                 <td class="px-6 py-4">
                   <div class="font-medium text-slate-900 text-sm">${escapeHtml(c.nom ?? 'Anonyme')}</div>
                   <div class="text-slate-500 text-xs">${escapeHtml(c.email ?? c.telephone ?? '—')}</div>
+                </td>
+                <td class="px-6 py-4">
+                  <span class="inline-flex rounded-full border border-sky-100 bg-sky-50 px-2.5 py-1 font-mono text-xs font-semibold text-sky-700">${escapeHtml(c.wallet_code ?? '—')}</span>
                 </td>
                 <td class="px-6 py-4">
                   <span class="font-mono text-sm text-sky-700">${c.points_actuels || c.tampons_actuels}</span>
@@ -320,9 +325,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   document.getElementById('export-csv-btn')!.addEventListener('click', () => {
     const rows = [
-      ['Nom', 'Email', 'Téléphone', 'Points ou tampons', 'Récompenses disponibles', 'Dernière visite'],
+      ['Nom', 'Code FideloPass', 'Email', 'Téléphone', 'Points ou tampons', 'Récompenses disponibles', 'Dernière visite'],
       ...currentClients.map((client) => [
         client.nom ?? 'Anonyme',
+        client.wallet_code ?? '',
         client.email ?? '',
         client.telephone ?? '',
         String(client.points_actuels || client.tampons_actuels || 0),

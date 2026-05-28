@@ -115,7 +115,7 @@ clientsRoutes.get('/', authMiddleware, paidMiddleware, async (c) => {
     .order('derniere_visite', { ascending: false, nullsFirst: false });
 
   if (search) {
-    query = query.or(`nom.ilike.%${search}%,email.ilike.%${search}%,telephone.ilike.%${search}%`);
+    query = query.or(`nom.ilike.%${search}%,email.ilike.%${search}%,telephone.ilike.%${search}%,wallet_code.ilike.%${search}%`);
   }
 
   const { data, error, count } = await query.range(page * pageSize, (page + 1) * pageSize - 1);

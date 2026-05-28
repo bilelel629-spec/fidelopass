@@ -64,18 +64,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                 <span><span id="char-count">0</span>/150</span>
               </div>
             </div>
-            <div class="rounded-[1.25rem] border border-blue-100 bg-blue-50/60 p-4">
-              <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p class="text-sm font-extrabold text-slate-950">Audience</p>
-                  <p class="mt-1 text-xs leading-5 text-slate-600">Votre message est envoyé tout de suite aux clients du point de vente actif qui ont ajouté la carte dans Apple Wallet ou Google Wallet.</p>
-                </div>
-                <span class="w-fit rounded-full border border-blue-200 bg-white px-3 py-1.5 text-xs font-extrabold text-blue-700">
-                  <span id="audience-count">—</span> destinataire(s)
-                </span>
-              </div>
-              <p class="mt-3 rounded-xl border border-blue-100 bg-white/80 px-3 py-2 text-xs leading-5 text-slate-500">Les clients qui n’ont pas encore installé leur carte Wallet ne recevront pas cette notification.</p>
-            </div>
             <div id="error-msg" class="hidden rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
             <div id="success-msg" class="hidden rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"></div>
             <button type="submit" class="rounded-[1.1rem] bg-[linear-gradient(135deg,#2563EB_0%,#7C3AED_100%)] px-5 py-4 text-base font-extrabold text-white shadow-[0_20px_42px_-24px_rgba(37,99,235,0.95)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_58px_-28px_rgba(124,58,237,0.95)]">Envoyer la notification</button>
@@ -549,7 +537,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       document.getElementById('summary-wallet')!.textContent = String(summaryWallet);
       document.getElementById('summary-history')!.textContent = String(summaryHistory);
       document.getElementById('summary-wallet-badge')!.textContent = `${summaryWallet} client${summaryWallet > 1 ? 's' : ''} abonné${summaryWallet > 1 ? 's' : ''}`;
-      document.getElementById('audience-count')!.textContent = String(summaryWallet);
       if (sendHelper) {
         sendHelper.textContent = `Envoi instantané à ${summaryWallet} client${summaryWallet > 1 ? 's' : ''} abonné${summaryWallet > 1 ? 's' : ''}.`;
       }
@@ -557,7 +544,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       document.getElementById('summary-wallet')!.textContent = '—';
       document.getElementById('summary-history')!.textContent = '—';
       document.getElementById('summary-wallet-badge')!.textContent = '— clients abonnés';
-      document.getElementById('audience-count')!.textContent = '—';
     }
   }
 

@@ -43,7 +43,7 @@ const apiBase = (
             <div class="stepper">
               <div class="step is-active"><span>1</span><div><strong>Choisir un modèle</strong><small>Base visuelle de l'affiche</small></div></div>
               <div class="step is-active"><span>2</span><div><strong>Personnaliser</strong><small>Textes, couleurs et logo</small></div></div>
-              <div class="step"><span>3</span><div><strong>Aperçu & export</strong><small>PDF imprimable A4</small></div></div>
+              <div class="step"><span>3</span><div><strong>Aperçu & export</strong><small>PDF imprimable A4 ou A5</small></div></div>
             </div>
           </section>
 
@@ -187,11 +187,11 @@ const apiBase = (
           <div class="preview-toolbar poster-ui">
             <div>
               <p class="text-xs font-extrabold uppercase tracking-[0.22em] text-slate-400">Aperçu temps réel</p>
-              <h2 class="font-display text-xl font-extrabold text-slate-950">Affiche A4</h2>
+              <h2 id="poster-preview-title" class="font-display text-xl font-extrabold text-slate-950">Affiche A4</h2>
             </div>
-            <div class="inline-flex rounded-full border border-slate-200 bg-white p-1 text-xs font-bold text-slate-500">
-              <span class="rounded-full bg-slate-950 px-3 py-1.5 text-white">A4</span>
-              <span class="px-3 py-1.5">1080px</span>
+            <div class="format-switch" aria-label="Format d'affiche">
+              <button type="button" class="format-btn is-active" data-format="a4">A4</button>
+              <button type="button" class="format-btn" data-format="a5">A5</button>
             </div>
           </div>
 
@@ -262,7 +262,7 @@ const apiBase = (
     <div class="poster-ui export-bar">
       <button id="download-pdf" type="button" class="export-action">
         <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>
-        <span><strong>Télécharger PDF</strong><small>Impression A4</small></span>
+        <span><strong>Télécharger PDF</strong><small id="download-format-label">Impression A4</small></span>
       </button>
     </div>
   </div>
@@ -270,6 +270,8 @@ const apiBase = (
 
 <style>
   .poster-creator {
+    --poster-print-width: 210mm;
+    --poster-print-height: 297mm;
     background:
       radial-gradient(circle at 85% 8%, rgba(56, 189, 248, 0.18), transparent 28rem),
       radial-gradient(circle at 24% 4%, rgba(124, 58, 237, 0.12), transparent 24rem),
@@ -684,7 +686,8 @@ const apiBase = (
   .preview-toolbar {
     margin: 0 auto 1rem;
     display: flex;
-    max-width: 920px;
+    width: min(100%, 920px, calc((100dvh - 15rem) * 0.707));
+    min-width: min(100%, 23rem);
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
@@ -693,6 +696,31 @@ const apiBase = (
     background: rgba(255,255,255,0.82);
     padding: 0.9rem 1rem;
     backdrop-filter: blur(18px);
+  }
+
+  .format-switch {
+    display: inline-flex;
+    flex-shrink: 0;
+    gap: 0.25rem;
+    border-radius: 999px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    padding: 0.25rem;
+    color: #64748b;
+    font-size: 0.76rem;
+    font-weight: 900;
+  }
+
+  .format-btn {
+    border-radius: 999px;
+    padding: 0.5rem 0.85rem;
+    transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .format-btn.is-active {
+    background: #0f172a;
+    color: #fff;
+    box-shadow: 0 14px 26px -20px rgba(15, 23, 42, 0.85);
   }
 
   .preview-state {
@@ -714,13 +742,15 @@ const apiBase = (
 
   .poster-preview-shell {
     display: flex;
+    min-height: calc(100dvh - 15rem);
+    align-items: center;
     justify-content: center;
-    padding: 1rem 0 3rem;
+    padding: 0.75rem 0 2rem;
   }
 
   .poster-sheet {
     position: relative;
-    width: min(100%, 760px);
+    width: min(100%, 760px, calc((100dvh - 15rem) * 0.707));
     aspect-ratio: 210 / 297;
     overflow: hidden;
     border-radius: 1.65rem;
@@ -732,6 +762,10 @@ const apiBase = (
       0 0 0 1px rgba(255,255,255,0.55) inset;
     isolation: isolate;
     transform-origin: top center;
+  }
+
+  .poster-sheet[data-format="a5"] {
+    width: min(100%, 620px, calc((100dvh - 15rem) * 0.707));
   }
 
   .poster-bg-image {
@@ -1119,8 +1153,8 @@ const apiBase = (
   @media print {
     html,
     body {
-      width: 210mm;
-      height: 297mm;
+      width: var(--poster-print-width, 210mm);
+      height: var(--poster-print-height, 297mm);
       margin: 0 !important;
       background: #fff !important;
       -webkit-print-color-adjust: exact;
@@ -1146,8 +1180,8 @@ const apiBase = (
     #poster-stage,
     .poster-preview-shell {
       display: block !important;
-      width: 210mm !important;
-      height: 297mm !important;
+      width: var(--poster-print-width, 210mm) !important;
+      height: var(--poster-print-height, 297mm) !important;
       min-height: auto !important;
       margin: 0 !important;
       padding: 0 !important;
@@ -1156,8 +1190,8 @@ const apiBase = (
     }
 
     #poster-sheet {
-      width: 210mm !important;
-      height: 297mm !important;
+      width: var(--poster-print-width, 210mm) !important;
+      height: var(--poster-print-height, 297mm) !important;
       aspect-ratio: auto !important;
       border: 0 !important;
       border-radius: 0 !important;
@@ -1247,6 +1281,7 @@ const apiBase = (
 
   const state = {
     template: initialTemplate,
+    format: 'a4',
     logo: '',
     commerce: 'Votre commerce',
     title: initialPreset.title,
@@ -1333,6 +1368,35 @@ const apiBase = (
     if (node) node.textContent = value;
   }
 
+  function applyFormat() {
+    const sheet = $('poster-sheet');
+    const format = state.format === 'a5' ? 'a5' : 'a4';
+    const label = format.toUpperCase();
+    const printWidth = format === 'a5' ? '148mm' : '210mm';
+    const printHeight = format === 'a5' ? '210mm' : '297mm';
+
+    if (sheet) sheet.dataset.format = format;
+    document.documentElement.style.setProperty('--poster-print-width', printWidth);
+    document.documentElement.style.setProperty('--poster-print-height', printHeight);
+    document.querySelectorAll('.format-btn').forEach((button) => {
+      button.classList.toggle('is-active', button.dataset.format === format);
+    });
+    setText('poster-preview-title', `Affiche ${label}`);
+    setText('download-format-label', `Impression ${label}`);
+  }
+
+  function preparePrintFormat() {
+    const format = state.format === 'a5' ? 'a5' : 'a4';
+    const styleId = 'poster-print-page-format';
+    const existing = document.getElementById(styleId);
+    if (existing) existing.remove();
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `@page { size: ${format === 'a5' ? 'A5' : 'A4'} portrait; margin: 0; }`;
+    document.head.appendChild(style);
+    applyFormat();
+  }
+
   function applyCreator() {
     readFields();
     const sheet = $('poster-sheet');
@@ -1346,6 +1410,7 @@ const apiBase = (
     sheet.style.setProperty('--poster-muted', hexToRgba(state.text, 0.72));
     sheet.classList.toggle('is-light', isLight);
     sheet.classList.toggle('is-qr-only', state.template === 'qr');
+    applyFormat();
 
     setText('poster-commerce', state.commerce);
     setText('poster-title', state.title);
@@ -1542,6 +1607,13 @@ const apiBase = (
     button.addEventListener('click', () => selectTemplate(button.dataset.template || 'affiche', false));
   });
 
+  document.querySelectorAll('.format-btn').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.format = button.dataset.format === 'a5' ? 'a5' : 'a4';
+      applyFormat();
+    });
+  });
+
   document.querySelectorAll('.palette-btn').forEach((button) => {
     button.addEventListener('click', () => {
       setField('field-primary', button.dataset.primary);
@@ -1605,7 +1677,10 @@ const apiBase = (
     renderFreeImages();
   });
 
-  $('download-pdf')?.addEventListener('click', () => window.print());
+  $('download-pdf')?.addEventListener('click', () => {
+    preparePrintFormat();
+    window.print();
+  });
   $('download-pdf-top')?.addEventListener('click', () => $('download-pdf')?.click());
 
   loadPoster();

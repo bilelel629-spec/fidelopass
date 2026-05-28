@@ -30,12 +30,39 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </p>
       </div>
       <div class="flex flex-wrap gap-2">
-        <a href="/app/scan" class="rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_16px_34px_-22px_rgba(37,99,235,0.9)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_42px_-24px_rgba(37,99,235,0.95)]">Scanner en caisse</a>
+        <a href="/dashboard/scan" class="rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_16px_34px_-22px_rgba(16,185,129,0.9)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_42px_-24px_rgba(16,185,129,0.95)]">Mode scannette</a>
+        <a href="/app/scan" class="rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_16px_34px_-22px_rgba(37,99,235,0.9)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_42px_-24px_rgba(37,99,235,0.95)]">Scanner mobile</a>
         <a id="dashboard-client-qr-btn" href="/dashboard/carte" class="premium-button rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-semibold text-sky-700 transition">Afficher le QR client</a>
         <a href="/dashboard/notifications" class="premium-button rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition">Envoyer une notification</a>
       </div>
     </div>
   </div>
+
+  <section id="dashboard-wallet-qr-card" class="card dashboard-wallet-qr-card mb-6 p-5" data-tour="dashboard-wallet-qr">
+    <div class="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+      <div class="max-w-2xl">
+        <p class="text-[0.64rem] font-semibold uppercase tracking-[0.24em] text-sky-700/70">Ajout carte Wallet</p>
+        <h2 class="mt-2 font-display text-xl font-extrabold tracking-[-0.03em] text-slate-950">QR code client</h2>
+        <p class="mt-2 text-sm leading-6 text-slate-600">
+          Affichez ce QR au comptoir pour que vos clients ajoutent leur carte dans Apple Wallet ou Google Wallet.
+        </p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <a id="dashboard-wallet-qr-link" href="/dashboard/carte" class="premium-button rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-semibold text-sky-700 transition">
+            Ouvrir la carte client
+          </a>
+          <a id="dashboard-wallet-poster-link" href="/dashboard/carte" class="premium-button rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition">
+            Affiche comptoir
+          </a>
+        </div>
+      </div>
+      <div class="flex items-center gap-4 rounded-[1.45rem] border border-sky-100 bg-white/88 p-3 shadow-[0_20px_50px_-38px_rgba(37,99,235,0.42)]">
+        <img id="dashboard-wallet-qr-img" src="" alt="QR code pour ajouter la carte FideloPass au Wallet" class="h-28 w-28 rounded-2xl border border-slate-100 bg-white object-contain" />
+        <div class="hidden max-w-[9rem] text-xs leading-5 text-slate-500 sm:block">
+          <span id="dashboard-wallet-qr-status">Chargement du QR...</span>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4" data-tour="dashboard-stats">
     <div class="stat-card">
@@ -122,6 +149,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
 <style>
   .dashboard-action-card,
+  .dashboard-wallet-qr-card,
   .dashboard-chart-card,
   .dashboard-side-card,
   .dashboard-activity-card,
@@ -137,6 +165,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   .dashboard-action-card:hover,
+  .dashboard-wallet-qr-card:hover,
   .dashboard-chart-card:hover,
   .dashboard-side-card:hover,
   .dashboard-activity-card:hover,
@@ -366,6 +395,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       commands.push(`C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)} ${cp2x.toFixed(1)} ${cp2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`);
     }
     return commands.join(' ');
+  }
+
+  function qrImageUrl(url: string, size = 320) {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=111827&qzone=1`;
   }
 
   async function loadStats() {
@@ -632,11 +665,26 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const res = await authFetch('/api/cartes');
       if (!res.ok) return;
       const { data } = await res.json();
-      if (!data?.id) return;
+      const qrStatus = document.getElementById('dashboard-wallet-qr-status');
+      if (!data?.id) {
+        if (qrStatus) qrStatus.textContent = 'Créez votre carte pour obtenir le QR.';
+        return;
+      }
       const qrBtn = document.getElementById('dashboard-client-qr-btn') as HTMLAnchorElement;
-      qrBtn.href = `/poster/${data.id}?template=signature`;
+      const cardUrl = `${window.location.origin}/carte/${data.id}`;
+      const posterUrl = `/poster/${data.id}?template=signature`;
+      qrBtn.href = posterUrl;
+
+      const qrImg = document.getElementById('dashboard-wallet-qr-img') as HTMLImageElement | null;
+      const qrLink = document.getElementById('dashboard-wallet-qr-link') as HTMLAnchorElement | null;
+      const posterLink = document.getElementById('dashboard-wallet-poster-link') as HTMLAnchorElement | null;
+      if (qrImg) qrImg.src = qrImageUrl(cardUrl);
+      if (qrLink) qrLink.href = cardUrl;
+      if (posterLink) posterLink.href = posterUrl;
+      if (qrStatus) qrStatus.textContent = 'Prêt à être scanné par vos clients.';
     } catch {
-      // best effort
+      const qrStatus = document.getElementById('dashboard-wallet-qr-status');
+      if (qrStatus) qrStatus.textContent = 'QR indisponible pour le moment.';
     }
   }
 

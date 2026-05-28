@@ -102,12 +102,11 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
 
   let commerce = existingCommerce;
   if (!commerce) {
-    const fallbackName = (email?.split('@')[0] ?? 'Mon commerce').trim() || 'Mon commerce';
     const { data: createdCommerce, error: createCommerceError } = await db
       .from('commerces')
       .insert({
         user_id: userId,
-        nom: fallbackName,
+        nom: 'Mon commerce',
         onboarding_completed: false,
         billing_status: 'unpaid',
       })

@@ -240,11 +240,10 @@ commercesRoutes.post('/', async (c) => {
 
   if (error) return c.json({ error: 'Erreur lors de la création' }, 500);
 
-  const principalPointNom = `${parsed.data.nom} — Principal`;
   const coords = await resolveCoordinates(parsed.data);
   const pointInsertPayload: Record<string, unknown> = {
     commerce_id: data.id,
-    nom: principalPointNom,
+    nom: parsed.data.nom,
     adresse: parsed.data.adresse ?? null,
     rue: parsed.data.rue ?? null,
     ville: parsed.data.ville ?? null,
@@ -300,6 +299,14 @@ commercesRoutes.patch('/me', async (c) => {
   // Champs point de vente (spécifiques à la carte sélectionnée)
   const pointPayload: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (parsed.data.point_vente_nom !== undefined) pointPayload.nom = parsed.data.point_vente_nom;
+  if (
+    parsed.data.nom !== undefined
+    && parsed.data.point_vente_nom === undefined
+    && pointVente.principal
+    && commerce.onboarding_completed !== true
+  ) {
+    pointPayload.nom = parsed.data.nom;
+  }
   if (parsed.data.adresse !== undefined) pointPayload.adresse = parsed.data.adresse;
   if (parsed.data.rayon_geo !== undefined) pointPayload.rayon_geo = parsed.data.rayon_geo;
   applyAddressDetails(pointPayload, parsed.data);

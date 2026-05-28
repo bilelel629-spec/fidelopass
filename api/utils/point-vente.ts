@@ -133,9 +133,9 @@ export async function resolveCommerceAndPointVente<T extends CommerceRow = Comme
   let points = (pointsVente ?? []) as PointVenteRow[];
 
   // Résilience: certains commerces créés pendant le checkout n'ont pas encore de point de vente.
-  // On bootstrap automatiquement un point "Principal" pour éviter les blocages d'onboarding.
+  // On bootstrap automatiquement un point principal pour éviter les blocages d'onboarding.
   if (points.length === 0) {
-    const fallbackName = `${(commerce.nom ?? 'Point de vente').trim() || 'Point de vente'} — Principal`;
+    const fallbackName = (commerce.nom ?? 'Point de vente').trim() || 'Point de vente';
     const { data: createdPoint, error: createPointError } = await db
       .from('points_vente')
       .insert({
@@ -168,6 +168,13 @@ export async function resolveCommerceAndPointVente<T extends CommerceRow = Comme
     } else if (createdPoint) {
       points = [createdPoint as PointVenteRow];
     }
+  }
+
+  const commerceDisplayName = (commerce.nom ?? '').trim();
+  if (commerceDisplayName) {
+    points = points.map((point) => (
+      point.principal ? { ...point, nom: commerceDisplayName } : point
+    ));
   }
 
   const fallbackPoint = points.find((point) => point.principal) ?? points[0] ?? null;

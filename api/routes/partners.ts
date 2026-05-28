@@ -195,7 +195,7 @@ partnerRoutes.post('/commerces', async (c) => {
 
   const pointInsertPayload = {
     commerce_id: commerce.id,
-    nom: `${parsed.data.nom} — Principal`,
+    nom: parsed.data.nom,
     adresse: parsed.data.adresse ?? null,
     principal: true,
     actif: true,

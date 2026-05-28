@@ -38,32 +38,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </div>
   </div>
 
-  <section id="dashboard-wallet-qr-card" class="card dashboard-wallet-qr-card mb-6 p-5" data-tour="dashboard-wallet-qr">
-    <div class="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-      <div class="max-w-2xl">
-        <p class="text-[0.64rem] font-semibold uppercase tracking-[0.24em] text-sky-700/70">Ajout carte Wallet</p>
-        <h2 class="mt-2 font-display text-xl font-extrabold tracking-[-0.03em] text-slate-950">QR code client</h2>
-        <p class="mt-2 text-sm leading-6 text-slate-600">
-          Affichez ce QR au comptoir pour que vos clients ajoutent leur carte dans Apple Wallet ou Google Wallet.
-        </p>
-        <div class="mt-4 flex flex-wrap gap-2">
-          <a id="dashboard-wallet-qr-link" href="/dashboard/carte" class="premium-button rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-semibold text-sky-700 transition">
-            Ouvrir la carte client
-          </a>
-          <a id="dashboard-wallet-poster-link" href="/dashboard/carte" class="premium-button rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition">
-            Affiche comptoir
-          </a>
-        </div>
-      </div>
-      <div class="flex items-center gap-4 rounded-[1.45rem] border border-sky-100 bg-white/88 p-3 shadow-[0_20px_50px_-38px_rgba(37,99,235,0.42)]">
-        <img id="dashboard-wallet-qr-img" src="" alt="QR code pour ajouter la carte FideloPass au Wallet" class="h-28 w-28 rounded-2xl border border-slate-100 bg-white object-contain" />
-        <div class="hidden max-w-[9rem] text-xs leading-5 text-slate-500 sm:block">
-          <span id="dashboard-wallet-qr-status">Chargement du QR...</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4" data-tour="dashboard-stats">
     <div class="stat-card">
       <span class="text-slate-500 text-xs uppercase tracking-wide">Clients totaux</span>
@@ -101,6 +75,31 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
       <div id="chart-container" class="chart-surface relative h-[22rem] rounded-[1.35rem] bg-white" data-tour="dashboard-activity">
         <p class="m-auto text-sm text-slate-400">Chargement...</p>
+      </div>
+      <div id="dashboard-wallet-qr-card" class="wallet-qr-strip mt-5 rounded-[1.35rem] border border-sky-100 bg-white/82 p-4" data-tour="dashboard-wallet-qr">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div class="max-w-xl">
+            <p class="text-[0.64rem] font-semibold uppercase tracking-[0.24em] text-sky-700/70">Ajout carte Wallet</p>
+            <h2 class="mt-1 font-display text-lg font-extrabold tracking-[-0.03em] text-slate-950">QR code client</h2>
+            <p class="mt-1.5 text-sm leading-6 text-slate-600">
+              À afficher au comptoir pour que vos clients ajoutent leur carte dans Apple Wallet ou Google Wallet.
+            </p>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <a id="dashboard-wallet-qr-link" href="/dashboard/carte" class="premium-button rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-semibold text-sky-700 transition">
+                Ouvrir la carte client
+              </a>
+              <a id="dashboard-wallet-poster-link" href="/dashboard/carte" class="premium-button rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition">
+                Affiche comptoir
+              </a>
+            </div>
+          </div>
+          <div class="flex items-center gap-4 rounded-[1.25rem] border border-sky-100 bg-white p-2.5 shadow-[0_20px_50px_-38px_rgba(37,99,235,0.42)]">
+            <img id="dashboard-wallet-qr-img" src="" alt="QR code pour ajouter la carte FideloPass au Wallet" class="h-24 w-24 rounded-2xl border border-slate-100 bg-white object-contain" />
+            <div class="hidden max-w-[8rem] text-xs leading-5 text-slate-500 sm:block">
+              <span id="dashboard-wallet-qr-status">Chargement du QR...</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -149,7 +148,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
 <style>
   .dashboard-action-card,
-  .dashboard-wallet-qr-card,
   .dashboard-chart-card,
   .dashboard-side-card,
   .dashboard-activity-card,
@@ -165,7 +163,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   .dashboard-action-card:hover,
-  .dashboard-wallet-qr-card:hover,
   .dashboard-chart-card:hover,
   .dashboard-side-card:hover,
   .dashboard-activity-card:hover,
@@ -200,6 +197,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     border-color: rgba(125, 211, 252, 0.9);
     background: rgba(248, 252, 255, 0.98);
     box-shadow: 0 22px 44px -30px rgba(37, 99, 235, 0.55);
+  }
+
+  .wallet-qr-strip {
+    background:
+      radial-gradient(circle at 88% 20%, rgba(56, 189, 248, 0.12), transparent 34%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 251, 255, 0.86));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      0 22px 58px -48px rgba(37, 99, 235, 0.42);
   }
 
   #chart-container {

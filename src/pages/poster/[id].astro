@@ -53,32 +53,15 @@ const apiBase = (
                 <p class="section-kicker">Modèles</p>
                 <h2>Choisir un style</h2>
               </div>
-              <button id="show-more-templates" type="button" class="mini-link">Voir plus</button>
             </div>
             <div class="template-grid">
-              <button type="button" class="template-card is-selected" data-template="restaurant">
-                <span class="mini-poster restaurant"></span>
-                <strong>Restaurant</strong>
-              </button>
-              <button type="button" class="template-card" data-template="moderne">
-                <span class="mini-poster moderne"></span>
-                <strong>Moderne</strong>
-              </button>
-              <button type="button" class="template-card" data-template="elegant">
-                <span class="mini-poster elegant"></span>
-                <strong>Élégant</strong>
-              </button>
-              <button type="button" class="template-card" data-template="cafe">
-                <span class="mini-poster cafe"></span>
-                <strong>Café</strong>
-              </button>
-              <button type="button" class="template-card template-extra hidden" data-template="beaute">
+              <button type="button" class="template-card is-selected" data-template="affiche">
                 <span class="mini-poster beaute"></span>
-                <strong>Beauté</strong>
+                <strong>Modèle affiche</strong>
               </button>
-              <button type="button" class="template-card template-extra hidden" data-template="minimal">
-                <span class="mini-poster minimal"></span>
-                <strong>Minimal</strong>
+              <button type="button" class="template-card" data-template="qr">
+                <span class="mini-poster qr"></span>
+                <strong>QR code seul</strong>
               </button>
             </div>
           </section>
@@ -130,17 +113,61 @@ const apiBase = (
               </div>
             </div>
             <div class="palette-row">
-              <button id="card-palette-btn" type="button" class="palette-btn hidden" data-primary="#082f25" data-secondary="#c8a45d" data-text="#ffffff" title="Palette de la carte"><span style="background:#082f25"></span><span style="background:#c8a45d"></span><span style="background:#ffffff"></span></button>
-              <button type="button" class="palette-btn is-selected" data-primary="#082f25" data-secondary="#c8a45d" data-text="#ffffff"><span style="background:#082f25"></span><span style="background:#c8a45d"></span><span style="background:#ffffff"></span></button>
-              <button type="button" class="palette-btn" data-primary="#111827" data-secondary="#38bdf8" data-text="#ffffff"><span style="background:#111827"></span><span style="background:#38bdf8"></span><span style="background:#ffffff"></span></button>
-              <button type="button" class="palette-btn" data-primary="#312e81" data-secondary="#a78bfa" data-text="#ffffff"><span style="background:#312e81"></span><span style="background:#a78bfa"></span><span style="background:#ffffff"></span></button>
-              <button type="button" class="palette-btn" data-primary="#fff7ed" data-secondary="#f97316" data-text="#0f172a"><span style="background:#fff7ed"></span><span style="background:#f97316"></span><span style="background:#0f172a"></span></button>
-              <button type="button" class="palette-btn" data-primary="#fdf2f8" data-secondary="#ec4899" data-text="#831843"><span style="background:#fdf2f8"></span><span style="background:#ec4899"></span><span style="background:#831843"></span></button>
+              <button id="card-palette-btn" type="button" class="palette-btn hidden" data-primary="#082f25" data-secondary="#c8a45d" data-text="#ffffff" data-title="#ffffff" title="Palette de la carte"><span style="background:#082f25"></span><span style="background:#c8a45d"></span><span style="background:#ffffff"></span></button>
+              <button type="button" class="palette-btn is-selected" data-primary="#fff0e5" data-secondary="#df652a" data-text="#1f2937" data-title="#df652a"><span style="background:#fff0e5"></span><span style="background:#df652a"></span><span style="background:#1f2937"></span></button>
+              <button type="button" class="palette-btn" data-primary="#111827" data-secondary="#38bdf8" data-text="#ffffff" data-title="#ffffff"><span style="background:#111827"></span><span style="background:#38bdf8"></span><span style="background:#ffffff"></span></button>
+              <button type="button" class="palette-btn" data-primary="#312e81" data-secondary="#a78bfa" data-text="#ffffff" data-title="#ffffff"><span style="background:#312e81"></span><span style="background:#a78bfa"></span><span style="background:#ffffff"></span></button>
+              <button type="button" class="palette-btn" data-primary="#fff7ed" data-secondary="#f97316" data-text="#0f172a" data-title="#c2410c"><span style="background:#fff7ed"></span><span style="background:#f97316"></span><span style="background:#0f172a"></span></button>
+              <button type="button" class="palette-btn" data-primary="#fdf2f8" data-secondary="#ec4899" data-text="#831843" data-title="#be185d"><span style="background:#fdf2f8"></span><span style="background:#ec4899"></span><span style="background:#831843"></span></button>
             </div>
             <div class="color-grid">
               <label class="color-field"><span>Principale</span><input id="field-primary" type="color" value="#082f25" /></label>
               <label class="color-field"><span>Secondaire</span><input id="field-secondary" type="color" value="#c8a45d" /></label>
               <label class="color-field"><span>Texte</span><input id="field-text" type="color" value="#ffffff" /></label>
+              <label class="color-field"><span>Titres</span><input id="field-title-color" type="color" value="#ffffff" /></label>
+            </div>
+          </section>
+
+          <section class="editor-card">
+            <div class="section-head">
+              <div>
+                <p class="section-kicker">Typographie</p>
+                <h2>Police d'écriture</h2>
+              </div>
+            </div>
+            <label class="field full">
+              <span>Style de police</span>
+              <select id="field-font">
+                <option value="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">Moderne</option>
+                <option value="'Arial Rounded MT Bold', Arial, ui-sans-serif, system-ui, sans-serif">Arrondie</option>
+                <option value="Georgia, 'Times New Roman', serif">Élégante</option>
+                <option value="'Trebuchet MS', Arial, sans-serif">Créative</option>
+                <option value="'Courier New', monospace">Monospace</option>
+              </select>
+            </label>
+          </section>
+
+          <section class="editor-card">
+            <div class="section-head">
+              <div>
+                <p class="section-kicker">Images</p>
+                <h2>Images libres</h2>
+                <p class="section-note">Ajoutez une image puis déplacez-la directement sur l'affiche.</p>
+              </div>
+            </div>
+            <label class="upload-zone compact" for="poster-free-image-upload">
+              <input id="poster-free-image-upload" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
+              <span class="upload-preview">
+                <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="m21 15-5-5L5 21"></path><path d="m14 8.5.01 0"></path></svg>
+              </span>
+              <span>
+                <strong>Ajouter une image</strong>
+                <small>Logo, photo, pictogramme ou décor.</small>
+              </span>
+            </label>
+            <div class="image-tools">
+              <label class="range-field"><span>Taille de l'image sélectionnée</span><input id="free-image-size" type="range" min="8" max="70" value="24" /></label>
+              <button id="delete-free-image" type="button" class="danger-mini-btn">Supprimer l'image</button>
             </div>
           </section>
         </div>
@@ -169,7 +196,7 @@ const apiBase = (
           </div>
 
           <div class="poster-preview-shell">
-            <div id="poster-sheet" class="poster-sheet" style="--poster-primary:#082f25;--poster-secondary:#c8a45d;--poster-ink:#ffffff;--poster-muted:rgba(255,255,255,0.72);">
+            <div id="poster-sheet" class="poster-sheet" style="--poster-primary:#082f25;--poster-secondary:#c8a45d;--poster-ink:#ffffff;--poster-title-color:#ffffff;--poster-font:Inter,ui-sans-serif,system-ui,sans-serif;--poster-muted:rgba(255,255,255,0.72);">
               <div class="poster-bg-image" id="poster-bg-image"></div>
               <div class="poster-noise"></div>
               <div class="poster-orb poster-orb-one"></div>
@@ -225,6 +252,7 @@ const apiBase = (
                   <p>Powered by Fidelopass</p>
                 </footer>
               </div>
+              <div id="poster-free-images" class="poster-free-images" aria-label="Images personnalisées"></div>
             </div>
           </div>
         </div>
@@ -447,12 +475,14 @@ const apiBase = (
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
   }
 
-  .mini-poster.restaurant { background: linear-gradient(145deg, #082f25, #14532d 58%, #c8a45d); }
-  .mini-poster.moderne { background: linear-gradient(145deg, #0f172a, #2563eb 58%, #38bdf8); }
-  .mini-poster.elegant { background: linear-gradient(145deg, #111827, #2e1065 58%, #d8b4fe); }
-  .mini-poster.cafe { background: linear-gradient(145deg, #3f2416, #8b5e34 60%, #f8d7a1); }
   .mini-poster.beaute { background: linear-gradient(145deg, #fff1f2, #f9a8d4 56%, #be185d); }
-  .mini-poster.minimal { background: linear-gradient(145deg, #ffffff, #e2e8f0 68%, #0f172a); }
+  .mini-poster.qr {
+    background:
+      linear-gradient(90deg, transparent 46%, #0f172a 46% 54%, transparent 54%),
+      linear-gradient(transparent 46%, #0f172a 46% 54%, transparent 54%),
+      #ffffff;
+    background-size: 2.4rem 2.4rem;
+  }
 
   .upload-zone {
     display: flex;
@@ -487,6 +517,10 @@ const apiBase = (
     color: #64748b;
     font-size: 0.72rem;
     line-height: 1.35;
+  }
+
+  .upload-zone.compact {
+    padding: 0.75rem;
   }
 
   .upload-preview {
@@ -529,7 +563,8 @@ const apiBase = (
   }
 
   .field input,
-  .field textarea {
+  .field textarea,
+  .field select {
     width: 100%;
     border-radius: 1rem;
     border: 1px solid #e2e8f0;
@@ -542,7 +577,8 @@ const apiBase = (
   }
 
   .field input:focus,
-  .field textarea:focus {
+  .field textarea:focus,
+  .field select:focus {
     border-color: #60a5fa;
     background: #fff;
     box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
@@ -583,7 +619,7 @@ const apiBase = (
 
   .color-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
   }
 
@@ -595,6 +631,41 @@ const apiBase = (
     border: 1px solid #e2e8f0;
     background: #f8fafc;
     padding: 0.2rem;
+  }
+
+  .image-tools {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 0.85rem;
+  }
+
+  .range-field span {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: #475569;
+    font-size: 0.72rem;
+    font-weight: 800;
+  }
+
+  .range-field input {
+    width: 100%;
+    accent-color: #7c3aed;
+  }
+
+  .danger-mini-btn {
+    border-radius: 0.95rem;
+    border: 1px solid #fecaca;
+    background: #fff1f2;
+    padding: 0.72rem 0.85rem;
+    color: #be123c;
+    font-size: 0.82rem;
+    font-weight: 850;
+    transition: transform 160ms ease, background 160ms ease;
+  }
+
+  .danger-mini-btn:hover {
+    transform: translateY(-1px);
+    background: #ffe4e6;
   }
 
   .preview-area {
@@ -655,6 +726,7 @@ const apiBase = (
     border-radius: 1.65rem;
     background: var(--poster-primary);
     color: var(--poster-ink);
+    font-family: var(--poster-font);
     box-shadow:
       0 55px 110px -70px rgba(15, 23, 42, 0.72),
       0 0 0 1px rgba(255,255,255,0.55) inset;
@@ -665,12 +737,10 @@ const apiBase = (
   .poster-bg-image {
     position: absolute;
     inset: 0;
-    background-image:
-      linear-gradient(180deg, rgba(2, 6, 23, 0.08), rgba(2, 6, 23, 0.62)),
-      var(--poster-image, url('/banner-templates/restaurant.png'));
+    background-image: var(--poster-image, url('/banner-templates/nail-art.png'));
     background-position: center top;
     background-size: cover;
-    opacity: 0.35;
+    opacity: 0.72;
     filter: saturate(1.08);
   }
 
@@ -679,8 +749,7 @@ const apiBase = (
     inset: 0;
     background:
       radial-gradient(circle at 18% 16%, rgba(255,255,255,0.14), transparent 18rem),
-      radial-gradient(circle at 80% 18%, color-mix(in srgb, var(--poster-secondary) 38%, transparent), transparent 16rem),
-      linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.18));
+      radial-gradient(circle at 80% 18%, color-mix(in srgb, var(--poster-secondary) 38%, transparent), transparent 16rem);
     pointer-events: none;
   }
 
@@ -757,6 +826,7 @@ const apiBase = (
 
   .poster-brand h3 {
     margin-top: 0.25rem;
+    color: var(--poster-title-color);
     font-size: clamp(1.35rem, 3vw, 2.3rem);
     font-weight: 900;
     letter-spacing: -0.04em;
@@ -800,7 +870,7 @@ const apiBase = (
   }
 
   .reward-badge strong {
-    color: var(--poster-ink);
+    color: var(--poster-title-color);
     font-size: 0.9rem;
     font-weight: 950;
   }
@@ -808,6 +878,7 @@ const apiBase = (
   .poster-hero h1 {
     margin-top: 1.5rem;
     max-width: 11ch;
+    color: var(--poster-title-color);
     font-size: clamp(4rem, 11vw, 7.4rem);
     font-weight: 950;
     letter-spacing: -0.075em;
@@ -925,6 +996,56 @@ const apiBase = (
     color: color-mix(in srgb, var(--poster-ink) 42%, transparent);
     font-size: 0.7rem;
     font-weight: 750;
+  }
+
+  .poster-sheet.is-qr-only .poster-bg-image,
+  .poster-sheet.is-qr-only .poster-noise,
+  .poster-sheet.is-qr-only .poster-orb,
+  .poster-sheet.is-qr-only .poster-top,
+  .poster-sheet.is-qr-only .poster-hero,
+  .poster-sheet.is-qr-only .poster-instructions,
+  .poster-sheet.is-qr-only .poster-footer {
+    display: none;
+  }
+
+  .poster-sheet.is-qr-only .poster-content {
+    align-items: center;
+    justify-content: center;
+  }
+
+  .poster-sheet.is-qr-only .poster-qr-zone {
+    width: min(76%, 34rem);
+    margin: 0;
+  }
+
+  .poster-sheet.is-qr-only .qr-card {
+    width: 100%;
+    padding: clamp(1.2rem, 4vw, 2rem);
+  }
+
+  .poster-free-images {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  .poster-free-image {
+    position: absolute;
+    width: var(--image-width);
+    max-width: none;
+    cursor: grab;
+    border-radius: 0.75rem;
+    filter: drop-shadow(0 18px 28px rgba(15, 23, 42, 0.18));
+    pointer-events: auto;
+    touch-action: none;
+    transform: translate(-50%, -50%);
+    transition: outline-color 120ms ease;
+  }
+
+  .poster-free-image.is-selected {
+    outline: 3px solid #8b5cf6;
+    outline-offset: 4px;
   }
 
   .export-bar {
@@ -1092,37 +1213,37 @@ const apiBase = (
 <script define:vars={{ apiBase, carteId: id }}>
   const API = apiBase;
   const qrBase = 'https://api.qrserver.com/v1/create-qr-code/';
+  const defaultFont = "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
   const templatePresets = {
-    restaurant: { primary: '#082f25', secondary: '#c8a45d', text: '#ffffff', image: '/banner-templates/restaurant.png', title: 'SCANNEZ & PROFITEZ' },
-    moderne: { primary: '#0f172a', secondary: '#38bdf8', text: '#ffffff', image: '/banner-templates/template-13.png', title: 'SCANNEZ & PROFITEZ' },
-    elegant: { primary: '#111827', secondary: '#a78bfa', text: '#ffffff', image: '/banner-templates/template-10.png', title: 'VOTRE CARTE FIDÉLITÉ' },
-    cafe: { primary: '#3f2416', secondary: '#f8d7a1', text: '#ffffff', image: '/banner-templates/template-18.png', title: 'SCANNEZ & SAVOUREZ' },
-    beaute: { primary: '#831843', secondary: '#f9a8d4', text: '#ffffff', image: '/banner-templates/nail-art.png', title: 'SCANNEZ & PROFITEZ' },
-    minimal: { primary: '#f8fafc', secondary: '#2563eb', text: '#0f172a', image: '/banner-templates/template-13.png', title: 'AJOUTEZ LA CARTE' },
+    affiche: { primary: '#fff0e5', secondary: '#df652a', text: '#1f2937', titleColor: '#df652a', image: '/banner-templates/nail-art.png', title: 'SCANNEZ & PROFITEZ' },
+    qr: { primary: '#ffffff', secondary: '#2563eb', text: '#0f172a', titleColor: '#0f172a', image: '', title: 'SCANNEZ ICI' },
   };
 
   const templateAliases = {
-    essential: 'minimal',
-    signature: 'restaurant',
-    impact: 'moderne',
-    premium: 'restaurant',
-    modern: 'moderne',
-    elegant: 'elegant',
-    elegante: 'elegant',
-    restaurant: 'restaurant',
-    cafe: 'cafe',
-    beaute: 'beaute',
-    minimal: 'minimal',
-    moderne: 'moderne',
+    essential: 'affiche',
+    signature: 'affiche',
+    impact: 'affiche',
+    premium: 'affiche',
+    modern: 'affiche',
+    elegant: 'affiche',
+    elegante: 'affiche',
+    restaurant: 'affiche',
+    cafe: 'affiche',
+    beaute: 'affiche',
+    beauty: 'affiche',
+    minimal: 'qr',
+    moderne: 'affiche',
+    affiche: 'affiche',
+    qr: 'qr',
   };
 
   function normalizeTemplate(value) {
     const key = String(value || '').trim().toLowerCase();
-    return templateAliases[key] || 'restaurant';
+    return templateAliases[key] || 'affiche';
   }
 
   const initialTemplate = normalizeTemplate(new URLSearchParams(window.location.search).get('template'));
-  const initialPreset = templatePresets[initialTemplate] || templatePresets.restaurant;
+  const initialPreset = templatePresets[initialTemplate] || templatePresets.affiche;
 
   const state = {
     template: initialTemplate,
@@ -1137,7 +1258,11 @@ const apiBase = (
     primary: initialPreset.primary,
     secondary: initialPreset.secondary,
     text: initialPreset.text,
+    titleColor: initialPreset.titleColor,
+    fontFamily: defaultFont,
     image: initialPreset.image,
+    customImages: [],
+    selectedImageId: '',
   };
 
   const $ = (id) => document.getElementById(id);
@@ -1184,6 +1309,8 @@ const apiBase = (
     setField('field-primary', state.primary);
     setField('field-secondary', state.secondary);
     setField('field-text', state.text);
+    setField('field-title-color', state.titleColor);
+    setField('field-font', state.fontFamily);
   }
 
   function readFields() {
@@ -1197,6 +1324,8 @@ const apiBase = (
     state.primary = $('field-primary')?.value || state.primary;
     state.secondary = $('field-secondary')?.value || state.secondary;
     state.text = $('field-text')?.value || state.text;
+    state.titleColor = $('field-title-color')?.value || state.titleColor;
+    state.fontFamily = $('field-font')?.value || state.fontFamily;
   }
 
   function setText(id, value) {
@@ -1209,11 +1338,14 @@ const apiBase = (
     const sheet = $('poster-sheet');
     sheet.style.setProperty('--poster-primary', state.primary);
     sheet.style.setProperty('--poster-secondary', state.secondary);
-    sheet.style.setProperty('--poster-image', `url("${state.image}")`);
-    const isLight = ['minimal'].includes(state.template) || state.primary.toLowerCase() === '#f8fafc' || state.primary.toLowerCase() === '#fff7ed';
+    sheet.style.setProperty('--poster-image', state.image ? `url("${state.image}")` : 'none');
+    sheet.style.setProperty('--poster-title-color', state.titleColor);
+    sheet.style.setProperty('--poster-font', state.fontFamily);
+    const isLight = ['qr'].includes(state.template) || state.primary.toLowerCase() === '#f8fafc' || state.primary.toLowerCase() === '#fff7ed' || state.primary.toLowerCase() === '#ffffff';
     sheet.style.setProperty('--poster-ink', state.text);
     sheet.style.setProperty('--poster-muted', hexToRgba(state.text, 0.72));
     sheet.classList.toggle('is-light', isLight);
+    sheet.classList.toggle('is-qr-only', state.template === 'qr');
 
     setText('poster-commerce', state.commerce);
     setText('poster-title', state.title);
@@ -1240,6 +1372,81 @@ const apiBase = (
       uploadLogo.classList.add('hidden');
       uploadIcon.classList.remove('hidden');
     }
+    renderFreeImages();
+  }
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function updateImageControls() {
+    const selectedImage = state.customImages.find((image) => image.id === state.selectedImageId);
+    const sizeField = $('free-image-size');
+    const deleteButton = $('delete-free-image');
+    if (sizeField) {
+      sizeField.value = String(selectedImage?.width || 24);
+      sizeField.disabled = !selectedImage;
+    }
+    if (deleteButton) deleteButton.disabled = !selectedImage;
+  }
+
+  function selectFreeImage(id) {
+    state.selectedImageId = id;
+    document.querySelectorAll('.poster-free-image').forEach((node) => {
+      node.classList.toggle('is-selected', node.dataset.id === id);
+    });
+    updateImageControls();
+  }
+
+  function renderFreeImages() {
+    const layer = $('poster-free-images');
+    if (!layer) return;
+    layer.innerHTML = state.customImages.map((image) => `
+      <img
+        src="${image.src}"
+        alt=""
+        class="poster-free-image${image.id === state.selectedImageId ? ' is-selected' : ''}"
+        data-id="${image.id}"
+        style="left:${image.x}%;top:${image.y}%;--image-width:${image.width}%"
+        draggable="false"
+      />
+    `).join('');
+    layer.querySelectorAll('.poster-free-image').forEach((node) => {
+      node.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        const id = node.dataset.id;
+        const image = state.customImages.find((item) => item.id === id);
+        const sheet = $('poster-sheet');
+        if (!image || !sheet) return;
+        selectFreeImage(id);
+        node.setPointerCapture(event.pointerId);
+        const rect = sheet.getBoundingClientRect();
+        const startX = event.clientX;
+        const startY = event.clientY;
+        const startLeft = image.x;
+        const startTop = image.y;
+
+        const move = (moveEvent) => {
+          const deltaX = ((moveEvent.clientX - startX) / rect.width) * 100;
+          const deltaY = ((moveEvent.clientY - startY) / rect.height) * 100;
+          image.x = clamp(startLeft + deltaX, 0, 100);
+          image.y = clamp(startTop + deltaY, 0, 100);
+          node.style.left = `${image.x}%`;
+          node.style.top = `${image.y}%`;
+        };
+
+        const stop = () => {
+          node.removeEventListener('pointermove', move);
+          node.removeEventListener('pointerup', stop);
+          node.removeEventListener('pointercancel', stop);
+        };
+
+        node.addEventListener('pointermove', move);
+        node.addEventListener('pointerup', stop);
+        node.addEventListener('pointercancel', stop);
+      });
+    });
+    updateImageControls();
   }
 
   function updateTemplateSelection() {
@@ -1253,23 +1460,28 @@ const apiBase = (
     document.querySelectorAll('.palette-btn').forEach((button) => {
       button.classList.toggle(
         'is-selected',
-        button.dataset.primary === state.primary && button.dataset.secondary === state.secondary && button.dataset.text === state.text,
+        button.dataset.primary === state.primary
+          && button.dataset.secondary === state.secondary
+          && button.dataset.text === state.text
+          && (button.dataset.title || button.dataset.text) === state.titleColor,
       );
     });
   }
 
   function selectTemplate(name, keepText = true) {
     const normalizedName = normalizeTemplate(name);
-    const preset = templatePresets[normalizedName] || templatePresets.restaurant;
+    const preset = templatePresets[normalizedName] || templatePresets.affiche;
     state.template = normalizedName;
     state.primary = preset.primary;
     state.secondary = preset.secondary;
     state.text = preset.text;
+    state.titleColor = preset.titleColor;
     state.image = preset.image;
     if (!keepText) state.title = preset.title;
     setField('field-primary', state.primary);
     setField('field-secondary', state.secondary);
     setField('field-text', state.text);
+    setField('field-title-color', state.titleColor);
     if (!keepText) setField('field-title', state.title);
     updateTemplateSelection();
     applyCreator();
@@ -1291,6 +1503,7 @@ const apiBase = (
       state.primary = data.carte.couleur_fond || state.primary;
       state.secondary = data.carte.couleur_accent || state.secondary;
       state.text = data.carte.couleur_texte || state.text;
+      state.titleColor = data.carte.couleur_texte || state.titleColor;
       state.phone = data.commerce.telephone || '';
       state.instagram = data.commerce.instagram || '';
       state.address = data.commerce.adresse || '';
@@ -1301,6 +1514,7 @@ const apiBase = (
         cardPaletteButton.dataset.primary = state.primary;
         cardPaletteButton.dataset.secondary = state.secondary;
         cardPaletteButton.dataset.text = state.text;
+        cardPaletteButton.dataset.title = state.titleColor;
         cardPaletteButton.querySelectorAll('span')[0].style.background = state.primary;
         cardPaletteButton.querySelectorAll('span')[1].style.background = state.secondary;
         cardPaletteButton.querySelectorAll('span')[2].style.background = state.text;
@@ -1325,7 +1539,7 @@ const apiBase = (
   }
 
   document.querySelectorAll('.template-card').forEach((button) => {
-    button.addEventListener('click', () => selectTemplate(button.dataset.template || 'restaurant', false));
+    button.addEventListener('click', () => selectTemplate(button.dataset.template || 'affiche', false));
   });
 
   document.querySelectorAll('.palette-btn').forEach((button) => {
@@ -1333,14 +1547,18 @@ const apiBase = (
       setField('field-primary', button.dataset.primary);
       setField('field-secondary', button.dataset.secondary);
       setField('field-text', button.dataset.text || state.text);
+      setField('field-title-color', button.dataset.title || button.dataset.text || state.titleColor);
       document.querySelectorAll('.palette-btn').forEach((item) => item.classList.remove('is-selected'));
       button.classList.add('is-selected');
       applyCreator();
     });
   });
 
-  ['field-commerce', 'field-title', 'field-subtitle', 'field-reward', 'field-phone', 'field-instagram', 'field-address', 'field-primary', 'field-secondary', 'field-text']
-    .forEach((id) => $(id)?.addEventListener('input', applyCreator));
+  ['field-commerce', 'field-title', 'field-subtitle', 'field-reward', 'field-phone', 'field-instagram', 'field-address', 'field-primary', 'field-secondary', 'field-text', 'field-title-color', 'field-font']
+    .forEach((id) => {
+      $(id)?.addEventListener('input', applyCreator);
+      $(id)?.addEventListener('change', applyCreator);
+    });
 
   $('poster-logo-upload')?.addEventListener('change', (event) => {
     const file = event.target.files?.[0];
@@ -1353,8 +1571,38 @@ const apiBase = (
     reader.readAsDataURL(file);
   });
 
-  $('show-more-templates')?.addEventListener('click', () => {
-    document.querySelectorAll('.template-extra').forEach((node) => node.classList.toggle('hidden'));
+  $('poster-free-image-upload')?.addEventListener('change', (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const id = `image-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      state.customImages.push({
+        id,
+        src: String(reader.result || ''),
+        x: 50,
+        y: 50,
+        width: 24,
+      });
+      state.selectedImageId = id;
+      renderFreeImages();
+      event.target.value = '';
+    };
+    reader.readAsDataURL(file);
+  });
+
+  $('free-image-size')?.addEventListener('input', (event) => {
+    const image = state.customImages.find((item) => item.id === state.selectedImageId);
+    if (!image) return;
+    image.width = Number(event.target.value || 24);
+    renderFreeImages();
+  });
+
+  $('delete-free-image')?.addEventListener('click', () => {
+    if (!state.selectedImageId) return;
+    state.customImages = state.customImages.filter((image) => image.id !== state.selectedImageId);
+    state.selectedImageId = state.customImages.at(-1)?.id || '';
+    renderFreeImages();
   });
 
   $('download-pdf')?.addEventListener('click', () => window.print());

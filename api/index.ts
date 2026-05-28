@@ -22,6 +22,7 @@ import { cronRoutes } from './routes/cron';
 import { refreshRecentlyChangedWallets } from './routes/cron';
 import { billingRoutes } from './routes/billing';
 import { scannersRoutes } from './routes/scanners';
+import { merchantScanRoutes } from './routes/merchant-scan';
 import { geocodingRoutes } from './routes/geocoding';
 import { assistantCardRoutes } from './routes/assistant-card';
 import { createServiceClient } from '../src/lib/supabase';
@@ -61,6 +62,7 @@ app.route('/api/stripe-webhook', stripeWebhookRoutes);
 app.route('/api/sms', smsRoutes);
 app.route('/api/cron', cronRoutes);
 app.route('/api/scanners', scannersRoutes);
+app.route('/api/merchant', merchantScanRoutes);
 app.route('/api/geocoding', geocodingRoutes);
 app.route('/api/assistant-card', assistantCardRoutes);
 

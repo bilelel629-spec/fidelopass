@@ -9,10 +9,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <p class="text-[0.72rem] font-semibold uppercase tracking-[0.26em] text-sky-700/75">Mode caisse</p>
         <h1 class="font-display text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">Scanner client</h1>
         <p class="mt-2 max-w-xl text-sm leading-6 text-slate-500">
-          Scannez la carte Wallet, ajoutez le passage, puis passez au client suivant.
+          Page dédiée à la scannette USB/Bluetooth branchée à la caisse. Scannez le code-barres Wallet, ajoutez le passage, puis passez au client suivant.
         </p>
       </div>
       <div class="flex flex-wrap gap-2">
+        <a href="/app/scan" class="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-800 shadow-[0_12px_28px_-24px_rgba(37,99,235,0.5)] transition hover:border-sky-300 hover:bg-sky-100">
+          Scanner mobile
+        </a>
         <button id="fullscreen-btn" type="button" class="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.35)] transition hover:border-slate-300 hover:bg-slate-50">
           Plein écran
         </button>
@@ -23,6 +26,19 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </div>
 
     <div class="rounded-[2rem] border border-slate-200/70 bg-white/95 p-5 shadow-[0_30px_80px_-58px_rgba(15,23,42,0.35)] sm:p-7">
+      <div class="mb-5 grid gap-3 rounded-[1.4rem] border border-sky-100 bg-sky-50/70 p-4 text-sm leading-6 text-slate-600 sm:grid-cols-[1fr_auto] sm:items-center">
+        <div>
+          <p class="font-bold text-slate-900">Mode scannette</p>
+          <p>
+            Utilisez cette page quand une scannette physique saisit automatiquement le code dans le champ ci-dessous.
+            Pour scanner avec l’appareil photo d’un téléphone, ouvrez plutôt le mode scanner mobile.
+          </p>
+        </div>
+        <a href="/app/scan" class="inline-flex justify-center rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-slate-800">
+          Ouvrir le scanner mobile
+        </a>
+      </div>
+
       <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <label for="scan-input" class="block text-sm font-semibold text-slate-700">Champ de scan</label>
         <div class="flex flex-wrap items-center gap-2">

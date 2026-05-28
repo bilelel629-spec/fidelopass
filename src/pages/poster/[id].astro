@@ -8,368 +8,984 @@ const apiBase = (
 ).replace(/\/$/, '');
 ---
 
-<BaseLayout title="Affiche A4 — Fidelopass" description="Téléchargez une affiche A4 Fidelopass prête à imprimer avec le QR code de votre carte.">
-  <div class="min-h-screen px-4 py-8">
-    <div class="max-w-6xl mx-auto">
-      <div class="poster-ui flex flex-col lg:flex-row gap-6 items-start justify-between mb-6">
-        <div>
-          <p class="text-slate-400 text-sm uppercase tracking-[0.28em]">Affiches Fidelopass</p>
-          <h1 class="font-display text-3xl sm:text-4xl font-bold text-white mt-3">Préparez une affiche A4 prête à imprimer</h1>
-          <p class="text-slate-400 text-sm sm:text-base mt-3 max-w-2xl">
-            Choisissez un modèle, imprimez-le en A4 ou téléchargez uniquement le QR code pour vos supports en boutique.
-          </p>
+<BaseLayout title="Création d'affiche — Fidelopass" description="Créez une affiche Fidelopass premium prête à imprimer avec le QR code de votre carte.">
+  <div class="poster-creator min-h-screen bg-[#f6f8fb] text-slate-950">
+    <header class="poster-ui creator-header sticky top-0 z-40 border-b border-slate-200/80 bg-white/86 px-4 py-3 backdrop-blur-2xl">
+      <div class="mx-auto flex max-w-[1720px] items-center justify-between gap-4">
+        <div class="flex min-w-0 items-center gap-3">
+          <a href="/dashboard" class="icon-btn" aria-label="Retour au dashboard">
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
+          </a>
+          <img src="/logo-premium.png" alt="Fidelopass" class="h-9 w-36 object-cover object-center" />
+          <span class="hidden rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.18em] text-blue-700 sm:inline-flex">Affiches</span>
         </div>
-        <div class="flex flex-wrap gap-3">
-          <button id="download-qr" type="button" class="btn-secondary px-5 py-3 text-sm">Télécharger le QR</button>
-          <button id="print-poster" type="button" class="btn-primary px-5 py-3 text-sm">Imprimer l'affiche</button>
-        </div>
+        <nav class="hidden items-center gap-1 text-sm font-semibold text-slate-500 lg:flex">
+          <a href="/dashboard" class="rounded-full px-3 py-2 transition hover:bg-slate-100 hover:text-slate-950">Dashboard</a>
+          <a href="/dashboard/carte" class="rounded-full px-3 py-2 transition hover:bg-slate-100 hover:text-slate-950">Ma carte</a>
+          <a href="/dashboard/notifications" class="rounded-full px-3 py-2 transition hover:bg-slate-100 hover:text-slate-950">Notifications</a>
+        </nav>
+        <button id="download-all-top" type="button" class="primary-export-btn">
+          Télécharger tous les formats
+        </button>
       </div>
+    </header>
 
-      <div class="poster-ui flex flex-wrap gap-3 mb-6">
-        <button type="button" class="poster-template-btn btn-secondary text-sm px-4 py-2.5" data-template="essential">Essentiel</button>
-        <button type="button" class="poster-template-btn btn-secondary text-sm px-4 py-2.5" data-template="signature">Signature</button>
-        <button type="button" class="poster-template-btn btn-secondary text-sm px-4 py-2.5" data-template="impact">Impact</button>
-      </div>
-
-      <div class="poster-ui card mb-6 border border-white/10 bg-slate-900/55 p-5">
-        <p class="text-[0.66rem] font-semibold uppercase tracking-[0.24em] text-sky-300/80">Personnalisation rapide</p>
-        <div class="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <div class="xl:col-span-2">
-            <label for="poster-custom-title" class="text-xs font-medium text-slate-300">Titre principal</label>
-            <input id="poster-custom-title" type="text" class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 focus:border-sky-400 focus:outline-none" />
+    <div class="creator-workspace mx-auto grid max-w-[1720px] gap-6 px-4 py-6 lg:grid-cols-[420px_minmax(0,1fr)]">
+      <aside class="poster-ui editor-panel lg:sticky lg:top-[76px]">
+        <div class="editor-scroll">
+          <div class="mb-6">
+            <p class="text-[0.68rem] font-extrabold uppercase tracking-[0.28em] text-blue-600">Création d'affiche</p>
+            <h1 class="mt-3 font-display text-3xl font-extrabold tracking-[-0.04em] text-slate-950">Studio affiche</h1>
+            <p class="mt-2 text-sm leading-6 text-slate-500">Choisissez un modèle, personnalisez les textes et exportez une affiche prête à imprimer.</p>
           </div>
-          <div class="xl:col-span-2">
-            <label for="poster-custom-subtitle" class="text-xs font-medium text-slate-300">Sous-titre</label>
-            <input id="poster-custom-subtitle" type="text" class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 focus:border-sky-400 focus:outline-none" />
-          </div>
-          <div class="xl:col-span-2">
-            <label for="poster-custom-reward" class="text-xs font-medium text-slate-300">Texte récompense</label>
-            <input id="poster-custom-reward" type="text" class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 focus:border-sky-400 focus:outline-none" />
-          </div>
-          <div>
-            <label for="poster-custom-accent" class="text-xs font-medium text-slate-300">Couleur accent</label>
-            <input id="poster-custom-accent" type="color" value="#6366f1" class="mt-1 h-11 w-full cursor-pointer rounded-xl border border-slate-700 bg-slate-950/70 p-1" />
-          </div>
-          <div>
-            <label for="poster-custom-bg" class="text-xs font-medium text-slate-300">Couleur fond</label>
-            <input id="poster-custom-bg" type="color" value="#0f172a" class="mt-1 h-11 w-full cursor-pointer rounded-xl border border-slate-700 bg-slate-950/70 p-1" />
-          </div>
-        </div>
-      </div>
 
-      <div id="poster-loading" class="text-center py-16">
-        <div class="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p class="text-slate-400 text-sm">Préparation de l'affiche...</p>
-      </div>
+          <section class="editor-card">
+            <div class="stepper">
+              <div class="step is-active"><span>1</span><div><strong>Choisir un modèle</strong><small>Base visuelle de l'affiche</small></div></div>
+              <div class="step is-active"><span>2</span><div><strong>Personnaliser</strong><small>Textes, couleurs et logo</small></div></div>
+              <div class="step"><span>3</span><div><strong>Aperçu & export</strong><small>PDF, PNG et story</small></div></div>
+            </div>
+          </section>
 
-      <div id="poster-error" class="hidden text-center py-12">
-        <div class="card p-8 max-w-xl mx-auto">
-          <p class="text-red-400 font-semibold">Impossible de charger cette affiche.</p>
-          <p class="text-slate-400 text-sm mt-2">Vérifiez que votre carte est bien publiée puis réessayez.</p>
-        </div>
-      </div>
-
-      <div id="poster-stage" class="hidden">
-        <div id="poster-sheet" class="poster-sheet mx-auto overflow-hidden shadow-2xl border border-white/10">
-
-          <!-- ===================== TEMPLATE ESSENTIEL ===================== -->
-          <div id="poster-essential" class="poster-variant hidden h-full bg-white text-slate-900">
-            <!-- Top accent bar -->
-            <div id="poster-essential-topbar" class="h-[7px] w-full"></div>
-            <div class="poster-safe-zone h-full flex flex-col" style="padding-top:0.9cm">
-
-              <!-- Header: logo + commerce + badge -->
-              <div class="flex items-center justify-between gap-4">
-                <div class="flex items-center gap-4">
-                  <img id="poster-essential-logo" src="" alt="" class="hidden w-[58px] h-[58px] rounded-2xl object-cover shadow" />
-                  <div>
-                    <p class="text-[9px] uppercase tracking-[0.38em] text-slate-400 font-semibold">Carte fidélité digitale</p>
-                    <h2 id="poster-essential-commerce" class="font-display text-[1.85rem] leading-tight font-bold mt-1">Votre commerce</h2>
-                  </div>
-                </div>
-                <div id="poster-essential-badge" class="shrink-0 px-4 py-1.5 rounded-full text-xs font-bold border tracking-wide">Carte fidélité</div>
+          <section class="editor-card">
+            <div class="section-head">
+              <div>
+                <p class="section-kicker">Modèles</p>
+                <h2>Choisir un style</h2>
               </div>
+              <button id="show-more-templates" type="button" class="mini-link">Voir plus</button>
+            </div>
+            <div class="template-grid">
+              <button type="button" class="template-card is-selected" data-template="restaurant">
+                <span class="mini-poster restaurant"></span>
+                <strong>Restaurant</strong>
+              </button>
+              <button type="button" class="template-card" data-template="moderne">
+                <span class="mini-poster moderne"></span>
+                <strong>Moderne</strong>
+              </button>
+              <button type="button" class="template-card" data-template="elegant">
+                <span class="mini-poster elegant"></span>
+                <strong>Élégant</strong>
+              </button>
+              <button type="button" class="template-card" data-template="cafe">
+                <span class="mini-poster cafe"></span>
+                <strong>Café</strong>
+              </button>
+              <button type="button" class="template-card template-extra hidden" data-template="beaute">
+                <span class="mini-poster beaute"></span>
+                <strong>Beauté</strong>
+              </button>
+              <button type="button" class="template-card template-extra hidden" data-template="minimal">
+                <span class="mini-poster minimal"></span>
+                <strong>Minimal</strong>
+              </button>
+            </div>
+          </section>
 
-              <!-- Divider -->
-              <div id="poster-essential-divider" class="mt-5 h-[2px] w-16 rounded-full"></div>
-
-              <!-- Title block -->
-              <div class="mt-5">
-                <h3 id="poster-essential-title" class="font-display text-[2.5rem] leading-[1.06] font-bold max-w-[12cm]">
-                  Scannez et rejoignez notre programme fidélité
-                </h3>
-                <p id="poster-essential-subtitle" class="text-[0.95rem] text-slate-500 mt-4 max-w-[13cm] leading-relaxed">
-                  Bienvenue, créez votre carte fidélité en 10 secondes.
-                </p>
-
-                <!-- Feature pills -->
-                <div class="flex flex-wrap gap-2 mt-5">
-                  <span class="poster-pill">⚡ 10 secondes</span>
-                  <span class="poster-pill">📱 Sans application</span>
-                  <span class="poster-pill">✓ Apple & Google Wallet</span>
-                </div>
+          <section class="editor-card">
+            <div class="section-head">
+              <div>
+                <p class="section-kicker">Logo</p>
+                <h2>Identité visuelle</h2>
               </div>
+            </div>
+            <label class="upload-zone" for="poster-logo-upload">
+              <input id="poster-logo-upload" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
+              <span id="upload-logo-preview" class="upload-preview">
+                <img id="upload-logo-img" src="" alt="" class="hidden" />
+                <svg id="upload-logo-icon" viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="m19 12-7-7-7 7"></path></svg>
+              </span>
+              <span>
+                <strong>Changer le logo</strong>
+                <small>PNG, JPG, WebP ou SVG. Glissez-déposez ou cliquez.</small>
+              </span>
+            </label>
+          </section>
 
-              <!-- Bottom: program card + QR block -->
-              <div class="mt-auto grid grid-cols-[1fr_86mm] gap-5 items-end">
-                <!-- Program card -->
-                <div id="poster-essential-program" class="rounded-[1.1rem] p-6 text-white h-full flex flex-col justify-between">
-                  <div>
-                    <p class="text-[10px] uppercase tracking-[0.3em] opacity-75 font-semibold">Programme fidélité</p>
-                    <p id="poster-essential-reward" class="font-display text-[1.75rem] leading-tight font-bold mt-3">10 achats = 1 récompense</p>
-                  </div>
-                  <!-- 3-step guide -->
-                  <div class="mt-5 space-y-2.5">
-                    <div class="flex items-center gap-3">
-                      <span class="poster-step-num">1</span>
-                      <span class="text-sm opacity-90">Scannez le QR code ci-contre</span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                      <span class="poster-step-num">2</span>
-                      <span class="text-sm opacity-90">Ajoutez la carte à votre Wallet</span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                      <span class="poster-step-num">3</span>
-                      <span class="text-sm opacity-90">Cumulez vos avantages à chaque achat</span>
-                    </div>
-                  </div>
-                  <p class="text-[10px] opacity-50 mt-5">Propulsé par Fidelopass</p>
-                </div>
-
-                <!-- QR block -->
-                <div class="rounded-[1.1rem] border border-slate-200 bg-slate-50 p-4 text-center flex flex-col items-center">
-                  <p class="text-[9px] uppercase tracking-[0.3em] text-slate-400 font-semibold mb-3">Scannez ici</p>
-                  <img id="poster-essential-qr" src="" alt="QR code Fidelopass" class="w-[72mm] h-[72mm] rounded-xl" />
-                  <p class="text-xs font-bold text-slate-700 mt-3">↑ Pointez votre caméra</p>
-                  <!-- Wallet badges -->
-                  <div class="flex gap-2 mt-3 justify-center">
-                    <span class="poster-wallet-badge">🍎 Apple</span>
-                    <span class="poster-wallet-badge">📱 Google</span>
-                  </div>
-                </div>
+          <section class="editor-card">
+            <div class="section-head">
+              <div>
+                <p class="section-kicker">Personnalisation</p>
+                <h2>Contenu de l'affiche</h2>
               </div>
+            </div>
+            <div class="form-grid">
+              <label class="field full"><span>Nom commerce</span><input id="field-commerce" type="text" placeholder="Votre commerce" /></label>
+              <label class="field full"><span>Slogan</span><input id="field-title" type="text" placeholder="SCANNEZ & PROFITEZ" /></label>
+              <label class="field full"><span>Texte court</span><textarea id="field-subtitle" rows="3" placeholder="Ajoutez notre carte fidélité à votre téléphone"></textarea></label>
+              <label class="field full"><span>Récompense</span><input id="field-reward" type="text" placeholder="1 café offert" /></label>
+              <label class="field"><span>Téléphone</span><input id="field-phone" type="text" placeholder="04 00 00 00 00" /></label>
+              <label class="field"><span>Instagram</span><input id="field-instagram" type="text" placeholder="@votrecommerce" /></label>
+              <label class="field full"><span>Adresse</span><input id="field-address" type="text" placeholder="Adresse du commerce" /></label>
+            </div>
+          </section>
+
+          <section class="editor-card">
+            <div class="section-head">
+              <div>
+                <p class="section-kicker">Couleurs</p>
+                <h2>Palette</h2>
+              </div>
+            </div>
+            <div class="palette-row">
+              <button type="button" class="palette-btn is-selected" data-primary="#082f25" data-secondary="#c8a45d"><span style="background:#082f25"></span><span style="background:#c8a45d"></span></button>
+              <button type="button" class="palette-btn" data-primary="#111827" data-secondary="#38bdf8"><span style="background:#111827"></span><span style="background:#38bdf8"></span></button>
+              <button type="button" class="palette-btn" data-primary="#312e81" data-secondary="#a78bfa"><span style="background:#312e81"></span><span style="background:#a78bfa"></span></button>
+              <button type="button" class="palette-btn" data-primary="#fff7ed" data-secondary="#f97316"><span style="background:#fff7ed"></span><span style="background:#f97316"></span></button>
+              <button type="button" class="palette-btn" data-primary="#fdf2f8" data-secondary="#ec4899"><span style="background:#fdf2f8"></span><span style="background:#ec4899"></span></button>
+            </div>
+            <div class="color-grid">
+              <label class="color-field"><span>Principale</span><input id="field-primary" type="color" value="#082f25" /></label>
+              <label class="color-field"><span>Secondaire</span><input id="field-secondary" type="color" value="#c8a45d" /></label>
+            </div>
+          </section>
+        </div>
+      </aside>
+
+      <main class="preview-area">
+        <div id="poster-loading" class="preview-state">
+          <div class="spinner"></div>
+          <p>Préparation de l'affiche...</p>
+        </div>
+        <div id="poster-error" class="preview-state hidden">
+          <p class="font-bold text-red-600">Impossible de charger cette affiche.</p>
+          <p class="mt-2 text-sm text-slate-500">Vérifiez que votre carte est bien publiée puis réessayez.</p>
+        </div>
+
+        <div id="poster-stage" class="hidden w-full">
+          <div class="preview-toolbar poster-ui">
+            <div>
+              <p class="text-xs font-extrabold uppercase tracking-[0.22em] text-slate-400">Aperçu temps réel</p>
+              <h2 class="font-display text-xl font-extrabold text-slate-950">Affiche A4</h2>
+            </div>
+            <div class="inline-flex rounded-full border border-slate-200 bg-white p-1 text-xs font-bold text-slate-500">
+              <span class="rounded-full bg-slate-950 px-3 py-1.5 text-white">A4</span>
+              <span class="px-3 py-1.5">1080px</span>
             </div>
           </div>
 
-          <!-- ===================== TEMPLATE SIGNATURE ===================== -->
-          <div id="poster-signature" class="poster-variant hidden h-full text-slate-900 bg-white">
-            <div class="h-full relative overflow-hidden">
-              <!-- Dark banner top -->
-              <div id="poster-signature-banner" class="absolute inset-x-0 top-0 h-[34%]"></div>
-              <div class="absolute inset-0 pointer-events-none" style="background:linear-gradient(180deg,rgba(0,0,0,0.18) 0%,transparent 40%,rgba(0,0,0,0.08) 100%)"></div>
+          <div class="poster-preview-shell">
+            <div id="poster-sheet" class="poster-sheet" style="--poster-primary:#082f25;--poster-secondary:#c8a45d;--poster-ink:#ffffff;--poster-muted:rgba(255,255,255,0.72);">
+              <div class="poster-bg-image" id="poster-bg-image"></div>
+              <div class="poster-noise"></div>
+              <div class="poster-orb poster-orb-one"></div>
+              <div class="poster-orb poster-orb-two"></div>
 
-              <div class="poster-safe-zone relative z-10 h-full flex flex-col">
-                <!-- Header -->
-                <div class="flex items-start justify-between gap-5">
-                  <div class="max-w-[12.5cm] text-white">
-                    <p class="text-[9px] uppercase tracking-[0.38em] text-white/60 font-semibold">Carte fidélité digitale</p>
-                    <h2 id="poster-signature-commerce" class="font-display text-[2.2rem] leading-tight font-bold mt-2">Votre commerce</h2>
-                    <p id="poster-signature-copy" class="text-[0.95rem] text-white/85 mt-3.5 leading-relaxed">
-                      Scannez, ajoutez votre carte et profitez de vos avantages à chaque passage.
-                    </p>
-                    <!-- Feature row -->
-                    <div class="flex flex-wrap gap-2 mt-4">
-                      <span class="poster-pill-light">⚡ 10 sec</span>
-                      <span class="poster-pill-light">📱 Sans app</span>
-                      <span class="poster-pill-light">✓ Apple & Google</span>
-                    </div>
-                  </div>
-                  <img id="poster-signature-logo" src="" alt="" class="hidden w-[60px] h-[60px] rounded-2xl object-cover border-2 border-white/30 shadow-xl" />
-                </div>
-
-                <!-- Bottom: QR left + info right -->
-                <div class="mt-auto grid grid-cols-[90mm_1fr] gap-5 items-end">
-                  <!-- QR card -->
-                  <div class="rounded-[1.2rem] bg-white p-4 text-center shadow-2xl border border-slate-100">
-                    <p class="text-[9px] uppercase tracking-[0.3em] text-slate-400 font-semibold mb-3">Scannez ici</p>
-                    <img id="poster-signature-qr" src="" alt="QR code Fidelopass" class="w-[76mm] h-[76mm] mx-auto rounded-xl" />
-                    <p class="text-xs font-bold text-slate-700 mt-3">↑ Pointez votre caméra</p>
-                    <div class="flex gap-2 mt-2.5 justify-center">
-                      <span class="poster-wallet-badge">🍎 Apple</span>
-                      <span class="poster-wallet-badge">📱 Google</span>
-                    </div>
-                  </div>
-
-                  <!-- Info card -->
-                  <div id="poster-signature-infocard" class="rounded-[1.2rem] border border-white/15 p-5 text-white h-full flex flex-col justify-between" style="background:rgba(255,255,255,0.10);backdrop-filter:blur(12px)">
+              <div class="poster-content">
+                <header class="poster-top">
+                  <div class="poster-brand">
+                    <span class="poster-logo-wrap">
+                      <img id="poster-logo" src="" alt="" class="hidden" />
+                      <span id="poster-logo-fallback">F</span>
+                    </span>
                     <div>
-                      <p class="text-[10px] uppercase tracking-[0.26em] text-white/60 font-semibold">Votre récompense</p>
-                      <p id="poster-signature-reward" class="font-display text-[1.75rem] leading-tight font-bold mt-2">Récompense fidélité</p>
+                      <p class="poster-kicker">Carte fidélité Wallet</p>
+                      <h3 id="poster-commerce">Votre commerce</h3>
                     </div>
-                    <div class="mt-4 space-y-2.5">
-                      <div class="flex items-center gap-3">
-                        <span class="poster-step-num-light">1</span>
-                        <span class="text-sm text-white/85">Scannez le QR code</span>
-                      </div>
-                      <div class="flex items-center gap-3">
-                        <span class="poster-step-num-light">2</span>
-                        <span class="text-sm text-white/85">Ajoutez à votre Wallet</span>
-                      </div>
-                      <div class="flex items-center gap-3">
-                        <span class="poster-step-num-light">3</span>
-                        <span class="text-sm text-white/85">Cumulez à chaque achat</span>
-                      </div>
-                    </div>
-                    <p class="text-[9px] text-white/40 mt-5">Propulsé par Fidelopass</p>
                   </div>
-                </div>
+                  <span class="poster-top-badge">Sans application</span>
+                </header>
+
+                <section class="poster-hero">
+                  <div class="reward-badge">
+                    <span>Récompense</span>
+                    <strong id="poster-reward-badge">1 CAFÉ OFFERT</strong>
+                  </div>
+                  <h1 id="poster-title">SCANNEZ & PROFITEZ</h1>
+                  <p id="poster-subtitle">Ajoutez notre carte fidélité à votre téléphone</p>
+                </section>
+
+                <section class="poster-qr-zone">
+                  <div class="qr-card">
+                    <p>Scannez ici</p>
+                    <img id="poster-qr" src="" alt="QR code Fidelopass" crossorigin="anonymous" />
+                    <strong>Ouvrez l'appareil photo</strong>
+                  </div>
+                  <div class="poster-instructions">
+                    <div><span>1</span><p>Scannez le QR code</p></div>
+                    <div><span>2</span><p>Ajoutez la carte à votre Wallet</p></div>
+                    <div><span>3</span><p>Cumulez vos avantages</p></div>
+                  </div>
+                </section>
+
+                <footer class="poster-footer">
+                  <div class="wallet-badges">
+                    <span>Apple Wallet</span>
+                    <span>Google Wallet</span>
+                  </div>
+                  <div class="poster-contact">
+                    <span id="poster-phone"></span>
+                    <span id="poster-instagram"></span>
+                    <span id="poster-address"></span>
+                  </div>
+                  <p>Powered by Fidelopass</p>
+                </footer>
               </div>
             </div>
           </div>
-
-          <!-- ===================== TEMPLATE IMPACT ===================== -->
-          <div id="poster-impact" class="poster-variant hidden h-full">
-            <div id="poster-impact-bg" class="h-full w-full flex flex-col relative overflow-hidden">
-              <!-- Decorative circles -->
-              <div id="poster-impact-circle1" class="absolute -top-[80px] -right-[80px] w-[320px] h-[320px] rounded-full opacity-20"></div>
-              <div id="poster-impact-circle2" class="absolute -bottom-[60px] -left-[60px] w-[240px] h-[240px] rounded-full opacity-15"></div>
-
-              <div class="poster-safe-zone relative z-10 h-full flex flex-col items-center text-center text-white">
-                <!-- Logo + commerce -->
-                <div class="flex flex-col items-center gap-3">
-                  <img id="poster-impact-logo" src="" alt="" class="hidden w-[80px] h-[80px] rounded-[1.4rem] object-cover shadow-2xl border-2 border-white/30" />
-                  <div>
-                    <p class="text-[9px] uppercase tracking-[0.42em] text-white/55 font-semibold">Carte fidélité digitale</p>
-                    <h2 id="poster-impact-commerce" class="font-display text-[2.1rem] leading-tight font-bold mt-2">Votre commerce</h2>
-                  </div>
-                </div>
-
-                <!-- Big headline -->
-                <div class="mt-6 max-w-[14cm]">
-                  <h3 id="poster-impact-title" class="font-display text-[3.1rem] leading-[1.02] font-bold">
-                    Rejoignez notre programme fidélité
-                  </h3>
-                  <p id="poster-impact-subtitle" class="text-[1rem] text-white/75 mt-4 leading-relaxed">
-                    Créez votre carte en 10 secondes, sans téléchargement.
-                  </p>
-                </div>
-
-                <!-- Reward pill -->
-                <div id="poster-impact-reward-pill" class="mt-6 px-6 py-3 rounded-full border border-white/30 bg-white/15 backdrop-blur-sm">
-                  <p id="poster-impact-reward" class="font-display text-[1.35rem] font-bold">10 achats = 1 récompense</p>
-                </div>
-
-                <!-- 3 steps horizontal -->
-                <div class="mt-6 flex items-center gap-0 w-full max-w-[13cm]">
-                  <div class="flex-1 flex flex-col items-center gap-2">
-                    <div id="poster-impact-stepbg" class="w-10 h-10 rounded-full flex items-center justify-center text-[1rem] font-bold border border-white/25 bg-white/20">1</div>
-                    <p class="text-xs text-white/80 font-medium">Scannez</p>
-                  </div>
-                  <div class="flex-shrink-0 text-white/30 text-lg px-2">→</div>
-                  <div class="flex-1 flex flex-col items-center gap-2">
-                    <div id="poster-impact-stepbg2" class="w-10 h-10 rounded-full flex items-center justify-center text-[1rem] font-bold border border-white/25 bg-white/20">2</div>
-                    <p class="text-xs text-white/80 font-medium">Ajoutez</p>
-                  </div>
-                  <div class="flex-shrink-0 text-white/30 text-lg px-2">→</div>
-                  <div class="flex-1 flex flex-col items-center gap-2">
-                    <div id="poster-impact-stepbg3" class="w-10 h-10 rounded-full flex items-center justify-center text-[1rem] font-bold border border-white/25 bg-white/20">3</div>
-                    <p class="text-xs text-white/80 font-medium">Profitez</p>
-                  </div>
-                </div>
-
-                <!-- QR code -->
-                <div class="mt-auto bg-white rounded-[1.4rem] p-4 shadow-2xl">
-                  <img id="poster-impact-qr" src="" alt="QR code Fidelopass" class="w-[80mm] h-[80mm] rounded-xl mx-auto" />
-                  <p class="text-slate-800 text-xs font-bold mt-3">↑ Scannez avec votre caméra</p>
-                  <div class="flex gap-2 mt-2 justify-center">
-                    <span class="poster-wallet-badge">🍎 Apple Wallet</span>
-                    <span class="poster-wallet-badge">📱 Google Wallet</span>
-                  </div>
-                </div>
-
-                <p class="text-[9px] text-white/30 mt-4">Propulsé par Fidelopass</p>
-              </div>
-            </div>
-          </div>
-
         </div>
-      </div>
+      </main>
+    </div>
+
+    <div class="poster-ui export-bar">
+      <button id="download-pdf" type="button" class="export-action">
+        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>
+        <span><strong>Télécharger PDF</strong><small>Impression A4</small></span>
+      </button>
+      <button id="download-png" type="button" class="export-action">
+        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path><path d="M12 15V3"></path></svg>
+        <span><strong>Télécharger PNG</strong><small>Haute qualité</small></span>
+      </button>
+      <button id="download-story" type="button" class="export-action">
+        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"></rect><path d="M11 18h2"></path></svg>
+        <span><strong>Story Instagram</strong><small>Format mobile</small></span>
+      </button>
+      <button id="download-all" type="button" class="export-all-btn">Télécharger tous les formats</button>
     </div>
   </div>
 </BaseLayout>
 
 <style>
-  .poster-sheet {
-    width: min(100%, 860px);
-    aspect-ratio: 210 / 297;
-    border-radius: 1.5rem;
+  .poster-creator {
+    background:
+      radial-gradient(circle at 85% 8%, rgba(56, 189, 248, 0.18), transparent 28rem),
+      radial-gradient(circle at 24% 4%, rgba(124, 58, 237, 0.12), transparent 24rem),
+      #f6f8fb;
+    padding-bottom: 6.5rem;
   }
 
-  .poster-safe-zone {
-    box-sizing: border-box;
-    width: 100%;
-    height: 100%;
-    padding: 1.2cm;
-  }
-
-  .poster-pill {
+  .icon-btn {
     display: inline-flex;
+    height: 2.5rem;
+    width: 2.5rem;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.7rem;
+    justify-content: center;
     border-radius: 999px;
-    font-size: 0.72rem;
-    font-weight: 600;
-    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    background: #fff;
     color: #475569;
-    border: 1px solid #e2e8f0;
-    letter-spacing: 0.01em;
+    box-shadow: 0 16px 34px -28px rgba(15, 23, 42, 0.4);
+    transition: transform 180ms ease, box-shadow 180ms ease, color 180ms ease;
   }
 
-  .poster-pill-light {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.7rem;
+  .icon-btn:hover,
+  .primary-export-btn:hover,
+  .export-all-btn:hover,
+  .export-action:hover,
+  .template-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .primary-export-btn,
+  .export-all-btn {
+    border-radius: 1rem;
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+    padding: 0.8rem 1.05rem;
+    color: white;
+    font-size: 0.86rem;
+    font-weight: 800;
+    box-shadow: 0 22px 46px -26px rgba(37, 99, 235, 0.88);
+    transition: transform 180ms ease, box-shadow 180ms ease;
+  }
+
+  .creator-workspace {
+    align-items: start;
+  }
+
+  .editor-panel {
+    overflow: hidden;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 1.75rem;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 30px 80px -58px rgba(15, 23, 42, 0.44);
+    backdrop-filter: blur(20px);
+  }
+
+  .editor-scroll {
+    max-height: calc(100dvh - 96px);
+    overflow: auto;
+    padding: 1.35rem 1.35rem 7.5rem;
+  }
+
+  .editor-card {
+    margin-top: 1rem;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 1.35rem;
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,252,0.92));
+    padding: 1rem;
+    box-shadow: 0 18px 48px -42px rgba(15, 23, 42, 0.36);
+  }
+
+  .section-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .section-kicker {
+    color: #2563eb;
+    font-size: 0.64rem;
+    font-weight: 900;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+
+  .section-head h2 {
+    margin-top: 0.18rem;
+    font-size: 1rem;
+    font-weight: 850;
+    color: #0f172a;
+  }
+
+  .mini-link {
     border-radius: 999px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    background: rgba(255,255,255,0.15);
-    color: rgba(255,255,255,0.9);
-    border: 1px solid rgba(255,255,255,0.2);
-    backdrop-filter: blur(6px);
-    letter-spacing: 0.01em;
+    border: 1px solid #dbeafe;
+    background: #eff6ff;
+    padding: 0.42rem 0.72rem;
+    color: #2563eb;
+    font-size: 0.72rem;
+    font-weight: 850;
   }
 
-  .poster-step-num {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.5rem;
-    height: 1.5rem;
-    border-radius: 50%;
-    font-size: 0.65rem;
-    font-weight: 700;
-    background: rgba(255,255,255,0.22);
-    border: 1px solid rgba(255,255,255,0.3);
-    flex-shrink: 0;
+  .stepper {
+    position: relative;
+    display: grid;
+    gap: 1rem;
   }
 
-  .poster-step-num-light {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.5rem;
-    height: 1.5rem;
-    border-radius: 50%;
-    font-size: 0.65rem;
-    font-weight: 700;
-    background: rgba(255,255,255,0.18);
-    border: 1px solid rgba(255,255,255,0.25);
-    flex-shrink: 0;
+  .stepper::before {
+    content: '';
+    position: absolute;
+    left: 1rem;
+    top: 1.2rem;
+    bottom: 1.2rem;
+    width: 1px;
+    background: linear-gradient(#bfdbfe, #e2e8f0);
   }
 
-  .poster-wallet-badge {
+  .step {
+    position: relative;
+    display: grid;
+    grid-template-columns: 2rem 1fr;
+    gap: 0.75rem;
+    align-items: start;
+  }
+
+  .step span {
     display: inline-flex;
+    height: 2rem;
+    width: 2rem;
     align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 900;
+    z-index: 1;
+  }
+
+  .step.is-active span {
+    border-color: rgba(96, 165, 250, 0.9);
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    color: #fff;
+    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.11), 0 18px 34px -24px rgba(37, 99, 235, 0.75);
+  }
+
+  .step strong {
+    display: block;
+    font-size: 0.86rem;
+    color: #0f172a;
+  }
+
+  .step small {
+    display: block;
+    margin-top: 0.15rem;
+    color: #64748b;
+    font-size: 0.74rem;
+    line-height: 1.35;
+  }
+
+  .template-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .template-card {
+    border-radius: 1.1rem;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    padding: 0.55rem;
+    text-align: left;
+    transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+  }
+
+  .template-card.is-selected {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.12), 0 20px 44px -34px rgba(79, 70, 229, 0.68);
+  }
+
+  .template-card strong {
+    display: block;
+    margin-top: 0.45rem;
+    padding-inline: 0.2rem;
+    font-size: 0.78rem;
+    color: #0f172a;
+  }
+
+  .mini-poster {
+    display: block;
+    height: 7.6rem;
+    border-radius: 0.8rem;
+    border: 1px solid rgba(255,255,255,0.68);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+  }
+
+  .mini-poster.restaurant { background: linear-gradient(145deg, #082f25, #14532d 58%, #c8a45d); }
+  .mini-poster.moderne { background: linear-gradient(145deg, #0f172a, #2563eb 58%, #38bdf8); }
+  .mini-poster.elegant { background: linear-gradient(145deg, #111827, #2e1065 58%, #d8b4fe); }
+  .mini-poster.cafe { background: linear-gradient(145deg, #3f2416, #8b5e34 60%, #f8d7a1); }
+  .mini-poster.beaute { background: linear-gradient(145deg, #fff1f2, #f9a8d4 56%, #be185d); }
+  .mini-poster.minimal { background: linear-gradient(145deg, #ffffff, #e2e8f0 68%, #0f172a); }
+
+  .upload-zone {
+    display: flex;
+    cursor: pointer;
+    align-items: center;
+    gap: 0.9rem;
+    border-radius: 1.1rem;
+    border: 1px dashed #bfdbfe;
+    background: #f8fbff;
+    padding: 0.9rem;
+    transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+  }
+
+  .upload-zone:hover {
+    transform: translateY(-1px);
+    border-color: #60a5fa;
+    background: #eff6ff;
+  }
+
+  .upload-zone input {
+    display: none;
+  }
+
+  .upload-zone strong {
+    display: block;
+    font-size: 0.86rem;
+  }
+
+  .upload-zone small {
+    display: block;
+    margin-top: 0.18rem;
+    color: #64748b;
+    font-size: 0.72rem;
+    line-height: 1.35;
+  }
+
+  .upload-preview {
+    display: inline-flex;
+    height: 3.5rem;
+    width: 3.5rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 1rem;
+    border: 1px solid #dbeafe;
+    background: #fff;
+    color: #2563eb;
+  }
+
+  .upload-preview img {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .field.full {
+    grid-column: 1 / -1;
+  }
+
+  .field span,
+  .color-field span {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: #475569;
+    font-size: 0.72rem;
+    font-weight: 800;
+  }
+
+  .field input,
+  .field textarea {
+    width: 100%;
+    border-radius: 1rem;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    padding: 0.78rem 0.85rem;
+    color: #0f172a;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+  }
+
+  .field input:focus,
+  .field textarea:focus {
+    border-color: #60a5fa;
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+  }
+
+  .palette-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .palette-btn {
+    display: inline-flex;
     gap: 0.2rem;
-    padding: 0.2rem 0.55rem;
     border-radius: 999px;
-    font-size: 0.62rem;
-    font-weight: 600;
-    background: #f1f5f9;
-    color: #334155;
     border: 1px solid #e2e8f0;
+    background: #fff;
+    padding: 0.24rem;
+    transition: box-shadow 160ms ease, border-color 160ms ease, transform 160ms ease;
+  }
+
+  .palette-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .palette-btn.is-selected {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.12);
+  }
+
+  .palette-btn span {
+    height: 1.25rem;
+    width: 1.25rem;
+    border-radius: 999px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+  }
+
+  .color-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .color-field input {
+    height: 3rem;
+    width: 100%;
+    cursor: pointer;
+    border-radius: 1rem;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    padding: 0.2rem;
+  }
+
+  .preview-area {
+    min-height: calc(100dvh - 8rem);
+    border-radius: 2rem;
+    border: 1px solid rgba(226, 232, 240, 0.75);
+    background:
+      linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+      radial-gradient(circle at 50% 12%, rgba(59, 130, 246, 0.12), transparent 34rem),
+      #eef2f7;
+    background-size: 34px 34px, 34px 34px, auto, auto;
+    padding: clamp(1rem, 2vw, 2rem) clamp(1rem, 2vw, 2rem) 7.5rem;
+  }
+
+  .preview-toolbar {
+    margin: 0 auto 1rem;
+    display: flex;
+    max-width: 920px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 1px solid rgba(226, 232, 240, 0.88);
+    border-radius: 1.35rem;
+    background: rgba(255,255,255,0.82);
+    padding: 0.9rem 1rem;
+    backdrop-filter: blur(18px);
+  }
+
+  .preview-state {
+    display: grid;
+    min-height: 34rem;
+    place-items: center;
+    text-align: center;
+    color: #64748b;
+  }
+
+  .spinner {
+    height: 2rem;
+    width: 2rem;
+    border-radius: 999px;
+    border: 2px solid #bfdbfe;
+    border-top-color: #2563eb;
+    animation: spin 800ms linear infinite;
+  }
+
+  .poster-preview-shell {
+    display: flex;
+    justify-content: center;
+    padding: 1rem 0 3rem;
+  }
+
+  .poster-sheet {
+    position: relative;
+    width: min(100%, 760px);
+    aspect-ratio: 210 / 297;
+    overflow: hidden;
+    border-radius: 1.65rem;
+    background: var(--poster-primary);
+    color: var(--poster-ink);
+    box-shadow:
+      0 55px 110px -70px rgba(15, 23, 42, 0.72),
+      0 0 0 1px rgba(255,255,255,0.55) inset;
+    isolation: isolate;
+    transform-origin: top center;
+  }
+
+  .poster-bg-image {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(180deg, rgba(2, 6, 23, 0.08), rgba(2, 6, 23, 0.62)),
+      var(--poster-image, url('/banner-templates/restaurant.png'));
+    background-position: center top;
+    background-size: cover;
+    opacity: 0.35;
+    filter: saturate(1.08);
+  }
+
+  .poster-noise {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 18% 16%, rgba(255,255,255,0.14), transparent 18rem),
+      radial-gradient(circle at 80% 18%, color-mix(in srgb, var(--poster-secondary) 38%, transparent), transparent 16rem),
+      linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.18));
+    pointer-events: none;
+  }
+
+  .poster-orb {
+    position: absolute;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--poster-secondary) 54%, transparent);
+    filter: blur(5px);
+    opacity: 0.26;
+  }
+
+  .poster-orb-one {
+    right: -9rem;
+    top: 9rem;
+    height: 18rem;
+    width: 18rem;
+  }
+
+  .poster-orb-two {
+    left: -6rem;
+    bottom: 12rem;
+    height: 14rem;
+    width: 14rem;
+  }
+
+  .poster-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    min-height: 100%;
+    flex-direction: column;
+    padding: 7.5%;
+  }
+
+  .poster-top,
+  .poster-brand,
+  .poster-qr-zone,
+  .poster-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .poster-logo-wrap {
+    display: inline-flex;
+    height: 4.2rem;
+    width: 4.2rem;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 1.25rem;
+    border: 1px solid rgba(255,255,255,0.28);
+    background: rgba(255,255,255,0.14);
+    color: white;
+    font-size: 1.4rem;
+    font-weight: 900;
+    backdrop-filter: blur(12px);
+  }
+
+  .poster-logo-wrap img {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+  }
+
+  .poster-kicker {
+    color: var(--poster-muted);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+  }
+
+  .poster-brand h3 {
+    margin-top: 0.25rem;
+    font-size: clamp(1.35rem, 3vw, 2.3rem);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+  }
+
+  .poster-top-badge,
+  .wallet-badges span {
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 999px;
+    background: rgba(255,255,255,0.12);
+    padding: 0.55rem 0.8rem;
+    color: rgba(255,255,255,0.86);
+    font-size: 0.74rem;
+    font-weight: 850;
+    backdrop-filter: blur(12px);
+  }
+
+  .poster-hero {
+    margin-top: 9%;
+    max-width: 92%;
+  }
+
+  .reward-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--poster-secondary) 54%, white 10%);
+    background: color-mix(in srgb, var(--poster-secondary) 26%, transparent);
+    padding: 0.65rem 0.95rem;
+    box-shadow: 0 22px 46px -30px var(--poster-secondary);
+    backdrop-filter: blur(16px);
+  }
+
+  .reward-badge span {
+    color: rgba(255,255,255,0.7);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .reward-badge strong {
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 950;
+  }
+
+  .poster-hero h1 {
+    margin-top: 1.5rem;
+    max-width: 11ch;
+    font-size: clamp(4rem, 11vw, 7.4rem);
+    font-weight: 950;
+    letter-spacing: -0.075em;
+    line-height: 0.86;
+    text-wrap: balance;
+  }
+
+  .poster-hero p {
+    margin-top: 1.4rem;
+    max-width: 29rem;
+    color: rgba(255,255,255,0.78);
+    font-size: clamp(1.15rem, 2.5vw, 1.7rem);
+    font-weight: 650;
+    line-height: 1.25;
+  }
+
+  .poster-qr-zone {
+    align-items: stretch;
+    margin-top: auto;
+  }
+
+  .qr-card {
+    width: 48%;
+    border-radius: 1.8rem;
+    background: rgba(255,255,255,0.96);
+    padding: 1.1rem;
+    color: #0f172a;
+    text-align: center;
+    box-shadow: 0 34px 70px -42px rgba(0,0,0,0.72);
+  }
+
+  .qr-card p {
+    color: #64748b;
+    font-size: 0.7rem;
+    font-weight: 950;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+  }
+
+  .qr-card img {
+    margin: 0.75rem auto;
+    width: 88%;
+    border-radius: 1rem;
+  }
+
+  .qr-card strong {
+    display: block;
+    font-size: 0.9rem;
+  }
+
+  .poster-instructions {
+    display: grid;
+    width: 46%;
+    gap: 0.8rem;
+    align-content: center;
+  }
+
+  .poster-instructions div {
+    display: grid;
+    grid-template-columns: 2.2rem 1fr;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 1.25rem;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.09);
+    padding: 0.85rem;
+    backdrop-filter: blur(12px);
+  }
+
+  .poster-instructions span {
+    display: inline-flex;
+    height: 2.2rem;
+    width: 2.2rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.18);
+    font-weight: 950;
+  }
+
+  .poster-instructions p {
+    color: rgba(255,255,255,0.86);
+    font-size: 0.92rem;
+    font-weight: 720;
+  }
+
+  .poster-footer {
+    margin-top: 1.35rem;
+    align-items: flex-end;
+  }
+
+  .wallet-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .poster-contact {
+    display: grid;
+    gap: 0.18rem;
+    color: rgba(255,255,255,0.62);
+    font-size: 0.72rem;
+    font-weight: 650;
+    text-align: right;
+  }
+
+  .poster-contact span:empty {
+    display: none;
+  }
+
+  .poster-footer > p {
+    position: absolute;
+    bottom: 2.3%;
+    left: 7.5%;
+    color: rgba(255,255,255,0.38);
+    font-size: 0.7rem;
+    font-weight: 750;
+  }
+
+  .export-bar {
+    position: fixed;
+    inset-inline: max(1rem, env(safe-area-inset-left)) max(1rem, env(safe-area-inset-right));
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    z-index: 50;
+    margin: auto;
+    display: flex;
+    max-width: 1120px;
+    gap: 0.75rem;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 1.5rem;
+    background: rgba(255,255,255,0.9);
+    padding: 0.65rem;
+    box-shadow: 0 28px 70px -46px rgba(15, 23, 42, 0.58);
+    backdrop-filter: blur(22px);
+  }
+
+  .export-action {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    align-items: center;
+    gap: 0.65rem;
+    border-radius: 1rem;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    padding: 0.72rem 0.85rem;
+    color: #0f172a;
+    text-align: left;
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  }
+
+  .export-action:hover {
+    border-color: #bfdbfe;
+    box-shadow: 0 20px 40px -34px rgba(37, 99, 235, 0.58);
+  }
+
+  .export-action strong,
+  .export-action small {
+    display: block;
+  }
+
+  .export-action strong {
+    font-size: 0.78rem;
+    font-weight: 900;
+  }
+
+  .export-action small {
+    margin-top: 0.1rem;
+    color: #64748b;
+    font-size: 0.68rem;
+    font-weight: 650;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 
   @page {
@@ -378,11 +994,11 @@ const apiBase = (
   }
 
   @media print {
-    html, body {
+    html,
+    body {
       width: 210mm;
       height: 297mm;
       margin: 0 !important;
-      padding: 0 !important;
       background: #fff !important;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
@@ -393,35 +1009,84 @@ const apiBase = (
     footer,
     .poster-ui,
     #poster-loading,
-    #poster-error {
+    #poster-error,
+    .editor-panel,
+    .export-bar,
+    .preview-toolbar {
       display: none !important;
     }
 
     main,
-    .min-h-screen,
-    #poster-stage {
-      margin: 0 !important;
-      padding: 0 !important;
-      min-height: auto !important;
+    .poster-creator,
+    .creator-workspace,
+    .preview-area,
+    #poster-stage,
+    .poster-preview-shell {
+      display: block !important;
       width: 210mm !important;
       height: 297mm !important;
+      min-height: auto !important;
+      margin: 0 !important;
+      padding: 0 !important;
       background: #fff !important;
+      border: 0 !important;
     }
 
     #poster-sheet {
       width: 210mm !important;
       height: 297mm !important;
       aspect-ratio: auto !important;
-      border: none !important;
+      border: 0 !important;
       border-radius: 0 !important;
       box-shadow: none !important;
       margin: 0 !important;
       overflow: hidden !important;
       page-break-inside: avoid;
     }
+  }
 
-    .poster-safe-zone {
-      padding: 12mm !important;
+  @media (max-width: 1023px) {
+    .editor-panel {
+      position: static;
+    }
+
+    .editor-scroll {
+      max-height: none;
+    }
+
+    .preview-area {
+      border-radius: 1.35rem;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .poster-creator {
+      padding-bottom: 11rem;
+    }
+
+    .creator-header nav,
+    .primary-export-btn {
+      display: none;
+    }
+
+    .form-grid,
+    .color-grid,
+    .template-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .export-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .export-all-btn {
+      grid-column: 1 / -1;
+    }
+
+    .poster-sheet {
+      width: min(100%, 430px);
+      border-radius: 1.2rem;
     }
   }
 </style>
@@ -429,128 +1094,218 @@ const apiBase = (
 <script define:vars={{ apiBase, carteId: id }}>
   const API = apiBase;
   const qrBase = 'https://api.qrserver.com/v1/create-qr-code/';
-  const params = new URLSearchParams(window.location.search);
-  const TEMPLATE_ALIASES = {
-    minimal: 'essential',
-    premium: 'signature',
-    promo: 'impact',
-    essential: 'essential',
-    signature: 'signature',
-    impact: 'impact',
+  const templatePresets = {
+    restaurant: { primary: '#082f25', secondary: '#c8a45d', image: '/banner-templates/restaurant.png', title: 'SCANNEZ & PROFITEZ' },
+    moderne: { primary: '#0f172a', secondary: '#38bdf8', image: '/banner-templates/template-13.png', title: 'SCANNEZ & PROFITEZ' },
+    elegant: { primary: '#111827', secondary: '#a78bfa', image: '/banner-templates/template-10.png', title: 'VOTRE CARTE FIDÉLITÉ' },
+    cafe: { primary: '#3f2416', secondary: '#f8d7a1', image: '/banner-templates/template-18.png', title: 'SCANNEZ & SAVOUREZ' },
+    beaute: { primary: '#831843', secondary: '#f9a8d4', image: '/banner-templates/nail-art.png', title: 'SCANNEZ & PROFITEZ' },
+    minimal: { primary: '#f8fafc', secondary: '#2563eb', image: '/banner-templates/template-13.png', title: 'AJOUTEZ LA CARTE' },
   };
-  let currentTemplate = normalizeTemplate(params.get('template'));
-  const customTitleInput = document.getElementById('poster-custom-title');
-  const customSubtitleInput = document.getElementById('poster-custom-subtitle');
-  const customRewardInput = document.getElementById('poster-custom-reward');
-  const customAccentInput = document.getElementById('poster-custom-accent');
-  const customBgInput = document.getElementById('poster-custom-bg');
-  let posterBase = null;
+
+  const templateAliases = {
+    essential: 'minimal',
+    signature: 'restaurant',
+    impact: 'moderne',
+    premium: 'restaurant',
+    modern: 'moderne',
+    elegant: 'elegant',
+    elegante: 'elegant',
+    restaurant: 'restaurant',
+    cafe: 'cafe',
+    beaute: 'beaute',
+    minimal: 'minimal',
+    moderne: 'moderne',
+  };
 
   function normalizeTemplate(value) {
     const key = String(value || '').trim().toLowerCase();
-    return TEMPLATE_ALIASES[key] || 'essential';
+    return templateAliases[key] || 'restaurant';
   }
+
+  const initialTemplate = normalizeTemplate(new URLSearchParams(window.location.search).get('template'));
+  const initialPreset = templatePresets[initialTemplate] || templatePresets.restaurant;
+
+  const state = {
+    template: initialTemplate,
+    logo: '',
+    commerce: 'Votre commerce',
+    title: initialPreset.title,
+    subtitle: 'Ajoutez notre carte fidélité à votre téléphone',
+    reward: '1 CAFÉ OFFERT',
+    phone: '',
+    instagram: '',
+    address: '',
+    primary: initialPreset.primary,
+    secondary: initialPreset.secondary,
+    image: initialPreset.image,
+  };
+
+  const $ = (id) => document.getElementById(id);
 
   function apiUrl(path) {
     return `${API}${path}`;
   }
 
-  function qrUrl(cardId, size = 720) {
+  function qrUrl(cardId, size = 900) {
     return `${qrBase}?size=${size}x${size}&data=${encodeURIComponent(`${window.location.origin}/carte/${cardId}`)}&bgcolor=ffffff&color=111827&qzone=1`;
   }
 
   function rewardSummary(data) {
     const tiers = Array.isArray(data.carte.rewards_config) ? data.carte.rewards_config : [];
     if (tiers.length) {
-      return tiers.map((item) => `${item.seuil} ${data.carte.type === 'points' ? 'pts' : 'tampons'} = ${item.recompense}`).join(' • ');
+      return tiers.map((item) => `${item.seuil} ${data.carte.type === 'points' ? 'pts' : 'tampons'} = ${item.recompense}`).join(' · ');
     }
     return data.carte.recompense_description || 'Récompense fidélité';
   }
 
-  function setImage(id, src) {
-    const img = document.getElementById(id);
-    if (!img || !src) return;
-    img.src = src;
-    img.classList.remove('hidden');
+  function setField(id, value) {
+    const field = $(id);
+    if (field) field.value = value ?? '';
   }
 
-  function hexToRgb(hex) {
-    const h = hex.replace('#', '');
-    const r = parseInt(h.substring(0, 2), 16);
-    const g = parseInt(h.substring(2, 4), 16);
-    const b = parseInt(h.substring(4, 6), 16);
-    return { r, g, b };
+  function syncFieldsFromState() {
+    setField('field-commerce', state.commerce);
+    setField('field-title', state.title);
+    setField('field-subtitle', state.subtitle);
+    setField('field-reward', state.reward);
+    setField('field-phone', state.phone);
+    setField('field-instagram', state.instagram);
+    setField('field-address', state.address);
+    setField('field-primary', state.primary);
+    setField('field-secondary', state.secondary);
   }
 
-  function lightenHex(hex, amount = 40) {
-    const { r, g, b } = hexToRgb(hex);
-    return `rgb(${Math.min(255, r + amount)},${Math.min(255, g + amount)},${Math.min(255, b + amount)})`;
+  function readFields() {
+    state.commerce = $('field-commerce')?.value?.trim() || 'Votre commerce';
+    state.title = $('field-title')?.value?.trim() || 'SCANNEZ & PROFITEZ';
+    state.subtitle = $('field-subtitle')?.value?.trim() || 'Ajoutez notre carte fidélité à votre téléphone';
+    state.reward = $('field-reward')?.value?.trim() || 'Récompense fidélité';
+    state.phone = $('field-phone')?.value?.trim() || '';
+    state.instagram = $('field-instagram')?.value?.trim() || '';
+    state.address = $('field-address')?.value?.trim() || '';
+    state.primary = $('field-primary')?.value || state.primary;
+    state.secondary = $('field-secondary')?.value || state.secondary;
   }
 
-  function applyCustomizations() {
-    if (!posterBase) return;
-
-    const title = (customTitleInput?.value || '').trim() || posterBase.defaultTitle;
-    const subtitle = (customSubtitleInput?.value || '').trim() || posterBase.defaultSubtitle;
-    const reward = (customRewardInput?.value || '').trim() || posterBase.defaultReward;
-    const accent = (customAccentInput?.value || posterBase.defaultAccent || '#6366f1').trim();
-    const background = (customBgInput?.value || posterBase.defaultBackground || '#0f172a').trim();
-    const lighter = lightenHex(accent, 30);
-
-    // Essential
-    document.getElementById('poster-essential-title').textContent = title;
-    document.getElementById('poster-essential-subtitle').textContent = subtitle;
-    document.getElementById('poster-essential-reward').textContent = reward;
-    document.getElementById('poster-essential-topbar').style.background = `linear-gradient(90deg, ${background}, ${accent})`;
-    document.getElementById('poster-essential-divider').style.background = `linear-gradient(90deg, ${accent}, ${background})`;
-    document.getElementById('poster-essential-badge').style.background = `${accent}22`;
-    document.getElementById('poster-essential-badge').style.color = accent;
-    document.getElementById('poster-essential-badge').style.borderColor = `${accent}44`;
-    document.getElementById('poster-essential-program').style.background = `linear-gradient(135deg, ${background} 0%, ${accent} 100%)`;
-
-    // Signature
-    document.getElementById('poster-signature-copy').textContent = subtitle;
-    document.getElementById('poster-signature-reward').textContent = reward;
-    document.getElementById('poster-signature-banner').style.background = posterBase.stripUrl
-      ? `linear-gradient(rgba(15,23,42,0.34), rgba(15,23,42,0.55)), url("${posterBase.stripUrl}") center/cover`
-      : `linear-gradient(135deg, ${background} 0%, ${accent} 100%)`;
-    document.getElementById('poster-signature-infocard').style.background = `linear-gradient(135deg, ${background}cc 0%, ${accent}99 100%)`;
-
-    // Impact
-    document.getElementById('poster-impact-title').textContent = title;
-    document.getElementById('poster-impact-subtitle').textContent = subtitle;
-    document.getElementById('poster-impact-reward').textContent = reward;
-    document.getElementById('poster-impact-bg').style.background = `linear-gradient(160deg, ${background} 0%, ${accent} 100%)`;
-    document.getElementById('poster-impact-circle1').style.background = lighter;
-    document.getElementById('poster-impact-circle2').style.background = accent;
+  function setText(id, value) {
+    const node = $(id);
+    if (node) node.textContent = value;
   }
 
-  function renderTemplate(name) {
-    currentTemplate = normalizeTemplate(name);
-    document.querySelectorAll('.poster-variant').forEach((node) => node.classList.add('hidden'));
-    document.getElementById(`poster-${currentTemplate}`)?.classList.remove('hidden');
-    document.querySelectorAll('.poster-template-btn').forEach((button) => {
-      const active = button.dataset.template === currentTemplate;
-      button.className = active
-        ? 'poster-template-btn btn-primary text-sm px-4 py-2.5'
-        : 'poster-template-btn btn-secondary text-sm px-4 py-2.5';
+  function applyCreator() {
+    readFields();
+    const sheet = $('poster-sheet');
+    sheet.style.setProperty('--poster-primary', state.primary);
+    sheet.style.setProperty('--poster-secondary', state.secondary);
+    sheet.style.setProperty('--poster-image', `url("${state.image}")`);
+    const isLight = ['minimal'].includes(state.template) || state.primary.toLowerCase() === '#f8fafc' || state.primary.toLowerCase() === '#fff7ed';
+    sheet.style.setProperty('--poster-ink', isLight ? '#0f172a' : '#ffffff');
+    sheet.style.setProperty('--poster-muted', isLight ? 'rgba(15,23,42,0.62)' : 'rgba(255,255,255,0.72)');
+    sheet.classList.toggle('is-light', isLight);
+
+    setText('poster-commerce', state.commerce);
+    setText('poster-title', state.title);
+    setText('poster-subtitle', state.subtitle);
+    setText('poster-reward-badge', state.reward.toUpperCase());
+    setText('poster-phone', state.phone);
+    setText('poster-instagram', state.instagram);
+    setText('poster-address', state.address);
+
+    const logo = $('poster-logo');
+    const fallback = $('poster-logo-fallback');
+    const uploadLogo = $('upload-logo-img');
+    const uploadIcon = $('upload-logo-icon');
+    if (state.logo) {
+      logo.src = state.logo;
+      logo.classList.remove('hidden');
+      fallback.classList.add('hidden');
+      uploadLogo.src = state.logo;
+      uploadLogo.classList.remove('hidden');
+      uploadIcon.classList.add('hidden');
+    } else {
+      logo.classList.add('hidden');
+      fallback.classList.remove('hidden');
+      uploadLogo.classList.add('hidden');
+      uploadIcon.classList.remove('hidden');
+    }
+  }
+
+  function updateTemplateSelection() {
+    const selectedTemplate = document.querySelector(`.template-card[data-template="${state.template}"]`);
+    if (selectedTemplate?.classList.contains('template-extra')) {
+      selectedTemplate.classList.remove('hidden');
+    }
+    document.querySelectorAll('.template-card').forEach((button) => {
+      button.classList.toggle('is-selected', button.dataset.template === state.template);
     });
-    const nextUrl = new URL(window.location.href);
-    nextUrl.searchParams.set('template', currentTemplate);
-    window.history.replaceState({}, '', nextUrl);
+    document.querySelectorAll('.palette-btn').forEach((button) => {
+      button.classList.toggle('is-selected', button.dataset.primary === state.primary && button.dataset.secondary === state.secondary);
+    });
   }
 
-  async function downloadQr() {
-    const response = await fetch(qrUrl(carteId, 1200));
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `fidelopass-qr-${carteId}.png`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+  function selectTemplate(name, keepText = true) {
+    const normalizedName = normalizeTemplate(name);
+    const preset = templatePresets[normalizedName] || templatePresets.restaurant;
+    state.template = normalizedName;
+    state.primary = preset.primary;
+    state.secondary = preset.secondary;
+    state.image = preset.image;
+    if (!keepText) state.title = preset.title;
+    setField('field-primary', state.primary);
+    setField('field-secondary', state.secondary);
+    if (!keepText) setField('field-title', state.title);
+    updateTemplateSelection();
+    applyCreator();
+  }
+
+  async function downloadPosterImage(filename, story = false) {
+    const sheet = $('poster-sheet');
+    const rect = sheet.getBoundingClientRect();
+    const width = story ? 1080 : 1600;
+    const height = story ? 1920 : Math.round(width * (rect.height / rect.width));
+    const clone = sheet.cloneNode(true);
+    clone.style.width = `${width}px`;
+    clone.style.height = `${height}px`;
+    clone.style.borderRadius = story ? '54px' : '0';
+    clone.style.transform = 'none';
+    clone.querySelectorAll('img').forEach((img) => img.setAttribute('crossorigin', 'anonymous'));
+
+    const css = Array.from(document.styleSheets)
+      .map((sheetItem) => {
+        try {
+          return Array.from(sheetItem.cssRules).map((rule) => rule.cssText).join('\n');
+        } catch {
+          return '';
+        }
+      })
+      .join('\n');
+    const html = `<style>${css}</style>${clone.outerHTML}`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%">${html}</foreignObject></svg>`;
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = reject;
+      image.src = url;
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(image, 0, 0);
     URL.revokeObjectURL(url);
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(link.href);
+    }, 'image/png', 0.96);
   }
 
   async function loadPoster() {
@@ -558,78 +1313,79 @@ const apiBase = (
       const response = await fetch(apiUrl(`/api/cartes/${carteId}/public`));
       if (!response.ok) throw new Error();
       const { data } = await response.json();
-
-      const commerceName = data.commerce.nom;
-      const message = data.carte.welcome_message || `Bienvenue chez ${commerceName}, créez votre carte fidélité en 10 secondes.`;
+      const commerceName = data.commerce.nom || 'Votre commerce';
+      const message = data.carte.welcome_message || 'Ajoutez notre carte fidélité à votre téléphone';
       const reward = rewardSummary(data);
-      const qr = qrUrl(carteId);
-      const logo = data.carte.logo_url ?? data.commerce.logo_url ?? '';
-      const typeLabel = data.carte.type === 'points' ? 'Carte à points' : 'Carte à tampons';
-      const accent = data.carte.couleur_accent ?? '#6366f1';
-      const fond = data.carte.couleur_fond ?? '#0f172a';
-      const defaultTitle = `Scannez pour rejoindre ${commerceName}`;
 
-      // Essential
-      document.getElementById('poster-essential-commerce').textContent = commerceName;
-      document.getElementById('poster-essential-title').textContent = defaultTitle;
-      document.getElementById('poster-essential-subtitle').textContent = message;
-      document.getElementById('poster-essential-reward').textContent = reward;
-      document.getElementById('poster-essential-badge').textContent = typeLabel;
+      state.logo = data.carte.logo_url || data.commerce.logo_url || '';
+      state.commerce = commerceName;
+      state.subtitle = message;
+      state.reward = reward;
+      state.primary = data.carte.couleur_fond || state.primary;
+      state.secondary = data.carte.couleur_accent || state.secondary;
+      state.phone = data.commerce.telephone || '';
+      state.instagram = data.commerce.instagram || '';
+      state.address = data.commerce.adresse || '';
+      state.title = templatePresets[state.template]?.title || state.title;
 
-      // Signature
-      document.getElementById('poster-signature-commerce').textContent = commerceName;
-      document.getElementById('poster-signature-copy').textContent = message;
-      document.getElementById('poster-signature-reward').textContent = reward;
+      syncFieldsFromState();
+      $('poster-qr').src = qrUrl(carteId);
 
-      // Impact
-      document.getElementById('poster-impact-commerce').textContent = commerceName;
-      document.getElementById('poster-impact-title').textContent = defaultTitle;
-      document.getElementById('poster-impact-subtitle').textContent = message;
-      document.getElementById('poster-impact-reward').textContent = reward;
-
-      // QR codes
-      ['poster-essential-qr', 'poster-signature-qr', 'poster-impact-qr'].forEach((elementId) => {
-        document.getElementById(elementId).src = qr;
-      });
-
-      // Logos
-      setImage('poster-essential-logo', logo);
-      setImage('poster-signature-logo', logo);
-      setImage('poster-impact-logo', logo);
-
-      posterBase = {
-        defaultTitle,
-        defaultSubtitle: message,
-        defaultReward: reward,
-        defaultAccent: accent,
-        defaultBackground: fond,
-        stripUrl: data.carte.strip_url ?? null,
-      };
-
-      if (customTitleInput) customTitleInput.value = defaultTitle;
-      if (customSubtitleInput) customSubtitleInput.value = message;
-      if (customRewardInput) customRewardInput.value = reward;
-      if (customAccentInput) customAccentInput.value = accent;
-      if (customBgInput) customBgInput.value = fond;
-
-      document.getElementById('poster-loading').classList.add('hidden');
-      document.getElementById('poster-stage').classList.remove('hidden');
-      renderTemplate(currentTemplate);
-      applyCustomizations();
+      $('poster-loading').classList.add('hidden');
+      $('poster-stage').classList.remove('hidden');
+      updateTemplateSelection();
+      applyCreator();
     } catch {
-      document.getElementById('poster-loading').classList.add('hidden');
-      document.getElementById('poster-error').classList.remove('hidden');
+      syncFieldsFromState();
+      $('poster-qr').src = qrUrl(carteId);
+      $('poster-loading').classList.add('hidden');
+      $('poster-stage').classList.remove('hidden');
+      updateTemplateSelection();
+      applyCreator();
     }
   }
 
-  document.getElementById('print-poster').addEventListener('click', () => window.print());
-  document.getElementById('download-qr').addEventListener('click', downloadQr);
-  document.querySelectorAll('.poster-template-btn').forEach((button) => {
-    button.addEventListener('click', () => renderTemplate(button.dataset.template || 'essential'));
+  document.querySelectorAll('.template-card').forEach((button) => {
+    button.addEventListener('click', () => selectTemplate(button.dataset.template || 'restaurant', false));
   });
-  [customTitleInput, customSubtitleInput, customRewardInput, customAccentInput, customBgInput]
-    .filter(Boolean)
-    .forEach((field) => field.addEventListener('input', applyCustomizations));
+
+  document.querySelectorAll('.palette-btn').forEach((button) => {
+    button.addEventListener('click', () => {
+      setField('field-primary', button.dataset.primary);
+      setField('field-secondary', button.dataset.secondary);
+      document.querySelectorAll('.palette-btn').forEach((item) => item.classList.remove('is-selected'));
+      button.classList.add('is-selected');
+      applyCreator();
+    });
+  });
+
+  ['field-commerce', 'field-title', 'field-subtitle', 'field-reward', 'field-phone', 'field-instagram', 'field-address', 'field-primary', 'field-secondary']
+    .forEach((id) => $(id)?.addEventListener('input', applyCreator));
+
+  $('poster-logo-upload')?.addEventListener('change', (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      state.logo = String(reader.result || '');
+      applyCreator();
+    };
+    reader.readAsDataURL(file);
+  });
+
+  $('show-more-templates')?.addEventListener('click', () => {
+    document.querySelectorAll('.template-extra').forEach((node) => node.classList.toggle('hidden'));
+  });
+
+  $('download-pdf')?.addEventListener('click', () => window.print());
+  $('download-png')?.addEventListener('click', () => downloadPosterImage(`fidelopass-affiche-${carteId}.png`));
+  $('download-story')?.addEventListener('click', () => downloadPosterImage(`fidelopass-story-${carteId}.png`, true));
+  $('download-all')?.addEventListener('click', async () => {
+    await downloadPosterImage(`fidelopass-affiche-${carteId}.png`);
+    await downloadPosterImage(`fidelopass-story-${carteId}.png`, true);
+    window.print();
+  });
+  $('download-all-top')?.addEventListener('click', () => $('download-all')?.click());
 
   loadPoster();
 </script>

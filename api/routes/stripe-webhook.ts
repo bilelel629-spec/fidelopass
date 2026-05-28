@@ -109,11 +109,11 @@ stripeWebhookRoutes.post('/', async (c) => {
         const firstPriceId = purchasedPriceIds[0] ?? null;
         const selectedPlanFromMetadata = (() => {
           const plan = String(session.metadata?.selected_plan ?? '').toLowerCase();
-          return (plan === 'starter' || plan === 'pro') ? plan : null;
+          return (plan === 'starter' || plan === 'pro' || plan === 'business') ? plan : null;
         })();
         const matchedPlanFromLineItems = purchasedPriceIds
           .map((id) => resolvePlanFromPriceId(id, priceIds))
-          .find((plan): plan is 'starter' | 'pro' => Boolean(plan)) ?? null;
+          .find((plan): plan is 'starter' | 'pro' | 'business' => Boolean(plan)) ?? null;
         const matchedPlan = selectedPlanFromMetadata ?? matchedPlanFromLineItems;
         const planPriceId = purchasedPriceIds.find((id) => resolvePlanFromPriceId(id, priceIds)) ?? firstPriceId;
         const hasAccompagnementLineItem = purchasedPriceIds.some((id) => priceMatchesSlot(id, 'accompagnement', priceIds));
@@ -127,6 +127,9 @@ stripeWebhookRoutes.post('/', async (c) => {
             billing_status: session.mode === 'subscription' ? 'trialing' : 'active',
             stripe_price_id: planPriceId,
           };
+          if (matchedPlan === 'business') {
+            planUpdate.onboarding_purchased = true;
+          }
 
           if (session.mode === 'payment' && planSlot) {
             Object.assign(planUpdate, buildOneTimeAnnualBillingUpdate(planSlot, planPriceId, session.created));
@@ -165,6 +168,8 @@ stripeWebhookRoutes.post('/', async (c) => {
             await db.from('commerces').update({ plan: 'starter', billing_status: session.mode === 'subscription' ? 'trialing' : 'active' }).eq('id', commerceId);
           } else if (plan === 'pro') {
             await db.from('commerces').update({ plan: 'pro', billing_status: session.mode === 'subscription' ? 'trialing' : 'active' }).eq('id', commerceId);
+          } else if (plan === 'business') {
+            await db.from('commerces').update({ plan: 'business', billing_status: session.mode === 'subscription' ? 'trialing' : 'active', onboarding_purchased: true }).eq('id', commerceId);
           } else if (action === 'onboarding_purchased') {
             await db.from('commerces').update({ onboarding_purchased: true }).eq('id', commerceId);
           }

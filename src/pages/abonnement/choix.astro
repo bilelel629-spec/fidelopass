@@ -22,7 +22,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
           Choisissez votre plan pour activer l’accès à l’outil.
         </h1>
         <p class="text-slate-500 text-base mt-4 leading-relaxed">
-          Vous pourrez ajouter l’option <strong>Accompagnement Setup (20€)</strong> à l’étape suivante avant Stripe.
+          Vous pourrez ajouter l’option <strong>Accompagnement Setup (90€)</strong> à l’étape suivante avant Stripe.
         </p>
       </div>
 
@@ -32,21 +32,21 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         </button>
         <button id="toggle-annual" type="button" class="px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm">
           Annuel
-          <span class="ml-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 font-semibold">-29%</span>
+          <span class="ml-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 font-semibold">-15%</span>
         </button>
       </div>
 
       <div class="mt-4 rounded-xl border border-slate-200 bg-white/90 px-4 py-3 text-sm text-slate-600">
         <p><strong>Essai gratuit :</strong> 14 jours avec carte bancaire, aucun prélèvement aujourd’hui, résiliable pendant l’essai.</p>
         <p class="mt-1"><strong>Mensuel :</strong> après l’essai, résiliable à tout moment.</p>
-        <p class="mt-1"><strong>Annuel :</strong> après l’essai, engagement de 12 mois (paiement mensuel ou en une fois).</p>
+        <p class="mt-1"><strong>Annuel :</strong> après l’essai, paiement en une fois pour 12 mois d’accès.</p>
       </div>
 
-      <div id="annual-payment-mode" class="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-3">
+      <div id="annual-payment-mode" class="hidden mt-4 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-3">
         <p class="text-xs uppercase tracking-[0.16em] text-indigo-700/80 font-semibold px-1 mb-2">Paiement annuel</p>
         <div class="grid sm:grid-cols-2 gap-2">
           <button id="annual-installments-btn" type="button" class="rounded-xl border border-indigo-300 bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700 transition-colors">
-            Mensuel sur 12 mois
+            Annuel en abonnement
           </button>
           <button id="annual-once-btn" type="button" class="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-medium text-indigo-700 transition-colors">
             En une fois
@@ -57,30 +57,30 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <div id="choice-error" class="hidden mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"></div>
       <div id="choice-warning" class="hidden mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"></div>
 
-      <div class="grid lg:grid-cols-2 gap-6 mt-8">
+      <div class="grid lg:grid-cols-3 gap-6 mt-8">
         <article data-plan-card="starter" class="rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] p-8">
           <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Starter</p>
           <div class="flex items-end gap-1 mt-3">
             <span
               class="font-display font-bold leading-none text-slate-900 text-4xl plan-price"
-              data-monthly="35"
-              data-annual-monthly="25"
-              data-annual-once="300"
-            >35€</span>
+              data-monthly="29"
+              data-annual-monthly="295"
+              data-annual-once="295"
+            >29€</span>
             <span
               class="text-sm mb-1 text-slate-400 plan-price-suffix"
               data-monthly="/mois"
-              data-annual-monthly="/mois"
-              data-annual-once="une fois"
+              data-annual-monthly="/an"
+              data-annual-once="/an"
             >/mois</span>
           </div>
           <p
             class="text-xs text-slate-400 mt-2 plan-price-label"
-            data-monthly="35€/mois sans engagement"
-            data-annual-monthly="25€/mois · engagement 12 mois"
-            data-annual-once="300€ payés aujourd’hui · 12 mois d’accès"
+            data-monthly="29€/mois sans engagement"
+            data-annual-monthly="295€/an · économisez 15%"
+            data-annual-once="295€/an · économisez 15%"
           >
-            35€/mois sans engagement
+            29€/mois sans engagement
           </p>
           <ul class="space-y-2.5 mt-6 text-sm text-slate-600">
             <li>• Jusqu’à 500 cartes actives</li>
@@ -93,9 +93,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
             type="button"
             class="plan-select-btn mt-7 w-full rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-900 transition-colors"
             data-plan="starter"
-            data-price-monthly="price_1TMlVz60FYcAjVxl8VNyc7o6"
-            data-price-annual-subscription="price_1TMlVy60FYcAjVxlsTpI09J1"
-            data-price-annual-once="price_1TMlVz60FYcAjVxlSG7wb8dA"
+            data-price-monthly=""
+            data-price-annual-subscription=""
+            data-price-annual-once=""
           >
             Continuer avec Starter
           </button>
@@ -109,24 +109,24 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
           <div class="flex items-end gap-1 mt-3">
             <span
               class="font-display font-bold leading-none text-4xl plan-price"
-              data-monthly="65"
-              data-annual-monthly="49"
-              data-annual-once="588"
-            >65€</span>
+              data-monthly="69"
+              data-annual-monthly="699"
+              data-annual-once="699"
+            >69€</span>
             <span
               class="text-sm mb-1 text-indigo-200 plan-price-suffix"
               data-monthly="/mois"
-              data-annual-monthly="/mois"
-              data-annual-once="une fois"
+              data-annual-monthly="/an"
+              data-annual-once="/an"
             >/mois</span>
           </div>
           <p
             class="text-xs text-indigo-200 mt-2 plan-price-label"
-            data-monthly="65€/mois sans engagement"
-            data-annual-monthly="49€/mois · engagement 12 mois"
-            data-annual-once="588€ payés aujourd’hui · 12 mois d’accès"
+            data-monthly="69€/mois sans engagement"
+            data-annual-monthly="699€/an · économisez 15%"
+            data-annual-once="699€/an · économisez 15%"
           >
-            65€/mois sans engagement
+            69€/mois sans engagement
           </p>
           <ul class="space-y-2.5 mt-6 text-sm text-indigo-100">
             <li>• Jusqu’à 2000 cartes actives</li>
@@ -139,11 +139,54 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
             type="button"
             class="plan-select-btn mt-7 w-full rounded-xl bg-white px-5 py-3 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 transition-colors"
             data-plan="pro"
-            data-price-monthly="price_1TMlVx60FYcAjVxlm2p12mJm"
-            data-price-annual-subscription="price_1TMlVw60FYcAjVxlVWNs7aJd"
-            data-price-annual-once="price_1TMlVx60FYcAjVxlTlIYvWFd"
+            data-price-monthly=""
+            data-price-annual-subscription=""
+            data-price-annual-once=""
           >
             Continuer avec Pro
+          </button>
+        </article>
+
+        <article data-plan-card="business" class="rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] p-8">
+          <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Business</p>
+          <div class="flex items-end gap-1 mt-3">
+            <span
+              class="font-display font-bold leading-none text-slate-900 text-4xl plan-price"
+              data-monthly="199"
+              data-annual-monthly="1990"
+              data-annual-once="1990"
+            >199€</span>
+            <span
+              class="text-sm mb-1 text-slate-400 plan-price-suffix"
+              data-monthly="/mois"
+              data-annual-monthly="/an"
+              data-annual-once="/an"
+            >/mois</span>
+          </div>
+          <p
+            class="text-xs text-slate-400 mt-2 plan-price-label"
+            data-monthly="199€/mois sans engagement"
+            data-annual-monthly="1990€/an · économisez 16%"
+            data-annual-once="1990€/an · économisez 16%"
+          >
+            199€/mois sans engagement
+          </p>
+          <ul class="space-y-2.5 mt-6 text-sm text-slate-600">
+            <li>• Cartes actives illimitées</li>
+            <li>• Scanners illimités</li>
+            <li>• Accompagnement setup compris</li>
+            <li>• Automatisations incluses</li>
+            <li>• Support prioritaire</li>
+          </ul>
+          <button
+            type="button"
+            class="plan-select-btn mt-7 w-full rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-900 transition-colors"
+            data-plan="business"
+            data-price-monthly=""
+            data-price-annual-subscription=""
+            data-price-annual-once=""
+          >
+            Continuer avec Business
           </button>
         </article>
       </div>
@@ -166,7 +209,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   const BILLING_CHECK_TIMEOUT_MS = Number(import.meta.env.PUBLIC_BILLING_CHECK_TIMEOUT_MS ?? 2200);
   const queryParams = new URLSearchParams(window.location.search);
   const requestedPlanParam = queryParams.get('plan');
-  const preselectedPlan = requestedPlanParam === 'starter' || requestedPlanParam === 'pro' ? requestedPlanParam : null;
+  const preselectedPlan = requestedPlanParam === 'starter' || requestedPlanParam === 'pro' || requestedPlanParam === 'business' ? requestedPlanParam : null;
+  const requestedBillingParam = queryParams.get('billing');
   const setupRequested = ['1', 'true', 'yes'].includes((queryParams.get('setup') ?? '').toLowerCase());
   const monthlyBtn = document.getElementById('toggle-monthly') as HTMLButtonElement;
   const annualBtn = document.getElementById('toggle-annual') as HTMLButtonElement;
@@ -183,10 +227,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     | 'starter_annuel_once'
     | 'pro_mensuel'
     | 'pro_annuel_mensuel'
-    | 'pro_annuel_once';
+    | 'pro_annuel_once'
+    | 'business_mensuel'
+    | 'business_annuel_mensuel'
+    | 'business_annuel_once';
   let activeSession: SessionLike | null = null;
   let currentMode: 'monthly' | 'annual' = 'annual';
-  let annualPaymentType: 'subscription' | 'payment' = 'subscription';
+  let annualPaymentType: 'subscription' | 'payment' = 'payment';
   let pricingLoaded = false;
   let pricingDegraded = false;
 
@@ -211,8 +258,12 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   }
 
   function planBaseLabel(plan?: string) {
-    const normalizedPlan = plan === 'pro' ? 'pro' : 'starter';
-    const baseLabel = normalizedPlan === 'pro' ? 'Continuer avec Pro' : 'Continuer avec Starter';
+    const normalizedPlan = plan === 'pro' || plan === 'business' ? plan : 'starter';
+    const baseLabel = normalizedPlan === 'business'
+      ? 'Continuer avec Business'
+      : normalizedPlan === 'pro'
+        ? 'Continuer avec Pro'
+        : 'Continuer avec Starter';
     return setupRequested && (!preselectedPlan || preselectedPlan === normalizedPlan)
       ? `${baseLabel} + Setup`
       : baseLabel;
@@ -268,7 +319,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       ? 'px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm'
       : 'px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500';
 
-    annualPaymentMode.classList.toggle('hidden', !isAnnual);
+    annualPaymentMode.classList.add('hidden');
 
     const suffixKey = !isAnnual
       ? 'monthly'
@@ -317,7 +368,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   }
 
   function resolvePriceSlot(plan: string): PriceSlot {
-    const normalizedPlan = plan === 'pro' ? 'pro' : 'starter';
+    const normalizedPlan = plan === 'pro' || plan === 'business' ? plan : 'starter';
     if (currentMode === 'monthly') return `${normalizedPlan}_mensuel` as PriceSlot;
     if (annualPaymentType === 'payment') return `${normalizedPlan}_annuel_once` as PriceSlot;
     return `${normalizedPlan}_annuel_mensuel` as PriceSlot;
@@ -338,8 +389,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       pricingDegraded = Boolean(payload?.degraded);
       const starter = payload?.data?.starter;
       const pro = payload?.data?.pro;
+      const business = payload?.data?.business;
       const starterBtn = document.querySelector<HTMLButtonElement>('.plan-select-btn[data-plan="starter"]');
       const proBtn = document.querySelector<HTMLButtonElement>('.plan-select-btn[data-plan="pro"]');
+      const businessBtn = document.querySelector<HTMLButtonElement>('.plan-select-btn[data-plan="business"]');
       if (starterBtn && starter) {
         if (starter.monthly?.priceId) starterBtn.dataset.priceMonthly = String(starter.monthly.priceId);
         if (starter.annual_monthly?.priceId) starterBtn.dataset.priceAnnualSubscription = String(starter.annual_monthly.priceId);
@@ -355,6 +408,14 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         proBtn.dataset.availabilityMonthly = pro.monthly?.available ? '1' : '0';
         proBtn.dataset.availabilityAnnualSubscription = pro.annual_monthly?.available ? '1' : '0';
         proBtn.dataset.availabilityAnnualOnce = pro.annual_once?.available ? '1' : '0';
+      }
+      if (businessBtn && business) {
+        if (business.monthly?.priceId) businessBtn.dataset.priceMonthly = String(business.monthly.priceId);
+        if (business.annual_monthly?.priceId) businessBtn.dataset.priceAnnualSubscription = String(business.annual_monthly.priceId);
+        if (business.annual_once?.priceId) businessBtn.dataset.priceAnnualOnce = String(business.annual_once.priceId);
+        businessBtn.dataset.availabilityMonthly = business.monthly?.available ? '1' : '0';
+        businessBtn.dataset.availabilityAnnualSubscription = business.annual_monthly?.available ? '1' : '0';
+        businessBtn.dataset.availabilityAnnualOnce = business.annual_once?.available ? '1' : '0';
       }
     } catch {
       pricingDegraded = true;
@@ -433,8 +494,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   annualInstallmentsBtn.addEventListener('click', () => setAnnualPaymentType('subscription'));
   annualOnceBtn.addEventListener('click', () => setAnnualPaymentType('payment'));
 
-  setAnnualPaymentType('subscription');
-  setMode('annual');
+  setAnnualPaymentType('payment');
+  setMode(requestedBillingParam === 'monthly' ? 'monthly' : 'annual');
 
   const cancelled = queryParams.get('cancelled');
   const guard = queryParams.get('guard');

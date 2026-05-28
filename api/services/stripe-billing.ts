@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-export type PlanName = 'starter' | 'pro';
+export type PlanName = 'starter' | 'pro' | 'business';
 
 export type PriceSlot =
   | 'starter_mensuel'
@@ -11,6 +11,9 @@ export type PriceSlot =
   | 'pro_mensuel'
   | 'pro_annuel_once'
   | 'pro_annuel_mensuel'
+  | 'business_mensuel'
+  | 'business_annuel_once'
+  | 'business_annuel_mensuel'
   | 'accompagnement'
   | 'scanner'
   | 'sms_100'
@@ -24,6 +27,9 @@ export const PRICE_SLOTS: PriceSlot[] = [
   'pro_mensuel',
   'pro_annuel_once',
   'pro_annuel_mensuel',
+  'business_mensuel',
+  'business_annuel_once',
+  'business_annuel_mensuel',
   'accompagnement',
   'scanner',
   'sms_100',
@@ -38,6 +44,9 @@ export const PLAN_PRICE_SLOTS: PriceSlot[] = [
   'pro_mensuel',
   'pro_annuel_once',
   'pro_annuel_mensuel',
+  'business_mensuel',
+  'business_annuel_once',
+  'business_annuel_mensuel',
 ];
 
 export const LEGACY_PRICE_IDS: Record<PriceSlot, string[]> = {
@@ -47,6 +56,9 @@ export const LEGACY_PRICE_IDS: Record<PriceSlot, string[]> = {
   pro_mensuel: ['price_1TLWc07qMJeoJ4KrbyyfYOlH', 'price_1TMlVx60FYcAjVxlm2p12mJm'],
   pro_annuel_once: ['price_1TLWc07qMJeoJ4KrP8wZXL9U', 'price_1TMlVx60FYcAjVxlTlIYvWFd'],
   pro_annuel_mensuel: ['price_1TLWc07qMJeoJ4KrvqLZfE0u', 'price_1TMlVw60FYcAjVxlVWNs7aJd'],
+  business_mensuel: [],
+  business_annuel_once: [],
+  business_annuel_mensuel: [],
   accompagnement: ['price_1TLUSQ7qMJeoJ4KrYRnAjiPT', 'price_1TMlVu60FYcAjVxl8HONXsoV'],
   scanner: ['price_1TLUSR7qMJeoJ4KraAIhkZNc', 'price_1TMlVy60FYcAjVxl06t2Sgq1'],
   sms_100: ['price_1TLUSS7qMJeoJ4KrmbPWFh9V', 'price_1TMlVy60FYcAjVxln9HC0DaE'],
@@ -61,23 +73,34 @@ export function getStripe(config?: ConstructorParameters<typeof Stripe>[1]) {
 }
 
 export function loadPriceIds() {
+  const envPriceIds = Object.fromEntries(
+    PRICE_SLOTS.map((slot) => [slot, process.env[`STRIPE_PRICE_ID_${slot.toUpperCase()}`] ?? '']),
+  ) as Record<PriceSlot, string>;
+  const mergeEnv = (base: Record<string, string>) => ({
+    ...base,
+    ...Object.fromEntries(Object.entries(envPriceIds).filter(([, value]) => Boolean(value))),
+  });
+
   try {
     const raw = readFileSync(resolve(process.cwd(), 'stripe-price-ids.json'), 'utf8');
-    return JSON.parse(raw) as Record<string, string>;
+    return mergeEnv(JSON.parse(raw) as Record<string, string>);
   } catch {
-    return {
+    return mergeEnv({
       starter_mensuel: 'price_1TMlVz60FYcAjVxl8VNyc7o6',
       starter_annuel_once: 'price_1TMlVz60FYcAjVxlSG7wb8dA',
       starter_annuel_mensuel: 'price_1TMlVy60FYcAjVxlsTpI09J1',
       pro_mensuel: 'price_1TMlVx60FYcAjVxlm2p12mJm',
       pro_annuel_once: 'price_1TMlVx60FYcAjVxlTlIYvWFd',
       pro_annuel_mensuel: 'price_1TMlVw60FYcAjVxlVWNs7aJd',
+      business_mensuel: '',
+      business_annuel_once: '',
+      business_annuel_mensuel: '',
       accompagnement: 'price_1TMlVu60FYcAjVxl8HONXsoV',
       scanner: 'price_1TMlVy60FYcAjVxl06t2Sgq1',
       sms_100: 'price_1TMlVy60FYcAjVxln9HC0DaE',
       sms_500: 'price_1TMlVy60FYcAjVxlRDOgzQWc',
       sms_2000: 'price_1TMlVy60FYcAjVxlD5phFUTz',
-    } satisfies Record<string, string>;
+    } satisfies Record<string, string>);
   }
 }
 
@@ -107,6 +130,8 @@ export function resolveExpectedModeFromSlot(slot: PriceSlot): 'subscription' | '
     || slot === 'starter_annuel_mensuel'
     || slot === 'pro_mensuel'
     || slot === 'pro_annuel_mensuel'
+    || slot === 'business_mensuel'
+    || slot === 'business_annuel_mensuel'
   ) {
     return 'subscription';
   }
@@ -114,22 +139,23 @@ export function resolveExpectedModeFromSlot(slot: PriceSlot): 'subscription' | '
 }
 
 export function resolveCommitmentLabelFromSlot(slot: PriceSlot) {
-  if (slot === 'starter_mensuel' || slot === 'pro_mensuel') return 'monthly-flex';
-  if (slot === 'starter_annuel_mensuel' || slot === 'pro_annuel_mensuel') return 'annual-12m-monthly';
-  if (slot === 'starter_annuel_once' || slot === 'pro_annuel_once') return 'annual-12m-once';
+  if (slot === 'starter_mensuel' || slot === 'pro_mensuel' || slot === 'business_mensuel') return 'monthly-flex';
+  if (slot === 'starter_annuel_mensuel' || slot === 'pro_annuel_mensuel' || slot === 'business_annuel_mensuel') return 'annual-12m-monthly';
+  if (slot === 'starter_annuel_once' || slot === 'pro_annuel_once' || slot === 'business_annuel_once') return 'annual-12m-once';
   return 'unknown';
 }
 
 export function resolveBillingIntervalFromSlot(slot: PriceSlot): 'month' | 'year' | 'one_time' | null {
-  if (slot === 'starter_mensuel' || slot === 'pro_mensuel') return 'month';
-  if (slot === 'starter_annuel_mensuel' || slot === 'pro_annuel_mensuel') return 'month';
-  if (slot === 'starter_annuel_once' || slot === 'pro_annuel_once') return 'one_time';
+  if (slot === 'starter_mensuel' || slot === 'pro_mensuel' || slot === 'business_mensuel') return 'month';
+  if (slot === 'starter_annuel_mensuel' || slot === 'pro_annuel_mensuel' || slot === 'business_annuel_mensuel') return 'month';
+  if (slot === 'starter_annuel_once' || slot === 'pro_annuel_once' || slot === 'business_annuel_once') return 'one_time';
   return null;
 }
 
 export function resolvePlanFromSlot(slot: PriceSlot): PlanName | null {
   if (slot.startsWith('starter_')) return 'starter';
   if (slot.startsWith('pro_')) return 'pro';
+  if (slot.startsWith('business_')) return 'business';
   return null;
 }
 
@@ -156,7 +182,10 @@ export function normalizeBillingStatusFromSubscription(status: string | null | u
 }
 
 export function isAnnualMonthlyCommitment(slot: PriceSlot | null, commitment: string | null | undefined) {
-  return commitment === 'annual-12m-monthly' || slot === 'starter_annuel_mensuel' || slot === 'pro_annuel_mensuel';
+  return commitment === 'annual-12m-monthly'
+    || slot === 'starter_annuel_mensuel'
+    || slot === 'pro_annuel_mensuel'
+    || slot === 'business_annuel_mensuel';
 }
 
 export function getCommitmentEndIso(startSeconds: number | null | undefined) {
@@ -173,7 +202,7 @@ export function buildSubscriptionBillingUpdate(sub: Stripe.Subscription, priceId
   const priceId = sub.items?.data?.[0]?.price?.id ?? null;
   const slot = resolvePriceSlot(priceId, priceIds);
   const planFromMetadata = String(sub.metadata?.selected_plan ?? '').toLowerCase();
-  const plan = planFromMetadata === 'starter' || planFromMetadata === 'pro'
+  const plan = planFromMetadata === 'starter' || planFromMetadata === 'pro' || planFromMetadata === 'business'
     ? planFromMetadata
     : resolvePlanFromSlot(slot ?? 'scanner');
   const commitment = String(sub.metadata?.billing_commitment ?? '') || (slot ? resolveCommitmentLabelFromSlot(slot) : 'unknown');

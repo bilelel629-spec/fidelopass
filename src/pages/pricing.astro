@@ -3,26 +3,103 @@ import PublicFooter from '../components/marketing/PublicFooter.astro';
 import PublicNav from '../components/marketing/PublicNav.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
-// Bannière "nouvel utilisateur" après inscription
 const isNew = Astro.url.searchParams.get('new') === '1';
 
 const faq = [
-  { q: 'Y a-t-il un engagement minimum ?', a: "Les plans mensuels sont sans engagement, résiliables à tout moment. L'option annuelle avec engagement est sur 12 mois. Le paiement annuel en une fois est non remboursable." },
+  { q: 'Y a-t-il un engagement minimum ?', a: "Les plans mensuels sont sans engagement, résiliables à tout moment. L'option annuelle est payée en une fois pour 12 mois d'accès." },
   { q: "Comment fonctionne l'essai gratuit ?", a: "L’essai gratuit nécessite une carte bancaire afin d’activer le plan choisi. Vous pouvez résilier à tout moment pendant les 14 jours d’essai. Sans résiliation, l’abonnement démarre automatiquement sur le forfait sélectionné." },
-  { q: "Quelle est la différence entre les options annuelles ?", a: "Le paiement en une fois (300€ ou 588€) est facturé immédiatement. L'option mensuelle avec engagement vous débite chaque mois mais avec un engagement de 12 mois. Les deux économisent la même somme." },
-  { q: 'Puis-je changer de plan ?', a: 'Oui, vous pouvez évoluer ou rétrograder à tout moment. Les changements sont effectifs immédiatement.' },
+  { q: "Quelle est la différence entre mensuel et annuel ?", a: "Le mensuel est facturé chaque mois. L'annuel est payé en une fois: 295€ pour Starter, 699€ pour Pro et 1990€ pour Business." },
+  { q: 'Puis-je changer de plan ?', a: 'Oui, vous pouvez évoluer ou rétrograder à tout moment depuis votre espace commerçant.' },
   { q: "Mes clients doivent-ils télécharger une app ?", a: "Non. Vos clients utilisent Apple Wallet ou Google Wallet, déjà installés sur leur téléphone. Aucun téléchargement supplémentaire." },
+];
+
+const plans = [
+  {
+    id: 'starter',
+    name: 'Starter',
+    eyebrow: 'Première carte',
+    monthly: '29€',
+    annual: '295€',
+    periodMonthly: '/mois',
+    periodAnnual: '/an',
+    saving: 'Économisez 15% avec l’abonnement annuel',
+    desc: 'Pour lancer votre première carte et commencer à fidéliser.',
+    highlight: false,
+    cta: "Démarrer l'essai gratuit",
+    setupCta: 'Starter + Setup (+90€ une fois)',
+    features: [
+      "Jusqu'à 500 cartes actives",
+      '1 point de vente',
+      'Scanners illimités',
+      'Apple Wallet + Google Wallet',
+      'Scanner mobile + affiche QR',
+      'Notifications push illimitées',
+      'Carte tampons, points, paliers',
+      'Analytics de base',
+      'Support email',
+    ],
+  },
+  {
+    id: 'pro',
+    name: 'Pro',
+    eyebrow: 'Croissance',
+    monthly: '69€',
+    annual: '699€',
+    periodMonthly: '/mois',
+    periodAnnual: '/an',
+    saving: 'Économisez 15% avec l’abonnement annuel',
+    desc: 'Pour fidéliser plus fort et communiquer avec vos clients.',
+    highlight: true,
+    badge: 'Le plus populaire',
+    cta: "Démarrer l'essai gratuit",
+    setupCta: 'Pro + Setup (+90€ une fois)',
+    features: [
+      "Jusqu'à 2000 cartes actives",
+      '3 points de vente',
+      'Scanners illimités',
+      'Apple Wallet + Google Wallet',
+      'Push ciblées & campagnes',
+      'Push avis Google auto (+1h)',
+      'Analytics avancés',
+      'Anniversaire automatique',
+      'Support prioritaire',
+    ],
+  },
+  {
+    id: 'business',
+    name: 'Business',
+    eyebrow: 'Volume',
+    monthly: '199€',
+    annual: '1990€',
+    periodMonthly: '/mois',
+    periodAnnual: '/an',
+    saving: 'Économisez 16% avec l’abonnement annuel',
+    desc: 'Pour les commerces qui veulent un déploiement complet avec setup inclus.',
+    highlight: false,
+    cta: "Démarrer l'essai gratuit",
+    setupIncluded: true,
+    features: [
+      'Cartes actives illimitées',
+      'Points de vente avancés',
+      'Scanners illimités',
+      'Apple Wallet + Google Wallet',
+      'Push ciblées & campagnes',
+      'Automatisations incluses',
+      'Analytics avancés',
+      'Accompagnement setup compris',
+      'Support prioritaire',
+    ],
+  },
 ];
 ---
 
 <BaseLayout
   theme="light"
   title="Tarifs Fidelopass — Essai gratuit 14 jours"
-  description="Plans Starter et Pro pour commerces. Essai gratuit 14 jours, résiliable à tout moment pendant l’essai."
+  description="Plans Starter, Pro et Business pour commerces. Essai gratuit 14 jours, résiliable à tout moment pendant l’essai."
 >
   <PublicNav currentPath="/pricing" />
 
-  <!-- Bannière nouvel utilisateur -->
   {isNew && (
     <div class="bg-indigo-600 text-white text-center py-3 px-4">
       <p class="text-sm font-medium">
@@ -31,8 +108,7 @@ const faq = [
     </div>
   )}
 
-  <!-- Header -->
-  <section class="relative overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_65%,#ffffff_100%)] pt-14 pb-12">
+  <section class="relative overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_65%,#ffffff_100%)] pt-14 pb-10">
     <div class="pointer-events-none absolute inset-0">
       <div class="absolute -top-20 right-0 h-72 w-72 rounded-full bg-sky-200/35 blur-3xl"></div>
       <div class="absolute top-12 left-0 h-64 w-64 rounded-full bg-indigo-200/25 blur-3xl"></div>
@@ -46,209 +122,136 @@ const faq = [
       <p class="text-slate-500 text-lg mt-5 max-w-xl mx-auto">
         Essai gratuit 14 jours sur tous les plans. Carte bancaire requise, résiliable à tout moment pendant l’essai.
       </p>
-      <div class="mx-auto mt-7 max-w-2xl rounded-[1.5rem] border border-amber-200 bg-amber-50/90 px-5 py-4 text-left shadow-[0_18px_45px_rgba(245,158,11,0.12)] sm:text-center">
-        <p class="text-xs font-bold uppercase tracking-[0.22em] text-amber-700">Offre spéciale</p>
-        <p class="mt-1 text-sm leading-6 text-amber-900">
-          Les tarifs affichés sont les tarifs préférentiels actuels. Les prix publics prévus seront plus élevés pour les nouveaux commerces.
-        </p>
-      </div>
     </div>
   </section>
 
-  <!-- Plans -->
   <section class="bg-slate-50/70 py-10 pb-20">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6">
-      <div class="grid lg:grid-cols-3 gap-6 items-start">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+      <div class="mb-8 flex justify-center">
+        <div class="billing-toggle inline-flex items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm" aria-label="Choisir la facturation">
+          <button type="button" data-billing-mode="monthly" aria-pressed="false">Mensuel</button>
+          <button type="button" data-billing-mode="annual" aria-pressed="true">
+            Annuel
+            <span class="ml-1.5 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">-15%</span>
+          </button>
+        </div>
+      </div>
 
-        <!-- Starter -->
-        <article class="rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] flex flex-col p-8">
-          <div class="mb-3">
-            <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Starter</span>
-          </div>
-          <div class="mb-4 inline-flex w-fit items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-amber-700">
-            Offre spéciale
-          </div>
-          <div class="billing-toggle mb-5 flex items-center gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-1.5" data-surface="light" aria-label="Choisir la facturation Starter">
-            <button type="button" data-billing-mode="monthly" aria-pressed="false">
-              Mensuel
-            </button>
-            <button type="button" data-billing-mode="annual" aria-pressed="true">
-              Annuel
-              <span class="ml-1.5 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">-29%</span>
-            </button>
-          </div>
-          <!-- Prix affiché -->
-          <div class="flex items-end gap-1 mb-1">
-            <span class="font-display font-bold leading-none text-slate-900">
-              <span class="text-4xl price-display" data-monthly="35" data-annual="25" id="starter-price">25€</span>
-            </span>
-            <span class="text-sm mb-1 text-slate-400">/mois</span>
-          </div>
-          <p class="text-xs text-slate-400 mb-4 price-label" id="starter-label">25€/mois · économisez 120€/an</p>
-          <p class="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-500">
-            Prix public prévu :
-            <span id="starter-public-price" class="font-semibold text-slate-700">35€/mois, soit 420€/an</span>
-          </p>
+      <div class="grid gap-6 items-start lg:grid-cols-4">
+        {plans.map((plan) => (
+          <article class:list={[
+            'relative flex h-full flex-col rounded-[2rem] border p-7 shadow-[0_20px_50px_rgba(15,23,42,0.08)]',
+            plan.highlight
+              ? 'border-indigo-400 bg-[linear-gradient(155deg,#1e1b4b_0%,#312e81_62%,#0284c7_100%)] text-white shadow-[0_30px_80px_rgba(49,46,129,0.24)]'
+              : 'border-slate-200 bg-white text-slate-900',
+          ]}>
+            {plan.badge && (
+              <div class="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <span class="rounded-full bg-amber-400 px-4 py-1.5 text-xs font-bold text-amber-900 shadow whitespace-nowrap">
+                  {plan.badge}
+                </span>
+              </div>
+            )}
+            <div class="mb-3">
+              <span class:list={[
+                'text-xs font-bold uppercase tracking-widest',
+                plan.highlight ? 'text-indigo-200' : 'text-slate-400',
+              ]}>{plan.eyebrow}</span>
+            </div>
+            <h2 class:list={['font-display text-2xl font-bold', plan.highlight ? 'text-white' : 'text-slate-950']}>{plan.name}</h2>
+            <p class:list={['mt-3 min-h-[3.5rem] text-sm leading-relaxed', plan.highlight ? 'text-indigo-100' : 'text-slate-500']}>{plan.desc}</p>
 
-          <!-- Badge essai gratuit (mensuel) -->
-          <div class="trial-badge mb-4 inline-flex items-center gap-1.5 rounded-full bg-sky-50 border border-sky-100 px-3 py-1.5 text-xs font-semibold text-sky-700 w-fit">
-            <span class="inline-block h-2.5 w-2.5 rounded-full bg-sky-500"></span> 14 jours gratuits
-          </div>
+            <div class="mt-6">
+              <div class="flex items-end gap-1">
+                <span
+                  class:list={['font-display text-5xl font-bold leading-none tracking-[-0.05em] price-display', plan.highlight ? 'text-white' : 'text-slate-950']}
+                  data-monthly={plan.monthly}
+                  data-annual={plan.annual}
+                >{plan.annual}</span>
+                <span
+                  class:list={['mb-1 text-sm price-period', plan.highlight ? 'text-indigo-200' : 'text-slate-400']}
+                  data-monthly={plan.periodMonthly}
+                  data-annual={plan.periodAnnual}
+                >{plan.periodAnnual}</span>
+              </div>
+              <p class:list={['mt-3 text-xs font-semibold annual-saving', plan.highlight ? 'text-emerald-100' : 'text-emerald-700']}>{plan.saving}</p>
+              <p class:list={['mt-1 text-xs billing-note', plan.highlight ? 'text-indigo-200' : 'text-slate-400']}>Paiement annuel en une fois</p>
+            </div>
 
-          <p class="text-sm leading-relaxed mb-5 text-slate-500">Pour lancer votre première carte et commencer à fidéliser.</p>
+            <div class="mt-6 space-y-2.5">
+              <a
+                href={`/register?next=%2Fabonnement%2Fchoix%3Fplan%3D${plan.id}`}
+                data-plan-cta={plan.id}
+                data-setup="0"
+                class:list={[
+                  'inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition-all',
+                  plan.highlight
+                    ? 'bg-white text-indigo-700 shadow hover:bg-indigo-50'
+                    : 'btn-primary',
+                ]}
+              >
+                {plan.cta}
+              </a>
+              {plan.setupCta && (
+                <a
+                  href={`/register?next=%2Fabonnement%2Fchoix%3Fplan%3D${plan.id}%26setup%3D1`}
+                  data-plan-cta={plan.id}
+                  data-setup="1"
+                  class:list={[
+                    'inline-flex w-full items-center justify-center rounded-xl border px-4 py-3 text-sm font-semibold transition-all',
+                    plan.highlight
+                      ? 'border-white/30 bg-white/10 text-white hover:bg-white/20'
+                      : 'border-slate-200 text-slate-700 hover:bg-slate-50',
+                  ]}
+                >
+                  {plan.setupCta}
+                </a>
+              )}
+              {plan.setupIncluded && (
+                <p class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">
+                  Setup compris
+                </p>
+              )}
+              <p class:list={['trial-note text-center text-xs', plan.highlight ? 'text-indigo-200' : 'text-slate-400']}>14 jours gratuits · Paiement annuel</p>
+            </div>
 
-          <!-- CTA -->
-          <div class="mb-6 space-y-2.5">
-            <a
-              href="/register?next=%2Fabonnement%2Fchoix%3Fplan%3Dstarter"
-              class="w-full inline-flex items-center justify-center py-3 rounded-xl font-semibold text-sm transition-all btn-primary"
-            >
-              Démarrer l'essai gratuit
-            </a>
-            <a
-              href="/register?next=%2Fabonnement%2Fchoix%3Fplan%3Dstarter%26setup%3D1"
-              class="w-full inline-flex items-center justify-center py-3 rounded-xl font-semibold text-sm transition-all border border-slate-200 text-slate-700 hover:bg-slate-50"
-            >
-              Starter + Setup (+20€ une fois)
-            </a>
-            <p class="trial-note text-center text-xs text-slate-400 mt-2">14 jours gratuits · Engagement annuel</p>
-          </div>
+            <ul class="mt-7 flex-1 space-y-3">
+              {plan.features.map((feature) => (
+                <li class="flex items-center gap-3 text-sm">
+                  <span class:list={[
+                    'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold',
+                    plan.highlight ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-600',
+                  ]}>✓</span>
+                  <span class:list={plan.highlight ? 'text-indigo-50' : 'text-slate-700'}>{feature}</span>
+                </li>
+              ))}
+            </ul>
+          </article>
+        ))}
 
-          <ul class="space-y-3 flex-1">
-            {[
-              "Jusqu'à 500 cartes actives",
-              '1 point de vente',
-              'Scanners illimités',
-              'Apple Wallet + Google Wallet',
-              'Scanner mobile + affiche QR',
-              'Notifications push illimitées',
-              'Carte tampons, points, paliers',
-              'Analytics de base',
-              'Support email',
-            ].map((f) => (
-              <li class="flex items-center gap-3 text-sm">
-                <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-bold flex-shrink-0">✓</span>
-                <span class="text-slate-700">{f}</span>
-              </li>
-            ))}
-          </ul>
-        </article>
-
-        <!-- Pro -->
-        <article class="rounded-[2rem] border border-indigo-400 bg-[linear-gradient(155deg,#1e1b4b_0%,#312e81_62%,#0284c7_100%)] shadow-[0_30px_80px_rgba(49,46,129,0.24)] flex flex-col p-8 relative">
-          <div class="absolute -top-3.5 left-1/2 -translate-x-1/2">
-            <span class="rounded-full bg-amber-400 text-amber-900 text-xs font-bold px-4 py-1.5 shadow whitespace-nowrap">
-              Le plus populaire
-            </span>
+        <article class="flex h-full flex-col rounded-[2rem] border border-slate-200 bg-white p-7 shadow-[0_20px_50px_rgba(15,23,42,0.08)]">
+          <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Réseau & Franchise</p>
+          <h2 class="mt-3 font-display text-2xl font-bold text-slate-950">Sur devis</h2>
+          <div class="mt-6 flex items-end gap-1">
+            <span class="font-display text-4xl font-bold leading-none text-slate-950">Sur devis</span>
           </div>
-          <div class="mb-3">
-            <span class="text-xs font-bold uppercase tracking-widest text-indigo-200">Pro</span>
-          </div>
-          <div class="mb-4 inline-flex w-fit items-center rounded-full border border-amber-300/40 bg-amber-300/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-amber-100">
-            Offre spéciale
-          </div>
-          <div class="billing-toggle mb-5 flex items-center gap-1 rounded-2xl border border-white/20 bg-white/10 p-1.5" data-surface="dark" aria-label="Choisir la facturation Pro">
-            <button type="button" data-billing-mode="monthly" aria-pressed="false">
-              Mensuel
-            </button>
-            <button type="button" data-billing-mode="annual" aria-pressed="true">
-              Annuel
-              <span class="ml-1.5 rounded-full bg-white px-2.5 py-0.5 text-xs font-bold text-emerald-700 shadow-sm ring-1 ring-emerald-200/80">-29%</span>
-            </button>
-          </div>
-          <!-- Prix affiché -->
-          <div class="flex items-end gap-1 mb-1">
-            <span class="font-display font-bold leading-none text-white">
-              <span class="text-4xl price-display" data-monthly="65" data-annual="49" id="pro-price">49€</span>
-            </span>
-            <span class="text-sm mb-1 text-indigo-200">/mois</span>
-          </div>
-          <p class="text-xs text-indigo-300 mb-4 price-label" id="pro-label">49€/mois · économisez 192€/an</p>
-          <p class="mb-4 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-xs leading-5 text-indigo-100">
-            Prix public prévu :
-            <span id="pro-public-price" class="font-semibold text-white">65€/mois, soit 780€/an</span>
-          </p>
-
-          <!-- Badge essai gratuit (mensuel) -->
-          <div class="trial-badge mb-4 inline-flex items-center gap-1.5 rounded-full bg-white/15 border border-white/20 px-3 py-1.5 text-xs font-semibold text-white w-fit">
-            <span class="inline-block h-2.5 w-2.5 rounded-full bg-white/80"></span> 14 jours gratuits
-          </div>
-
-          <p class="text-sm leading-relaxed mb-5 text-indigo-200">Pour fidéliser plus fort et communiquer avec vos clients.</p>
-
-          <!-- CTA -->
-          <div class="mb-6 space-y-2.5">
-            <a
-              href="/register?next=%2Fabonnement%2Fchoix%3Fplan%3Dpro"
-              class="w-full inline-flex items-center justify-center py-3 rounded-xl font-semibold text-sm transition-all bg-white text-indigo-700 hover:bg-indigo-50 shadow"
-            >
-              Démarrer l'essai gratuit
-            </a>
-            <a
-              href="/register?next=%2Fabonnement%2Fchoix%3Fplan%3Dpro%26setup%3D1"
-              class="w-full inline-flex items-center justify-center py-3 rounded-xl font-semibold text-sm transition-all border border-white/30 bg-white/10 text-white hover:bg-white/20"
-            >
-              Pro + Setup (+20€ une fois)
-            </a>
-            <p class="trial-note text-center text-xs text-indigo-300 mt-2">14 jours gratuits · Engagement annuel</p>
-          </div>
-
-          <ul class="space-y-3 flex-1">
-            {[
-              "Jusqu'à 2000 cartes actives",
-              '3 points de vente',
-              'Scanners illimités',
-              'Apple Wallet + Google Wallet',
-              'Scanner mobile + affiche QR',
-              'Push ciblées & campagnes',
-              'Push avis Google auto (+1h)',
-              'Analytics avancés',
-              'Anniversaire automatique',
-              'Support prioritaire',
-            ].map((f) => (
-              <li class="flex items-center gap-3 text-sm">
-                <span class="w-5 h-5 rounded-full bg-white/20 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">✓</span>
-                <span class="text-indigo-100">{f}</span>
-              </li>
-            ))}
-          </ul>
-        </article>
-
-        <!-- Sur mesure -->
-        <article class="rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] flex flex-col p-8">
-          <div class="mb-3">
-            <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Réseau & Franchise</span>
-          </div>
-          <div class="flex items-end gap-1 mb-1">
-            <span class="font-display font-bold leading-none text-slate-900 text-4xl">Sur devis</span>
-          </div>
-          <p class="text-xs text-slate-400 mb-4">Tarif personnalisé selon votre réseau</p>
-          <div class="mb-4 inline-flex items-center gap-1.5 rounded-full bg-violet-50 border border-violet-100 px-3 py-1.5 text-xs font-semibold text-violet-700 w-fit">
-            <span class="inline-block h-2.5 w-2.5 rounded-full bg-violet-500"></span> Solution sur mesure
-          </div>
-          <p class="text-sm leading-relaxed mb-5 text-slate-500">Pour les réseaux, franchises et groupes avec plusieurs enseignes.</p>
-
-          <a
-            href="/contact"
-            class="w-full inline-flex items-center justify-center py-3 rounded-xl font-semibold text-sm transition-all mb-6 border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white"
-          >
+          <p class="mt-3 text-xs font-semibold text-slate-400">Tarif personnalisé selon votre réseau</p>
+          <p class="mt-5 min-h-[3.5rem] text-sm leading-relaxed text-slate-500">Pour les réseaux, franchises et groupes avec plusieurs enseignes.</p>
+          <a href="/contact" class="mt-6 inline-flex w-full items-center justify-center rounded-xl border-2 border-slate-900 px-4 py-3 text-sm font-semibold text-slate-900 transition-all hover:bg-slate-900 hover:text-white">
             Nous contacter
           </a>
-
-          <ul class="space-y-3 flex-1">
+          <ul class="mt-7 flex-1 space-y-3">
             {[
               'Points de vente illimités',
               'Cartes actives illimitées',
               'Scanners illimités',
-              'Apple Wallet + Google Wallet',
-              'Push ciblées & campagnes',
               'API + intégrations caisse',
               'Accompagnement personnalisé',
               'Support prioritaire dédié',
-            ].map((f) => (
+            ].map((feature) => (
               <li class="flex items-center gap-3 text-sm">
-                <span class="w-5 h-5 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center text-xs font-bold flex-shrink-0">✓</span>
-                <span class="text-slate-700">{f}</span>
+                <span class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-violet-100 text-xs font-bold text-violet-600">✓</span>
+                <span class="text-slate-700">{feature}</span>
               </li>
             ))}
           </ul>
@@ -257,7 +260,6 @@ const faq = [
 
       <p class="text-center text-slate-400 text-xs mt-8">Prix HT. TVA applicable selon votre situation.</p>
 
-      <!-- Option Accompagnement -->
       <div class="mt-14 max-w-md mx-auto">
         <h2 class="font-display text-2xl font-bold text-slate-900 mb-6 text-center">Option complémentaire</h2>
         <div class="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm flex flex-col gap-3">
@@ -267,21 +269,19 @@ const faq = [
           </div>
           <div class="flex items-end justify-between gap-3 mt-auto pt-2">
             <div>
-              <span class="font-display text-2xl font-bold text-slate-900">20€</span>
+              <span class="font-display text-2xl font-bold text-slate-900">90€</span>
               <span class="text-slate-400 text-sm ml-1">une fois</span>
             </div>
             <span class="rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
-              Disponible avec Starter &amp; Pro
+              Inclus avec Business
             </span>
           </div>
-          <p class="text-xs text-slate-500">Cette option ne peut pas être achetée seule. Utilisez les boutons Starter + Setup ou Pro + Setup.</p>
+          <p class="text-xs text-slate-500">Cette option peut être ajoutée au checkout Starter ou Pro. Elle est comprise dans le plan Business.</p>
         </div>
       </div>
-
     </div>
   </section>
 
-  <!-- FAQ -->
   <section class="bg-white py-20">
     <div class="max-w-3xl mx-auto px-4 sm:px-6">
       <div class="text-center mb-10">
@@ -303,7 +303,6 @@ const faq = [
     </div>
   </section>
 
-  <!-- CTA -->
   <section class="bg-[linear-gradient(135deg,#0f172a_0%,#312e81_55%,#0284c7_100%)] py-20">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 text-center">
       <h2 class="font-display text-4xl font-bold text-white">Commencez votre essai gratuit</h2>
@@ -325,15 +324,9 @@ const faq = [
 <script>
   const billingButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-billing-mode]'));
 
-  function buttonClass(mode: 'monthly' | 'annual', activeMode: 'monthly' | 'annual', surface: string | undefined) {
-    const isActive = mode === activeMode;
-    const base = 'flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-all';
-    if (surface === 'dark') {
-      return isActive
-        ? `${base} bg-white text-indigo-700 shadow-sm`
-        : `${base} text-indigo-100 hover:bg-white/10`;
-    }
-    return isActive
+  function buttonClass(mode: 'monthly' | 'annual', activeMode: 'monthly' | 'annual') {
+    const base = 'rounded-xl px-5 py-2 text-sm font-semibold transition-all';
+    return mode === activeMode
       ? `${base} bg-slate-950 text-white shadow-sm`
       : `${base} text-slate-500 hover:bg-slate-100`;
   }
@@ -343,34 +336,41 @@ const faq = [
 
     billingButtons.forEach((button) => {
       const buttonMode = button.dataset.billingMode as 'monthly' | 'annual';
-      const surface = button.closest<HTMLElement>('.billing-toggle')?.dataset.surface;
-      button.className = buttonClass(buttonMode, mode, surface);
+      button.className = buttonClass(buttonMode, mode);
       button.setAttribute('aria-pressed', String(buttonMode === mode));
     });
 
     document.querySelectorAll<HTMLElement>('.price-display').forEach((el) => {
-      const val = isAnnual ? el.dataset.annual : el.dataset.monthly;
-      el.textContent = val + '€';
+      el.textContent = isAnnual ? (el.dataset.annual ?? '') : (el.dataset.monthly ?? '');
     });
 
-    const starterLabel = document.getElementById('starter-label');
-    const proLabel = document.getElementById('pro-label');
-    const starterPublicPrice = document.getElementById('starter-public-price');
-    const proPublicPrice = document.getElementById('pro-public-price');
-    if (starterLabel) starterLabel.textContent = isAnnual ? '25€/mois · économisez 120€/an' : '35€/mois sans engagement';
-    if (proLabel) proLabel.textContent = isAnnual ? '49€/mois · économisez 192€/an' : '65€/mois sans engagement';
-    if (starterPublicPrice) starterPublicPrice.textContent = isAnnual ? '35€/mois, soit 420€/an' : '45€/mois sans engagement';
-    if (proPublicPrice) proPublicPrice.textContent = isAnnual ? '65€/mois, soit 780€/an' : '75€/mois sans engagement';
+    document.querySelectorAll<HTMLElement>('.price-period').forEach((el) => {
+      el.textContent = isAnnual ? (el.dataset.annual ?? '') : (el.dataset.monthly ?? '');
+    });
+
+    document.querySelectorAll<HTMLElement>('.annual-saving').forEach((el) => {
+      el.classList.toggle('hidden', !isAnnual);
+    });
+
+    document.querySelectorAll<HTMLElement>('.billing-note').forEach((note) => {
+      note.textContent = isAnnual ? 'Paiement annuel en une fois' : 'Facturation mensuelle';
+    });
 
     document.querySelectorAll<HTMLElement>('.trial-note').forEach((note) => {
-      note.textContent = isAnnual ? '14 jours gratuits · Engagement annuel' : '14 jours gratuits · Annuler à tout moment';
+      note.textContent = isAnnual ? '14 jours gratuits · Paiement annuel' : '14 jours gratuits · Annuler à tout moment';
+    });
+
+    document.querySelectorAll<HTMLAnchorElement>('[data-plan-cta]').forEach((link) => {
+      const plan = link.dataset.planCta ?? 'starter';
+      const setup = link.dataset.setup === '1';
+      const next = `/abonnement/choix?plan=${encodeURIComponent(plan)}&billing=${mode}${setup ? '&setup=1' : ''}`;
+      link.href = `/register?next=${encodeURIComponent(next)}`;
     });
   }
 
   billingButtons.forEach((button) => {
     button.addEventListener('click', () => {
-      const mode = button.dataset.billingMode === 'monthly' ? 'monthly' : 'annual';
-      setMode(mode);
+      setMode(button.dataset.billingMode === 'monthly' ? 'monthly' : 'annual');
     });
   });
   setMode('annual');

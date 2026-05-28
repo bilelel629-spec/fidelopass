@@ -62,7 +62,12 @@ interface WalletMessage {
 
 function isProPlan(plan: string | null | undefined): boolean {
   const normalized = String(plan ?? 'starter').trim().toLowerCase();
-  return normalized === 'pro' || normalized.startsWith('pro-') || normalized.includes('pro');
+  return normalized === 'pro'
+    || normalized.startsWith('pro-')
+    || normalized.includes('pro')
+    || normalized === 'business'
+    || normalized.startsWith('business-')
+    || normalized.includes('business');
 }
 
 function hexToRgb(hex: string): string {

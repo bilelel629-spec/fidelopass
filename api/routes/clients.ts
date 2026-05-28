@@ -180,7 +180,7 @@ clientsRoutes.post('/', async (c) => {
       .select('id', { count: 'exact', head: true })
       .eq('commerce_id', commerce.id);
 
-    if ((activeCount ?? 0) >= limits.maxClients) {
+    if (typeof limits.maxClients === 'number' && (activeCount ?? 0) >= limits.maxClients) {
       return c.json({
         error: `Limite de ${limits.maxClients} cartes actives atteinte pour votre plan. Passez au plan supérieur pour continuer.`,
       }, 403);

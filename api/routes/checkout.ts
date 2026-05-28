@@ -12,6 +12,7 @@ import {
   resolveCommitmentLabelFromSlot,
   resolvePlanFromSlot,
   resolveUsablePriceId,
+  LEGACY_PRICE_IDS,
 } from '../services/stripe-billing';
 
 export const checkoutRoutes = new Hono<ApiEnv>();
@@ -25,10 +26,12 @@ const createSessionSchema = z.object({
 
 function pricingItem(slot: string, priceIds: Record<string, string>) {
   const priceId = priceIds[slot] ?? '';
+  const isLegacyPrice = Object.prototype.hasOwnProperty.call(LEGACY_PRICE_IDS, slot)
+    && LEGACY_PRICE_IDS[slot as keyof typeof LEGACY_PRICE_IDS].includes(priceId);
   return {
     slot,
     priceId,
-    available: Boolean(priceId),
+    available: Boolean(priceId) && !isLegacyPrice,
   };
 }
 
@@ -47,6 +50,11 @@ checkoutRoutes.get('/pricing-config', authMiddleware, async (c) => {
         monthly: pricingItem('pro_mensuel', priceIds),
         annual_monthly: pricingItem('pro_annuel_mensuel', priceIds),
         annual_once: pricingItem('pro_annuel_once', priceIds),
+      },
+      business: {
+        monthly: pricingItem('business_mensuel', priceIds),
+        annual_monthly: pricingItem('business_annuel_mensuel', priceIds),
+        annual_once: pricingItem('business_annuel_once', priceIds),
       },
       addons: {
         accompagnement: pricingItem('accompagnement', priceIds),
@@ -72,6 +80,9 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   if (!selectedSlot) {
     return c.json({ error: 'Prix Stripe invalide.' }, 400);
   }
+  if (LEGACY_PRICE_IDS[selectedSlot]?.includes(priceId)) {
+    return c.json({ error: 'Ce tarif Stripe correspond à une ancienne grille. Configurez le nouveau Price ID avant de créer le paiement.' }, 409);
+  }
 
   const expectedMode = resolveExpectedModeFromSlot(selectedSlot);
   const selectedPlan = resolvePlanFromSlot(selectedSlot);
@@ -87,7 +98,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   }
 
   if (includeAccompagnement && !isPlanCheckout) {
-    return c.json({ error: "L'option Accompagnement Setup ne peut être ajoutée qu'à un abonnement Starter ou Pro." }, 400);
+    return c.json({ error: "L'option Accompagnement Setup ne peut être ajoutée qu'à un abonnement Starter, Pro ou Business." }, 400);
   }
 
   const db = createServiceClient();
@@ -290,7 +301,8 @@ checkoutRoutes.post('/create-portal-session', authMiddleware, async (c) => {
 
       const isAnnualCommitment = commitment === 'annual-12m-monthly'
         || subscriptionSlot === 'starter_annuel_mensuel'
-        || subscriptionSlot === 'pro_annuel_mensuel';
+        || subscriptionSlot === 'pro_annuel_mensuel'
+        || subscriptionSlot === 'business_annuel_mensuel';
 
       if (isAnnualCommitment) {
         const startTsMs = (subscription.start_date ?? Math.floor(Date.now() / 1000)) * 1000;

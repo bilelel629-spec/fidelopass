@@ -61,6 +61,7 @@ const pointVenteUpdateSchema = z.object({
 export const PLAN_LIMITS = {
   starter: { maxClients: 500, maxPointsDeVente: 1, anniversaire: false, avisGoogle: false, maxScanners: null },
   pro:     { maxClients: 2000, maxPointsDeVente: 3, anniversaire: true,  avisGoogle: true,  maxScanners: null },
+  business: { maxClients: null, maxPointsDeVente: 10, anniversaire: true, avisGoogle: true, maxScanners: null },
   'sur-mesure': { maxClients: 20000, maxPointsDeVente: 10, anniversaire: true, avisGoogle: true, maxScanners: null },
 } as const;
 
@@ -73,6 +74,7 @@ export function normalizePlan(plan: string | null | undefined): keyof typeof PLA
   if (!normalized) return 'starter';
   if (normalized === 'starter' || normalized.startsWith('starter-') || normalized.includes('starter')) return 'starter';
   if (normalized === 'pro' || normalized.startsWith('pro-') || normalized.includes('pro')) return 'pro';
+  if (normalized === 'business' || normalized.startsWith('business-') || normalized.includes('business')) return 'business';
   if (
     normalized === 'sur-mesure'
     || normalized.includes('sur-mesure')

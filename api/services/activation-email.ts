@@ -3,7 +3,7 @@ import { getPublicSiteUrl } from '../utils/public-site-url';
 type ActivationEmailInput = {
   toEmail: string;
   commerceName: string;
-  plan: 'starter' | 'pro';
+  plan: 'starter' | 'pro' | 'business';
   billingStatus: 'trialing' | 'active';
 };
 
@@ -19,7 +19,8 @@ function htmlEscape(value: string) {
     .replaceAll("'", '&#39;');
 }
 
-function planLabel(plan: 'starter' | 'pro') {
+function planLabel(plan: 'starter' | 'pro' | 'business') {
+  if (plan === 'business') return 'Business';
   return plan === 'pro' ? 'Pro' : 'Starter';
 }
 

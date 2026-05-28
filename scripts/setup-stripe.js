@@ -41,11 +41,10 @@ async function create() {
 
   const starterAnnuel = await stripe.prices.create({
     product: starter.id,
-    unit_amount: 29000,
+    unit_amount: 29500,
     currency: 'eur',
-    recurring: { interval: 'year', trial_period_days: 14 },
     nickname: 'Starter annuel',
-    metadata: { plan: 'starter', billing: 'annual' },
+    metadata: { plan: 'starter', billing: 'annual_once' },
   });
   console.log('   Prix annuel  :', starterAnnuel.id);
 
@@ -59,7 +58,7 @@ async function create() {
 
   const proMensuel = await stripe.prices.create({
     product: pro.id,
-    unit_amount: 5900,
+    unit_amount: 6900,
     currency: 'eur',
     recurring: { interval: 'month', trial_period_days: 14 },
     nickname: 'Pro mensuel',
@@ -69,15 +68,41 @@ async function create() {
 
   const proAnnuel = await stripe.prices.create({
     product: pro.id,
-    unit_amount: 59000,
+    unit_amount: 69900,
     currency: 'eur',
-    recurring: { interval: 'year', trial_period_days: 14 },
     nickname: 'Pro annuel',
-    metadata: { plan: 'pro', billing: 'annual' },
+    metadata: { plan: 'pro', billing: 'annual_once' },
   });
   console.log('   Prix annuel  :', proAnnuel.id);
 
-  // ── 3. Accompagnement Setup (one-time) ──────────────────────────────
+  // ── 3. Business ────────────────────────────────────────────────────
+  const business = await stripe.products.create({
+    name: 'Business',
+    description: 'Cartes actives illimitées, accompagnement setup inclus, pilotage avancé',
+    metadata: { plan: 'business' },
+  });
+  console.log('\n✅  Produit Business :', business.id);
+
+  const businessMensuel = await stripe.prices.create({
+    product: business.id,
+    unit_amount: 19900,
+    currency: 'eur',
+    recurring: { interval: 'month', trial_period_days: 14 },
+    nickname: 'Business mensuel',
+    metadata: { plan: 'business', billing: 'monthly' },
+  });
+  console.log('   Prix mensuel :', businessMensuel.id);
+
+  const businessAnnuel = await stripe.prices.create({
+    product: business.id,
+    unit_amount: 199000,
+    currency: 'eur',
+    nickname: 'Business annuel',
+    metadata: { plan: 'business', billing: 'annual_once' },
+  });
+  console.log('   Prix annuel  :', businessAnnuel.id);
+
+  // ── 4. Accompagnement Setup (one-time) ──────────────────────────────
   const accompagnement = await stripe.products.create({
     name: 'Accompagnement Setup',
     description: 'Aide à la configuration, paramétrage initial et mise en ligne de votre première carte',
@@ -85,14 +110,14 @@ async function create() {
   });
   const accompagnementPrice = await stripe.prices.create({
     product: accompagnement.id,
-    unit_amount: 2000,
+    unit_amount: 9000,
     currency: 'eur',
     nickname: 'Accompagnement Setup',
     metadata: { type: 'one_time', action: 'onboarding_purchased' },
   });
   console.log('\n✅  Accompagnement Setup :', accompagnementPrice.id);
 
-  // ── 4. Pack SMS 100 ─────────────────────────────────────────────────
+  // ── 5. Pack SMS 100 ─────────────────────────────────────────────────
   const sms = await stripe.products.create({
     name: 'Pack SMS',
     description: 'Crédits SMS pour campagnes clients',
@@ -129,9 +154,14 @@ async function create() {
   // ── Résumé ───────────────────────────────────────────────────────────
   const ids = {
     starter_mensuel: starterMensuel.id,
-    starter_annuel:  starterAnnuel.id,
+    starter_annuel_once:  starterAnnuel.id,
+    starter_annuel_mensuel:  '',
     pro_mensuel:     proMensuel.id,
-    pro_annuel:      proAnnuel.id,
+    pro_annuel_once:      proAnnuel.id,
+    pro_annuel_mensuel:      '',
+    business_mensuel: businessMensuel.id,
+    business_annuel_once: businessAnnuel.id,
+    business_annuel_mensuel: '',
     accompagnement:  accompagnementPrice.id,
     sms_100:         sms100.id,
     sms_500:         sms500.id,

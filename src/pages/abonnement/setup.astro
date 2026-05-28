@@ -32,7 +32,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         <label class="mt-5 flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 cursor-pointer">
           <input id="setup-addon" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
           <span class="text-sm text-slate-700 leading-relaxed">
-            Ajouter <strong>Accompagnement Setup (+20€ une seule fois)</strong><br />
+            Ajouter <strong>Accompagnement Setup (+90€ une seule fois)</strong><br />
             <span class="text-xs text-slate-500">
               Un designer configure votre première carte pour qu’elle soit adaptée à votre commerce
               (logo, couleurs, structure, rendu Wallet), selon les options de personnalisation disponibles sur la plateforme.
@@ -78,7 +78,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   const checkoutBtn = document.getElementById('btn-checkout') as HTMLButtonElement;
 
   type Selection = {
-    plan: 'starter' | 'pro';
+    plan: 'starter' | 'pro' | 'business';
     mode: 'monthly' | 'annual';
     annualPaymentType?: 'subscription' | 'payment';
     checkoutMode?: 'subscription' | 'payment';
@@ -88,7 +88,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       | 'starter_annuel_once'
       | 'pro_mensuel'
       | 'pro_annuel_mensuel'
-      | 'pro_annuel_once';
+      | 'pro_annuel_once'
+      | 'business_mensuel'
+      | 'business_annuel_mensuel'
+      | 'business_annuel_once';
     priceId: string;
     setupRequested?: boolean;
     selectedAt: number;
@@ -100,7 +103,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       if (!raw) return null;
       const parsed = JSON.parse(raw) as Partial<Selection>;
       if (!parsed.plan || !parsed.mode || !parsed.priceId) return null;
-      if (parsed.plan !== 'starter' && parsed.plan !== 'pro') return null;
+      if (parsed.plan !== 'starter' && parsed.plan !== 'pro' && parsed.plan !== 'business') return null;
       if (parsed.mode !== 'monthly' && parsed.mode !== 'annual') return null;
       if (parsed.checkoutMode && parsed.checkoutMode !== 'subscription' && parsed.checkoutMode !== 'payment') return null;
       if (parsed.annualPaymentType && parsed.annualPaymentType !== 'subscription' && parsed.annualPaymentType !== 'payment') return null;
@@ -111,11 +114,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   }
 
   function describeSelection(selection: Selection) {
-    const planLabel = selection.plan === 'pro' ? 'Plan Pro' : 'Plan Starter';
+    const planLabel = selection.plan === 'business' ? 'Plan Business' : selection.plan === 'pro' ? 'Plan Pro' : 'Plan Starter';
     const billingLabel = selection.mode === 'annual'
-      ? (selection.annualPaymentType === 'payment'
-        ? 'Facturation annuelle — paiement en une fois'
-        : 'Facturation annuelle — paiement mensuel (engagement 12 mois)')
+      ? 'Facturation annuelle — paiement en une fois'
       : 'Facturation mensuelle — résiliable à tout moment';
     summaryPlan.textContent = planLabel;
     summaryBilling.textContent = billingLabel;
@@ -149,7 +150,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     window.location.replace('/abonnement/choix');
   } else {
     describeSelection(initialSelection);
-    if (initialSelection.setupRequested) {
+    if (initialSelection.plan === 'business') {
+      setupAddon.checked = false;
+      setupAddon.closest('label')?.classList.add('hidden');
+    } else if (initialSelection.setupRequested) {
       setupAddon.checked = true;
     }
   }
@@ -173,6 +177,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         pro_mensuel: payload?.data?.pro?.monthly,
         pro_annuel_mensuel: payload?.data?.pro?.annual_monthly,
         pro_annuel_once: payload?.data?.pro?.annual_once,
+        business_mensuel: payload?.data?.business?.monthly,
+        business_annuel_mensuel: payload?.data?.business?.annual_monthly,
+        business_annuel_once: payload?.data?.business?.annual_once,
       } as const;
       const slot = selection.priceSlot;
       if (!slot || !lookup[slot]) return selection;
@@ -222,7 +229,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
           priceId: syncedSelection.priceId,
           priceSlot: syncedSelection.priceSlot,
           mode: syncedSelection.checkoutMode ?? 'subscription',
-          includeAccompagnement: setupAddon.checked,
+          includeAccompagnement: syncedSelection.plan === 'business' ? false : setupAddon.checked,
         }),
       });
 

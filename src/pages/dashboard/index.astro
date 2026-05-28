@@ -259,6 +259,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     vector-effect: non-scaling-stroke;
   }
 
+  :global(.chart-volume-bar) {
+    animation: chart-bars-rise 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    filter: drop-shadow(0 12px 18px rgba(37, 99, 235, 0.08));
+    transform-origin: center bottom;
+  }
+
+  :global(.chart-volume-bar--empty) {
+    opacity: 0.34;
+    filter: none;
+  }
+
   :global(.chart-active-line) {
     stroke: rgba(37, 99, 235, 0.18);
     stroke-width: 1;
@@ -272,7 +283,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   :global(.chart-line) {
     animation: chart-draw 1200ms cubic-bezier(0.22, 1, 0.36, 1) both;
-    filter: drop-shadow(0 10px 18px rgba(37, 99, 235, 0.18));
+    filter: drop-shadow(0 10px 18px rgba(37, 99, 235, 0.22));
   }
 
   :global(.chart-area) {
@@ -343,9 +354,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   }
 
+  @keyframes chart-bars-rise {
+    from {
+      opacity: 0;
+      transform: scaleY(0.45);
+    }
+    to {
+      opacity: 1;
+      transform: scaleY(1);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     :global(.chart-line),
-    :global(.chart-area) {
+    :global(.chart-area),
+    :global(.chart-volume-bar) {
       animation: none;
     }
 
@@ -484,6 +507,25 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         const y = paddingTop + chartHeight * ratio;
         return `<line x1="${paddingLeft}" y1="${y.toFixed(1)}" x2="${width - paddingRight}" y2="${y.toFixed(1)}" class="chart-grid-line"></line>`;
       }).join('');
+      const barSlot = rows.length > 1 ? step : 92;
+      const barWidth = Math.min(34, Math.max(14, barSlot * 0.34));
+      const maxBarHeight = Math.max(64, chartHeight * 0.42);
+      const minBarHeight = total > 0 ? 12 : 16;
+      const bars = points.map((point: { visits: number; x: number }, index: number) => {
+        const ratio = maxRaw > 0 ? point.visits / maxRaw : 0;
+        const emptyWave = 0.56 + Math.sin(index * 0.72) * 0.18;
+        const barHeight = total > 0
+          ? point.visits > 0
+            ? Math.max(minBarHeight, ratio * maxBarHeight)
+            : 6
+          : Math.max(10, emptyWave * 20);
+        const x = point.x - barWidth / 2;
+        const y = baseline - barHeight;
+        const radius = Math.min(barWidth / 2, 10);
+        const className = point.visits > 0 ? 'chart-volume-bar' : 'chart-volume-bar chart-volume-bar--empty';
+        const fill = point.visits > 0 ? 'url(#visitsBarGradient)' : 'url(#visitsEmptyBarGradient)';
+        return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barWidth.toFixed(1)}" height="${barHeight.toFixed(1)}" rx="${radius.toFixed(1)}" fill="${fill}" class="${className}" style="animation-delay:${(index * 38).toFixed(0)}ms"></rect>`;
+      }).join('');
       const peakDots = points.map((point: { visits: number; x: number; y: number }, index: number) => {
         const previous = rows[index - 1]?.visits ?? 0;
         const next = rows[index + 1]?.visits ?? 0;
@@ -544,8 +586,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               <stop offset="55%" stop-color="#3b82f6"></stop>
               <stop offset="100%" stop-color="#06b6d4"></stop>
             </linearGradient>
+            <linearGradient id="visitsBarGradient" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.34"></stop>
+              <stop offset="100%" stop-color="#2563eb" stop-opacity="0.08"></stop>
+            </linearGradient>
+            <linearGradient id="visitsEmptyBarGradient" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#cbd5e1" stop-opacity="0.45"></stop>
+              <stop offset="100%" stop-color="#e2e8f0" stop-opacity="0.12"></stop>
+            </linearGradient>
           </defs>
           ${gridLines}
+          ${bars}
           <path d="${areaPath}" fill="url(#visitsAreaGradient)" class="chart-area"></path>
           <path d="${linePath}" fill="none" stroke="url(#visitsLineGradient)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" class="chart-line"></path>
           ${peakDots}

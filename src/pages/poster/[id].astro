@@ -24,8 +24,8 @@ const apiBase = (
           <a href="/dashboard/carte" class="rounded-full px-3 py-2 transition hover:bg-slate-100 hover:text-slate-950">Ma carte</a>
           <a href="/dashboard/notifications" class="rounded-full px-3 py-2 transition hover:bg-slate-100 hover:text-slate-950">Notifications</a>
         </nav>
-        <button id="download-all-top" type="button" class="primary-export-btn">
-          Télécharger tous les formats
+        <button id="download-pdf-top" type="button" class="primary-export-btn">
+          Télécharger PDF
         </button>
       </div>
     </header>
@@ -43,7 +43,7 @@ const apiBase = (
             <div class="stepper">
               <div class="step is-active"><span>1</span><div><strong>Choisir un modèle</strong><small>Base visuelle de l'affiche</small></div></div>
               <div class="step is-active"><span>2</span><div><strong>Personnaliser</strong><small>Textes, couleurs et logo</small></div></div>
-              <div class="step"><span>3</span><div><strong>Aperçu & export</strong><small>PDF, PNG et story</small></div></div>
+              <div class="step"><span>3</span><div><strong>Aperçu & export</strong><small>PDF imprimable A4</small></div></div>
             </div>
           </section>
 
@@ -126,18 +126,21 @@ const apiBase = (
               <div>
                 <p class="section-kicker">Couleurs</p>
                 <h2>Palette</h2>
+                <p class="section-note">La palette de votre carte est appliquée automatiquement.</p>
               </div>
             </div>
             <div class="palette-row">
-              <button type="button" class="palette-btn is-selected" data-primary="#082f25" data-secondary="#c8a45d"><span style="background:#082f25"></span><span style="background:#c8a45d"></span></button>
-              <button type="button" class="palette-btn" data-primary="#111827" data-secondary="#38bdf8"><span style="background:#111827"></span><span style="background:#38bdf8"></span></button>
-              <button type="button" class="palette-btn" data-primary="#312e81" data-secondary="#a78bfa"><span style="background:#312e81"></span><span style="background:#a78bfa"></span></button>
-              <button type="button" class="palette-btn" data-primary="#fff7ed" data-secondary="#f97316"><span style="background:#fff7ed"></span><span style="background:#f97316"></span></button>
-              <button type="button" class="palette-btn" data-primary="#fdf2f8" data-secondary="#ec4899"><span style="background:#fdf2f8"></span><span style="background:#ec4899"></span></button>
+              <button id="card-palette-btn" type="button" class="palette-btn hidden" data-primary="#082f25" data-secondary="#c8a45d" data-text="#ffffff" title="Palette de la carte"><span style="background:#082f25"></span><span style="background:#c8a45d"></span><span style="background:#ffffff"></span></button>
+              <button type="button" class="palette-btn is-selected" data-primary="#082f25" data-secondary="#c8a45d" data-text="#ffffff"><span style="background:#082f25"></span><span style="background:#c8a45d"></span><span style="background:#ffffff"></span></button>
+              <button type="button" class="palette-btn" data-primary="#111827" data-secondary="#38bdf8" data-text="#ffffff"><span style="background:#111827"></span><span style="background:#38bdf8"></span><span style="background:#ffffff"></span></button>
+              <button type="button" class="palette-btn" data-primary="#312e81" data-secondary="#a78bfa" data-text="#ffffff"><span style="background:#312e81"></span><span style="background:#a78bfa"></span><span style="background:#ffffff"></span></button>
+              <button type="button" class="palette-btn" data-primary="#fff7ed" data-secondary="#f97316" data-text="#0f172a"><span style="background:#fff7ed"></span><span style="background:#f97316"></span><span style="background:#0f172a"></span></button>
+              <button type="button" class="palette-btn" data-primary="#fdf2f8" data-secondary="#ec4899" data-text="#831843"><span style="background:#fdf2f8"></span><span style="background:#ec4899"></span><span style="background:#831843"></span></button>
             </div>
             <div class="color-grid">
               <label class="color-field"><span>Principale</span><input id="field-primary" type="color" value="#082f25" /></label>
               <label class="color-field"><span>Secondaire</span><input id="field-secondary" type="color" value="#c8a45d" /></label>
+              <label class="color-field"><span>Texte</span><input id="field-text" type="color" value="#ffffff" /></label>
             </div>
           </section>
         </div>
@@ -233,15 +236,6 @@ const apiBase = (
         <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>
         <span><strong>Télécharger PDF</strong><small>Impression A4</small></span>
       </button>
-      <button id="download-png" type="button" class="export-action">
-        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path><path d="M12 15V3"></path></svg>
-        <span><strong>Télécharger PNG</strong><small>Haute qualité</small></span>
-      </button>
-      <button id="download-story" type="button" class="export-action">
-        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"></rect><path d="M11 18h2"></path></svg>
-        <span><strong>Story Instagram</strong><small>Format mobile</small></span>
-      </button>
-      <button id="download-all" type="button" class="export-all-btn">Télécharger tous les formats</button>
     </div>
   </div>
 </BaseLayout>
@@ -338,6 +332,13 @@ const apiBase = (
     font-size: 1rem;
     font-weight: 850;
     color: #0f172a;
+  }
+
+  .section-note {
+    margin-top: 0.25rem;
+    color: #64748b;
+    font-size: 0.78rem;
+    line-height: 1.4;
   }
 
   .mini-link {
@@ -582,7 +583,7 @@ const apiBase = (
 
   .color-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.75rem;
   }
 
@@ -732,9 +733,9 @@ const apiBase = (
     justify-content: center;
     overflow: hidden;
     border-radius: 1.25rem;
-    border: 1px solid rgba(255,255,255,0.28);
-    background: rgba(255,255,255,0.14);
-    color: white;
+    border: 1px solid color-mix(in srgb, var(--poster-ink) 28%, transparent);
+    background: color-mix(in srgb, var(--poster-ink) 14%, transparent);
+    color: var(--poster-ink);
     font-size: 1.4rem;
     font-weight: 900;
     backdrop-filter: blur(12px);
@@ -763,11 +764,11 @@ const apiBase = (
 
   .poster-top-badge,
   .wallet-badges span {
-    border: 1px solid rgba(255,255,255,0.22);
+    border: 1px solid color-mix(in srgb, var(--poster-ink) 22%, transparent);
     border-radius: 999px;
-    background: rgba(255,255,255,0.12);
+    background: color-mix(in srgb, var(--poster-ink) 12%, transparent);
     padding: 0.55rem 0.8rem;
-    color: rgba(255,255,255,0.86);
+    color: var(--poster-ink);
     font-size: 0.74rem;
     font-weight: 850;
     backdrop-filter: blur(12px);
@@ -791,7 +792,7 @@ const apiBase = (
   }
 
   .reward-badge span {
-    color: rgba(255,255,255,0.7);
+    color: var(--poster-muted);
     font-size: 0.72rem;
     font-weight: 900;
     letter-spacing: 0.16em;
@@ -799,7 +800,7 @@ const apiBase = (
   }
 
   .reward-badge strong {
-    color: white;
+    color: var(--poster-ink);
     font-size: 0.9rem;
     font-weight: 950;
   }
@@ -817,7 +818,7 @@ const apiBase = (
   .poster-hero p {
     margin-top: 1.4rem;
     max-width: 29rem;
-    color: rgba(255,255,255,0.78);
+    color: var(--poster-muted);
     font-size: clamp(1.15rem, 2.5vw, 1.7rem);
     font-weight: 650;
     line-height: 1.25;
@@ -870,8 +871,8 @@ const apiBase = (
     align-items: center;
     gap: 0.75rem;
     border-radius: 1.25rem;
-    border: 1px solid rgba(255,255,255,0.14);
-    background: rgba(255,255,255,0.09);
+    border: 1px solid color-mix(in srgb, var(--poster-ink) 14%, transparent);
+    background: color-mix(in srgb, var(--poster-ink) 9%, transparent);
     padding: 0.85rem;
     backdrop-filter: blur(12px);
   }
@@ -883,12 +884,12 @@ const apiBase = (
     align-items: center;
     justify-content: center;
     border-radius: 999px;
-    background: rgba(255,255,255,0.18);
+    background: color-mix(in srgb, var(--poster-ink) 18%, transparent);
     font-weight: 950;
   }
 
   .poster-instructions p {
-    color: rgba(255,255,255,0.86);
+    color: var(--poster-ink);
     font-size: 0.92rem;
     font-weight: 720;
   }
@@ -907,7 +908,7 @@ const apiBase = (
   .poster-contact {
     display: grid;
     gap: 0.18rem;
-    color: rgba(255,255,255,0.62);
+    color: var(--poster-muted);
     font-size: 0.72rem;
     font-weight: 650;
     text-align: right;
@@ -921,7 +922,7 @@ const apiBase = (
     position: absolute;
     bottom: 2.3%;
     left: 7.5%;
-    color: rgba(255,255,255,0.38);
+    color: color-mix(in srgb, var(--poster-ink) 42%, transparent);
     font-size: 0.7rem;
     font-weight: 750;
   }
@@ -933,7 +934,7 @@ const apiBase = (
     z-index: 50;
     margin: auto;
     display: flex;
-    max-width: 1120px;
+    max-width: 420px;
     gap: 0.75rem;
     border: 1px solid rgba(226, 232, 240, 0.9);
     border-radius: 1.5rem;
@@ -948,6 +949,7 @@ const apiBase = (
     min-width: 0;
     flex: 1;
     align-items: center;
+    justify-content: center;
     gap: 0.65rem;
     border-radius: 1rem;
     border: 1px solid #e2e8f0;
@@ -1077,11 +1079,7 @@ const apiBase = (
 
     .export-bar {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-    }
-
-    .export-all-btn {
-      grid-column: 1 / -1;
+      grid-template-columns: 1fr;
     }
 
     .poster-sheet {
@@ -1095,12 +1093,12 @@ const apiBase = (
   const API = apiBase;
   const qrBase = 'https://api.qrserver.com/v1/create-qr-code/';
   const templatePresets = {
-    restaurant: { primary: '#082f25', secondary: '#c8a45d', image: '/banner-templates/restaurant.png', title: 'SCANNEZ & PROFITEZ' },
-    moderne: { primary: '#0f172a', secondary: '#38bdf8', image: '/banner-templates/template-13.png', title: 'SCANNEZ & PROFITEZ' },
-    elegant: { primary: '#111827', secondary: '#a78bfa', image: '/banner-templates/template-10.png', title: 'VOTRE CARTE FIDÉLITÉ' },
-    cafe: { primary: '#3f2416', secondary: '#f8d7a1', image: '/banner-templates/template-18.png', title: 'SCANNEZ & SAVOUREZ' },
-    beaute: { primary: '#831843', secondary: '#f9a8d4', image: '/banner-templates/nail-art.png', title: 'SCANNEZ & PROFITEZ' },
-    minimal: { primary: '#f8fafc', secondary: '#2563eb', image: '/banner-templates/template-13.png', title: 'AJOUTEZ LA CARTE' },
+    restaurant: { primary: '#082f25', secondary: '#c8a45d', text: '#ffffff', image: '/banner-templates/restaurant.png', title: 'SCANNEZ & PROFITEZ' },
+    moderne: { primary: '#0f172a', secondary: '#38bdf8', text: '#ffffff', image: '/banner-templates/template-13.png', title: 'SCANNEZ & PROFITEZ' },
+    elegant: { primary: '#111827', secondary: '#a78bfa', text: '#ffffff', image: '/banner-templates/template-10.png', title: 'VOTRE CARTE FIDÉLITÉ' },
+    cafe: { primary: '#3f2416', secondary: '#f8d7a1', text: '#ffffff', image: '/banner-templates/template-18.png', title: 'SCANNEZ & SAVOUREZ' },
+    beaute: { primary: '#831843', secondary: '#f9a8d4', text: '#ffffff', image: '/banner-templates/nail-art.png', title: 'SCANNEZ & PROFITEZ' },
+    minimal: { primary: '#f8fafc', secondary: '#2563eb', text: '#0f172a', image: '/banner-templates/template-13.png', title: 'AJOUTEZ LA CARTE' },
   };
 
   const templateAliases = {
@@ -1138,6 +1136,7 @@ const apiBase = (
     address: '',
     primary: initialPreset.primary,
     secondary: initialPreset.secondary,
+    text: initialPreset.text,
     image: initialPreset.image,
   };
 
@@ -1164,6 +1163,16 @@ const apiBase = (
     if (field) field.value = value ?? '';
   }
 
+  function hexToRgba(hex, alpha = 1) {
+    const value = String(hex || '').replace('#', '').trim();
+    if (!/^[0-9a-f]{6}$/i.test(value)) return `rgba(255,255,255,${alpha})`;
+    const intValue = parseInt(value, 16);
+    const red = (intValue >> 16) & 255;
+    const green = (intValue >> 8) & 255;
+    const blue = intValue & 255;
+    return `rgba(${red},${green},${blue},${alpha})`;
+  }
+
   function syncFieldsFromState() {
     setField('field-commerce', state.commerce);
     setField('field-title', state.title);
@@ -1174,6 +1183,7 @@ const apiBase = (
     setField('field-address', state.address);
     setField('field-primary', state.primary);
     setField('field-secondary', state.secondary);
+    setField('field-text', state.text);
   }
 
   function readFields() {
@@ -1186,6 +1196,7 @@ const apiBase = (
     state.address = $('field-address')?.value?.trim() || '';
     state.primary = $('field-primary')?.value || state.primary;
     state.secondary = $('field-secondary')?.value || state.secondary;
+    state.text = $('field-text')?.value || state.text;
   }
 
   function setText(id, value) {
@@ -1200,8 +1211,8 @@ const apiBase = (
     sheet.style.setProperty('--poster-secondary', state.secondary);
     sheet.style.setProperty('--poster-image', `url("${state.image}")`);
     const isLight = ['minimal'].includes(state.template) || state.primary.toLowerCase() === '#f8fafc' || state.primary.toLowerCase() === '#fff7ed';
-    sheet.style.setProperty('--poster-ink', isLight ? '#0f172a' : '#ffffff');
-    sheet.style.setProperty('--poster-muted', isLight ? 'rgba(15,23,42,0.62)' : 'rgba(255,255,255,0.72)');
+    sheet.style.setProperty('--poster-ink', state.text);
+    sheet.style.setProperty('--poster-muted', hexToRgba(state.text, 0.72));
     sheet.classList.toggle('is-light', isLight);
 
     setText('poster-commerce', state.commerce);
@@ -1240,7 +1251,10 @@ const apiBase = (
       button.classList.toggle('is-selected', button.dataset.template === state.template);
     });
     document.querySelectorAll('.palette-btn').forEach((button) => {
-      button.classList.toggle('is-selected', button.dataset.primary === state.primary && button.dataset.secondary === state.secondary);
+      button.classList.toggle(
+        'is-selected',
+        button.dataset.primary === state.primary && button.dataset.secondary === state.secondary && button.dataset.text === state.text,
+      );
     });
   }
 
@@ -1250,62 +1264,15 @@ const apiBase = (
     state.template = normalizedName;
     state.primary = preset.primary;
     state.secondary = preset.secondary;
+    state.text = preset.text;
     state.image = preset.image;
     if (!keepText) state.title = preset.title;
     setField('field-primary', state.primary);
     setField('field-secondary', state.secondary);
+    setField('field-text', state.text);
     if (!keepText) setField('field-title', state.title);
     updateTemplateSelection();
     applyCreator();
-  }
-
-  async function downloadPosterImage(filename, story = false) {
-    const sheet = $('poster-sheet');
-    const rect = sheet.getBoundingClientRect();
-    const width = story ? 1080 : 1600;
-    const height = story ? 1920 : Math.round(width * (rect.height / rect.width));
-    const clone = sheet.cloneNode(true);
-    clone.style.width = `${width}px`;
-    clone.style.height = `${height}px`;
-    clone.style.borderRadius = story ? '54px' : '0';
-    clone.style.transform = 'none';
-    clone.querySelectorAll('img').forEach((img) => img.setAttribute('crossorigin', 'anonymous'));
-
-    const css = Array.from(document.styleSheets)
-      .map((sheetItem) => {
-        try {
-          return Array.from(sheetItem.cssRules).map((rule) => rule.cssText).join('\n');
-        } catch {
-          return '';
-        }
-      })
-      .join('\n');
-    const html = `<style>${css}</style>${clone.outerHTML}`;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%">${html}</foreignObject></svg>`;
-    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
-    const image = new Image();
-    image.crossOrigin = 'anonymous';
-    await new Promise((resolve, reject) => {
-      image.onload = resolve;
-      image.onerror = reject;
-      image.src = url;
-    });
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(image, 0, 0);
-    URL.revokeObjectURL(url);
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(link.href);
-    }, 'image/png', 0.96);
   }
 
   async function loadPoster() {
@@ -1323,10 +1290,22 @@ const apiBase = (
       state.reward = reward;
       state.primary = data.carte.couleur_fond || state.primary;
       state.secondary = data.carte.couleur_accent || state.secondary;
+      state.text = data.carte.couleur_texte || state.text;
       state.phone = data.commerce.telephone || '';
       state.instagram = data.commerce.instagram || '';
       state.address = data.commerce.adresse || '';
       state.title = templatePresets[state.template]?.title || state.title;
+
+      const cardPaletteButton = $('card-palette-btn');
+      if (cardPaletteButton) {
+        cardPaletteButton.dataset.primary = state.primary;
+        cardPaletteButton.dataset.secondary = state.secondary;
+        cardPaletteButton.dataset.text = state.text;
+        cardPaletteButton.querySelectorAll('span')[0].style.background = state.primary;
+        cardPaletteButton.querySelectorAll('span')[1].style.background = state.secondary;
+        cardPaletteButton.querySelectorAll('span')[2].style.background = state.text;
+        cardPaletteButton.classList.remove('hidden');
+      }
 
       syncFieldsFromState();
       $('poster-qr').src = qrUrl(carteId);
@@ -1353,13 +1332,14 @@ const apiBase = (
     button.addEventListener('click', () => {
       setField('field-primary', button.dataset.primary);
       setField('field-secondary', button.dataset.secondary);
+      setField('field-text', button.dataset.text || state.text);
       document.querySelectorAll('.palette-btn').forEach((item) => item.classList.remove('is-selected'));
       button.classList.add('is-selected');
       applyCreator();
     });
   });
 
-  ['field-commerce', 'field-title', 'field-subtitle', 'field-reward', 'field-phone', 'field-instagram', 'field-address', 'field-primary', 'field-secondary']
+  ['field-commerce', 'field-title', 'field-subtitle', 'field-reward', 'field-phone', 'field-instagram', 'field-address', 'field-primary', 'field-secondary', 'field-text']
     .forEach((id) => $(id)?.addEventListener('input', applyCreator));
 
   $('poster-logo-upload')?.addEventListener('change', (event) => {
@@ -1378,14 +1358,7 @@ const apiBase = (
   });
 
   $('download-pdf')?.addEventListener('click', () => window.print());
-  $('download-png')?.addEventListener('click', () => downloadPosterImage(`fidelopass-affiche-${carteId}.png`));
-  $('download-story')?.addEventListener('click', () => downloadPosterImage(`fidelopass-story-${carteId}.png`, true));
-  $('download-all')?.addEventListener('click', async () => {
-    await downloadPosterImage(`fidelopass-affiche-${carteId}.png`);
-    await downloadPosterImage(`fidelopass-story-${carteId}.png`, true);
-    window.print();
-  });
-  $('download-all-top')?.addEventListener('click', () => $('download-all')?.click());
+  $('download-pdf-top')?.addEventListener('click', () => $('download-pdf')?.click());
 
   loadPoster();
 </script>

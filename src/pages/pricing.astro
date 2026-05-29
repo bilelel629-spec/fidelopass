@@ -319,18 +319,18 @@ const plans = [
 
           <div class="rounded-[1.8rem] border border-slate-200 bg-[linear-gradient(155deg,#0f172a_0%,#1e3a8a_62%,#0891b2_100%)] p-6 text-white shadow-[0_28px_70px_-42px_rgba(15,23,42,0.75)]">
             <p class="text-xs font-bold uppercase tracking-[0.22em] text-cyan-100/80">Projection simple</p>
-            <p id="roi-formula" class="mt-4 text-sm leading-7 text-blue-50">60 clients reviennent x 25€ = 1 500€ / mois</p>
+            <p id="roi-formula" class="mt-4 text-sm leading-7 text-blue-50">135 clients reviennent x 25€ = 3 375€ / mois</p>
             <div class="mt-6 rounded-2xl bg-white/14 p-4 ring-1 ring-white/20">
               <p class="text-sm font-semibold text-cyan-50">Chiffre d’affaires potentiel</p>
-              <p id="roi-revenue" class="mt-1 font-display text-4xl font-extrabold tracking-[-0.05em] text-white [text-shadow:0_2px_24px_rgba(255,255,255,0.28)]">1 500€</p>
+              <p id="roi-revenue" class="mt-1 font-display text-4xl font-extrabold tracking-[-0.05em] text-white [text-shadow:0_2px_24px_rgba(255,255,255,0.28)]">3 375€</p>
             </div>
             <div class="mt-3 rounded-2xl bg-white/10 p-4 ring-1 ring-white/15">
               <p id="roi-plan-cost" class="text-sm text-blue-100">Plan Pro : 69€ / mois</p>
-              <p class="mt-1 text-xs text-blue-100/80">Hypothèse : 12% des cartes actives génèrent 1 visite supplémentaire par mois.</p>
+              <p class="mt-1 text-xs text-blue-100/80">Hypothèse : 27% des cartes actives génèrent 1 visite supplémentaire par mois (moyenne observée).</p>
             </div>
             <div class="mt-5 rounded-2xl bg-white p-4 text-slate-950">
               <p class="text-sm font-semibold text-slate-500">Gain estimé après abonnement</p>
-              <p id="roi-profit" class="mt-1 font-display text-4xl font-extrabold tracking-[-0.05em] text-emerald-600">1 431€</p>
+              <p id="roi-profit" class="mt-1 font-display text-4xl font-extrabold tracking-[-0.05em] text-emerald-600">3 306€</p>
             </div>
           </div>
         </div>
@@ -451,7 +451,7 @@ const plans = [
     const basket = Number(roiBasket?.value ?? 25);
     const activeButton = roiButtons.find((button) => button.dataset.roiPlan === selectedRoiPlan) ?? roiButtons[0];
     const cost = Number(activeButton?.dataset.roiCost ?? 69);
-    const returnClients = Math.round(cards * 0.12);
+    const returnClients = Math.round(cards * 0.27);
     const revenue = returnClients * basket;
     const profit = revenue - cost;
 

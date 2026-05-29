@@ -163,7 +163,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             {name:'Boucherie', badge:'BC', fond:'#111827', texte:'#fff3d1', accent:'#ffe7bd', fond2:'#1f2937', pattern:'none', layout:'background', stamp:'🥩', type:'tampons', total:'8', reward:'1 avantage maison', label:'Client', desc:'Votre carte fidélité boucherie', message:'Votre avantage boucherie est disponible.', banner:'/banner-templates/template-03.png'},
             {name:'Carte Café cosy', badge:'MC', fond:'#d9b694', texte:'#63310f', accent:'#fed69c', fond2:'#b0a587', pattern:'none', layout:'background', stamp:'⭐', type:'tampons', total:'10', reward:'1 café offert', label:'Client', desc:'10 passages = 1 café offert', message:'Votre douceur vous attend !', banner:'https://oiakzcsjtfqpjmtnedax.supabase.co/storage/v1/object/public/cartes/ca2b623a-9446-4600-b636-05dfdf4edbbf/a35c72dc-8ee0-4e8b-a441-26b4a708f063.png'},
             {name:'Coiffeur', badge:'CF', fond:'#1d1f1e', texte:'#f8fafc', accent:'#f8fafc', fond2:'#111827', pattern:'none', layout:'background', stamp:'✂️', type:'tampons', total:'8', reward:'1 coupe offerte', label:'Client', desc:'Une coupe offerte après 8 passages', message:'Votre salon vous attend.', banner:'/banner-templates/template-17.png'},
-            {name:'Nail salon', badge:'NA', fond:'#fff0e5', texte:'#df652a', accent:'#fee1d0', fond2:'#fee1d0', pattern:'none', layout:'background', stamp:'💅', type:'tampons', total:'6', reward:'1 nail art offert', label:'Cliente', desc:'Votre carte privilège nail salon', message:'Votre avantage beauté est disponible.', banner:'/banner-templates/nail-art.png'},
+            {name:'Nail salon', badge:'NA', fond:'#fff0e5', texte:'#df652a', accent:'#f5be9e', fond2:'#fee1d0', pattern:'none', layout:'background', stamp:'💅', type:'tampons', total:'8', reward:'1 nail art offert', label:'Cliente', desc:'Votre carte privilège nail salon', message:'Votre avantage beauté est disponible.', banner:'/banner-templates/nail-art.png'},
             {name:'Sport & coaching', badge:'SP', fond:'#045698', texte:'#ffffff', accent:'#dee7e6', fond2:'#0c4a6e', pattern:'none', layout:'background', stamp:'🏆', type:'points', total:'10', reward:'1 séance offerte', label:'Athlète', desc:'Transformez vos visites en récompenses', message:'Votre coach vous attend.', banner:'/banner-templates/template-06.png'},
           ].map((preset, index) => (
             <button
@@ -388,7 +388,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               {name:'Forêt',fond:'#064e3b',texte:'#ffffff',accent:'#34d399',fond2:'#065f46'},
               {name:'Océan',fond:'#0c4a6e',texte:'#ffffff',accent:'#38bdf8',fond2:'#075985'},
               {name:'Café',fond:'#1c0e04',texte:'#fef3c7',accent:'#d97706',fond2:'#292200'},
-              {name:'Noir',fond:'#000000',texte:'#ffffff',accent:'#8b5cf6',fond2:'#18003a'},
+              {name:'Noir',fond:'#000000',texte:'#ffffff',accent:'#ffffff',fond2:'#18003a'},
             ].map(({name,fond,texte,accent,fond2}, index)=>(
               <button type="button" class={`preset-btn flex flex-col items-center gap-1.5 rounded-xl border border-sky-100 bg-white p-2 transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_40px_-28px_rgba(59,130,246,0.35)] ${index >= 3 ? 'theme-extra hidden sm:flex' : ''}`} data-fond={fond} data-texte={texte} data-accent={accent} data-fond2={fond2}>
                 <div class="w-full h-8 rounded-lg flex gap-1 p-1" style={fond2?`background:linear-gradient(135deg,${fond},${fond2})`:`background:${fond}`}>

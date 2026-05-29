@@ -622,6 +622,7 @@ const apiBase = (
 
   .preview-area {
     min-height: calc(100dvh - 8rem);
+    overflow: auto;
     border-radius: 2rem;
     border: 1px solid rgba(226, 232, 240, 0.75);
     background:
@@ -630,13 +631,13 @@ const apiBase = (
       radial-gradient(circle at 50% 12%, rgba(59, 130, 246, 0.12), transparent 34rem),
       #eef2f7;
     background-size: 34px 34px, 34px 34px, auto, auto;
-    padding: clamp(1rem, 2vw, 2rem) clamp(1rem, 2vw, 2rem) 7.5rem;
+    padding: clamp(1rem, 2vw, 2rem) clamp(1rem, 2vw, 2rem) 8.75rem;
   }
 
   .preview-toolbar {
     margin: 0 auto 1rem;
     display: flex;
-    width: min(100%, 920px, calc((100dvh - 15rem) * 0.707));
+    width: min(100%, 920px, calc((100dvh - 24rem) * 0.707));
     min-width: min(100%, 23rem);
     align-items: center;
     justify-content: space-between;
@@ -692,7 +693,7 @@ const apiBase = (
 
   .poster-preview-shell {
     display: flex;
-    min-height: calc(100dvh - 15rem);
+    min-height: calc(100dvh - 21rem);
     align-items: center;
     justify-content: center;
     padding: 0.75rem 0 2rem;
@@ -700,7 +701,7 @@ const apiBase = (
 
   .poster-sheet {
     position: relative;
-    width: min(100%, 760px, calc((100dvh - 15rem) * 0.707));
+    width: min(100%, 520px, calc((100dvh - 24rem) * 0.707));
     aspect-ratio: 210 / 297;
     overflow: hidden;
     border-radius: 1.65rem;
@@ -710,12 +711,13 @@ const apiBase = (
     box-shadow:
       0 55px 110px -70px rgba(15, 23, 42, 0.72),
       0 0 0 1px rgba(255,255,255,0.55) inset;
+    container-type: inline-size;
     isolation: isolate;
     transform-origin: top center;
   }
 
   .poster-sheet[data-format="a5"] {
-    width: min(100%, 620px, calc((100dvh - 15rem) * 0.707));
+    width: min(100%, 440px, calc((100dvh - 24rem) * 0.707));
   }
 
   .poster-bg-image {
@@ -811,7 +813,7 @@ const apiBase = (
   .poster-brand h3 {
     margin-top: 0.25rem;
     color: var(--poster-title-color);
-    font-size: clamp(1.35rem, 3vw, 2.3rem);
+    font-size: clamp(1.2rem, 7cqw, 2.05rem);
     font-weight: 900;
     letter-spacing: -0.04em;
   }
@@ -861,22 +863,27 @@ const apiBase = (
 
   .poster-hero h1 {
     margin-top: 1.5rem;
-    max-width: 11ch;
+    max-width: 9.4ch;
     color: var(--poster-title-color);
-    font-size: clamp(4rem, 11vw, 7.4rem);
+    font-size: clamp(2.6rem, 16cqw, 5.2rem);
     font-weight: 950;
-    letter-spacing: -0.075em;
-    line-height: 0.86;
+    letter-spacing: -0.055em;
+    line-height: 0.9;
     text-wrap: balance;
+    overflow-wrap: anywhere;
   }
 
   .poster-hero p {
     margin-top: 1.4rem;
     max-width: 29rem;
     color: var(--poster-muted);
-    font-size: clamp(1.15rem, 2.5vw, 1.7rem);
+    font-size: clamp(1rem, 4.4cqw, 1.45rem);
     font-weight: 650;
     line-height: 1.25;
+  }
+
+  .poster-sheet[data-format="a5"] .poster-hero h1 {
+    font-size: clamp(2.35rem, 15cqw, 4.4rem);
   }
 
   .poster-qr-zone {
@@ -1163,7 +1170,7 @@ const apiBase = (
     }
 
     .poster-sheet {
-      width: min(100%, 430px);
+      width: min(100%, 430px, calc((100dvh - 18rem) * 0.707));
       border-radius: 1.2rem;
     }
 
@@ -1173,6 +1180,7 @@ const apiBase = (
     }
 
     .editor-scroll {
+      max-height: none;
       padding: 1rem 1rem 6rem;
     }
 
@@ -1195,7 +1203,7 @@ const apiBase = (
 
     .poster-preview-shell {
       min-height: auto;
-      padding-bottom: 1rem;
+      padding-bottom: 10rem;
     }
   }
 </style>

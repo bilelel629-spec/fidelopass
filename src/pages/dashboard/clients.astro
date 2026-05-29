@@ -9,7 +9,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <h1 class="font-display text-3xl font-bold text-slate-900 mt-2">Clients</h1>
       <p class="text-slate-600 text-sm mt-2">Gérez votre base de clients fidèles et ajustez leurs tampons ou points manuellement.</p>
     </div>
-    <div class="flex shrink-0 gap-2">
+    <div class="flex shrink-0 flex-wrap gap-2 sm:justify-end">
+      <button id="refresh-wallets-btn" type="button" class="rounded-2xl border border-sky-200 bg-sky-50 px-3 py-2.5 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-100">
+        Rafraîchir les cartes
+      </button>
       <button id="refresh-clients-btn" type="button" class="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 flex items-center gap-1.5">
         <svg id="refresh-clients-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
           <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
@@ -83,6 +86,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           Ajouter
         </button>
       </div>
+      <button type="button" id="modal-use-reward-btn" class="mt-3 w-full rounded-2xl border border-emerald-200 bg-emerald-50 py-2.5 text-sm font-bold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400">
+        Utiliser une récompense
+      </button>
     </div>
   </div>
 </DashboardLayout>
@@ -209,7 +215,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       `;
 
       // Attacher les listeners sur chaque ligne
-      container.querySelectorAll('tr[data-client-id]').forEach((row) => {
+      container.querySelectorAll('[data-client-id]').forEach((row) => {
         row.addEventListener('click', () => {
           const id = (row as HTMLElement).dataset.clientId;
           const client = currentClients.find((c) => c.id === id);
@@ -246,11 +252,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     (document.getElementById('modal-valeur') as HTMLInputElement).value = '1';
 
     const recRow = document.getElementById('modal-recompenses-row')!;
+    const useRewardBtn = document.getElementById('modal-use-reward-btn') as HTMLButtonElement;
     if (client.recompenses_obtenues > 0) {
       recRow.textContent = `${client.recompenses_obtenues} récompense(s) obtenue(s)`;
       recRow.classList.remove('hidden');
+      useRewardBtn.disabled = false;
     } else {
       recRow.classList.add('hidden');
+      useRewardBtn.disabled = true;
     }
 
     (document.getElementById('modal-error') as HTMLElement).classList.add('hidden');
@@ -308,6 +317,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         if (carteType === 'points') currentClients[idx].points_actuels = data.client.points_actuels;
         else currentClients[idx].tampons_actuels = data.client.tampons_actuels;
         currentClients[idx].recompenses_obtenues = data.client.recompenses_obtenues;
+        selectedClient = currentClients[idx];
       }
 
       const sign = direction === 'add' ? '+' : '−';
@@ -319,6 +329,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         const recRow = document.getElementById('modal-recompenses-row')!;
         recRow.textContent = `${data.client.recompenses_obtenues} récompense(s) obtenue(s)`;
         recRow.classList.remove('hidden');
+        (document.getElementById('modal-use-reward-btn') as HTMLButtonElement).disabled = false;
+      } else {
+        document.getElementById('modal-recompenses-row')!.classList.add('hidden');
+        (document.getElementById('modal-use-reward-btn') as HTMLButtonElement).disabled = true;
       }
     } catch (err: unknown) {
       errEl.textContent = err instanceof Error ? err.message : 'Erreur lors de la transaction.';
@@ -332,6 +346,65 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   document.getElementById('modal-add-btn')!.addEventListener('click', () => applyTransaction('add'));
   document.getElementById('modal-remove-btn')!.addEventListener('click', () => applyTransaction('remove'));
 
+  async function useSelectedReward() {
+    if (!selectedClient || selectedClient.recompenses_obtenues <= 0) return;
+    const errEl = document.getElementById('modal-error')!;
+    const okEl = document.getElementById('modal-success')!;
+    const useBtn = document.getElementById('modal-use-reward-btn') as HTMLButtonElement;
+    const addBtn = document.getElementById('modal-add-btn') as HTMLButtonElement;
+    const removeBtn = document.getElementById('modal-remove-btn') as HTMLButtonElement;
+    errEl.classList.add('hidden');
+    okEl.classList.add('hidden');
+    useBtn.disabled = true;
+    addBtn.disabled = true;
+    removeBtn.disabled = true;
+
+    try {
+      const res = await authFetch('/api/transactions', {
+        method: 'POST',
+        body: JSON.stringify({
+          client_id: selectedClient.id,
+          type: 'recompense',
+          valeur: 1,
+          note: 'Récompense utilisée depuis l’onglet Clients',
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? 'Impossible d’utiliser la récompense.');
+
+      const idx = currentClients.findIndex((c) => c.id === selectedClient!.id);
+      if (idx !== -1) {
+        currentClients[idx].points_actuels = data.client.points_actuels;
+        currentClients[idx].tampons_actuels = data.client.tampons_actuels;
+        currentClients[idx].recompenses_obtenues = data.client.recompenses_obtenues;
+        selectedClient = currentClients[idx];
+      }
+
+      const score = carteType === 'points' ? data.client.points_actuels : data.client.tampons_actuels;
+      (document.getElementById('modal-score') as HTMLElement).textContent = String(score);
+      const recRow = document.getElementById('modal-recompenses-row')!;
+      if (data.client.recompenses_obtenues > 0) {
+        recRow.textContent = `${data.client.recompenses_obtenues} récompense(s) obtenue(s)`;
+        recRow.classList.remove('hidden');
+        useBtn.disabled = false;
+      } else {
+        recRow.classList.add('hidden');
+      }
+      okEl.textContent = 'Récompense utilisée. La carte Wallet du client est mise à jour.';
+      okEl.classList.remove('hidden');
+      await loadClients((document.getElementById('search') as HTMLInputElement).value);
+    } catch (err: unknown) {
+      errEl.textContent = err instanceof Error ? err.message : 'Erreur lors de l’utilisation de la récompense.';
+      errEl.classList.remove('hidden');
+      useBtn.disabled = false;
+    } finally {
+      addBtn.disabled = false;
+      removeBtn.disabled = false;
+    }
+  }
+
+  document.getElementById('modal-use-reward-btn')!.addEventListener('click', useSelectedReward);
+
   // ── Rafraîchir ──────────────────────────────────────────────────────
   document.getElementById('refresh-clients-btn')!.addEventListener('click', async () => {
     const icon = document.getElementById('refresh-clients-icon')!;
@@ -342,6 +415,26 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     await Promise.all([loadClients(search), loadCarteType()]);
     icon.style.animation = '';
     btn.disabled = false;
+  });
+
+  document.getElementById('refresh-wallets-btn')!.addEventListener('click', async () => {
+    const btn = document.getElementById('refresh-wallets-btn') as HTMLButtonElement;
+    const previous = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Mise à jour...';
+    try {
+      const res = await authFetch('/api/commerces/me/wallet-sync', { method: 'POST' });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error ?? 'Mise à jour impossible.');
+      const data = payload?.data ?? {};
+      btn.textContent = `${data.clients ?? 0} carte(s) rafraîchie(s)`;
+      window.setTimeout(() => { btn.textContent = previous ?? 'Rafraîchir les cartes'; }, 2400);
+    } catch (err: unknown) {
+      btn.textContent = err instanceof Error ? err.message : 'Erreur';
+      window.setTimeout(() => { btn.textContent = previous ?? 'Rafraîchir les cartes'; }, 2800);
+    } finally {
+      btn.disabled = false;
+    }
   });
 
   const _style = document.createElement('style');

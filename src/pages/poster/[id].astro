@@ -9,7 +9,7 @@ const apiBase = (
 ---
 
 <BaseLayout title="Création d'affiche — Fidelopass" description="Créez une affiche Fidelopass premium prête à imprimer avec le QR code de votre carte.">
-  <div class="poster-creator min-h-screen bg-[#f6f8fb] text-slate-950">
+  <div class="poster-creator min-h-screen bg-[#f6f8fb] text-slate-950" data-poster-creator data-api-base={apiBase} data-carte-id={id}>
     <header class="poster-ui creator-header sticky top-0 z-40 border-b border-slate-200/80 bg-white/86 px-4 py-3 backdrop-blur-2xl">
       <div class="mx-auto flex max-w-[1720px] items-center justify-between gap-4">
         <div class="flex min-w-0 items-center gap-3">
@@ -150,6 +150,16 @@ const apiBase = (
                 <option value="'Courier New', monospace">Monospace</option>
               </select>
             </label>
+            <label class="field full mt-4">
+              <span>Police des titres</span>
+              <select id="field-title-font">
+                <option value="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">Moderne forte</option>
+                <option value="'Arial Rounded MT Bold', Arial, ui-sans-serif, system-ui, sans-serif">Arrondie</option>
+                <option value="Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif">Impact</option>
+                <option value="Georgia, 'Times New Roman', serif">Élégante</option>
+                <option value="'Trebuchet MS', Arial, sans-serif">Créative</option>
+              </select>
+            </label>
           </section>
 
         </div>
@@ -178,7 +188,7 @@ const apiBase = (
           </div>
 
           <div class="poster-preview-shell">
-            <div id="poster-sheet" class="poster-sheet" style="--poster-primary:#082f25;--poster-secondary:#c8a45d;--poster-ink:#ffffff;--poster-title-color:#ffffff;--poster-font:Inter,ui-sans-serif,system-ui,sans-serif;--poster-muted:rgba(255,255,255,0.72);">
+            <div id="poster-sheet" class="poster-sheet" style="--poster-primary:#082f25;--poster-secondary:#c8a45d;--poster-ink:#ffffff;--poster-title-color:#ffffff;--poster-font:Inter,ui-sans-serif,system-ui,sans-serif;--poster-title-font:Inter,ui-sans-serif,system-ui,sans-serif;--poster-muted:rgba(255,255,255,0.72);">
               <div class="poster-bg-image" id="poster-bg-image"></div>
               <div class="poster-noise"></div>
               <div class="poster-orb poster-orb-one"></div>
@@ -816,6 +826,7 @@ const apiBase = (
   .poster-brand h3 {
     margin-top: 0.25rem;
     color: var(--poster-title-color);
+    font-family: var(--poster-title-font);
     font-size: clamp(1rem, 6.2cqw, 1.75rem);
     font-weight: 900;
     letter-spacing: -0.04em;
@@ -861,6 +872,7 @@ const apiBase = (
 
   .reward-badge strong {
     color: var(--poster-title-color);
+    font-family: var(--poster-title-font);
     font-size: clamp(0.58rem, 2.8cqw, 0.86rem);
     font-weight: 950;
   }
@@ -869,6 +881,7 @@ const apiBase = (
     margin-top: clamp(0.7rem, 3.1cqw, 1.2rem);
     max-width: 8.3ch;
     color: var(--poster-title-color);
+    font-family: var(--poster-title-font);
     font-size: clamp(2.25rem, 13.8cqw, 4.35rem);
     font-weight: 950;
     letter-spacing: -0.045em;
@@ -1231,8 +1244,15 @@ const apiBase = (
   }
 </style>
 
-<script define:vars={{ apiBase, carteId: id }}>
-  const API = apiBase;
+<script>
+  import QRCode from 'qrcode';
+  import { toPng } from 'html-to-image';
+  import html2canvas from 'html2canvas';
+  import { jsPDF } from 'jspdf';
+
+  const creatorRoot = document.querySelector('[data-poster-creator]');
+  const API = creatorRoot?.dataset.apiBase || '';
+  const carteId = creatorRoot?.dataset.carteId || '';
   const defaultFont = "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
   const templatePresets = {
     affiche: { primary: '#fff0e5', secondary: '#df652a', text: '#1f2937', titleColor: '#df652a', image: '/banner-templates/nail-art.png', title: 'SCANNEZ & PROFITEZ' },
@@ -1281,6 +1301,7 @@ const apiBase = (
     text: initialPreset.text,
     titleColor: initialPreset.titleColor,
     fontFamily: defaultFont,
+    titleFontFamily: defaultFont,
     image: initialPreset.image,
   };
 
@@ -1306,8 +1327,6 @@ const apiBase = (
     const fallback = `https://api.qrserver.com/v1/create-qr-code/?size=900x900&data=${encodeURIComponent(`${window.location.origin}/carte/${cardId}`)}&bgcolor=ffffff&color=111827&qzone=1`;
 
     try {
-      const QRCodeModule = await import('qrcode');
-      const QRCode = QRCodeModule.default || QRCodeModule;
       qr.src = await QRCode.toDataURL(`${window.location.origin}/carte/${cardId}`, {
         width: 900,
         margin: 1,
@@ -1359,6 +1378,7 @@ const apiBase = (
     setField('field-text', state.text);
     setField('field-title-color', state.titleColor);
     setField('field-font', state.fontFamily);
+    setField('field-title-font', state.titleFontFamily);
   }
 
   function readFields() {
@@ -1374,6 +1394,7 @@ const apiBase = (
     state.text = $('field-text')?.value || state.text;
     state.titleColor = $('field-title-color')?.value || state.titleColor;
     state.fontFamily = $('field-font')?.value || state.fontFamily;
+    state.titleFontFamily = $('field-title-font')?.value || state.titleFontFamily;
   }
 
   function setText(id, value) {
@@ -1418,6 +1439,7 @@ const apiBase = (
     sheet.style.setProperty('--poster-image', state.image ? `url("${state.image}")` : 'none');
     sheet.style.setProperty('--poster-title-color', state.titleColor);
     sheet.style.setProperty('--poster-font', state.fontFamily);
+    sheet.style.setProperty('--poster-title-font', state.titleFontFamily);
     const isLight = ['qr'].includes(state.template) || state.primary.toLowerCase() === '#f8fafc' || state.primary.toLowerCase() === '#fff7ed' || state.primary.toLowerCase() === '#ffffff';
     sheet.style.setProperty('--poster-ink', state.text);
     sheet.style.setProperty('--poster-muted', hexToRgba(state.text, 0.72));
@@ -1564,7 +1586,7 @@ const apiBase = (
     });
   });
 
-  ['field-commerce', 'field-title', 'field-subtitle', 'field-reward', 'field-phone', 'field-instagram', 'field-address', 'field-primary', 'field-secondary', 'field-text', 'field-title-color', 'field-font']
+  ['field-commerce', 'field-title', 'field-subtitle', 'field-reward', 'field-phone', 'field-instagram', 'field-address', 'field-primary', 'field-secondary', 'field-text', 'field-title-color', 'field-font', 'field-title-font']
     .forEach((id) => {
       $(id)?.addEventListener('input', applyCreator);
       $(id)?.addEventListener('change', applyCreator);
@@ -1684,7 +1706,6 @@ const apiBase = (
   }
 
   async function capturePosterWithHtmlToImage(sheet) {
-    const { toPng } = await import('html-to-image');
     return withTimeout(toPng(sheet, {
       pixelRatio: 2.6,
       cacheBust: false,
@@ -1695,7 +1716,6 @@ const apiBase = (
   }
 
   async function capturePosterWithCanvas(sheet) {
-    const { default: html2canvas } = await import('html2canvas');
     const canvas = await withTimeout(html2canvas(sheet, {
       allowTaint: false,
       backgroundColor: state.primary,
@@ -1739,10 +1759,7 @@ const apiBase = (
       await waitForPosterAssets(sheet);
       restoreExportImages = await prepareImagesForExport(sheet);
 
-      const [{ jsPDF }, dataUrl] = await Promise.all([
-        import('jspdf'),
-        capturePoster(sheet),
-      ]);
+      const dataUrl = await capturePoster(sheet);
 
       const pageSize = state.format === 'a5'
         ? { format: 'a5', width: 148, height: 210 }

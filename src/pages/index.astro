@@ -501,6 +501,18 @@ import PublicNav from '../components/marketing/PublicNav.astro';
             </div>
           </div>
           <div class="home-case-content p-7 sm:p-10">
+            <div class="mb-5 grid gap-3 sm:grid-cols-3">
+              {[
+                { value: '+27%', label: 'retours clients visés' },
+                { value: '9 achats', label: 'récompense lisible' },
+                { value: '100%', label: 'dans le Wallet' },
+              ].map((item) => (
+                <div class="home-case-proof rounded-[1.25rem] border border-blue-100 bg-blue-50/70 p-4">
+                  <p class="font-display text-2xl font-extrabold tracking-[-0.04em] text-blue-700">{item.value}</p>
+                  <p class="mt-1 text-[0.68rem] font-extrabold uppercase tracking-[0.14em] text-slate-500">{item.label}</p>
+                </div>
+              ))}
+            </div>
             <div class="grid gap-4 sm:grid-cols-3">
               {[
                 { title: 'Objectif', desc: 'Faire revenir les clients locaux après leur premier achat.', icon: 'M4 12h16 M12 4v16' },
@@ -1169,6 +1181,19 @@ import PublicNav from '../components/marketing/PublicNav.astro';
     transform: translateY(-3px);
     border-color: rgba(147, 197, 253, 0.8);
     box-shadow: 0 28px 70px -46px rgba(37, 99, 235, 0.5);
+  }
+
+  .home-case-proof {
+    box-shadow:
+      0 18px 45px -36px rgba(37, 99, 235, 0.52),
+      inset 0 1px 0 rgba(255, 255, 255, 0.86);
+    transition: transform 260ms ease, border-color 260ms ease, box-shadow 260ms ease;
+  }
+
+  .home-case-proof:hover {
+    transform: translateY(-2px);
+    border-color: rgba(59, 130, 246, 0.35);
+    box-shadow: 0 24px 58px -40px rgba(37, 99, 235, 0.58);
   }
 
   .home-case-flow {

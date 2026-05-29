@@ -257,11 +257,13 @@ const apiBase = (
   .poster-creator {
     --poster-print-width: 210mm;
     --poster-print-height: 297mm;
+    --poster-preview-width: min(100%, 380px, calc((100dvh - 28rem) * 0.707));
+    --poster-preview-width-a5: min(100%, 340px, calc((100dvh - 28rem) * 0.707));
     background:
       radial-gradient(circle at 85% 8%, rgba(56, 189, 248, 0.18), transparent 28rem),
       radial-gradient(circle at 24% 4%, rgba(124, 58, 237, 0.12), transparent 24rem),
       #f6f8fb;
-    padding-bottom: 6.5rem;
+    padding-bottom: 2rem;
   }
 
   .icon-btn {
@@ -631,13 +633,13 @@ const apiBase = (
       radial-gradient(circle at 50% 12%, rgba(59, 130, 246, 0.12), transparent 34rem),
       #eef2f7;
     background-size: 34px 34px, 34px 34px, auto, auto;
-    padding: clamp(1rem, 2vw, 2rem) clamp(1rem, 2vw, 2rem) 8.75rem;
+    padding: clamp(1rem, 2vw, 2rem);
   }
 
   .preview-toolbar {
     margin: 0 auto 1rem;
     display: flex;
-    width: min(100%, 920px, calc((100dvh - 24rem) * 0.707));
+    width: min(100%, 920px, max(23rem, var(--poster-preview-width)));
     min-width: min(100%, 23rem);
     align-items: center;
     justify-content: space-between;
@@ -693,15 +695,15 @@ const apiBase = (
 
   .poster-preview-shell {
     display: flex;
-    min-height: calc(100dvh - 21rem);
-    align-items: center;
+    min-height: 0;
+    align-items: flex-start;
     justify-content: center;
-    padding: 0.75rem 0 2rem;
+    padding: 0.5rem 0 1.25rem;
   }
 
   .poster-sheet {
     position: relative;
-    width: min(100%, 520px, calc((100dvh - 24rem) * 0.707));
+    width: var(--poster-preview-width);
     aspect-ratio: 210 / 297;
     overflow: hidden;
     border-radius: 1.65rem;
@@ -717,7 +719,7 @@ const apiBase = (
   }
 
   .poster-sheet[data-format="a5"] {
-    width: min(100%, 440px, calc((100dvh - 24rem) * 0.707));
+    width: var(--poster-preview-width-a5);
   }
 
   .poster-bg-image {
@@ -1015,11 +1017,10 @@ const apiBase = (
   }
 
   .export-bar {
-    position: fixed;
-    inset-inline: max(1rem, env(safe-area-inset-left)) max(1rem, env(safe-area-inset-right));
+    position: sticky;
     bottom: max(1rem, env(safe-area-inset-bottom));
     z-index: 50;
-    margin: auto;
+    margin: 0 auto 1rem;
     display: flex;
     max-width: 680px;
     gap: 0.75rem;
@@ -1135,6 +1136,11 @@ const apiBase = (
   }
 
   @media (max-width: 1023px) {
+    .poster-creator {
+      --poster-preview-width: min(100%, 360px, calc((100dvh - 24rem) * 0.707));
+      --poster-preview-width-a5: min(100%, 320px, calc((100dvh - 24rem) * 0.707));
+    }
+
     .editor-panel {
       position: static;
     }
@@ -1150,6 +1156,8 @@ const apiBase = (
 
   @media (max-width: 720px) {
     .poster-creator {
+      --poster-preview-width: min(100%, 330px);
+      --poster-preview-width-a5: min(100%, 300px);
       padding-bottom: 11rem;
     }
 
@@ -1165,13 +1173,20 @@ const apiBase = (
     }
 
     .export-bar {
+      position: fixed;
+      inset-inline: max(1rem, env(safe-area-inset-left)) max(1rem, env(safe-area-inset-right));
+      margin: auto;
       display: grid;
       grid-template-columns: 1fr;
     }
 
     .poster-sheet {
-      width: min(100%, 430px, calc((100dvh - 18rem) * 0.707));
+      width: var(--poster-preview-width);
       border-radius: 1.2rem;
+    }
+
+    .poster-sheet[data-format="a5"] {
+      width: var(--poster-preview-width-a5);
     }
 
     .creator-workspace {

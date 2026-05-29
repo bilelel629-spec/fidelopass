@@ -257,8 +257,8 @@ const apiBase = (
   .poster-creator {
     --poster-print-width: 210mm;
     --poster-print-height: 297mm;
-    --poster-preview-width: min(100%, 380px, calc((100dvh - 28rem) * 0.707));
-    --poster-preview-width-a5: min(100%, 340px, calc((100dvh - 28rem) * 0.707));
+    --poster-preview-width: min(100%, 460px, calc((100dvh - 16rem) * 0.707));
+    --poster-preview-width-a5: min(100%, 380px, calc((100dvh - 16rem) * 0.707));
     background:
       radial-gradient(circle at 85% 8%, rgba(56, 189, 248, 0.18), transparent 28rem),
       radial-gradient(circle at 24% 4%, rgba(124, 58, 237, 0.12), transparent 24rem),
@@ -695,10 +695,10 @@ const apiBase = (
 
   .poster-preview-shell {
     display: flex;
-    min-height: 0;
+    min-height: calc(100dvh - 13rem);
     align-items: flex-start;
     justify-content: center;
-    padding: 0.5rem 0 1.25rem;
+    padding: 0.75rem 0 1.5rem;
   }
 
   .poster-sheet {
@@ -766,10 +766,11 @@ const apiBase = (
   .poster-content {
     position: relative;
     z-index: 2;
-    display: flex;
+    display: grid;
     min-height: 100%;
-    flex-direction: column;
-    padding: 7.5%;
+    grid-template-rows: auto minmax(0, 0.95fr) auto auto;
+    gap: clamp(0.55rem, 2.35cqw, 1rem);
+    padding: 6.4%;
   }
 
   .poster-top,
@@ -784,16 +785,16 @@ const apiBase = (
 
   .poster-logo-wrap {
     display: inline-flex;
-    height: 4.2rem;
-    width: 4.2rem;
+    height: clamp(2.35rem, 12cqw, 3.4rem);
+    width: clamp(2.35rem, 12cqw, 3.4rem);
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    border-radius: 1.25rem;
+    border-radius: clamp(0.75rem, 3.5cqw, 1.05rem);
     border: 1px solid color-mix(in srgb, var(--poster-ink) 28%, transparent);
     background: color-mix(in srgb, var(--poster-ink) 14%, transparent);
     color: var(--poster-ink);
-    font-size: 1.4rem;
+    font-size: clamp(1rem, 4cqw, 1.25rem);
     font-weight: 900;
     backdrop-filter: blur(12px);
   }
@@ -806,7 +807,7 @@ const apiBase = (
 
   .poster-kicker {
     color: var(--poster-muted);
-    font-size: 0.72rem;
+    font-size: clamp(0.48rem, 1.9cqw, 0.66rem);
     font-weight: 900;
     letter-spacing: 0.24em;
     text-transform: uppercase;
@@ -815,7 +816,7 @@ const apiBase = (
   .poster-brand h3 {
     margin-top: 0.25rem;
     color: var(--poster-title-color);
-    font-size: clamp(1.2rem, 7cqw, 2.05rem);
+    font-size: clamp(1rem, 6.2cqw, 1.75rem);
     font-weight: 900;
     letter-spacing: -0.04em;
   }
@@ -827,31 +828,32 @@ const apiBase = (
     background: color-mix(in srgb, var(--poster-ink) 12%, transparent);
     padding: 0.55rem 0.8rem;
     color: var(--poster-ink);
-    font-size: 0.74rem;
+    font-size: clamp(0.54rem, 2.35cqw, 0.72rem);
     font-weight: 850;
     backdrop-filter: blur(12px);
   }
 
   .poster-hero {
-    margin-top: 9%;
-    max-width: 92%;
+    align-self: center;
+    margin-top: 0;
+    max-width: 100%;
   }
 
   .reward-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: clamp(0.35rem, 1.8cqw, 0.6rem);
     border-radius: 999px;
     border: 1px solid color-mix(in srgb, var(--poster-secondary) 54%, white 10%);
     background: color-mix(in srgb, var(--poster-secondary) 26%, transparent);
-    padding: 0.65rem 0.95rem;
+    padding: clamp(0.42rem, 2.2cqw, 0.72rem) clamp(0.62rem, 3cqw, 0.95rem);
     box-shadow: 0 22px 46px -30px var(--poster-secondary);
     backdrop-filter: blur(16px);
   }
 
   .reward-badge span {
     color: var(--poster-muted);
-    font-size: 0.72rem;
+    font-size: clamp(0.5rem, 2cqw, 0.68rem);
     font-weight: 900;
     letter-spacing: 0.16em;
     text-transform: uppercase;
@@ -859,45 +861,47 @@ const apiBase = (
 
   .reward-badge strong {
     color: var(--poster-title-color);
-    font-size: 0.9rem;
+    font-size: clamp(0.58rem, 2.8cqw, 0.86rem);
     font-weight: 950;
   }
 
   .poster-hero h1 {
-    margin-top: 1.5rem;
-    max-width: 9.4ch;
+    margin-top: clamp(0.7rem, 3.1cqw, 1.2rem);
+    max-width: 8.3ch;
     color: var(--poster-title-color);
-    font-size: clamp(2.6rem, 16cqw, 5.2rem);
+    font-size: clamp(2.25rem, 13.8cqw, 4.35rem);
     font-weight: 950;
-    letter-spacing: -0.055em;
-    line-height: 0.9;
+    letter-spacing: -0.045em;
+    line-height: 0.92;
     text-wrap: balance;
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
+    word-break: normal;
   }
 
   .poster-hero p {
-    margin-top: 1.4rem;
-    max-width: 29rem;
+    margin-top: clamp(0.55rem, 2.6cqw, 1rem);
+    max-width: 24rem;
     color: var(--poster-muted);
-    font-size: clamp(1rem, 4.4cqw, 1.45rem);
+    font-size: clamp(0.75rem, 3.45cqw, 1.12rem);
     font-weight: 650;
     line-height: 1.25;
   }
 
   .poster-sheet[data-format="a5"] .poster-hero h1 {
-    font-size: clamp(2.35rem, 15cqw, 4.4rem);
+    font-size: clamp(2rem, 13cqw, 3.65rem);
   }
 
   .poster-qr-zone {
     align-items: stretch;
-    margin-top: auto;
+    min-height: 0;
+    margin-top: 0;
   }
 
   .qr-card {
     width: 48%;
-    border-radius: 1.8rem;
+    border-radius: clamp(1rem, 4.8cqw, 1.45rem);
     background: rgba(255,255,255,0.96);
-    padding: 1.1rem;
+    padding: clamp(0.55rem, 3.2cqw, 0.95rem);
     color: #0f172a;
     text-align: center;
     box-shadow: 0 34px 70px -42px rgba(0,0,0,0.72);
@@ -905,46 +909,46 @@ const apiBase = (
 
   .qr-card p {
     color: #64748b;
-    font-size: 0.7rem;
+    font-size: clamp(0.46rem, 1.9cqw, 0.62rem);
     font-weight: 950;
     letter-spacing: 0.28em;
     text-transform: uppercase;
   }
 
   .qr-card img {
-    margin: 0.75rem auto;
-    width: 88%;
-    border-radius: 1rem;
+    margin: clamp(0.35rem, 2cqw, 0.65rem) auto;
+    width: 78%;
+    border-radius: clamp(0.65rem, 3cqw, 0.9rem);
   }
 
   .qr-card strong {
     display: block;
-    font-size: 0.9rem;
+    font-size: clamp(0.55rem, 2.4cqw, 0.78rem);
   }
 
   .poster-instructions {
     display: grid;
     width: 46%;
-    gap: 0.8rem;
+    gap: clamp(0.35rem, 1.8cqw, 0.62rem);
     align-content: center;
   }
 
   .poster-instructions div {
     display: grid;
-    grid-template-columns: 2.2rem 1fr;
+    grid-template-columns: clamp(1.3rem, 5.4cqw, 1.8rem) 1fr;
     align-items: center;
-    gap: 0.75rem;
-    border-radius: 1.25rem;
+    gap: clamp(0.38rem, 2cqw, 0.62rem);
+    border-radius: clamp(0.7rem, 3.7cqw, 1rem);
     border: 1px solid color-mix(in srgb, var(--poster-ink) 14%, transparent);
     background: color-mix(in srgb, var(--poster-ink) 9%, transparent);
-    padding: 0.85rem;
+    padding: clamp(0.45rem, 2.5cqw, 0.72rem);
     backdrop-filter: blur(12px);
   }
 
   .poster-instructions span {
     display: inline-flex;
-    height: 2.2rem;
-    width: 2.2rem;
+    height: clamp(1.3rem, 5.4cqw, 1.8rem);
+    width: clamp(1.3rem, 5.4cqw, 1.8rem);
     align-items: center;
     justify-content: center;
     border-radius: 999px;
@@ -954,12 +958,12 @@ const apiBase = (
 
   .poster-instructions p {
     color: var(--poster-ink);
-    font-size: 0.92rem;
+    font-size: clamp(0.55rem, 2.4cqw, 0.76rem);
     font-weight: 720;
   }
 
   .poster-footer {
-    margin-top: 1.35rem;
+    margin-top: 0;
     align-items: flex-end;
   }
 
@@ -985,7 +989,7 @@ const apiBase = (
   .poster-footer > p {
     position: absolute;
     bottom: 2.3%;
-    left: 7.5%;
+    left: 6.4%;
     color: color-mix(in srgb, var(--poster-ink) 42%, transparent);
     font-size: 0.7rem;
     font-weight: 750;
@@ -1017,11 +1021,7 @@ const apiBase = (
   }
 
   .export-bar {
-    position: sticky;
-    bottom: max(1rem, env(safe-area-inset-bottom));
-    z-index: 50;
-    margin: 0 auto 1rem;
-    display: flex;
+    display: none;
     max-width: 680px;
     gap: 0.75rem;
     border: 1px solid rgba(226, 232, 240, 0.9);
@@ -1137,8 +1137,8 @@ const apiBase = (
 
   @media (max-width: 1023px) {
     .poster-creator {
-      --poster-preview-width: min(100%, 360px, calc((100dvh - 24rem) * 0.707));
-      --poster-preview-width-a5: min(100%, 320px, calc((100dvh - 24rem) * 0.707));
+      --poster-preview-width: min(100%, 420px);
+      --poster-preview-width-a5: min(100%, 360px);
     }
 
     .editor-panel {
@@ -1175,6 +1175,8 @@ const apiBase = (
     .export-bar {
       position: fixed;
       inset-inline: max(1rem, env(safe-area-inset-left)) max(1rem, env(safe-area-inset-right));
+      bottom: max(1rem, env(safe-area-inset-bottom));
+      z-index: 50;
       margin: auto;
       display: grid;
       grid-template-columns: 1fr;

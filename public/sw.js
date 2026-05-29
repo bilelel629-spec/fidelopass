@@ -1,10 +1,32 @@
-const CACHE_NAME = 'fidelopass-v11';
+const CACHE_NAME = 'fidelopass-v12';
 const APP_SHELL = [
   '/app',
   '/app/scan',
   '/favicon.png',
   '/manifest.json',
 ];
+
+function fetchAndCache(request) {
+  return fetch(request).then((response) => {
+    if (request.method === 'GET' && response.ok) {
+      const clone = response.clone();
+      caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+    }
+    return response;
+  });
+}
+
+function staleWhileRevalidate(request) {
+  return caches.open(CACHE_NAME).then((cache) =>
+    cache.match(request).then((cached) => {
+      const network = fetch(request).then((response) => {
+        if (response.ok) cache.put(request, response.clone());
+        return response;
+      });
+      return cached ?? network;
+    })
+  );
+}
 
 // ── Installation : mise en cache de l'app shell ──────────────────────────────
 self.addEventListener('install', (event) => {
@@ -24,7 +46,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// ── Fetch : network-first pour éviter de garder une vieille version après deploy ──
+// ── Fetch : API fraîche, scanner mobile rapide ───────────────────────────────
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -34,14 +56,17 @@ self.addEventListener('fetch', (event) => {
     return; // laisse passer sans interception
   }
 
+  if (request.method === 'GET' && url.origin === self.location.origin) {
+    const isScannerShell = url.pathname === '/app/scan';
+    const isBuiltAsset = url.pathname.startsWith('/_astro/');
+    if (isScannerShell || isBuiltAsset) {
+      event.respondWith(staleWhileRevalidate(request));
+      return;
+    }
+  }
+
   event.respondWith(
-    fetch(request).then((response) => {
-      if (request.method === 'GET' && url.origin === self.location.origin) {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-      }
-      return response;
-    }).catch(() =>
+    fetchAndCache(request).catch(() =>
       caches.match(request).then((cached) => cached ?? new Response('Offline', { status: 503 }))
     )
   );

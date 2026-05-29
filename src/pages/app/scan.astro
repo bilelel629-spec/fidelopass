@@ -2,7 +2,7 @@
 import AppLayout from '../../layouts/AppLayout.astro';
 ---
 
-<AppLayout title="Scanner — Fidelopass">
+<AppLayout title="Scanner — Fidelopass" deferSessionCheck>
   <div class="min-h-[100dvh] flex flex-col">
     <!-- Header -->
     <div class="scanner-header flex items-center justify-between gap-3 px-4 pb-3">
@@ -13,7 +13,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
       </a>
       <div class="min-w-0 flex-1 text-center">
         <h1 class="font-display text-base font-bold text-slate-900">Scanner caisse</h1>
-        <p id="scanner-status" class="truncate text-xs text-slate-500">Ouverture caméra...</p>
+        <p id="scanner-status" class="truncate text-xs text-slate-500">Chargement du scanner...</p>
       </div>
       <img src="/favicon.png" alt="Fidelopass" class="h-10 w-10 rounded-xl border border-sky-100 bg-white shadow-sm" />
     </div>
@@ -196,7 +196,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
   const SCANNER_TOKEN_KEY = 'fidelopass_scanner_token';
   const API_TIMEOUT_MS = Number(import.meta.env.PUBLIC_API_FETCH_TIMEOUT_MS ?? 3500);
   const scanConfigBase = {
-    fps: 24,
+    fps: 15,
     aspectRatio: 4 / 5,
     disableFlip: true,
     experimentalFeatures: {
@@ -304,10 +304,6 @@ import AppLayout from '../../layouts/AppLayout.astro';
     cameraHelp.classList.add('hidden');
   }
 
-  function stopTracks(stream: MediaStream | null) {
-    stream?.getTracks().forEach((track) => track.stop());
-  }
-
   function getScannerToken() {
     let token = localStorage.getItem(SCANNER_TOKEN_KEY);
     if (!token) {
@@ -322,53 +318,17 @@ import AppLayout from '../../layouts/AppLayout.astro';
     return (userAgentPlatform ?? navigator.userAgent ?? 'Téléphone').slice(0, 120);
   }
 
-  async function ensureScannerAccess() {
+  async function registerScannerInBackground() {
     const token = getScannerToken();
-    const statusRes = await authFetchWithTimeout(`/api/scanners/status?scanner_token=${encodeURIComponent(token)}`);
-    const statusPayload = await statusRes.json().catch(() => null);
-    if (!statusRes.ok) {
-      throw new Error(statusPayload?.error ?? 'Impossible de vérifier l’accès scanner.');
-    }
-
-    const statusData = statusPayload?.data;
-    if (!statusData) throw new Error('Réponse scanner invalide.');
-
-    if (statusData.registered_for_token) {
-      return;
-    }
-
-    const registerRes = await authFetchWithTimeout('/api/scanners/register', {
+    authFetchWithTimeout('/api/scanners/register', {
       method: 'POST',
       body: JSON.stringify({
         scanner_token: token,
         device_name: getDeviceName(),
       }),
+    }).catch((error) => {
+      console.warn('[scanner register background]', error);
     });
-    const registerPayload = await registerRes.json().catch(() => null);
-    if (!registerRes.ok) {
-      throw new Error(registerPayload?.error ?? 'Impossible d’enregistrer ce scanner.');
-    }
-  }
-
-  async function requestCameraPermission() {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error('Ce navigateur ne permet pas l’accès caméra. Ouvrez le scanner dans Safari ou Chrome.');
-    }
-
-    let stream: MediaStream | null = null;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-          advanced: [{ focusMode: 'continuous' } as MediaTrackConstraintSet],
-        },
-        audio: false,
-      });
-    } finally {
-      stopTracks(stream);
-    }
   }
 
   function rememberCameraId(deviceId: string | null) {
@@ -386,6 +346,22 @@ import AppLayout from '../../layouts/AppLayout.astro';
     } catch {
       return null;
     }
+  }
+
+  function forgetRememberedCameraId() {
+    try {
+      localStorage.removeItem(CAMERA_CACHE_KEY);
+    } catch {
+      // Stockage best-effort.
+    }
+  }
+
+  function defaultCameraConstraints(): MediaTrackConstraints {
+    return {
+      facingMode: { ideal: 'environment' },
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+    };
   }
 
   async function getRearCameraId() {
@@ -411,46 +387,39 @@ import AppLayout from '../../layouts/AppLayout.astro';
     scannerStarting = true;
     scannerPaused = false;
     hideCameraHelp();
-    setScannerStatus('Ouverture de la caméra...');
+    setScannerStatus('Chargement du scanner...');
 
     try {
       const qrScanner = await ensureScannerInstance();
-      try {
-        const rememberedCameraId = readRememberedCameraId();
-        await qrScanner.start(
-          rememberedCameraId
-            ? { deviceId: { exact: rememberedCameraId } }
-            : {
-                facingMode: { ideal: 'environment' },
-                width: { ideal: 1920 },
-                height: { ideal: 1080 },
-                advanced: [{ focusMode: 'continuous' } as MediaTrackConstraintSet],
-              },
-          getScanConfig(),
-          handleScan,
-          () => {},
-        );
-        if (!rememberedCameraId) {
-          getRearCameraId().then((rearCameraId) => rememberCameraId(rearCameraId)).catch(() => {});
+      setScannerStatus('Ouverture de la caméra...');
+      const rememberedCameraId = readRememberedCameraId();
+      const attempts: Array<string | MediaTrackConstraints> = rememberedCameraId
+        ? [{ deviceId: { exact: rememberedCameraId } }, defaultCameraConstraints()]
+        : [defaultCameraConstraints()];
+      let lastError: unknown = null;
+
+      for (const [index, cameraConfig] of attempts.entries()) {
+        try {
+          await qrScanner.start(
+            cameraConfig,
+            getScanConfig(),
+            handleScan,
+            () => {},
+          );
+          if (index === 0 && rememberedCameraId) {
+            rememberCameraId(rememberedCameraId);
+          } else {
+            getRearCameraId().then((rearCameraId) => rememberCameraId(rearCameraId)).catch(() => {});
+          }
+          setScannerStatus('Scanner prêt. Placez le QR code dans l’image.');
+          return;
+        } catch (error) {
+          lastError = error;
+          if (index === 0 && rememberedCameraId) forgetRememberedCameraId();
         }
-        setScannerStatus('Placez le QR code dans l’image, même s’il n’est pas parfaitement centré.');
-      } catch {
-        await requestCameraPermission();
-        const rearCameraId = await getRearCameraId();
-        rememberCameraId(rearCameraId);
-        await qrScanner.start(
-          rearCameraId
-            ? { deviceId: { exact: rearCameraId } }
-            : { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
-          getScanConfig(),
-          handleScan,
-          () => {},
-        );
-        if (!rearCameraId) {
-          getRearCameraId().then((nextCameraId) => rememberCameraId(nextCameraId)).catch(() => {});
-        }
-        setScannerStatus('Placez le QR code dans l’image, même s’il n’est pas parfaitement centré.');
       }
+
+      throw lastError ?? new Error('Caméra indisponible.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Caméra indisponible.';
       setScannerStatus('Caméra non autorisée.');
@@ -468,7 +437,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
     if (!scannerPaused || !scanner) return;
     scannerPaused = false;
     scanner.resume();
-    setScannerStatus('Placez le QR code dans l’image, même s’il n’est pas parfaitement centré.');
+    setScannerStatus('Scanner prêt. Placez le QR code dans l’image.');
   }
 
   async function handleScan(decodedText: string) {
@@ -633,24 +602,12 @@ import AppLayout from '../../layouts/AppLayout.astro';
   document.addEventListener('pointerdown', unlockAudio, { once: true });
   document.addEventListener('touchstart', unlockAudio, { once: true });
   cameraPermissionBtn.addEventListener('click', async () => {
-    try {
-      await ensureScannerAccess();
-      await startScanner({ fromUserAction: true });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Impossible d’activer le scanner.';
-      setScannerStatus('Scanner indisponible pour ce téléphone.');
-      showCameraHelp(message);
-    }
+    registerScannerInBackground();
+    await startScanner({ fromUserAction: true });
   });
 
   (async () => {
-    try {
-      await ensureScannerAccess();
-      await startScanner();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Impossible d’activer le scanner.';
-      setScannerStatus('Scanner indisponible pour ce téléphone.');
-      showCameraHelp(message);
-    }
+    registerScannerInBackground();
+    await startScanner();
   })();
 </script>

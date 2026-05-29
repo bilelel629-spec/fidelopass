@@ -253,6 +253,52 @@ const navToneClasses = {
   const pointVenteUsages = Array.from(document.querySelectorAll<HTMLElement>('#dashboard-point-vente-usage, #dashboard-point-vente-usage-mobile'));
   const mobileMoreSheet = document.getElementById('mobile-more-sheet');
   const mobileMoreBtn = document.getElementById('mobile-more-btn');
+  const scannerLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href="/app/scan"]'));
+  let scannerPrefetchStarted = false;
+
+  function prefetchScannerRoute() {
+    if (scannerPrefetchStarted) return;
+    scannerPrefetchStarted = true;
+
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+    if (connection?.saveData) return;
+
+    const existingPrefetch = document.querySelector('link[rel="prefetch"][href="/app/scan"]');
+    if (!existingPrefetch) {
+      const link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.href = '/app/scan';
+      link.as = 'document';
+      document.head.appendChild(link);
+    }
+
+    fetch('/app/scan', {
+      method: 'GET',
+      credentials: 'include',
+      cache: 'force-cache',
+      priority: 'low',
+    } as RequestInit & { priority?: 'low' }).catch(() => {});
+  }
+
+  function scheduleScannerPrefetch() {
+    if (!window.matchMedia('(max-width: 1023px)').matches) return;
+    const idle = (window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number;
+    }).requestIdleCallback;
+    if (idle) idle(prefetchScannerRoute, { timeout: 2200 });
+    else window.setTimeout(prefetchScannerRoute, 900);
+  }
+
+  for (const scannerLink of scannerLinks) {
+    scannerLink.addEventListener('pointerdown', prefetchScannerRoute, { passive: true });
+    scannerLink.addEventListener('touchstart', prefetchScannerRoute, { passive: true });
+    scannerLink.addEventListener('mouseenter', prefetchScannerRoute, { passive: true });
+    scannerLink.addEventListener('click', () => {
+      scannerLink.setAttribute('aria-busy', 'true');
+      const labelNode = scannerLink.childElementCount === 0 ? scannerLink : null;
+      if (labelNode) labelNode.textContent = 'Ouverture...';
+    });
+  }
 
   function setPlanBadge(planRaw: unknown) {
     const label = planLabel(planRaw);
@@ -357,6 +403,7 @@ const navToneClasses = {
   document.getElementById('mobile-more-close')?.addEventListener('click', () => setMobileMoreOpen(false));
   document.getElementById('mobile-more-backdrop')?.addEventListener('click', () => setMobileMoreOpen(false));
   mobileMoreSheet?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => setMobileMoreOpen(false)));
+  scheduleScannerPrefetch();
 
   await loadPointVenteSelector();
   await loadPlanBadge();

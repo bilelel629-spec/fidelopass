@@ -3,9 +3,10 @@ import '../styles/global.css';
 
 interface Props {
   title?: string;
+  deferSessionCheck?: boolean;
 }
 
-const { title = 'Fidelopass Scanner' } = Astro.props;
+const { title = 'Fidelopass Scanner', deferSessionCheck = false } = Astro.props;
 ---
 
 <!doctype html>
@@ -21,7 +22,7 @@ const { title = 'Fidelopass Scanner' } = Astro.props;
     <link rel="icon" type="image/png" href="/favicon.png" />
     <title>{title}</title>
   </head>
-  <body class="min-h-[100dvh] bg-[#f5f9ff] text-slate-900 antialiased overflow-x-hidden">
+  <body class="min-h-[100dvh] bg-[#f5f9ff] text-slate-900 antialiased overflow-x-hidden" data-defer-session-check={deferSessionCheck ? 'true' : 'false'}>
     <div class="pointer-events-none fixed inset-0 overflow-hidden">
       <div class="absolute -top-24 right-[-6rem] h-[18rem] w-[18rem] rounded-full bg-cyan-200/40 blur-3xl"></div>
       <div class="absolute bottom-[-6rem] left-[-4rem] h-[14rem] w-[14rem] rounded-full bg-blue-100/70 blur-3xl"></div>
@@ -45,12 +46,17 @@ const { title = 'Fidelopass Scanner' } = Astro.props;
 
   bindSessionActivityTracking();
 
+  const deferSessionCheck = document.body.dataset.deferSessionCheck === 'true';
   let idleRefreshPromise: Promise<void> | null = null;
 
   function refreshSessionAfterInactivity() {
     if (!shouldShowSessionRefreshOverlay() || idleRefreshPromise) return;
 
     idleRefreshPromise = (async () => {
+      if (deferSessionCheck) {
+        await requireFreshSession(supabase, { redirectToLogin: false });
+        return;
+      }
       const overlay = showSessionOverlay('Ouverture du scanner...', 'Votre session est rafraîchie avant d’activer la caméra.');
       const session = await requireFreshSession(supabase, { overlay });
       if (session) overlay.remove();
@@ -64,11 +70,15 @@ const { title = 'Fidelopass Scanner' } = Astro.props;
   });
   window.addEventListener('focus', refreshSessionAfterInactivity);
 
-  const overlay = shouldShowSessionRefreshOverlay()
-    ? showSessionOverlay('Ouverture du scanner...', 'Votre session est rafraîchie avant d’activer la caméra.')
-    : undefined;
-  const session = await requireFreshSession(supabase, { overlay });
-  if (session) overlay?.remove();
+  if (deferSessionCheck) {
+    requireFreshSession(supabase, { redirectToLogin: false }).catch(() => {});
+  } else {
+    const overlay = shouldShowSessionRefreshOverlay()
+      ? showSessionOverlay('Ouverture du scanner...', 'Votre session est rafraîchie avant d’activer la caméra.')
+      : undefined;
+    const session = await requireFreshSession(supabase, { overlay });
+    if (session) overlay?.remove();
+  }
 
   // Enregistrement du Service Worker
   if ('serviceWorker' in navigator) {

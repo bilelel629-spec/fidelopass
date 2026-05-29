@@ -1260,6 +1260,16 @@ const apiBase = (
     return `${API}${path}`;
   }
 
+  async function fetchWithTimeout(url, timeoutMs = 3500) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { signal: controller.signal, cache: 'no-store' });
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+
   function qrUrl(cardId, size = 900) {
     return `${qrBase}?size=${size}x${size}&data=${encodeURIComponent(`${window.location.origin}/carte/${cardId}`)}&bgcolor=ffffff&color=111827&qzone=1`;
   }
@@ -1353,6 +1363,7 @@ const apiBase = (
   function applyCreator() {
     readFields();
     const sheet = $('poster-sheet');
+    if (!sheet) return;
     sheet.style.setProperty('--poster-primary', state.primary);
     sheet.style.setProperty('--poster-secondary', state.secondary);
     sheet.style.setProperty('--poster-image', state.image ? `url("${state.image}")` : 'none');
@@ -1432,7 +1443,7 @@ const apiBase = (
 
   async function loadPoster() {
     try {
-      const response = await fetch(apiUrl(`/api/cartes/${carteId}/public`));
+      const response = await fetchWithTimeout(apiUrl(`/api/cartes/${carteId}/public`));
       if (!response.ok) throw new Error();
       const { data } = await response.json();
       const commerceName = data.commerce.nom || 'Votre commerce';
@@ -1527,7 +1538,7 @@ const apiBase = (
     window.print();
   }
 
-  document.querySelectorAll<HTMLElement>('[data-download-format]').forEach((button) => {
+  document.querySelectorAll('[data-download-format]').forEach((button) => {
     button.addEventListener('click', () => downloadPdf(button.dataset.downloadFormat));
   });
   $('download-pdf-top')?.addEventListener('click', () => downloadPdf(state.format));

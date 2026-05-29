@@ -127,7 +127,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     if (!billing?.data?.has_access) {
       window.location.replace('/abonnement/choix');
     } else if (billing?.data?.onboarding_completed) {
-      window.location.replace('/dashboard');
+      window.location.replace('/dashboard/carte');
     }
 
     const existingCommerce = await api('/api/commerces/me');

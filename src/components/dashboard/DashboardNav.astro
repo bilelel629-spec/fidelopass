@@ -143,11 +143,22 @@ const navToneClasses = {
     >
       ...
     </span>
-    <a href="/app/scan" class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700">
-      Scanner
+    <a href="/app/scan" class="inline-flex items-center gap-1.5 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-3.5 py-2 text-xs font-extrabold text-white shadow-[0_14px_30px_-18px_rgba(37,99,235,0.9)] ring-1 ring-white/40 active:scale-[0.98]">
+      <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7V5a1 1 0 0 1 1-1h2"></path><path d="M17 4h2a1 1 0 0 1 1 1v2"></path><path d="M20 17v2a1 1 0 0 1-1 1h-2"></path><path d="M7 20H5a1 1 0 0 1-1-1v-2"></path><path d="M7 12h10"></path></svg>
+      <span>Scanner</span>
     </a>
   </div>
 </header>
+
+<div id="scanner-open-overlay" class="fixed inset-0 z-[120] hidden items-center justify-center bg-white/92 px-6 text-center backdrop-blur-xl lg:hidden">
+  <div class="w-full max-w-xs rounded-[1.6rem] border border-sky-100 bg-white p-6 shadow-[0_28px_70px_-42px_rgba(37,99,235,0.7)]">
+    <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+      <span class="h-7 w-7 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600"></span>
+    </div>
+    <p class="mt-4 font-display text-xl font-extrabold text-slate-950">Ouverture du scanner</p>
+    <p class="mt-2 text-sm leading-6 text-slate-500">Préparation de la caméra et de votre session...</p>
+  </div>
+</div>
 
 <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-sky-100/90 bg-white/92 backdrop-blur-2xl px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.55rem)]">
   <div class="grid grid-cols-5 gap-1">
@@ -254,6 +265,7 @@ const navToneClasses = {
   const mobileMoreSheet = document.getElementById('mobile-more-sheet');
   const mobileMoreBtn = document.getElementById('mobile-more-btn');
   const scannerLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href="/app/scan"]'));
+  const scannerOpenOverlay = document.getElementById('scanner-open-overlay');
   let scannerPrefetchStarted = false;
 
   function prefetchScannerRoute() {
@@ -294,9 +306,12 @@ const navToneClasses = {
     scannerLink.addEventListener('touchstart', prefetchScannerRoute, { passive: true });
     scannerLink.addEventListener('mouseenter', prefetchScannerRoute, { passive: true });
     scannerLink.addEventListener('click', () => {
+      scannerOpenOverlay?.classList.remove('hidden');
+      scannerOpenOverlay?.classList.add('flex');
       scannerLink.setAttribute('aria-busy', 'true');
       const labelNode = scannerLink.childElementCount === 0 ? scannerLink : null;
       if (labelNode) labelNode.textContent = 'Ouverture...';
+      scannerLink.classList.add('opacity-80');
     });
   }
 

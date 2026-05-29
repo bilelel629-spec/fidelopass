@@ -966,7 +966,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
 
     #wizard-form-column {
-      padding-bottom: 25rem;
+      padding-bottom: 7rem;
     }
 
     .wizard-section {
@@ -988,15 +988,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
 
     #preview-panel {
-      position: fixed;
-      inset-inline: 0.75rem;
-      bottom: calc(env(safe-area-inset-bottom) + 9.3rem);
-      z-index: 70;
-      max-height: 12.2rem;
-      overflow: hidden;
+      position: static;
+      max-height: none;
+      overflow: visible;
       padding: 0.7rem;
       border-radius: 1.35rem;
-      box-shadow: 0 -20px 44px -28px rgba(15, 23, 42, 0.38);
+      box-shadow: 0 18px 44px -34px rgba(15, 23, 42, 0.38);
     }
 
     #preview-panel > .flex:first-child {

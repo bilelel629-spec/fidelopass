@@ -1227,7 +1227,6 @@ const apiBase = (
 
 <script define:vars={{ apiBase, carteId: id }}>
   const API = apiBase;
-  const qrBase = 'https://api.qrserver.com/v1/create-qr-code/';
   const defaultFont = "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
   const templatePresets = {
     affiche: { primary: '#fff0e5', secondary: '#df652a', text: '#1f2937', titleColor: '#df652a', image: '/banner-templates/nail-art.png', title: 'SCANNEZ & PROFITEZ' },
@@ -1295,8 +1294,27 @@ const apiBase = (
     }
   }
 
-  function qrUrl(cardId, size = 900) {
-    return `${qrBase}?size=${size}x${size}&data=${encodeURIComponent(`${window.location.origin}/carte/${cardId}`)}&bgcolor=ffffff&color=111827&qzone=1`;
+  async function renderQrCode(cardId) {
+    const qr = $('poster-qr');
+    if (!qr) return;
+    const fallback = `https://api.qrserver.com/v1/create-qr-code/?size=900x900&data=${encodeURIComponent(`${window.location.origin}/carte/${cardId}`)}&bgcolor=ffffff&color=111827&qzone=1`;
+
+    try {
+      const QRCodeModule = await import('qrcode');
+      const QRCode = QRCodeModule.default || QRCodeModule;
+      qr.src = await QRCode.toDataURL(`${window.location.origin}/carte/${cardId}`, {
+        width: 900,
+        margin: 1,
+        color: {
+          dark: '#111827',
+          light: '#ffffff',
+        },
+        errorCorrectionLevel: 'M',
+      });
+    } catch (error) {
+      console.warn('QR code local generation failed, using fallback image', error);
+      qr.src = fallback;
+    }
   }
 
   function rewardSummary(data) {
@@ -1501,7 +1519,7 @@ const apiBase = (
       }
 
       syncFieldsFromState();
-      $('poster-qr').src = qrUrl(carteId);
+      await renderQrCode(carteId);
 
       $('poster-loading').classList.add('hidden');
       $('poster-stage').classList.remove('hidden');
@@ -1509,7 +1527,7 @@ const apiBase = (
       applyCreator();
     } catch {
       syncFieldsFromState();
-      $('poster-qr').src = qrUrl(carteId);
+      await renderQrCode(carteId);
       $('poster-loading').classList.add('hidden');
       $('poster-stage').classList.remove('hidden');
       updateTemplateSelection();
@@ -1588,6 +1606,52 @@ const apiBase = (
     }));
   }
 
+  function fileReaderDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function prepareImagesForExport(root) {
+    const cleanup = [];
+    const images = Array.from(root.querySelectorAll('img'));
+
+    await Promise.allSettled(images.map(async (image) => {
+      const source = image.currentSrc || image.src;
+      if (!source || source.startsWith('data:') || source.startsWith('blob:')) return;
+
+      const isSameOrigin = (() => {
+        try {
+          return new URL(source, window.location.href).origin === window.location.origin;
+        } catch {
+          return true;
+        }
+      })();
+      if (isSameOrigin) return;
+
+      const previousSrc = image.src;
+      const previousVisibility = image.style.visibility;
+      cleanup.push(() => {
+        image.src = previousSrc;
+        image.style.visibility = previousVisibility;
+      });
+
+      try {
+        const response = await withTimeout(fetch(source, { mode: 'cors', cache: 'force-cache' }), 4500, 'Image distante trop lente');
+        if (!response.ok) throw new Error('Image distante indisponible');
+        image.src = await fileReaderDataUrl(await response.blob());
+      } catch {
+        image.style.visibility = 'hidden';
+      }
+    }));
+
+    await waitForFrame();
+    return () => cleanup.reverse().forEach((restore) => restore());
+  }
+
   function withTimeout(promise, duration, message) {
     return Promise.race([
       promise,
@@ -1622,10 +1686,12 @@ const apiBase = (
     setExportButtonsBusy(true);
     state.format = format === 'a5' ? 'a5' : 'a4';
     applyFormat();
+    let restoreExportImages = () => {};
 
     try {
       await waitForFrame();
       await waitForPosterAssets(sheet);
+      restoreExportImages = await prepareImagesForExport(sheet);
 
       const [{ toPng }, { jsPDF }] = await Promise.all([
         import('html-to-image'),
@@ -1655,6 +1721,7 @@ const apiBase = (
       console.error('Poster PDF export failed', error);
       alert("Impossible de générer le PDF pour le moment. Vérifiez que les images de l'affiche sont bien chargées puis réessayez.");
     } finally {
+      restoreExportImages();
       isExportingPdf = false;
       setExportButtonsBusy(false);
     }

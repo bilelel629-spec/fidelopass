@@ -30,8 +30,13 @@ const apiBase = (
       </div>
     </header>
 
+    <div class="poster-ui mobile-poster-switch mx-auto mt-3 grid max-w-[1720px] grid-cols-2 gap-2 px-4 lg:hidden">
+      <button id="mobile-editor-jump" type="button" class="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-extrabold text-white">Modifier</button>
+      <button id="mobile-preview-jump" type="button" class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-extrabold text-slate-700">Aperçu</button>
+    </div>
+
     <div class="creator-workspace mx-auto grid max-w-[1720px] gap-6 px-4 py-6 lg:grid-cols-[420px_minmax(0,1fr)]">
-      <aside class="poster-ui editor-panel lg:sticky lg:top-[76px]">
+      <aside id="poster-editor-panel" class="poster-ui editor-panel lg:sticky lg:top-[76px]">
         <div class="editor-scroll">
           <div class="mb-6">
             <p class="text-[0.68rem] font-extrabold uppercase tracking-[0.28em] text-blue-600">Création d'affiche</p>
@@ -173,7 +178,7 @@ const apiBase = (
         </div>
       </aside>
 
-      <main class="preview-area">
+      <main id="poster-preview-area" class="preview-area">
         <div id="poster-loading" class="preview-state">
           <div class="spinner"></div>
           <p>Préparation de l'affiche...</p>
@@ -1241,6 +1246,37 @@ const apiBase = (
       width: min(100%, 430px);
       border-radius: 1.2rem;
     }
+
+    .creator-workspace {
+      gap: 1rem;
+      padding-top: 1rem;
+    }
+
+    .editor-scroll {
+      padding: 1rem 1rem 6rem;
+    }
+
+    .editor-card {
+      margin-top: 0.8rem;
+      border-radius: 1.1rem;
+      padding: 0.85rem;
+    }
+
+    .preview-toolbar {
+      width: 100%;
+      min-width: 0;
+      border-radius: 1.1rem;
+    }
+
+    .preview-area {
+      min-height: auto;
+      padding: 1rem;
+    }
+
+    .poster-preview-shell {
+      min-height: auto;
+      padding-bottom: 1rem;
+    }
   }
 </style>
 
@@ -1682,6 +1718,12 @@ const apiBase = (
     window.print();
   });
   $('download-pdf-top')?.addEventListener('click', () => $('download-pdf')?.click());
+  $('mobile-editor-jump')?.addEventListener('click', () => {
+    $('poster-editor-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  $('mobile-preview-jump')?.addEventListener('click', () => {
+    $('poster-preview-area')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
 
   loadPoster();
 </script>

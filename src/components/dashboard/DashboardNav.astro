@@ -6,6 +6,9 @@ interface Props {
 }
 const { activeNav = '' } = Astro.props;
 const navItems = DASHBOARD_NAV_ITEMS;
+const mobilePrimaryItems = navItems.filter((item) => ['dashboard', 'carte', 'scan', 'notifications'].includes(item.id));
+const mobileMoreItems = navItems.filter((item) => !mobilePrimaryItems.some((primary) => primary.id === item.id));
+const isMobileMoreActive = mobileMoreItems.some((item) => item.id === activeNav);
 const navToneClasses = {
   blue: {
     active: 'bg-gradient-to-r from-blue-600 via-sky-500 to-cyan-400 text-white shadow-[0_22px_42px_-24px_rgba(37,99,235,0.95)] ring-1 ring-white/20',
@@ -134,9 +137,6 @@ const navToneClasses = {
     <img src="/logo-premium.png" alt="Fidelopass" class="h-10 w-36 object-cover object-center" />
   </a>
   <div class="flex items-center gap-2">
-    <a href="/dashboard/points-vente" class="rounded-full border border-sky-200 bg-white px-2.5 py-1.5 text-[0.62rem] font-semibold text-sky-700">
-      Points de vente
-    </a>
     <span
       id="dashboard-plan-badge-mobile"
       class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[0.65rem] font-semibold tracking-wide text-slate-500"
@@ -151,7 +151,7 @@ const navToneClasses = {
 
 <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-sky-100/90 bg-white/92 backdrop-blur-2xl px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.55rem)]">
   <div class="grid grid-cols-5 gap-1">
-    {navItems.filter((item) => item.id !== 'points-vente').slice(0, 5).map(({ href, id, label, paths, tone }) => (
+    {mobilePrimaryItems.map(({ href, id, label, paths, tone }) => (
       <a
         href={href}
         data-tour-nav={id}
@@ -167,8 +167,75 @@ const navToneClasses = {
         <span class="truncate max-w-full">{label}</span>
       </a>
     ))}
+    <button
+      id="mobile-more-btn"
+      type="button"
+      class={`min-w-0 flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[0.68rem] transition-all ${isMobileMoreActive ? 'bg-slate-200 text-slate-900 font-semibold' : 'text-slate-500 hover:text-slate-800'}`}
+      aria-expanded="false"
+      aria-controls="mobile-more-sheet"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 leading-none">
+        <path d="M5 12h14"></path>
+        <path d="M5 6h14"></path>
+        <path d="M5 18h14"></path>
+      </svg>
+      <span class="truncate max-w-full">Plus</span>
+    </button>
   </div>
 </nav>
+
+<div id="mobile-more-sheet" class="fixed inset-0 z-[80] hidden lg:hidden">
+  <button id="mobile-more-backdrop" type="button" class="absolute inset-0 bg-slate-950/45 backdrop-blur-[2px]" aria-label="Fermer le menu"></button>
+  <div class="absolute inset-x-0 bottom-0 max-h-[82dvh] overflow-y-auto rounded-t-[1.8rem] border border-sky-100 bg-white px-4 pb-[calc(env(safe-area-inset-bottom)+5.2rem)] pt-4 shadow-[0_-30px_70px_-42px_rgba(15,23,42,0.7)]">
+    <div class="mx-auto mb-3 h-1 w-12 rounded-full bg-slate-200"></div>
+    <div class="mb-4 flex items-center justify-between gap-3">
+      <div>
+        <p class="text-[0.64rem] font-semibold uppercase tracking-[0.22em] text-sky-700/70">Menu</p>
+        <p class="mt-1 text-base font-bold text-slate-950">Espace commerçant</p>
+      </div>
+      <button id="mobile-more-close" type="button" class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">Fermer</button>
+    </div>
+
+    <div class="rounded-2xl border border-sky-100 bg-sky-50/70 p-3">
+      <p class="text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-slate-500">Point de vente actif</p>
+      <select id="dashboard-point-vente-select-mobile" class="mt-2 w-full rounded-xl border border-sky-100 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 focus:border-sky-300 focus:outline-none">
+        <option>Chargement...</option>
+      </select>
+      <p id="dashboard-point-vente-usage-mobile" class="mt-2 text-[0.72rem] text-slate-500"></p>
+    </div>
+
+    <div class="mt-4 grid gap-2">
+      {mobileMoreItems.map(({ href, id, label, paths, tone }) => (
+        <a
+          href={href}
+          data-tour-nav={id}
+          class={`flex items-center gap-3 rounded-2xl border px-3 py-3 text-sm transition
+            ${activeNav === id
+              ? 'border-sky-200 bg-sky-50 text-sky-900 font-semibold'
+              : 'border-slate-100 bg-white text-slate-600 hover:border-sky-100 hover:bg-sky-50/70 hover:text-sky-900'
+            }`}
+        >
+          <span class={`flex h-9 w-9 items-center justify-center rounded-xl border ${navToneClasses[tone].icon}`}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+              {paths.map((path) => <path d={path}></path>)}
+            </svg>
+          </span>
+          <span>{label}</span>
+        </a>
+      ))}
+    </div>
+
+    <div class="mt-4 grid gap-2 border-t border-slate-100 pt-4">
+      <a href="/app/install" class="flex items-center justify-between rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-800">
+        Installer un téléphone
+        <span aria-hidden="true">→</span>
+      </a>
+      <button id="logout-btn-mobile" type="button" class="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-left text-sm font-semibold text-red-700">
+        Se déconnecter
+      </button>
+    </div>
+  </div>
+</div>
 
 <script>
   import { ACTIVE_POINT_VENTE_STORAGE_KEY, authFetch } from '../../lib/api';
@@ -182,8 +249,10 @@ const navToneClasses = {
 
   const desktopPlanBadge = document.getElementById('dashboard-plan-badge');
   const mobilePlanBadge = document.getElementById('dashboard-plan-badge-mobile');
-  const pointVenteSelect = document.getElementById('dashboard-point-vente-select') as HTMLSelectElement | null;
-  const pointVenteUsage = document.getElementById('dashboard-point-vente-usage');
+  const pointVenteSelects = Array.from(document.querySelectorAll<HTMLSelectElement>('#dashboard-point-vente-select, #dashboard-point-vente-select-mobile'));
+  const pointVenteUsages = Array.from(document.querySelectorAll<HTMLElement>('#dashboard-point-vente-usage, #dashboard-point-vente-usage-mobile'));
+  const mobileMoreSheet = document.getElementById('mobile-more-sheet');
+  const mobileMoreBtn = document.getElementById('mobile-more-btn');
 
   function setPlanBadge(planRaw: unknown) {
     const label = planLabel(planRaw);
@@ -214,7 +283,7 @@ const navToneClasses = {
   }
 
   async function loadPointVenteSelector() {
-    if (!pointVenteSelect) return;
+    if (!pointVenteSelects.length) return;
 
     let res = await authFetch('/api/commerces/points-vente');
     if (res.status === 403) {
@@ -222,7 +291,7 @@ const navToneClasses = {
       res = await authFetch('/api/commerces/points-vente');
     }
     if (!res.ok) {
-      pointVenteSelect.innerHTML = '<option value="">Point indisponible</option>';
+      for (const select of pointVenteSelects) select.innerHTML = '<option value="">Point indisponible</option>';
       return;
     }
 
@@ -236,23 +305,24 @@ const navToneClasses = {
       : selectedFromApi;
 
     if (points.length === 0) {
-      pointVenteSelect.innerHTML = '<option value="">Ajoutez un point de vente</option>';
-      if (pointVenteUsage) pointVenteUsage.textContent = '0 point de vente actif';
+      for (const select of pointVenteSelects) select.innerHTML = '<option value="">Ajoutez un point de vente</option>';
+      for (const usageNode of pointVenteUsages) usageNode.textContent = '0 point de vente actif';
       setStoredPointVenteId(null);
       return;
     }
 
-    pointVenteSelect.innerHTML = points.map((point: { id: string; nom: string }) => (
+    const optionsHtml = points.map((point: { id: string; nom: string }) => (
       `<option value="${point.id}">${point.nom}</option>`
     )).join('');
+    for (const select of pointVenteSelects) select.innerHTML = optionsHtml;
 
     if (selectedId && points.some((point: { id: string }) => point.id === selectedId)) {
-      pointVenteSelect.value = selectedId;
+      for (const select of pointVenteSelects) select.value = selectedId;
       setStoredPointVenteId(selectedId);
     }
 
-    if (pointVenteUsage && usage) {
-      pointVenteUsage.textContent = `${usage.current}/${usage.max} points de vente utilisés`;
+    if (usage) {
+      for (const usageNode of pointVenteUsages) usageNode.textContent = `${usage.current}/${usage.max} points de vente utilisés`;
     }
   }
 
@@ -268,17 +338,34 @@ const navToneClasses = {
     }
   }
 
-  pointVenteSelect?.addEventListener('change', (event) => {
-    const nextPointVenteId = (event.target as HTMLSelectElement).value || null;
-    setStoredPointVenteId(nextPointVenteId);
-    window.location.reload();
-  });
+  for (const pointVenteSelect of pointVenteSelects) {
+    pointVenteSelect.addEventListener('change', (event) => {
+      const nextPointVenteId = (event.target as HTMLSelectElement).value || null;
+      setStoredPointVenteId(nextPointVenteId);
+      window.location.reload();
+    });
+  }
+
+  function setMobileMoreOpen(open: boolean) {
+    if (!mobileMoreSheet || !mobileMoreBtn) return;
+    mobileMoreSheet.classList.toggle('hidden', !open);
+    mobileMoreBtn.setAttribute('aria-expanded', String(open));
+    document.body.style.overflow = open ? 'hidden' : '';
+  }
+
+  mobileMoreBtn?.addEventListener('click', () => setMobileMoreOpen(mobileMoreSheet?.classList.contains('hidden') ?? true));
+  document.getElementById('mobile-more-close')?.addEventListener('click', () => setMobileMoreOpen(false));
+  document.getElementById('mobile-more-backdrop')?.addEventListener('click', () => setMobileMoreOpen(false));
+  mobileMoreSheet?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => setMobileMoreOpen(false)));
 
   await loadPointVenteSelector();
   await loadPlanBadge();
 
-  document.getElementById('logout-btn')?.addEventListener('click', async () => {
+  async function logout() {
     await supabase.auth.signOut();
     window.location.href = '/login';
-  });
+  }
+
+  document.getElementById('logout-btn')?.addEventListener('click', logout);
+  document.getElementById('logout-btn-mobile')?.addEventListener('click', logout);
 </script>

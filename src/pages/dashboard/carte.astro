@@ -970,6 +970,60 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   .appearance-tab[data-active='true'] .appearance-tab-icon {
     background: var(--appearance-bg);
   }
+
+  @media (max-width: 640px) {
+    #wizard-top-anchor {
+      padding: 1rem;
+      border-radius: 1.25rem;
+    }
+
+    #wizard-top-anchor h1 {
+      font-size: 1.45rem;
+      line-height: 1.08;
+    }
+
+    #active-point-banner {
+      border-radius: 1.15rem;
+    }
+
+    #active-point-banner a {
+      width: 100%;
+      text-align: center;
+    }
+
+    .wizard-section {
+      padding: 1rem !important;
+      border-radius: 1.2rem;
+    }
+
+    .wizard-section h2,
+    .wizard-section h3 {
+      line-height: 1.1;
+    }
+
+    #mobile-step-guidance {
+      padding: 0.8rem 0.9rem;
+    }
+
+    .mobile-step-item {
+      min-height: 3.1rem;
+    }
+
+    #preview-panel {
+      max-height: min(82dvh, 42rem);
+    }
+
+    .fixed[style*='bottom:4.2rem'] > div {
+      padding: 0.65rem;
+      border-radius: 1.25rem;
+    }
+
+    #mobile-save-continue-btn,
+    #mobile-prev-step-btn {
+      min-height: 3rem;
+      border-radius: 1rem;
+    }
+  }
 </style>
 
 <script>

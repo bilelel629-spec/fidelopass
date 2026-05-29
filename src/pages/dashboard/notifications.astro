@@ -267,6 +267,90 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   }
 
+  @media (max-width: 640px) {
+    .notif-page {
+      gap: 1rem;
+    }
+
+    .notif-page header h1 {
+      margin-top: 0.55rem;
+      font-size: 2.15rem;
+      line-height: 1;
+    }
+
+    .notif-page header p:last-child {
+      margin-top: 0.75rem;
+      font-size: 0.94rem;
+      line-height: 1.65;
+    }
+
+    .notif-kpi-card {
+      display: grid;
+      grid-template-columns: 2.6rem 1fr auto;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.95rem;
+      border-radius: 1.15rem;
+    }
+
+    .notif-kpi-card .notif-kpi-icon {
+      height: 2.6rem;
+      width: 2.6rem;
+    }
+
+    .notif-kpi-card p {
+      margin: 0;
+    }
+
+    .notif-kpi-card p:nth-of-type(2) {
+      grid-column: 3;
+      grid-row: 1 / span 2;
+      font-size: 1.8rem;
+    }
+
+    .notif-tab {
+      padding-block: 0.8rem !important;
+      font-size: 0.78rem !important;
+    }
+
+    #tab-manual > div:first-child > aside {
+      display: grid;
+      gap: 1rem;
+    }
+
+    #tab-manual > div:first-child > aside > div:first-child {
+      order: 2;
+    }
+
+    #tab-manual > div:first-child > aside > div:first-child .mx-auto {
+      max-width: 14.5rem;
+    }
+
+    .quick-idea {
+      min-width: 13rem;
+    }
+
+    .quick-idea span {
+      font-size: 0.86rem;
+    }
+
+    #tab-manual .mt-5.grid:has(.quick-idea) {
+      display: flex;
+      overflow-x: auto;
+      padding-bottom: 0.35rem;
+      scroll-snap-type: x proximity;
+    }
+
+    #tab-manual .mt-5.grid:has(.quick-idea) .quick-idea {
+      scroll-snap-align: start;
+    }
+
+    .automation-card {
+      padding: 1rem;
+      border-radius: 1.25rem;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .notif-page,
     .notif-kpi-card,

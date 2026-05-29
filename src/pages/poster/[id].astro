@@ -1677,6 +1677,46 @@ const apiBase = (
     });
   }
 
+  async function capturePosterWithHtmlToImage(sheet) {
+    const { toPng } = await import('html-to-image');
+    return withTimeout(toPng(sheet, {
+      pixelRatio: 2.6,
+      cacheBust: false,
+      backgroundColor: state.primary,
+      skipFonts: true,
+      imagePlaceholder: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==',
+    }), 12000, 'La capture principale de l’affiche a pris trop de temps.');
+  }
+
+  async function capturePosterWithCanvas(sheet) {
+    const { default: html2canvas } = await import('html2canvas');
+    const canvas = await withTimeout(html2canvas(sheet, {
+      allowTaint: false,
+      backgroundColor: state.primary,
+      imageTimeout: 4500,
+      logging: false,
+      scale: Math.min(2.4, window.devicePixelRatio || 2),
+      useCORS: true,
+      windowWidth: document.documentElement.clientWidth,
+      windowHeight: document.documentElement.clientHeight,
+    }), 14000, 'La capture de secours de l’affiche a pris trop de temps.');
+    return canvas.toDataURL('image/png', 1);
+  }
+
+  async function capturePoster(sheet) {
+    try {
+      return await capturePosterWithHtmlToImage(sheet);
+    } catch (primaryError) {
+      console.warn('Primary poster capture failed, retrying with canvas', primaryError);
+      return capturePosterWithCanvas(sheet);
+    }
+  }
+
+  function fallbackToPrintExport() {
+    preparePrintFormat();
+    window.setTimeout(() => window.print(), 80);
+  }
+
   async function downloadPdf(format = state.format) {
     if (isExportingPdf) return;
     const sheet = $('poster-sheet');
@@ -1693,18 +1733,10 @@ const apiBase = (
       await waitForPosterAssets(sheet);
       restoreExportImages = await prepareImagesForExport(sheet);
 
-      const [{ toPng }, { jsPDF }] = await Promise.all([
-        import('html-to-image'),
+      const [{ jsPDF }, dataUrl] = await Promise.all([
         import('jspdf'),
+        capturePoster(sheet),
       ]);
-
-      const dataUrl = await withTimeout(toPng(sheet, {
-        pixelRatio: 2.6,
-        cacheBust: false,
-        backgroundColor: state.primary,
-        skipFonts: true,
-        imagePlaceholder: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==',
-      }), 12000, 'La capture de l’affiche a pris trop de temps.');
 
       const pageSize = state.format === 'a5'
         ? { format: 'a5', width: 148, height: 210 }
@@ -1719,7 +1751,7 @@ const apiBase = (
       pdf.save(posterFilename(state.format));
     } catch (error) {
       console.error('Poster PDF export failed', error);
-      alert("Impossible de générer le PDF pour le moment. Vérifiez que les images de l'affiche sont bien chargées puis réessayez.");
+      fallbackToPrintExport();
     } finally {
       restoreExportImages();
       isExportingPdf = false;

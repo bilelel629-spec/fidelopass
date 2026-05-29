@@ -1094,9 +1094,8 @@ const apiBase = (
       print-color-adjust: exact;
     }
 
-    nav,
-    header,
-    footer,
+    .creator-header,
+    .mobile-poster-switch,
     .poster-ui,
     #poster-loading,
     #poster-error,
@@ -1132,6 +1131,13 @@ const apiBase = (
       margin: 0 !important;
       overflow: hidden !important;
       page-break-inside: avoid;
+    }
+
+    #poster-sheet .poster-top,
+    #poster-sheet .poster-brand,
+    #poster-sheet .poster-qr-zone,
+    #poster-sheet .poster-footer {
+      display: flex !important;
     }
   }
 

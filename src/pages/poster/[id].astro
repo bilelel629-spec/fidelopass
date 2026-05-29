@@ -1557,10 +1557,107 @@ const apiBase = (
     reader.readAsDataURL(file);
   });
 
-  function downloadPdf(format = state.format) {
+  let isExportingPdf = false;
+
+  function posterFilename(format) {
+    const commerce = (state.commerce || 'fidelopass')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/gi, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase();
+    return `affiche-${commerce || 'fidelopass'}-${format}.pdf`;
+  }
+
+  function waitForFrame() {
+    return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  }
+
+  async function waitForPosterAssets(root) {
+    if (document.fonts?.ready) {
+      await document.fonts.ready.catch(() => {});
+    }
+
+    const images = Array.from(root.querySelectorAll('img'));
+    await Promise.allSettled(images.map((image) => {
+      if (image.complete) return Promise.resolve();
+      return new Promise((resolve) => {
+        image.addEventListener('load', resolve, { once: true });
+        image.addEventListener('error', resolve, { once: true });
+      });
+    }));
+  }
+
+  function withTimeout(promise, duration, message) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        window.setTimeout(() => reject(new Error(message)), duration);
+      }),
+    ]);
+  }
+
+  function setExportButtonsBusy(isBusy) {
+    const buttons = [
+      $('download-pdf-top'),
+      ...Array.from(document.querySelectorAll('[data-download-format]')),
+    ].filter(Boolean);
+
+    buttons.forEach((button) => {
+      if (!button.dataset.label) button.dataset.label = button.textContent.trim();
+      button.disabled = isBusy;
+      button.classList.toggle('is-exporting', isBusy);
+      if (button.id === 'download-pdf-top') {
+        button.textContent = isBusy ? 'Préparation PDF...' : button.dataset.label;
+      }
+    });
+  }
+
+  async function downloadPdf(format = state.format) {
+    if (isExportingPdf) return;
+    const sheet = $('poster-sheet');
+    if (!sheet) return;
+
+    isExportingPdf = true;
+    setExportButtonsBusy(true);
     state.format = format === 'a5' ? 'a5' : 'a4';
-    preparePrintFormat();
-    window.print();
+    applyFormat();
+
+    try {
+      await waitForFrame();
+      await waitForPosterAssets(sheet);
+
+      const [{ toPng }, { jsPDF }] = await Promise.all([
+        import('html-to-image'),
+        import('jspdf'),
+      ]);
+
+      const dataUrl = await withTimeout(toPng(sheet, {
+        pixelRatio: 2.6,
+        cacheBust: false,
+        backgroundColor: state.primary,
+        skipFonts: true,
+        imagePlaceholder: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==',
+      }), 12000, 'La capture de l’affiche a pris trop de temps.');
+
+      const pageSize = state.format === 'a5'
+        ? { format: 'a5', width: 148, height: 210 }
+        : { format: 'a4', width: 210, height: 297 };
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: pageSize.format,
+        compress: true,
+      });
+      pdf.addImage(dataUrl, 'PNG', 0, 0, pageSize.width, pageSize.height, undefined, 'FAST');
+      pdf.save(posterFilename(state.format));
+    } catch (error) {
+      console.error('Poster PDF export failed', error);
+      alert("Impossible de générer le PDF pour le moment. Vérifiez que les images de l'affiche sont bien chargées puis réessayez.");
+    } finally {
+      isExportingPdf = false;
+      setExportButtonsBusy(false);
+    }
   }
 
   document.querySelectorAll('[data-download-format]').forEach((button) => {

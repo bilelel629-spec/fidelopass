@@ -12,18 +12,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
     </div>
   </div>
-  <div id="active-point-banner" class="mb-4 rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3 sm:mb-5">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div class="text-sm text-sky-800">
-        <p class="font-medium">Point de vente actif: <span id="active-point-name" class="font-semibold">Chargement...</span></p>
-        <p class="mt-1 hidden text-xs text-sky-700/90 sm:block">Besoin d’ajouter une autre adresse ? Cliquez sur “Gérer les points de vente”.</p>
-      </div>
-      <a href="/dashboard/points-vente" class="rounded-xl border border-sky-200 bg-white px-3.5 py-2 text-xs font-semibold text-sky-700 transition hover:border-sky-300 hover:bg-sky-50">
-        Gérer les points de vente
-      </a>
-    </div>
-  </div>
-
   <div class="mb-4 rounded-[1.4rem] border border-sky-100 bg-white/95 p-4 shadow-[0_18px_48px_-36px_rgba(59,130,246,0.4)] lg:hidden">
     <div class="flex items-center justify-between gap-3">
       <div>
@@ -114,7 +102,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   <div class="grid lg:grid-cols-[1fr_370px] gap-6 items-start">
 
-    <div class="flex flex-col gap-5 pb-40 lg:pb-0">
+    <div id="wizard-form-column" class="flex flex-col gap-5 pb-40 lg:pb-0">
 
       <!-- Étape 1 : Type de programme -->
       <div class="card wizard-section step-1 p-6" data-tour="card-program">
@@ -626,9 +614,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                 <span id="geo-coordinates-check" class="rounded-xl bg-slate-50 px-3 py-2">Coordonnées: —</span>
                 <span id="geo-radius-check" class="rounded-xl bg-slate-50 px-3 py-2">Rayon: —</span>
               </div>
-              <div class="mt-3 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs leading-5 text-blue-800">
-                Apple Wallet et Google Wallet décident du moment exact d’affichage selon les autorisations du client. Fidelopass met à jour les coordonnées et le message de proximité.
-              </div>
               <button id="geo-wallet-sync-btn" type="button" class="btn-secondary mt-3 w-full px-4 py-2.5 text-sm">Mettre à jour les cartes Wallet</button>
               <p id="geo-wallet-sync-feedback" class="mt-2 hidden rounded-xl border px-3 py-2 text-xs"></p>
             </div>
@@ -742,9 +727,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     <!-- Aperçu -->
     <div class="lg:sticky lg:top-8 space-y-5">
-      <button id="preview-toggle-btn" type="button" class="btn-secondary w-full py-3 text-sm lg:hidden">Voir l’aperçu</button>
+      <button id="preview-toggle-btn" type="button" class="hidden">Voir l’aperçu</button>
       <div id="preview-mobile-backdrop" class="fixed inset-0 z-[72] hidden bg-slate-900/50 backdrop-blur-[1px] lg:hidden"></div>
-      <div id="preview-panel" class="card p-4 hidden lg:block">
+      <div id="preview-panel" class="card p-4">
         <div class="flex items-start justify-between gap-3 mb-3">
           <div>
             <p class="label mb-1">Aperçu temps réel</p>
@@ -834,22 +819,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           </div>
         </div>
       </div>
-      <div class="card p-4">
-        <p class="label mb-2">Résumé de la carte</p>
-        <div id="review-summary" class="grid gap-2"></div>
-      </div>
-
     </div>
   </div>
 
   <div class="fixed inset-x-0 z-[71] px-3 pb-[calc(env(safe-area-inset-bottom)+0.45rem)] lg:hidden" style="bottom:4.2rem;">
     <div class="rounded-2xl border border-sky-100 bg-white/95 p-3 shadow-[0_24px_46px_-28px_rgba(15,23,42,0.35)]">
-      <div class="mb-2 flex justify-end">
-        <button type="button" id="mobile-preview-btn" class="btn-secondary px-3 py-2 text-xs">Aperçu</button>
-      </div>
-      <div class="grid grid-cols-[132px_1fr] gap-2">
-        <button type="button" id="mobile-prev-step-btn" class="btn-secondary py-3 text-sm">Étape précédente</button>
-        <button type="button" id="mobile-save-continue-btn" class="btn-primary py-3 text-sm">Enregistrer et continuer</button>
+      <div class="grid grid-cols-[3.1rem_1fr_3.1rem] gap-2">
+        <button type="button" id="mobile-prev-step-btn" class="btn-secondary flex min-h-12 items-center justify-center rounded-2xl text-lg" aria-label="Étape précédente">←</button>
+        <button type="button" id="mobile-save-btn" class="btn-primary min-h-12 rounded-2xl text-sm">Enregistrer</button>
+        <button type="button" id="mobile-next-step-btn" class="btn-secondary flex min-h-12 items-center justify-center rounded-2xl text-lg" aria-label="Étape suivante">→</button>
       </div>
     </div>
   </div>
@@ -973,22 +951,22 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   @media (max-width: 640px) {
     #wizard-top-anchor {
-      padding: 1rem;
+      padding: 0.85rem 1rem;
       border-radius: 1.25rem;
+      margin-bottom: 0.75rem;
     }
 
     #wizard-top-anchor h1 {
-      font-size: 1.45rem;
+      font-size: 1.2rem;
       line-height: 1.08;
     }
 
-    #active-point-banner {
-      border-radius: 1.15rem;
+    #wizard-top-anchor p:last-child {
+      display: none;
     }
 
-    #active-point-banner a {
-      width: 100%;
-      text-align: center;
+    #wizard-form-column {
+      padding-bottom: 25rem;
     }
 
     .wizard-section {
@@ -1010,7 +988,41 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
 
     #preview-panel {
-      max-height: min(82dvh, 42rem);
+      position: fixed;
+      inset-inline: 0.75rem;
+      bottom: calc(env(safe-area-inset-bottom) + 9.3rem);
+      z-index: 70;
+      max-height: 12.2rem;
+      overflow: hidden;
+      padding: 0.7rem;
+      border-radius: 1.35rem;
+      box-shadow: 0 -20px 44px -28px rgba(15, 23, 42, 0.38);
+    }
+
+    #preview-panel > .flex:first-child {
+      margin-bottom: 0.45rem;
+    }
+
+    #preview-panel > .flex:first-child p:last-child,
+    #preview-panel .flex.rounded-2xl {
+      display: none;
+    }
+
+    #apple-preview,
+    #google-preview {
+      min-height: 8.3rem !important;
+      border-radius: 1.1rem;
+    }
+
+    #a-strip-zone,
+    #preview-stamps-wrap {
+      min-height: 4.2rem !important;
+    }
+
+    #preview-barcode-wrap,
+    #preview-branding,
+    #g-details-panel {
+      display: none !important;
     }
 
     .fixed[style*='bottom:4.2rem'] > div {
@@ -1018,7 +1030,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       border-radius: 1.25rem;
     }
 
-    #mobile-save-continue-btn,
+    #mobile-save-btn,
+    #mobile-next-step-btn,
     #mobile-prev-step-btn {
       min-height: 3rem;
       border-radius: 1rem;
@@ -1234,7 +1247,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     ].filter(Boolean) as HTMLButtonElement[];
     const saveContinueButtons = [
       document.getElementById('save-continue-btn'),
-      document.getElementById('mobile-save-continue-btn'),
+    ].filter(Boolean) as HTMLButtonElement[];
+    const mobileSaveButton = document.getElementById('mobile-save-btn') as HTMLButtonElement | null;
+    const nextButtons = [
+      document.getElementById('mobile-next-step-btn'),
     ].filter(Boolean) as HTMLButtonElement[];
     const currentLabel = document.getElementById('wizard-current-label');
     if (currentLabel) currentLabel.textContent = `Étape ${currentStep} · ${STEP_LABELS[currentStep - 1]}`;
@@ -1268,6 +1284,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             ? 'Enregistrer'
             : 'Enregistrer et continuer';
       }
+      button.classList.toggle('opacity-50', button.disabled);
+      button.classList.toggle('cursor-not-allowed', button.disabled);
+    });
+    if (mobileSaveButton) {
+      mobileSaveButton.disabled = isSaving;
+      mobileSaveButton.textContent = isSaving ? 'Enregistrement...' : 'Enregistrer';
+      mobileSaveButton.classList.toggle('opacity-50', mobileSaveButton.disabled);
+      mobileSaveButton.classList.toggle('cursor-not-allowed', mobileSaveButton.disabled);
+    }
+    nextButtons.forEach((button) => {
+      button.disabled = isSaving || currentStep === TOTAL_STEPS;
       button.classList.toggle('opacity-50', button.disabled);
       button.classList.toggle('cursor-not-allowed', button.disabled);
     });
@@ -1585,7 +1612,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     if (previewMobileOpen) closeMobilePreview();
     else openMobilePreview();
   });
-  document.getElementById('mobile-preview-btn')!.addEventListener('click', () => {
+  document.getElementById('mobile-preview-btn')?.addEventListener('click', () => {
     if (previewMobileOpen) closeMobilePreview();
     else openMobilePreview();
   });
@@ -2640,6 +2667,23 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   document.getElementById('prev-step-btn')!.addEventListener('click', goToPreviousStep);
   document.getElementById('mobile-prev-step-btn')!.addEventListener('click', goToPreviousStep);
 
+  function goToNextStep() {
+    const validation = stepValidators[currentStep]();
+    if (validation) {
+      showStepError(currentStep, validation);
+      return;
+    }
+    clearStepError(currentStep);
+    if (currentStep >= TOTAL_STEPS) return;
+    markStepCompleted(currentStep);
+    const nextStep = (currentStep + 1) as WizardStep;
+    setMaxUnlockedStep(Math.max(maxUnlockedStep, nextStep));
+    setDraftState(true, true);
+    showStep(nextStep);
+  }
+
+  document.getElementById('mobile-next-step-btn')?.addEventListener('click', goToNextStep);
+
   function toSafeUrl(val: string): string | null {
     if (!val) return null;
     try { new URL(val); return val; } catch { return null; }
@@ -2708,7 +2752,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     updateWizardActions();
     const saveContinueButtons = [
       document.getElementById('save-continue-btn'),
-      document.getElementById('mobile-save-continue-btn'),
+      document.getElementById('mobile-save-btn'),
     ].filter(Boolean) as HTMLButtonElement[];
     const originalContinue = saveContinueButtons.map((button) => button.textContent ?? '');
     saveContinueButtons.forEach((button) => {
@@ -2818,7 +2862,25 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     await persistCard(true);
   }
   document.getElementById('save-continue-btn')!.addEventListener('click', handleSaveContinue);
-  document.getElementById('mobile-save-continue-btn')!.addEventListener('click', handleSaveContinue);
+  document.getElementById('mobile-save-btn')?.addEventListener('click', async () => {
+    const validation = stepValidators[currentStep]();
+    if (validation) {
+      showStepError(currentStep, validation);
+      return;
+    }
+    clearStepError(currentStep);
+    if (!carteId && currentStep < TOTAL_STEPS) {
+      const suc = document.getElementById('success-msg') as HTMLDivElement;
+      document.getElementById('error-msg')?.classList.add('hidden');
+      markStepCompleted(currentStep);
+      setDraftState(true, true);
+      suc.textContent = 'Brouillon conservé. La carte sera enregistrée définitivement à la dernière étape.';
+      suc.classList.remove('hidden');
+      updateWizardActions();
+      return;
+    }
+    await persistCard(false);
+  });
 
   document.getElementById('download-qr-btn')!.addEventListener('click', async () => {
     if (!carteId) return;

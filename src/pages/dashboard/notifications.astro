@@ -21,18 +21,26 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
     </header>
 
-    <div class="grid gap-4 sm:grid-cols-2" data-tour="notifications-summary">
+    <div class="notif-kpi-grid grid gap-3 sm:grid-cols-2" data-tour="notifications-summary">
       <article class="notif-kpi-card">
         <span class="notif-kpi-icon bg-blue-50 text-blue-600"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
-        <p class="mt-5 text-sm font-semibold text-slate-500">Clients abonnés</p>
-        <p id="summary-wallet" class="mt-2 font-display text-4xl font-extrabold tracking-[-0.05em] text-slate-950">—</p>
-        <p class="mt-1 text-xs font-medium text-slate-500">Apple Wallet + Google Wallet</p>
+        <div class="min-w-0">
+          <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Clients abonnés</p>
+          <div class="mt-1 flex items-end justify-between gap-3">
+            <p id="summary-wallet" class="font-display text-3xl font-extrabold tracking-[-0.05em] text-slate-950">—</p>
+            <p class="pb-1 text-xs font-medium text-slate-500">Wallet actifs</p>
+          </div>
+        </div>
       </article>
       <article class="notif-kpi-card">
         <span class="notif-kpi-icon bg-indigo-50 text-indigo-600"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3Z"></path><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path></svg></span>
-        <p class="mt-5 text-sm font-semibold text-slate-500">Campagnes envoyées</p>
-        <p id="summary-history" class="mt-2 font-display text-4xl font-extrabold tracking-[-0.05em] text-slate-950">—</p>
-        <p class="mt-1 text-xs font-medium text-slate-500">Historique total</p>
+        <div class="min-w-0">
+          <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Campagnes envoyées</p>
+          <div class="mt-1 flex items-end justify-between gap-3">
+            <p id="summary-history" class="font-display text-3xl font-extrabold tracking-[-0.05em] text-slate-950">—</p>
+            <p class="pb-1 text-xs font-medium text-slate-500">Historique</p>
+          </div>
+        </div>
       </article>
     </div>
 
@@ -180,10 +188,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   .notif-kpi-card {
+    display: flex;
+    align-items: center;
+    gap: 0.95rem;
     border: 1px solid rgb(226 232 240);
-    border-radius: 1.5rem;
+    border-radius: 1.25rem;
     background: #fff;
-    padding: 1.35rem;
+    padding: 1rem;
     box-shadow: 0 24px 70px -52px rgba(15, 23, 42, 0.55);
     transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
   }
@@ -198,11 +209,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   .notif-kpi-icon {
     display: flex;
-    height: 3rem;
-    width: 3rem;
+    height: 2.5rem;
+    width: 2.5rem;
+    flex: 0 0 auto;
     align-items: center;
     justify-content: center;
-    border-radius: 1rem;
+    border-radius: 0.9rem;
   }
 
   .notif-kpi-icon svg {

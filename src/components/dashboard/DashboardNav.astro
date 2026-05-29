@@ -6,7 +6,7 @@ interface Props {
 }
 const { activeNav = '' } = Astro.props;
 const navItems = DASHBOARD_NAV_ITEMS;
-const mobilePrimaryItems = navItems.filter((item) => ['dashboard', 'carte', 'scan', 'notifications'].includes(item.id));
+const mobilePrimaryItems = navItems.filter((item) => ['dashboard', 'carte', 'notifications', 'clients'].includes(item.id));
 const mobileMoreItems = navItems.filter((item) => !mobilePrimaryItems.some((primary) => primary.id === item.id));
 const isMobileMoreActive = mobileMoreItems.some((item) => item.id === activeNav);
 const navToneClasses = {

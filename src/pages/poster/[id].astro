@@ -189,61 +189,7 @@ const apiBase = (
 
           <div class="poster-preview-shell">
             <div id="poster-sheet" class="poster-sheet" style="--poster-primary:#082f25;--poster-secondary:#c8a45d;--poster-ink:#ffffff;--poster-title-color:#ffffff;--poster-font:Inter,ui-sans-serif,system-ui,sans-serif;--poster-title-font:Inter,ui-sans-serif,system-ui,sans-serif;--poster-muted:rgba(255,255,255,0.72);">
-              <div class="poster-bg-image" id="poster-bg-image"></div>
-              <div class="poster-noise"></div>
-              <div class="poster-orb poster-orb-one"></div>
-              <div class="poster-orb poster-orb-two"></div>
-
-              <div class="poster-content">
-                <header class="poster-top">
-                  <div class="poster-brand">
-                    <span class="poster-logo-wrap">
-                      <img id="poster-logo" src="" alt="" class="hidden" />
-                      <span id="poster-logo-fallback">F</span>
-                    </span>
-                    <div>
-                      <p class="poster-kicker">Carte fidélité Wallet</p>
-                      <h3 id="poster-commerce">Votre commerce</h3>
-                    </div>
-                  </div>
-                  <span class="poster-top-badge">Sans application</span>
-                </header>
-
-                <section class="poster-hero">
-                  <div class="reward-badge">
-                    <span>Récompense</span>
-                    <strong id="poster-reward-badge">1 CAFÉ OFFERT</strong>
-                  </div>
-                  <h1 id="poster-title">SCANNEZ & PROFITEZ</h1>
-                  <p id="poster-subtitle">Ajoutez notre carte fidélité à votre téléphone</p>
-                </section>
-
-                <section class="poster-qr-zone">
-                  <div class="qr-card">
-                    <p>Scannez ici</p>
-                    <img id="poster-qr" src="" alt="QR code Fidelopass" crossorigin="anonymous" />
-                    <strong>Ouvrez l'appareil photo</strong>
-                  </div>
-                  <div class="poster-instructions">
-                    <div><span>1</span><p>Scannez le QR code</p></div>
-                    <div><span>2</span><p>Ajoutez la carte à votre Wallet</p></div>
-                    <div><span>3</span><p>Cumulez vos avantages</p></div>
-                  </div>
-                </section>
-
-                <footer class="poster-footer">
-                  <div class="wallet-badges">
-                    <span>Apple Wallet</span>
-                    <span>Google Wallet</span>
-                  </div>
-                  <div class="poster-contact">
-                    <span id="poster-phone"></span>
-                    <span id="poster-instagram"></span>
-                    <span id="poster-address"></span>
-                  </div>
-                  <p>Powered by Fidelopass</p>
-                </footer>
-              </div>
+              <svg id="poster-svg" class="poster-svg" viewBox="0 0 1240 1754" role="img" aria-label="Aperçu affiche Fidelopass"></svg>
             </div>
           </div>
         </div>
@@ -730,6 +676,12 @@ const apiBase = (
 
   .poster-sheet[data-format="a5"] {
     width: var(--poster-preview-width-a5);
+  }
+
+  .poster-svg {
+    display: block;
+    height: 100%;
+    width: 100%;
   }
 
   .poster-bg-image {
@@ -1536,49 +1488,34 @@ const apiBase = (
 
 <script>
   import QRCode from 'qrcode';
-  import { toPng } from 'html-to-image';
-  import html2canvas from 'html2canvas';
   import { jsPDF } from 'jspdf';
 
   const creatorRoot = document.querySelector('[data-poster-creator]');
   const API = creatorRoot?.dataset.apiBase || '';
   const carteId = creatorRoot?.dataset.carteId || '';
-  const defaultFont = "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  const defaultFont = "Inter, Arial, ui-sans-serif, system-ui, sans-serif";
   const templatePresets = {
     affiche: { primary: '#fff0e5', secondary: '#df652a', text: '#1f2937', titleColor: '#df652a', image: '/banner-templates/nail-art.png', title: 'SCANNEZ & PROFITEZ' },
     qr: { primary: '#ffffff', secondary: '#2563eb', text: '#0f172a', titleColor: '#0f172a', image: '', title: 'SCANNEZ ICI' },
   };
-
   const templateAliases = {
-    essential: 'affiche',
-    signature: 'affiche',
-    impact: 'affiche',
-    premium: 'affiche',
-    modern: 'affiche',
-    elegant: 'affiche',
-    elegante: 'affiche',
-    restaurant: 'affiche',
-    cafe: 'affiche',
-    beaute: 'affiche',
-    beauty: 'affiche',
-    minimal: 'qr',
-    moderne: 'affiche',
-    affiche: 'affiche',
-    qr: 'qr',
+    essential: 'affiche', signature: 'affiche', impact: 'affiche', premium: 'affiche',
+    modern: 'affiche', elegant: 'affiche', elegante: 'affiche', restaurant: 'affiche',
+    cafe: 'affiche', beaute: 'affiche', beauty: 'affiche', minimal: 'qr',
+    moderne: 'affiche', affiche: 'affiche', qr: 'qr',
   };
-
-  function normalizeTemplate(value) {
-    const key = String(value || '').trim().toLowerCase();
-    return templateAliases[key] || 'affiche';
-  }
+  const exportSizes = {
+    a4: { jsPdfFormat: 'a4', pdfWidth: 210, pdfHeight: 297, pixelWidth: 1240, pixelHeight: 1754 },
+    a5: { jsPdfFormat: 'a5', pdfWidth: 148, pdfHeight: 210, pixelWidth: 1240, pixelHeight: 1754 },
+  };
 
   const initialTemplate = normalizeTemplate(new URLSearchParams(window.location.search).get('template'));
   const initialPreset = templatePresets[initialTemplate] || templatePresets.affiche;
-
   const state = {
     template: initialTemplate,
     format: 'a4',
     logo: '',
+    logoData: '',
     commerce: 'Votre commerce',
     title: initialPreset.title,
     subtitle: 'Ajoutez notre carte fidélité à votre téléphone',
@@ -1593,12 +1530,88 @@ const apiBase = (
     fontFamily: defaultFont,
     titleFontFamily: defaultFont,
     image: initialPreset.image,
+    imageData: '',
+    qrData: '',
   };
+  let isExportingPdf = false;
+  let assetHydrationToken = 0;
 
   const $ = (id) => document.getElementById(id);
 
+  function normalizeTemplate(value) {
+    const key = String(value || '').trim().toLowerCase();
+    return templateAliases[key] || 'affiche';
+  }
+
   function apiUrl(path) {
     return `${API}${path}`;
+  }
+
+  function escapeXml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function hexToRgb(hex) {
+    const value = String(hex || '').replace('#', '').trim();
+    if (!/^[0-9a-f]{6}$/i.test(value)) return { red: 255, green: 255, blue: 255 };
+    const intValue = parseInt(value, 16);
+    return { red: (intValue >> 16) & 255, green: (intValue >> 8) & 255, blue: intValue & 255 };
+  }
+
+  function hexToRgba(hex, alpha = 1) {
+    const { red, green, blue } = hexToRgb(hex);
+    return `rgba(${red},${green},${blue},${alpha})`;
+  }
+
+  function mixHex(hex, target = '#ffffff', amount = 0.5) {
+    const start = hexToRgb(hex);
+    const end = hexToRgb(target);
+    const channel = (from, to) => Math.round(from + (to - from) * amount).toString(16).padStart(2, '0');
+    return `#${channel(start.red, end.red)}${channel(start.green, end.green)}${channel(start.blue, end.blue)}`;
+  }
+
+  function readableFont(font) {
+    return String(font || defaultFont).split(',')[0].replace(/["']/g, '').trim() || 'Inter';
+  }
+
+  function wrapText(text, maxChars, maxLines = 3) {
+    const words = String(text || '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+    const lines = [];
+    let current = '';
+    words.forEach((word) => {
+      const next = current ? `${current} ${word}` : word;
+      if (next.length > maxChars && current) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = next;
+      }
+    });
+    if (current) lines.push(current);
+    if (!lines.length) lines.push('');
+    if (lines.length > maxLines) {
+      const clipped = lines.slice(0, maxLines);
+      clipped[maxLines - 1] = `${clipped[maxLines - 1].replace(/[.,;:!?]$/, '')}…`;
+      return clipped;
+    }
+    return lines;
+  }
+
+  function svgTextLines(lines, x, y, options = {}) {
+    const {
+      size = 48,
+      lineHeight = 1.08,
+      weight = 800,
+      fill = '#0f172a',
+      anchor = 'start',
+      family = state.fontFamily,
+      letterSpacing = 0,
+    } = options;
+    return `<text x="${x}" y="${y}" fill="${fill}" text-anchor="${anchor}" font-family="${escapeXml(readableFont(family))}" font-size="${size}" font-weight="${weight}" letter-spacing="${letterSpacing}">${lines.map((line, index) => `<tspan x="${x}" dy="${index ? size * lineHeight : 0}">${escapeXml(line)}</tspan>`).join('')}</text>`;
   }
 
   async function fetchWithTimeout(url, timeoutMs = 3500) {
@@ -1611,24 +1624,48 @@ const apiBase = (
     }
   }
 
-  async function renderQrCode(cardId) {
-    const qr = $('poster-qr');
-    if (!qr) return;
-    const fallback = `https://api.qrserver.com/v1/create-qr-code/?size=900x900&data=${encodeURIComponent(`${window.location.origin}/carte/${cardId}`)}&bgcolor=ffffff&color=111827&qzone=1`;
+  function fileReaderDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
 
+  async function imageToDataUrl(source) {
+    if (!source || source.startsWith('data:')) return source || '';
     try {
-      qr.src = await QRCode.toDataURL(`${window.location.origin}/carte/${cardId}`, {
+      const response = await fetch(source, { mode: 'cors', cache: 'force-cache' });
+      if (!response.ok) throw new Error('Image unavailable');
+      return await fileReaderDataUrl(await response.blob());
+    } catch {
+      return '';
+    }
+  }
+
+  async function hydratePosterAssets() {
+    const token = ++assetHydrationToken;
+    const [logoData, imageData] = await Promise.all([
+      imageToDataUrl(state.logo),
+      imageToDataUrl(state.image),
+    ]);
+    if (token !== assetHydrationToken) return;
+    state.logoData = logoData;
+    state.imageData = imageData;
+    renderPosterPreview();
+  }
+
+  async function renderQrCode(cardId) {
+    try {
+      state.qrData = await QRCode.toDataURL(`${window.location.origin}/carte/${cardId}`, {
         width: 900,
         margin: 1,
-        color: {
-          dark: '#111827',
-          light: '#ffffff',
-        },
+        color: { dark: '#111827', light: '#ffffff' },
         errorCorrectionLevel: 'M',
       });
-    } catch (error) {
-      console.warn('QR code local generation failed, using fallback image', error);
-      qr.src = fallback;
+    } catch {
+      state.qrData = '';
     }
   }
 
@@ -1643,27 +1680,6 @@ const apiBase = (
   function setField(id, value) {
     const field = $(id);
     if (field) field.value = value ?? '';
-  }
-
-  function hexToRgba(hex, alpha = 1) {
-    const value = String(hex || '').replace('#', '').trim();
-    if (!/^[0-9a-f]{6}$/i.test(value)) return `rgba(255,255,255,${alpha})`;
-    const intValue = parseInt(value, 16);
-    const red = (intValue >> 16) & 255;
-    const green = (intValue >> 8) & 255;
-    const blue = intValue & 255;
-    return `rgba(${red},${green},${blue},${alpha})`;
-  }
-
-  function setPosterColorVars(sheet) {
-    sheet.style.setProperty('--poster-secondary-soft', hexToRgba(state.secondary, 0.38));
-    sheet.style.setProperty('--poster-secondary-border', hexToRgba(state.secondary, 0.54));
-    sheet.style.setProperty('--poster-secondary-glass', hexToRgba(state.secondary, 0.26));
-    sheet.style.setProperty('--poster-ink-border', hexToRgba(state.text, 0.22));
-    sheet.style.setProperty('--poster-ink-light-border', hexToRgba(state.text, 0.14));
-    sheet.style.setProperty('--poster-ink-glass', hexToRgba(state.text, 0.12));
-    sheet.style.setProperty('--poster-ink-soft-glass', hexToRgba(state.text, 0.09));
-    sheet.style.setProperty('--poster-muted-soft', hexToRgba(state.text, 0.42));
   }
 
   function syncFieldsFromState() {
@@ -1703,84 +1719,122 @@ const apiBase = (
     if (node) node.textContent = value;
   }
 
+  function renderQrOnlySvg() {
+    const qr = state.qrData || '';
+    return `
+      <rect width="1240" height="1754" fill="${state.primary}"/>
+      <circle cx="190" cy="190" r="260" fill="${hexToRgba(state.secondary, 0.10)}"/>
+      <circle cx="1060" cy="1550" r="320" fill="${hexToRgba(state.secondary, 0.12)}"/>
+      <text x="620" y="265" text-anchor="middle" fill="${state.titleColor}" font-family="${escapeXml(readableFont(state.titleFontFamily))}" font-size="92" font-weight="950" letter-spacing="-3">${escapeXml(state.title || 'SCANNEZ ICI')}</text>
+      <text x="620" y="350" text-anchor="middle" fill="${hexToRgba(state.text, 0.72)}" font-family="${escapeXml(readableFont(state.fontFamily))}" font-size="34" font-weight="700">${escapeXml(state.commerce)}</text>
+      <rect x="245" y="455" width="750" height="750" rx="54" fill="#ffffff"/>
+      ${qr ? `<image href="${qr}" x="315" y="525" width="610" height="610"/>` : ''}
+      <text x="620" y="1285" text-anchor="middle" fill="${state.text}" font-family="${escapeXml(readableFont(state.fontFamily))}" font-size="34" font-weight="850">Ouvrez l'appareil photo</text>
+      <text x="620" y="1465" text-anchor="middle" fill="${hexToRgba(state.text, 0.48)}" font-family="${escapeXml(readableFont(state.fontFamily))}" font-size="26" font-weight="750">Powered by Fidelopass</text>
+    `;
+  }
+
+  function renderAfficheSvg() {
+    const muted = hexToRgba(state.text, 0.72);
+    const soft = mixHex(state.primary, '#ffffff', 0.18);
+    const accentSoft = hexToRgba(state.secondary, 0.26);
+    const titleLines = wrapText(state.title.toUpperCase(), 12, 3);
+    const subtitleLines = wrapText(state.subtitle, 35, 2);
+    const commerceLines = wrapText(state.commerce, 18, 1);
+    const rewardLines = wrapText(state.reward.toUpperCase(), 18, 2);
+    const logo = state.logoData;
+    const image = state.imageData;
+    const qr = state.qrData || '';
+    const contactLines = [state.phone, state.instagram, state.address].filter(Boolean).slice(0, 3);
+
+    return `
+      <defs>
+        <linearGradient id="posterBg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="${mixHex(state.primary, '#ffffff', 0.18)}"/>
+          <stop offset="58%" stop-color="${state.primary}"/>
+          <stop offset="100%" stop-color="${mixHex(state.secondary, state.primary, 0.35)}"/>
+        </linearGradient>
+        <linearGradient id="accentGlow" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="${hexToRgba(state.secondary, 0.34)}"/>
+          <stop offset="100%" stop-color="${hexToRgba(state.secondary, 0)}"/>
+        </linearGradient>
+        <clipPath id="logoClip"><rect x="80" y="86" width="118" height="118" rx="28"/></clipPath>
+      </defs>
+      <rect width="1240" height="1754" fill="url(#posterBg)"/>
+      ${image ? `<image href="${image}" x="0" y="0" width="1240" height="1754" preserveAspectRatio="xMidYMid slice" opacity="0.16"/>` : ''}
+      <circle cx="1010" cy="330" r="255" fill="url(#accentGlow)" opacity="0.85"/>
+      <circle cx="120" cy="1260" r="235" fill="${hexToRgba(state.secondary, 0.13)}"/>
+      <rect x="0" y="0" width="1240" height="250" fill="${soft}" opacity="0.38"/>
+      <rect x="80" y="86" width="118" height="118" rx="28" fill="${hexToRgba(state.text, 0.11)}" stroke="${hexToRgba(state.text, 0.24)}"/>
+      ${logo ? `<image href="${logo}" x="80" y="86" width="118" height="118" preserveAspectRatio="xMidYMid slice" clip-path="url(#logoClip)"/>` : `<text x="139" y="164" text-anchor="middle" fill="${state.text}" font-family="${escapeXml(readableFont(state.titleFontFamily))}" font-size="54" font-weight="900">${escapeXml((state.commerce || 'F').charAt(0).toUpperCase())}</text>`}
+      <text x="230" y="118" fill="${muted}" font-family="${escapeXml(readableFont(state.fontFamily))}" font-size="23" font-weight="900" letter-spacing="8">CARTE FIDÉLITÉ WALLET</text>
+      ${svgTextLines(commerceLines, 230, 177, { size: 50, weight: 950, fill: state.titleColor, family: state.titleFontFamily })}
+      <rect x="910" y="92" width="246" height="92" rx="46" fill="${hexToRgba(state.text, 0.12)}" stroke="${hexToRgba(state.text, 0.22)}"/>
+      <text x="1033" y="149" text-anchor="middle" fill="${state.text}" font-family="${escapeXml(readableFont(state.fontFamily))}" font-size="24" font-weight="850">Sans application</text>
+      <rect x="82" y="448" width="590" height="${rewardLines.length > 1 ? 116 : 86}" rx="43" fill="${accentSoft}" stroke="${hexToRgba(state.secondary, 0.58)}" stroke-width="3"/>
+      <text x="130" y="504" fill="${muted}" font-family="${escapeXml(readableFont(state.fontFamily))}" font-size="21" font-weight="950" letter-spacing="5">RÉCOMPENSE</text>
+      ${svgTextLines(rewardLines, 392, 505, { size: 29, lineHeight: 1.1, weight: 950, fill: state.titleColor, family: state.titleFontFamily })}
+      ${svgTextLines(titleLines, 82, 720, { size: titleLines.length > 2 ? 98 : 112, lineHeight: 0.94, weight: 950, fill: state.titleColor, family: state.titleFontFamily, letterSpacing: -3 })}
+      ${svgTextLines(subtitleLines, 85, 940, { size: 32, lineHeight: 1.18, weight: 750, fill: muted, family: state.fontFamily })}
+      <rect x="86" y="1115" width="455" height="455" rx="40" fill="#ffffff"/>
+      <text x="314" y="1180" text-anchor="middle" fill="#64748b" font-family="${escapeXml(readableFont(state.fontFamily))}" font-size="19" font-weight="950" letter-spacing="9">SCANNEZ ICI</text>
+      ${qr ? `<image href="${qr}" x="155" y="1218" width="318" height="318"/>` : ''}
+      <text x="314" y="1610" text-anchor="middle" fill="#111827" font-family="${escapeXml(readableFont(state.fontFamily))}" font-size="22" font-weight="850">Ouvrez l'appareil photo</text>
+      ${[0, 1, 2].map((index) => {
+        const labels = ['Scannez le QR code', 'Ajoutez la carte à votre Wallet', 'Cumulez vos avantages'];
+        const y = 1126 + index * 128;
+        return `<rect x="610" y="${y}" width="500" height="88" rx="30" fill="${hexToRgba(state.text, 0.10)}" stroke="${hexToRgba(state.text, 0.16)}"/>
+          <circle cx="660" cy="${y + 44}" r="24" fill="${hexToRgba(state.text, 0.18)}"/>
+          <text x="660" y="${y + 54}" text-anchor="middle" fill="${state.text}" font-family="${escapeXml(readableFont(state.fontFamily))}" font-size="28" font-weight="950">${index + 1}</text>
+          <text x="715" y="${y + 54}" fill="${state.text}" font-family="${escapeXml(readableFont(state.fontFamily))}" font-size="25" font-weight="850">${escapeXml(labels[index])}</text>`;
+      }).join('')}
+      <rect x="86" y="1652" width="178" height="50" rx="25" fill="${hexToRgba(state.text, 0.10)}" stroke="${hexToRgba(state.text, 0.22)}"/>
+      <text x="175" y="1685" text-anchor="middle" fill="${state.text}" font-family="${escapeXml(readableFont(state.fontFamily))}" font-size="20" font-weight="850">Apple Wallet</text>
+      <rect x="288" y="1652" width="190" height="50" rx="25" fill="${hexToRgba(state.text, 0.10)}" stroke="${hexToRgba(state.text, 0.22)}"/>
+      <text x="383" y="1685" text-anchor="middle" fill="${state.text}" font-family="${escapeXml(readableFont(state.fontFamily))}" font-size="20" font-weight="850">Google Wallet</text>
+      <text x="86" y="1730" fill="${hexToRgba(state.text, 0.48)}" font-family="${escapeXml(readableFont(state.fontFamily))}" font-size="23" font-weight="800">Powered by Fidelopass</text>
+      ${contactLines.length ? svgTextLines(contactLines, 1154, 1659, { size: 20, lineHeight: 1.25, weight: 750, fill: muted, anchor: 'end', family: state.fontFamily }) : ''}
+    `;
+  }
+
+  function renderPosterSvgMarkup() {
+    const body = state.template === 'qr' ? renderQrOnlySvg() : renderAfficheSvg();
+    return `<svg id="poster-svg" class="poster-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 1754" role="img" aria-label="Aperçu affiche Fidelopass">${body}</svg>`;
+  }
+
+  function renderPosterPreview() {
+    const sheet = $('poster-sheet');
+    if (!sheet) return;
+    sheet.innerHTML = renderPosterSvgMarkup();
+  }
+
   function applyFormat() {
     const sheet = $('poster-sheet');
     const format = state.format === 'a5' ? 'a5' : 'a4';
-    const label = format.toUpperCase();
-    const printWidth = format === 'a5' ? '148mm' : '210mm';
-    const printHeight = format === 'a5' ? '210mm' : '297mm';
-
     if (sheet) sheet.dataset.format = format;
-    document.documentElement.style.setProperty('--poster-print-width', printWidth);
-    document.documentElement.style.setProperty('--poster-print-height', printHeight);
     document.querySelectorAll('.format-btn').forEach((button) => {
       button.classList.toggle('is-active', button.dataset.format === format);
     });
-    setText('poster-preview-title', `Affiche ${label}`);
-  }
-
-  function preparePrintFormat() {
-    const format = state.format === 'a5' ? 'a5' : 'a4';
-    const styleId = 'poster-print-page-format';
-    const existing = document.getElementById(styleId);
-    if (existing) existing.remove();
-    const style = document.createElement('style');
-    style.id = styleId;
-    style.textContent = `@page { size: ${format === 'a5' ? 'A5' : 'A4'} portrait; margin: 0; }`;
-    document.head.appendChild(style);
-    applyFormat();
+    setText('poster-preview-title', `Affiche ${format.toUpperCase()}`);
   }
 
   function applyCreator() {
     readFields();
-    const sheet = $('poster-sheet');
-    if (!sheet) return;
-    sheet.style.setProperty('--poster-primary', state.primary);
-    sheet.style.setProperty('--poster-secondary', state.secondary);
-    sheet.style.setProperty('--poster-image', state.image ? `url("${state.image}")` : 'none');
-    sheet.style.setProperty('--poster-title-color', state.titleColor);
-    sheet.style.setProperty('--poster-font', state.fontFamily);
-    sheet.style.setProperty('--poster-title-font', state.titleFontFamily);
-    const isLight = ['qr'].includes(state.template) || state.primary.toLowerCase() === '#f8fafc' || state.primary.toLowerCase() === '#fff7ed' || state.primary.toLowerCase() === '#ffffff';
-    sheet.style.setProperty('--poster-ink', state.text);
-    sheet.style.setProperty('--poster-muted', hexToRgba(state.text, 0.72));
-    setPosterColorVars(sheet);
-    sheet.classList.toggle('is-light', isLight);
-    sheet.classList.toggle('is-qr-only', state.template === 'qr');
     applyFormat();
-
-    setText('poster-commerce', state.commerce);
-    setText('poster-title', state.title);
-    setText('poster-subtitle', state.subtitle);
-    setText('poster-reward-badge', state.reward.toUpperCase());
-    setText('poster-phone', state.phone);
-    setText('poster-instagram', state.instagram);
-    setText('poster-address', state.address);
-
-    const logo = $('poster-logo');
-    const fallback = $('poster-logo-fallback');
     const uploadLogo = $('upload-logo-img');
     const uploadIcon = $('upload-logo-icon');
-    if (state.logo) {
-      logo.src = state.logo;
-      logo.classList.remove('hidden');
-      fallback.classList.add('hidden');
+    if (state.logo && uploadLogo && uploadIcon) {
       uploadLogo.src = state.logo;
       uploadLogo.classList.remove('hidden');
       uploadIcon.classList.add('hidden');
-    } else {
-      logo.classList.add('hidden');
-      fallback.classList.remove('hidden');
+    } else if (uploadLogo && uploadIcon) {
       uploadLogo.classList.add('hidden');
       uploadIcon.classList.remove('hidden');
     }
+    renderPosterPreview();
   }
 
   function updateTemplateSelection() {
-    const selectedTemplate = document.querySelector(`.template-card[data-template="${state.template}"]`);
-    if (selectedTemplate?.classList.contains('template-extra')) {
-      selectedTemplate.classList.remove('hidden');
-    }
     document.querySelectorAll('.template-card').forEach((button) => {
       button.classList.toggle('is-selected', button.dataset.template === state.template);
     });
@@ -1804,6 +1858,7 @@ const apiBase = (
     state.text = preset.text;
     state.titleColor = preset.titleColor;
     state.image = preset.image;
+    state.imageData = '';
     if (!keepText) state.title = preset.title;
     setField('field-primary', state.primary);
     setField('field-secondary', state.secondary);
@@ -1812,100 +1867,8 @@ const apiBase = (
     if (!keepText) setField('field-title', state.title);
     updateTemplateSelection();
     applyCreator();
+    hydratePosterAssets();
   }
-
-  async function loadPoster() {
-    try {
-      const response = await fetchWithTimeout(apiUrl(`/api/cartes/${carteId}/public`));
-      if (!response.ok) throw new Error();
-      const { data } = await response.json();
-      const commerceName = data.commerce.nom || 'Votre commerce';
-      const message = data.carte.welcome_message || 'Ajoutez notre carte fidélité à votre téléphone';
-      const reward = rewardSummary(data);
-
-      state.logo = data.carte.logo_url || data.commerce.logo_url || '';
-      state.commerce = commerceName;
-      state.subtitle = message;
-      state.reward = reward;
-      state.primary = data.carte.couleur_fond || state.primary;
-      state.secondary = data.carte.couleur_accent || state.secondary;
-      state.text = data.carte.couleur_texte || state.text;
-      state.titleColor = data.carte.couleur_texte || state.titleColor;
-      state.phone = data.commerce.telephone || '';
-      state.instagram = data.commerce.instagram || '';
-      state.address = data.commerce.adresse || '';
-      state.title = templatePresets[state.template]?.title || state.title;
-
-      const cardPaletteButton = $('card-palette-btn');
-      if (cardPaletteButton) {
-        cardPaletteButton.dataset.primary = state.primary;
-        cardPaletteButton.dataset.secondary = state.secondary;
-        cardPaletteButton.dataset.text = state.text;
-        cardPaletteButton.dataset.title = state.titleColor;
-        cardPaletteButton.querySelectorAll('span')[0].style.background = state.primary;
-        cardPaletteButton.querySelectorAll('span')[1].style.background = state.secondary;
-        cardPaletteButton.querySelectorAll('span')[2].style.background = state.text;
-        cardPaletteButton.classList.remove('hidden');
-      }
-
-      syncFieldsFromState();
-      await renderQrCode(carteId);
-
-      $('poster-loading').classList.add('hidden');
-      $('poster-stage').classList.remove('hidden');
-      updateTemplateSelection();
-      applyCreator();
-    } catch {
-      syncFieldsFromState();
-      await renderQrCode(carteId);
-      $('poster-loading').classList.add('hidden');
-      $('poster-stage').classList.remove('hidden');
-      updateTemplateSelection();
-      applyCreator();
-    }
-  }
-
-  document.querySelectorAll('.template-card').forEach((button) => {
-    button.addEventListener('click', () => selectTemplate(button.dataset.template || 'affiche', false));
-  });
-
-  document.querySelectorAll('.format-btn').forEach((button) => {
-    button.addEventListener('click', () => {
-      state.format = button.dataset.format === 'a5' ? 'a5' : 'a4';
-      applyFormat();
-    });
-  });
-
-  document.querySelectorAll('.palette-btn').forEach((button) => {
-    button.addEventListener('click', () => {
-      setField('field-primary', button.dataset.primary);
-      setField('field-secondary', button.dataset.secondary);
-      setField('field-text', button.dataset.text || state.text);
-      setField('field-title-color', button.dataset.title || button.dataset.text || state.titleColor);
-      document.querySelectorAll('.palette-btn').forEach((item) => item.classList.remove('is-selected'));
-      button.classList.add('is-selected');
-      applyCreator();
-    });
-  });
-
-  ['field-commerce', 'field-title', 'field-subtitle', 'field-reward', 'field-phone', 'field-instagram', 'field-address', 'field-primary', 'field-secondary', 'field-text', 'field-title-color', 'field-font', 'field-title-font']
-    .forEach((id) => {
-      $(id)?.addEventListener('input', applyCreator);
-      $(id)?.addEventListener('change', applyCreator);
-    });
-
-  $('poster-logo-upload')?.addEventListener('change', (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      state.logo = String(reader.result || '');
-      applyCreator();
-    };
-    reader.readAsDataURL(file);
-  });
-
-  let isExportingPdf = false;
 
   function posterFilename(format) {
     const commerce = (state.commerce || 'fidelopass')
@@ -1917,310 +1880,150 @@ const apiBase = (
     return `affiche-${commerce || 'fidelopass'}-${format}.pdf`;
   }
 
-  function waitForFrame() {
-    return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-  }
-
-  async function waitForPosterAssets(root) {
-    if (document.fonts?.ready) {
-      await document.fonts.ready.catch(() => {});
-    }
-
-    const images = Array.from(root.querySelectorAll('img'));
-    await Promise.allSettled(images.map((image) => {
-      if (image.complete) return Promise.resolve();
-      return new Promise((resolve) => {
-        image.addEventListener('load', resolve, { once: true });
-        image.addEventListener('error', resolve, { once: true });
-      });
-    }));
-  }
-
-  function fileReaderDataUrl(blob) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ''));
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  }
-
-  async function prepareImagesForExport(root) {
-    const cleanup = [];
-    const images = Array.from(root.querySelectorAll('img'));
-
-    await Promise.allSettled(images.map(async (image) => {
-      const source = image.currentSrc || image.src;
-      if (!source || source.startsWith('data:') || source.startsWith('blob:')) return;
-
-      const isSameOrigin = (() => {
-        try {
-          return new URL(source, window.location.href).origin === window.location.origin;
-        } catch {
-          return true;
-        }
-      })();
-      if (isSameOrigin) return;
-
-      const previousSrc = image.src;
-      const previousVisibility = image.style.visibility;
-      cleanup.push(() => {
-        image.src = previousSrc;
-        image.style.visibility = previousVisibility;
-      });
-
-      try {
-        const response = await withTimeout(fetch(source, { mode: 'cors', cache: 'force-cache' }), 4500, 'Image distante trop lente');
-        if (!response.ok) throw new Error('Image distante indisponible');
-        image.src = await fileReaderDataUrl(await response.blob());
-      } catch {
-        image.style.visibility = 'hidden';
-      }
-    }));
-
-    await waitForFrame();
-    return () => cleanup.reverse().forEach((restore) => restore());
-  }
-
-  function withTimeout(promise, duration, message) {
-    return Promise.race([
-      promise,
-      new Promise((_, reject) => {
-        window.setTimeout(() => reject(new Error(message)), duration);
-      }),
-    ]);
-  }
-
   function setExportButtonsBusy(isBusy) {
-    const buttons = [
-      $('download-pdf-top'),
-      ...Array.from(document.querySelectorAll('[data-download-format]')),
-    ].filter(Boolean);
-
+    const buttons = [$('download-pdf-top'), ...Array.from(document.querySelectorAll('[data-download-format]'))].filter(Boolean);
     buttons.forEach((button) => {
       if (!button.dataset.label) button.dataset.label = button.textContent.trim();
       button.disabled = isBusy;
       button.classList.toggle('is-exporting', isBusy);
-      if (button.id === 'download-pdf-top') {
-        button.textContent = isBusy ? 'Préparation PDF...' : button.dataset.label;
-      }
+      if (button.id === 'download-pdf-top') button.textContent = isBusy ? 'Préparation PDF...' : button.dataset.label;
     });
   }
 
-  const exportSizes = {
-    a4: { jsPdfFormat: 'a4', pdfWidth: 210, pdfHeight: 297, pixelWidth: 1240, pixelHeight: 1754 },
-    a5: { jsPdfFormat: 'a5', pdfWidth: 148, pdfHeight: 210, pixelWidth: 874, pixelHeight: 1240 },
-  };
-
-  function getExportSize(format) {
-    return exportSizes[format === 'a5' ? 'a5' : 'a4'];
-  }
-
-  function cleanupExportCloneIds(root) {
-    root.removeAttribute('id');
-    root.querySelectorAll('[id]').forEach((element) => {
-      element.removeAttribute('id');
+  function svgToPngDataUrl(svgMarkup, width, height, pixelRatio = 2) {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      const blob = new Blob([svgMarkup], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      image.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(width * pixelRatio);
+          canvas.height = Math.round(height * pixelRatio);
+          const context = canvas.getContext('2d');
+          context.fillStyle = state.primary || '#ffffff';
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          URL.revokeObjectURL(url);
+          resolve(canvas.toDataURL('image/png', 1));
+        } catch (error) {
+          URL.revokeObjectURL(url);
+          reject(error);
+        }
+      };
+      image.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Impossible de rendre le SVG de l’affiche.'));
+      };
+      image.src = url;
     });
-  }
-
-  async function createExportSheet(sourceSheet, format) {
-    const normalizedFormat = format === 'a5' ? 'a5' : 'a4';
-    const size = getExportSize(normalizedFormat);
-    const host = document.createElement('div');
-    host.className = 'poster-export-host';
-    host.style.width = `${size.pixelWidth}px`;
-    host.style.height = `${size.pixelHeight}px`;
-
-    const clone = sourceSheet.cloneNode(true);
-    cleanupExportCloneIds(clone);
-    clone.classList.add('poster-export');
-    clone.dataset.format = normalizedFormat;
-    clone.style.setProperty('--poster-export-width', `${size.pixelWidth}px`);
-    clone.style.setProperty('--poster-export-height', `${size.pixelHeight}px`);
-    clone.style.width = `${size.pixelWidth}px`;
-    clone.style.height = `${size.pixelHeight}px`;
-    clone.style.maxWidth = 'none';
-
-    host.appendChild(clone);
-    document.body.appendChild(host);
-    await waitForFrame();
-
-    return {
-      node: clone,
-      size,
-      cleanup: () => host.remove(),
-    };
-  }
-
-  function applyInlineStyles(selector, styles, root) {
-    root.querySelectorAll(selector).forEach((element) => {
-      Object.entries(styles).forEach(([property, value]) => {
-        element.style[property] = value;
-      });
-    });
-  }
-
-  function sanitizeExportSheetForCanvas(root) {
-    const secondarySoft = hexToRgba(state.secondary, 0.38);
-    const secondaryBorder = hexToRgba(state.secondary, 0.54);
-    const secondaryGlass = hexToRgba(state.secondary, 0.26);
-    const inkBorder = hexToRgba(state.text, 0.22);
-    const inkLightBorder = hexToRgba(state.text, 0.14);
-    const inkGlass = hexToRgba(state.text, 0.12);
-    const inkSoftGlass = hexToRgba(state.text, 0.09);
-
-    root.style.backgroundColor = state.primary;
-    root.style.color = state.text;
-    root.style.setProperty('--poster-muted', hexToRgba(state.text, 0.72));
-    root.style.setProperty('--poster-muted-soft', hexToRgba(state.text, 0.42));
-    setPosterColorVars(root);
-
-    applyInlineStyles('.poster-noise', {
-      background: `radial-gradient(circle at 18% 16%, rgba(255,255,255,0.14), transparent 330px), radial-gradient(circle at 82% 18%, ${secondarySoft}, transparent 310px)`,
-    }, root);
-    applyInlineStyles('.poster-orb', { backgroundColor: secondarySoft, boxShadow: 'none' }, root);
-    applyInlineStyles('.poster-logo-wrap', {
-      borderColor: inkBorder,
-      backgroundColor: inkGlass,
-      color: state.text,
-      backdropFilter: 'none',
-    }, root);
-    applyInlineStyles('.poster-top-badge, .wallet-badges span', {
-      borderColor: inkBorder,
-      backgroundColor: inkGlass,
-      color: state.text,
-      backdropFilter: 'none',
-    }, root);
-    applyInlineStyles('.reward-badge', {
-      borderColor: secondaryBorder,
-      backgroundColor: secondaryGlass,
-      boxShadow: 'none',
-      backdropFilter: 'none',
-    }, root);
-    applyInlineStyles('.reward-badge span, .poster-kicker, .poster-hero p, .poster-contact', {
-      color: hexToRgba(state.text, 0.72),
-    }, root);
-    applyInlineStyles('.reward-badge strong, .poster-brand h3, .poster-hero h1', {
-      color: state.titleColor,
-    }, root);
-    applyInlineStyles('.poster-instructions div', {
-      borderColor: inkLightBorder,
-      backgroundColor: inkSoftGlass,
-      backdropFilter: 'none',
-    }, root);
-    applyInlineStyles('.poster-instructions span', {
-      backgroundColor: inkGlass,
-      color: state.text,
-    }, root);
-    applyInlineStyles('.poster-instructions p', { color: state.text }, root);
-    applyInlineStyles('.poster-footer > p', { color: hexToRgba(state.text, 0.42) }, root);
-  }
-
-  async function capturePosterWithHtmlToImage(sheet, options = {}) {
-    return withTimeout(toPng(sheet, {
-      pixelRatio: options.pixelRatio ?? 2.6,
-      cacheBust: false,
-      backgroundColor: state.primary,
-      skipFonts: true,
-      imagePlaceholder: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==',
-    }), 12000, 'La capture principale de l’affiche a pris trop de temps.');
-  }
-
-  async function capturePosterWithCanvas(sheet, options = {}) {
-    const canvas = await withTimeout(html2canvas(sheet, {
-      allowTaint: false,
-      backgroundColor: state.primary,
-      imageTimeout: 4500,
-      logging: false,
-      scale: options.pixelRatio ?? Math.min(2.4, window.devicePixelRatio || 2),
-      useCORS: true,
-      windowWidth: options.windowWidth ?? document.documentElement.clientWidth,
-      windowHeight: options.windowHeight ?? document.documentElement.clientHeight,
-    }), 14000, 'La capture de secours de l’affiche a pris trop de temps.');
-    return canvas.toDataURL('image/png', 1);
-  }
-
-  async function capturePoster(sheet, options = {}) {
-    if (options.preferCanvas) {
-      try {
-        return await capturePosterWithCanvas(sheet, options);
-      } catch (canvasError) {
-        console.warn('Canvas poster capture failed, retrying with html-to-image', canvasError);
-        return capturePosterWithHtmlToImage(sheet, options);
-      }
-    }
-
-    try {
-      return await capturePosterWithHtmlToImage(sheet, options);
-    } catch (primaryError) {
-      console.warn('Primary poster capture failed, retrying with canvas', primaryError);
-      return capturePosterWithCanvas(sheet, options);
-    }
-  }
-
-  function fallbackToPrintExport() {
-    preparePrintFormat();
-    window.setTimeout(() => window.print(), 80);
   }
 
   async function downloadPdf(format = state.format) {
     if (isExportingPdf) return;
-    const sheet = $('poster-sheet');
-    if (!sheet) return;
-
     isExportingPdf = true;
     setExportButtonsBusy(true);
     state.format = format === 'a5' ? 'a5' : 'a4';
-    applyFormat();
-    let restoreExportImages = () => {};
-    let cleanupExportSheet = () => {};
-
+    applyCreator();
     try {
-      await waitForFrame();
-      await waitForPosterAssets(sheet);
-      const exportSheet = await createExportSheet(sheet, state.format);
-      cleanupExportSheet = exportSheet.cleanup;
-      await waitForPosterAssets(exportSheet.node);
-      restoreExportImages = await prepareImagesForExport(exportSheet.node);
-      sanitizeExportSheetForCanvas(exportSheet.node);
-
-      const dataUrl = await capturePoster(exportSheet.node, {
-        preferCanvas: true,
-        pixelRatio: 1,
-        windowWidth: exportSheet.size.pixelWidth,
-        windowHeight: exportSheet.size.pixelHeight,
-      });
-
-      const pageSize = exportSheet.size;
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: pageSize.jsPdfFormat,
-        compress: true,
-      });
-      pdf.addImage(dataUrl, 'PNG', 0, 0, pageSize.pdfWidth, pageSize.pdfHeight, undefined, 'FAST');
+      await hydratePosterAssets();
+      const size = exportSizes[state.format] || exportSizes.a4;
+      const svgMarkup = renderPosterSvgMarkup();
+      const pngData = await svgToPngDataUrl(svgMarkup, size.pixelWidth, size.pixelHeight, 2);
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: size.jsPdfFormat, compress: true });
+      pdf.addImage(pngData, 'PNG', 0, 0, size.pdfWidth, size.pdfHeight, undefined, 'FAST');
       pdf.save(posterFilename(state.format));
     } catch (error) {
       console.error('Poster PDF export failed', error);
-      fallbackToPrintExport();
+      window.alert("Impossible de générer le PDF pour le moment. Vérifiez le logo puis réessayez.");
     } finally {
-      restoreExportImages();
-      cleanupExportSheet();
       isExportingPdf = false;
       setExportButtonsBusy(false);
     }
   }
 
+  async function loadPoster() {
+    try {
+      const response = await fetchWithTimeout(apiUrl(`/api/cartes/${carteId}/public`));
+      if (!response.ok) throw new Error();
+      const { data } = await response.json();
+      state.logo = data.carte.logo_url || data.commerce.logo_url || '';
+      state.commerce = data.commerce.nom || 'Votre commerce';
+      state.subtitle = data.carte.welcome_message || 'Ajoutez notre carte fidélité à votre téléphone';
+      state.reward = rewardSummary(data);
+      state.primary = data.carte.couleur_fond || state.primary;
+      state.secondary = data.carte.couleur_accent || state.secondary;
+      state.text = data.carte.couleur_texte || state.text;
+      state.titleColor = data.carte.couleur_texte || state.titleColor;
+      state.phone = data.commerce.telephone || '';
+      state.instagram = data.commerce.instagram || '';
+      state.address = data.commerce.adresse || '';
+      state.title = templatePresets[state.template]?.title || state.title;
+      const cardPaletteButton = $('card-palette-btn');
+      if (cardPaletteButton) {
+        cardPaletteButton.dataset.primary = state.primary;
+        cardPaletteButton.dataset.secondary = state.secondary;
+        cardPaletteButton.dataset.text = state.text;
+        cardPaletteButton.dataset.title = state.titleColor;
+        cardPaletteButton.querySelectorAll('span')[0].style.background = state.primary;
+        cardPaletteButton.querySelectorAll('span')[1].style.background = state.secondary;
+        cardPaletteButton.querySelectorAll('span')[2].style.background = state.text;
+        cardPaletteButton.classList.remove('hidden');
+      }
+    } catch {
+      // L'éditeur reste utilisable avec des valeurs par défaut si l'API publique est indisponible.
+    } finally {
+      syncFieldsFromState();
+      await renderQrCode(carteId);
+      $('poster-loading')?.classList.add('hidden');
+      $('poster-stage')?.classList.remove('hidden');
+      updateTemplateSelection();
+      applyCreator();
+      hydratePosterAssets();
+    }
+  }
+
+  document.querySelectorAll('.template-card').forEach((button) => {
+    button.addEventListener('click', () => selectTemplate(button.dataset.template || 'affiche', false));
+  });
+  document.querySelectorAll('.format-btn').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.format = button.dataset.format === 'a5' ? 'a5' : 'a4';
+      applyCreator();
+    });
+  });
+  document.querySelectorAll('.palette-btn').forEach((button) => {
+    button.addEventListener('click', () => {
+      setField('field-primary', button.dataset.primary);
+      setField('field-secondary', button.dataset.secondary);
+      setField('field-text', button.dataset.text || state.text);
+      setField('field-title-color', button.dataset.title || button.dataset.text || state.titleColor);
+      document.querySelectorAll('.palette-btn').forEach((item) => item.classList.remove('is-selected'));
+      button.classList.add('is-selected');
+      applyCreator();
+    });
+  });
+  ['field-commerce', 'field-title', 'field-subtitle', 'field-reward', 'field-phone', 'field-instagram', 'field-address', 'field-primary', 'field-secondary', 'field-text', 'field-title-color', 'field-font', 'field-title-font'].forEach((id) => {
+    $(id)?.addEventListener('input', applyCreator);
+    $(id)?.addEventListener('change', applyCreator);
+  });
+  $('poster-logo-upload')?.addEventListener('change', (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      state.logo = String(reader.result || '');
+      state.logoData = state.logo;
+      applyCreator();
+    };
+    reader.readAsDataURL(file);
+  });
   document.querySelectorAll('[data-download-format]').forEach((button) => {
     button.addEventListener('click', () => downloadPdf(button.dataset.downloadFormat));
   });
   $('download-pdf-top')?.addEventListener('click', () => downloadPdf(state.format));
-  $('mobile-editor-jump')?.addEventListener('click', () => {
-    $('poster-editor-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
-  $('mobile-preview-jump')?.addEventListener('click', () => {
-    $('poster-preview-area')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
+  $('mobile-editor-jump')?.addEventListener('click', () => $('poster-editor-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  $('mobile-preview-jump')?.addEventListener('click', () => $('poster-preview-area')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 
   loadPoster();
 </script>

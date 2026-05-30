@@ -1033,6 +1033,296 @@ const apiBase = (
     padding: clamp(1.2rem, 4vw, 2rem);
   }
 
+  .poster-export-host {
+    position: fixed;
+    top: 0;
+    left: -200vw;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 1;
+  }
+
+  .poster-sheet.poster-export {
+    width: var(--poster-export-width) !important;
+    height: var(--poster-export-height) !important;
+    aspect-ratio: auto !important;
+    border-radius: 42px;
+    box-shadow: none !important;
+    container-type: normal;
+    transform: none !important;
+  }
+
+  .poster-sheet.poster-export .poster-bg-image {
+    opacity: 0.72;
+    filter: none;
+  }
+
+  .poster-sheet.poster-export .poster-noise {
+    background:
+      radial-gradient(circle at 18% 16%, rgba(255,255,255,0.14), transparent 330px),
+      radial-gradient(circle at 82% 18%, var(--poster-secondary-soft), transparent 310px);
+  }
+
+  .poster-sheet.poster-export .poster-orb {
+    background: var(--poster-secondary-soft);
+    filter: blur(8px);
+  }
+
+  .poster-sheet.poster-export .poster-orb-one {
+    right: -180px;
+    top: 160px;
+    height: 330px;
+    width: 330px;
+  }
+
+  .poster-sheet.poster-export .poster-orb-two {
+    left: -115px;
+    bottom: 205px;
+    height: 260px;
+    width: 260px;
+  }
+
+  .poster-sheet.poster-export .poster-content {
+    display: grid;
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: auto 1fr auto auto;
+    gap: var(--poster-export-gap);
+    padding: var(--poster-export-pad);
+  }
+
+  .poster-sheet.poster-export .poster-top,
+  .poster-sheet.poster-export .poster-brand,
+  .poster-sheet.poster-export .poster-qr-zone,
+  .poster-sheet.poster-export .poster-footer {
+    display: flex !important;
+    gap: var(--poster-export-gap);
+  }
+
+  .poster-sheet.poster-export .poster-logo-wrap {
+    height: var(--poster-export-logo);
+    width: var(--poster-export-logo);
+    border-radius: 20px;
+    border-color: var(--poster-ink-border);
+    background: var(--poster-ink-glass);
+    font-size: 28px;
+    backdrop-filter: none;
+  }
+
+  .poster-sheet.poster-export .poster-kicker {
+    font-size: var(--poster-export-kicker-size);
+    letter-spacing: 0.24em;
+  }
+
+  .poster-sheet.poster-export .poster-brand h3 {
+    margin-top: 8px;
+    font-size: var(--poster-export-commerce-size);
+    line-height: 1;
+  }
+
+  .poster-sheet.poster-export .poster-top-badge,
+  .poster-sheet.poster-export .wallet-badges span {
+    border-color: var(--poster-ink-border);
+    background: var(--poster-ink-glass);
+    padding: var(--poster-export-pill-pad);
+    font-size: var(--poster-export-pill-size);
+    backdrop-filter: none;
+  }
+
+  .poster-sheet.poster-export .poster-hero {
+    align-self: center;
+    max-width: 100%;
+  }
+
+  .poster-sheet.poster-export .reward-badge {
+    gap: 14px;
+    border-color: var(--poster-secondary-border);
+    background: var(--poster-secondary-glass);
+    padding: var(--poster-export-reward-pad);
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  .poster-sheet.poster-export .reward-badge span {
+    font-size: var(--poster-export-reward-label);
+    letter-spacing: 0.16em;
+  }
+
+  .poster-sheet.poster-export .reward-badge strong {
+    font-size: var(--poster-export-reward-value);
+    line-height: 1.05;
+  }
+
+  .poster-sheet.poster-export .poster-hero h1 {
+    margin-top: var(--poster-export-title-mt);
+    max-width: var(--poster-export-title-width);
+    font-size: var(--poster-export-title-size);
+    letter-spacing: -0.045em;
+    line-height: 0.92;
+    text-wrap: wrap;
+  }
+
+  .poster-sheet.poster-export .poster-hero p {
+    margin-top: var(--poster-export-subtitle-mt);
+    max-width: var(--poster-export-subtitle-width);
+    font-size: var(--poster-export-subtitle-size);
+    line-height: 1.22;
+  }
+
+  .poster-sheet.poster-export .poster-qr-zone {
+    align-items: stretch;
+    min-height: 0;
+  }
+
+  .poster-sheet.poster-export .qr-card {
+    width: 48%;
+    border-radius: var(--poster-export-card-radius);
+    padding: var(--poster-export-qr-pad);
+    box-shadow: 0 48px 90px -58px rgba(0,0,0,0.62);
+  }
+
+  .poster-sheet.poster-export .qr-card p {
+    font-size: var(--poster-export-qr-label);
+    letter-spacing: 0.28em;
+  }
+
+  .poster-sheet.poster-export .qr-card img {
+    width: 78%;
+    margin: var(--poster-export-qr-img-margin) auto;
+    border-radius: 16px;
+  }
+
+  .poster-sheet.poster-export .qr-card strong {
+    font-size: var(--poster-export-qr-note);
+  }
+
+  .poster-sheet.poster-export .poster-instructions {
+    width: 46%;
+    gap: var(--poster-export-instruction-gap);
+    align-content: center;
+  }
+
+  .poster-sheet.poster-export .poster-instructions div {
+    grid-template-columns: var(--poster-export-step-size) 1fr;
+    gap: var(--poster-export-step-gap);
+    border-radius: var(--poster-export-step-radius);
+    border-color: var(--poster-ink-light-border);
+    background: var(--poster-ink-soft-glass);
+    padding: var(--poster-export-step-pad);
+    backdrop-filter: none;
+  }
+
+  .poster-sheet.poster-export .poster-instructions span {
+    height: var(--poster-export-step-size);
+    width: var(--poster-export-step-size);
+    background: var(--poster-ink-glass);
+    font-size: var(--poster-export-step-number);
+  }
+
+  .poster-sheet.poster-export .poster-instructions p {
+    font-size: var(--poster-export-step-text);
+    line-height: 1.25;
+  }
+
+  .poster-sheet.poster-export .poster-footer {
+    position: relative;
+    min-height: var(--poster-export-footer-height);
+    align-items: flex-start;
+  }
+
+  .poster-sheet.poster-export .wallet-badges {
+    gap: var(--poster-export-wallet-gap);
+  }
+
+  .poster-sheet.poster-export .poster-contact {
+    color: var(--poster-muted);
+    font-size: var(--poster-export-contact-size);
+    line-height: 1.25;
+  }
+
+  .poster-sheet.poster-export .poster-footer > p {
+    bottom: 0;
+    left: 0;
+    color: var(--poster-muted-soft);
+    font-size: var(--poster-export-powered-size);
+    line-height: 1.15;
+  }
+
+  .poster-sheet.poster-export[data-format="a4"] {
+    --poster-export-width: 1240px;
+    --poster-export-height: 1754px;
+    --poster-export-pad: 78px;
+    --poster-export-gap: 34px;
+    --poster-export-logo: 104px;
+    --poster-export-kicker-size: 18px;
+    --poster-export-commerce-size: 58px;
+    --poster-export-pill-pad: 24px 44px;
+    --poster-export-pill-size: 25px;
+    --poster-export-reward-pad: 23px 40px;
+    --poster-export-reward-label: 23px;
+    --poster-export-reward-value: 28px;
+    --poster-export-title-mt: 34px;
+    --poster-export-title-width: 8.8ch;
+    --poster-export-title-size: 126px;
+    --poster-export-subtitle-mt: 28px;
+    --poster-export-subtitle-width: 780px;
+    --poster-export-subtitle-size: 34px;
+    --poster-export-card-radius: 42px;
+    --poster-export-qr-pad: 30px;
+    --poster-export-qr-label: 18px;
+    --poster-export-qr-img-margin: 20px;
+    --poster-export-qr-note: 23px;
+    --poster-export-instruction-gap: 24px;
+    --poster-export-step-size: 56px;
+    --poster-export-step-gap: 24px;
+    --poster-export-step-radius: 28px;
+    --poster-export-step-pad: 24px;
+    --poster-export-step-number: 34px;
+    --poster-export-step-text: 24px;
+    --poster-export-footer-height: 76px;
+    --poster-export-wallet-gap: 20px;
+    --poster-export-contact-size: 18px;
+    --poster-export-powered-size: 24px;
+  }
+
+  .poster-sheet.poster-export[data-format="a5"] {
+    --poster-export-width: 874px;
+    --poster-export-height: 1240px;
+    --poster-export-pad: 52px;
+    --poster-export-gap: 22px;
+    --poster-export-logo: 76px;
+    --poster-export-kicker-size: 13px;
+    --poster-export-commerce-size: 42px;
+    --poster-export-pill-pad: 16px 30px;
+    --poster-export-pill-size: 18px;
+    --poster-export-reward-pad: 16px 27px;
+    --poster-export-reward-label: 16px;
+    --poster-export-reward-value: 20px;
+    --poster-export-title-mt: 24px;
+    --poster-export-title-width: 8.7ch;
+    --poster-export-title-size: 88px;
+    --poster-export-subtitle-mt: 18px;
+    --poster-export-subtitle-width: 560px;
+    --poster-export-subtitle-size: 24px;
+    --poster-export-card-radius: 30px;
+    --poster-export-qr-pad: 22px;
+    --poster-export-qr-label: 13px;
+    --poster-export-qr-img-margin: 14px;
+    --poster-export-qr-note: 16px;
+    --poster-export-instruction-gap: 17px;
+    --poster-export-step-size: 42px;
+    --poster-export-step-gap: 16px;
+    --poster-export-step-radius: 20px;
+    --poster-export-step-pad: 17px;
+    --poster-export-step-number: 25px;
+    --poster-export-step-text: 17px;
+    --poster-export-footer-height: 54px;
+    --poster-export-wallet-gap: 14px;
+    --poster-export-contact-size: 13px;
+    --poster-export-powered-size: 17px;
+  }
+
   .export-bar {
     display: none;
     max-width: 680px;
@@ -1365,6 +1655,17 @@ const apiBase = (
     return `rgba(${red},${green},${blue},${alpha})`;
   }
 
+  function setPosterColorVars(sheet) {
+    sheet.style.setProperty('--poster-secondary-soft', hexToRgba(state.secondary, 0.38));
+    sheet.style.setProperty('--poster-secondary-border', hexToRgba(state.secondary, 0.54));
+    sheet.style.setProperty('--poster-secondary-glass', hexToRgba(state.secondary, 0.26));
+    sheet.style.setProperty('--poster-ink-border', hexToRgba(state.text, 0.22));
+    sheet.style.setProperty('--poster-ink-light-border', hexToRgba(state.text, 0.14));
+    sheet.style.setProperty('--poster-ink-glass', hexToRgba(state.text, 0.12));
+    sheet.style.setProperty('--poster-ink-soft-glass', hexToRgba(state.text, 0.09));
+    sheet.style.setProperty('--poster-muted-soft', hexToRgba(state.text, 0.42));
+  }
+
   function syncFieldsFromState() {
     setField('field-commerce', state.commerce);
     setField('field-title', state.title);
@@ -1443,6 +1744,7 @@ const apiBase = (
     const isLight = ['qr'].includes(state.template) || state.primary.toLowerCase() === '#f8fafc' || state.primary.toLowerCase() === '#fff7ed' || state.primary.toLowerCase() === '#ffffff';
     sheet.style.setProperty('--poster-ink', state.text);
     sheet.style.setProperty('--poster-muted', hexToRgba(state.text, 0.72));
+    setPosterColorVars(sheet);
     sheet.classList.toggle('is-light', isLight);
     sheet.classList.toggle('is-qr-only', state.template === 'qr');
     applyFormat();
@@ -1705,9 +2007,118 @@ const apiBase = (
     });
   }
 
-  async function capturePosterWithHtmlToImage(sheet) {
+  const exportSizes = {
+    a4: { jsPdfFormat: 'a4', pdfWidth: 210, pdfHeight: 297, pixelWidth: 1240, pixelHeight: 1754 },
+    a5: { jsPdfFormat: 'a5', pdfWidth: 148, pdfHeight: 210, pixelWidth: 874, pixelHeight: 1240 },
+  };
+
+  function getExportSize(format) {
+    return exportSizes[format === 'a5' ? 'a5' : 'a4'];
+  }
+
+  function cleanupExportCloneIds(root) {
+    root.removeAttribute('id');
+    root.querySelectorAll('[id]').forEach((element) => {
+      element.removeAttribute('id');
+    });
+  }
+
+  async function createExportSheet(sourceSheet, format) {
+    const normalizedFormat = format === 'a5' ? 'a5' : 'a4';
+    const size = getExportSize(normalizedFormat);
+    const host = document.createElement('div');
+    host.className = 'poster-export-host';
+    host.style.width = `${size.pixelWidth}px`;
+    host.style.height = `${size.pixelHeight}px`;
+
+    const clone = sourceSheet.cloneNode(true);
+    cleanupExportCloneIds(clone);
+    clone.classList.add('poster-export');
+    clone.dataset.format = normalizedFormat;
+    clone.style.setProperty('--poster-export-width', `${size.pixelWidth}px`);
+    clone.style.setProperty('--poster-export-height', `${size.pixelHeight}px`);
+    clone.style.width = `${size.pixelWidth}px`;
+    clone.style.height = `${size.pixelHeight}px`;
+    clone.style.maxWidth = 'none';
+
+    host.appendChild(clone);
+    document.body.appendChild(host);
+    await waitForFrame();
+
+    return {
+      node: clone,
+      size,
+      cleanup: () => host.remove(),
+    };
+  }
+
+  function applyInlineStyles(selector, styles, root) {
+    root.querySelectorAll(selector).forEach((element) => {
+      Object.entries(styles).forEach(([property, value]) => {
+        element.style[property] = value;
+      });
+    });
+  }
+
+  function sanitizeExportSheetForCanvas(root) {
+    const secondarySoft = hexToRgba(state.secondary, 0.38);
+    const secondaryBorder = hexToRgba(state.secondary, 0.54);
+    const secondaryGlass = hexToRgba(state.secondary, 0.26);
+    const inkBorder = hexToRgba(state.text, 0.22);
+    const inkLightBorder = hexToRgba(state.text, 0.14);
+    const inkGlass = hexToRgba(state.text, 0.12);
+    const inkSoftGlass = hexToRgba(state.text, 0.09);
+
+    root.style.backgroundColor = state.primary;
+    root.style.color = state.text;
+    root.style.setProperty('--poster-muted', hexToRgba(state.text, 0.72));
+    root.style.setProperty('--poster-muted-soft', hexToRgba(state.text, 0.42));
+    setPosterColorVars(root);
+
+    applyInlineStyles('.poster-noise', {
+      background: `radial-gradient(circle at 18% 16%, rgba(255,255,255,0.14), transparent 330px), radial-gradient(circle at 82% 18%, ${secondarySoft}, transparent 310px)`,
+    }, root);
+    applyInlineStyles('.poster-orb', { backgroundColor: secondarySoft, boxShadow: 'none' }, root);
+    applyInlineStyles('.poster-logo-wrap', {
+      borderColor: inkBorder,
+      backgroundColor: inkGlass,
+      color: state.text,
+      backdropFilter: 'none',
+    }, root);
+    applyInlineStyles('.poster-top-badge, .wallet-badges span', {
+      borderColor: inkBorder,
+      backgroundColor: inkGlass,
+      color: state.text,
+      backdropFilter: 'none',
+    }, root);
+    applyInlineStyles('.reward-badge', {
+      borderColor: secondaryBorder,
+      backgroundColor: secondaryGlass,
+      boxShadow: 'none',
+      backdropFilter: 'none',
+    }, root);
+    applyInlineStyles('.reward-badge span, .poster-kicker, .poster-hero p, .poster-contact', {
+      color: hexToRgba(state.text, 0.72),
+    }, root);
+    applyInlineStyles('.reward-badge strong, .poster-brand h3, .poster-hero h1', {
+      color: state.titleColor,
+    }, root);
+    applyInlineStyles('.poster-instructions div', {
+      borderColor: inkLightBorder,
+      backgroundColor: inkSoftGlass,
+      backdropFilter: 'none',
+    }, root);
+    applyInlineStyles('.poster-instructions span', {
+      backgroundColor: inkGlass,
+      color: state.text,
+    }, root);
+    applyInlineStyles('.poster-instructions p', { color: state.text }, root);
+    applyInlineStyles('.poster-footer > p', { color: hexToRgba(state.text, 0.42) }, root);
+  }
+
+  async function capturePosterWithHtmlToImage(sheet, options = {}) {
     return withTimeout(toPng(sheet, {
-      pixelRatio: 2.6,
+      pixelRatio: options.pixelRatio ?? 2.6,
       cacheBust: false,
       backgroundColor: state.primary,
       skipFonts: true,
@@ -1715,26 +2126,35 @@ const apiBase = (
     }), 12000, 'La capture principale de l’affiche a pris trop de temps.');
   }
 
-  async function capturePosterWithCanvas(sheet) {
+  async function capturePosterWithCanvas(sheet, options = {}) {
     const canvas = await withTimeout(html2canvas(sheet, {
       allowTaint: false,
       backgroundColor: state.primary,
       imageTimeout: 4500,
       logging: false,
-      scale: Math.min(2.4, window.devicePixelRatio || 2),
+      scale: options.pixelRatio ?? Math.min(2.4, window.devicePixelRatio || 2),
       useCORS: true,
-      windowWidth: document.documentElement.clientWidth,
-      windowHeight: document.documentElement.clientHeight,
+      windowWidth: options.windowWidth ?? document.documentElement.clientWidth,
+      windowHeight: options.windowHeight ?? document.documentElement.clientHeight,
     }), 14000, 'La capture de secours de l’affiche a pris trop de temps.');
     return canvas.toDataURL('image/png', 1);
   }
 
-  async function capturePoster(sheet) {
+  async function capturePoster(sheet, options = {}) {
+    if (options.preferCanvas) {
+      try {
+        return await capturePosterWithCanvas(sheet, options);
+      } catch (canvasError) {
+        console.warn('Canvas poster capture failed, retrying with html-to-image', canvasError);
+        return capturePosterWithHtmlToImage(sheet, options);
+      }
+    }
+
     try {
-      return await capturePosterWithHtmlToImage(sheet);
+      return await capturePosterWithHtmlToImage(sheet, options);
     } catch (primaryError) {
       console.warn('Primary poster capture failed, retrying with canvas', primaryError);
-      return capturePosterWithCanvas(sheet);
+      return capturePosterWithCanvas(sheet, options);
     }
   }
 
@@ -1753,30 +2173,39 @@ const apiBase = (
     state.format = format === 'a5' ? 'a5' : 'a4';
     applyFormat();
     let restoreExportImages = () => {};
+    let cleanupExportSheet = () => {};
 
     try {
       await waitForFrame();
       await waitForPosterAssets(sheet);
-      restoreExportImages = await prepareImagesForExport(sheet);
+      const exportSheet = await createExportSheet(sheet, state.format);
+      cleanupExportSheet = exportSheet.cleanup;
+      await waitForPosterAssets(exportSheet.node);
+      restoreExportImages = await prepareImagesForExport(exportSheet.node);
+      sanitizeExportSheetForCanvas(exportSheet.node);
 
-      const dataUrl = await capturePoster(sheet);
+      const dataUrl = await capturePoster(exportSheet.node, {
+        preferCanvas: true,
+        pixelRatio: 1,
+        windowWidth: exportSheet.size.pixelWidth,
+        windowHeight: exportSheet.size.pixelHeight,
+      });
 
-      const pageSize = state.format === 'a5'
-        ? { format: 'a5', width: 148, height: 210 }
-        : { format: 'a4', width: 210, height: 297 };
+      const pageSize = exportSheet.size;
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: pageSize.format,
+        format: pageSize.jsPdfFormat,
         compress: true,
       });
-      pdf.addImage(dataUrl, 'PNG', 0, 0, pageSize.width, pageSize.height, undefined, 'FAST');
+      pdf.addImage(dataUrl, 'PNG', 0, 0, pageSize.pdfWidth, pageSize.pdfHeight, undefined, 'FAST');
       pdf.save(posterFilename(state.format));
     } catch (error) {
       console.error('Poster PDF export failed', error);
       fallbackToPrintExport();
     } finally {
       restoreExportImages();
+      cleanupExportSheet();
       isExportingPdf = false;
       setExportButtonsBusy(false);
     }

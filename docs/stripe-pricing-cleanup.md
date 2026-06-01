@@ -9,11 +9,11 @@ Ces Price IDs live sont ceux utilisés par l'application en production via `stri
 | Offre | Prix | Price ID live |
 | --- | ---: | --- |
 | Starter mensuel | 29 EUR / mois | `price_1TdQrU60FYcAjVxlBjtioXnr` |
-| Starter annuel | 295 EUR / an | `price_1TdQrV60FYcAjVxlVDXjt4PY` |
+| Starter annuel récurrent | 295 EUR / an | `price_1TdTej60FYcAjVxlkBzMrWwQ` |
 | Pro mensuel | 69 EUR / mois | `price_1TdQrW60FYcAjVxlVJcylHrc` |
-| Pro annuel | 699 EUR / an | `price_1TdQrY60FYcAjVxlFIxW5eRJ` |
+| Pro annuel récurrent | 699 EUR / an | `price_1TdTek60FYcAjVxl6chYaXlD` |
 | Business mensuel | 199 EUR / mois | `price_1TdQsf60FYcAjVxlPxRw7uBB` |
-| Business annuel | 1990 EUR / an | `price_1TdQsh60FYcAjVxlm2MTX3tg` |
+| Business annuel récurrent | 1990 EUR / an | `price_1TdTel60FYcAjVxlN56tBeCL` |
 | Accompagnement Setup | 90 EUR une fois | `price_1TdQrZ60FYcAjVxlQb01ADw1` |
 
 ## Prix live à archiver
@@ -47,6 +47,7 @@ Le script bloque automatiquement l'archivage d'un Price s'il détecte un abonnem
 - `price_1TMlVz60FYcAjVxlSG7wb8dA` - 300 EUR / an, ancien annuel.
 - `price_1TMlVz60FYcAjVxl8VNyc7o6` - 35 EUR / mois, ancien mensuel.
 - `price_1TMlVy60FYcAjVxlsTpI09J1` - 25 EUR / mois avec engagement annuel, ancienne offre retirée.
+- `price_1TdQrV60FYcAjVxlVDXjt4PY` - 295 EUR paiement unique annuel, remplacé par un abonnement annuel récurrent.
 
 ### Commerce Pro
 
@@ -55,6 +56,11 @@ Le script bloque automatiquement l'archivage d'un Price s'il détecte un abonnem
 - `price_1TMlVx60FYcAjVxlm2p12mJm` - 65 EUR / mois, ancien mensuel.
 - `price_1TMlVx60FYcAjVxlTlIYvWFd` - 588 EUR / an, ancien annuel.
 - `price_1TMlVw60FYcAjVxlVWNs7aJd` - 49 EUR / mois avec engagement annuel, ancienne offre retirée.
+- `price_1TdQrY60FYcAjVxlFIxW5eRJ` - 699 EUR paiement unique annuel, remplacé par un abonnement annuel récurrent.
+
+### Business
+
+- `price_1TdQsh60FYcAjVxlm2MTX3tg` - 1990 EUR paiement unique annuel, remplacé par un abonnement annuel récurrent.
 
 ### Scanner supplémentaire
 
@@ -84,7 +90,7 @@ L'application choisit automatiquement le fichier selon `STRIPE_SECRET_KEY`:
 - `sk_live_...` => `stripe-price-ids.json`.
 - `sk_test_...` => `stripe-price-ids.test.json`.
 
-Si une clé test est utilisée sans `stripe-price-ids.test.json`, les prix d'abonnement sont volontairement considérés indisponibles afin d'éviter d'envoyer des Price IDs live à Stripe test.
+Si une clé test est utilisée sans `stripe-price-ids.test.json`, l'API crée ou réutilise automatiquement des prix test canoniques. Les Price IDs live ne sont jamais envoyés à Stripe test.
 
 ## Créer la grille test
 

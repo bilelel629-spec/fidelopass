@@ -12,13 +12,16 @@ const UNUSED_PRICE_IDS = [
   'price_1TMlVz60FYcAjVxlSG7wb8dA',
   'price_1TMlVz60FYcAjVxl8VNyc7o6',
   'price_1TMlVy60FYcAjVxlsTpI09J1',
+  'price_1TdQrV60FYcAjVxlVDXjt4PY',
   'price_1TMlVy60FYcAjVxlfcAuf9EZ',
   'price_1TMlVy60FYcAjVxlNO6cYh4J',
   'price_1TMlVx60FYcAjVxlm2p12mJm',
   'price_1TMlVx60FYcAjVxlTlIYvWFd',
   'price_1TMlVw60FYcAjVxlVWNs7aJd',
+  'price_1TdQrY60FYcAjVxlFIxW5eRJ',
   'price_1TMlVy60FYcAjVxl06t2Sgq1',
   'price_1TMlVu60FYcAjVxl8HONXsoV',
+  'price_1TdQsh60FYcAjVxlm2MTX3tg',
 ];
 
 const OPTIONAL_SMS_PRICE_IDS = [

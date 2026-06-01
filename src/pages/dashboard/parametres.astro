@@ -310,7 +310,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const commitment = String(data.billing_commitment ?? 'monthly-flex');
     const targetPlan = currentPlan === 'pro' ? 'starter' : 'pro';
     const targetSlot = (() => {
-      if (interval === 'one_time' || commitment === 'annual-12m-once') return `${targetPlan}_annuel_once`;
+      if (interval === 'year' || interval === 'one_time' || commitment === 'annual-recurring' || commitment === 'annual-12m-once') return `${targetPlan}_annuel_once`;
       if (commitment === 'annual-12m-monthly') return `${targetPlan}_annuel_mensuel`;
       return `${targetPlan}_mensuel`;
     })();

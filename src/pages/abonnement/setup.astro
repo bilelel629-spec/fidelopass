@@ -116,7 +116,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   function describeSelection(selection: Selection) {
     const planLabel = selection.plan === 'business' ? 'Plan Business' : selection.plan === 'pro' ? 'Plan Pro' : 'Plan Starter';
     const billingLabel = selection.mode === 'annual'
-      ? 'Facturation annuelle — paiement en une fois'
+      ? 'Facturation annuelle — renouvellement automatique'
       : 'Facturation mensuelle — résiliable à tout moment';
     summaryPlan.textContent = planLabel;
     summaryBilling.textContent = billingLabel;

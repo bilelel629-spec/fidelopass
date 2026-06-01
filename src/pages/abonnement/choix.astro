@@ -29,7 +29,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <div class="mt-8 rounded-xl border border-slate-200 bg-white/90 px-4 py-3 text-sm text-slate-600">
         <p><strong>Essai gratuit :</strong> 14 jours avec carte bancaire, aucun prélèvement aujourd’hui, résiliable pendant l’essai.</p>
         <p class="mt-1"><strong>Mensuel :</strong> après l’essai, résiliable à tout moment.</p>
-        <p class="mt-1"><strong>Annuel :</strong> après l’essai, paiement en une fois pour 12 mois d’accès.</p>
+        <p class="mt-1"><strong>Annuel :</strong> après l’essai, renouvellement automatique chaque année.</p>
       </div>
 
       <div id="annual-payment-mode" class="hidden mt-4 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-3">
@@ -256,7 +256,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     if (annualPaymentType === 'payment') {
       return button.dataset.availabilityAnnualOnce === '1';
     }
-    return button.dataset.availabilityAnnualSubscription === '1';
+    return button.dataset.availabilityAnnualOnce === '1';
   }
 
   function planBaseLabel(plan?: string) {
@@ -325,9 +325,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
     const suffixKey = !isAnnual
       ? 'monthly'
-      : annualPaymentType === 'payment'
-        ? 'annualOnce'
-        : 'annualMonthly';
+      : 'annualOnce';
 
     document.querySelectorAll<HTMLElement>('.plan-price').forEach((el) => {
       const value = suffixKey === 'monthly'
@@ -372,8 +370,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   function resolvePriceSlot(plan: string): PriceSlot {
     const normalizedPlan = plan === 'pro' || plan === 'business' ? plan : 'starter';
     if (currentMode === 'monthly') return `${normalizedPlan}_mensuel` as PriceSlot;
-    if (annualPaymentType === 'payment') return `${normalizedPlan}_annuel_once` as PriceSlot;
-    return `${normalizedPlan}_annuel_mensuel` as PriceSlot;
+    return `${normalizedPlan}_annuel_once` as PriceSlot;
   }
 
   async function hydratePricingConfig(accessToken: string) {
@@ -461,20 +458,14 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     }
 
     const isAnnual = currentMode === 'annual';
-    const priceId = !isAnnual
-      ? btn.dataset.priceMonthly
-      : annualPaymentType === 'payment'
-        ? btn.dataset.priceAnnualOnce
-        : btn.dataset.priceAnnualSubscription;
+    const priceId = !isAnnual ? btn.dataset.priceMonthly : btn.dataset.priceAnnualOnce;
     if (!priceId || !resolveButtonPriceAvailability(btn)) {
       errorEl.textContent = "Ce tarif n'est pas disponible pour le moment. Réessayez dans quelques instants.";
       errorEl.classList.remove('hidden');
       return;
     }
 
-    const checkoutMode: 'subscription' | 'payment' = isAnnual && annualPaymentType === 'payment'
-      ? 'payment'
-      : 'subscription';
+    const checkoutMode: 'subscription' = 'subscription';
     const priceSlot = resolvePriceSlot(btn.dataset.plan ?? 'starter');
 
     const selection = {

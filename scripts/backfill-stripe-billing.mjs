@@ -11,6 +11,9 @@ const PRICE_SLOTS = [
   'pro_mensuel',
   'pro_annuel_once',
   'pro_annuel_mensuel',
+  'business_mensuel',
+  'business_annuel_once',
+  'business_annuel_mensuel',
   'accompagnement',
   'scanner',
   'sms_100',
@@ -20,11 +23,14 @@ const PRICE_SLOTS = [
 
 const LEGACY_PRICE_IDS = {
   starter_mensuel: ['price_1TLWbz7qMJeoJ4KrW4C8UFLr', 'price_1TMlVz60FYcAjVxl8VNyc7o6'],
-  starter_annuel_once: ['price_1TLWbz7qMJeoJ4KrpUsFIFPs', 'price_1TMlVz60FYcAjVxlSG7wb8dA'],
+  starter_annuel_once: ['price_1TLWbz7qMJeoJ4KrpUsFIFPs', 'price_1TMlVz60FYcAjVxlSG7wb8dA', 'price_1TdQrV60FYcAjVxlVDXjt4PY'],
   starter_annuel_mensuel: ['price_1TLWbz7qMJeoJ4KrUuITfZUO', 'price_1TMlVy60FYcAjVxlsTpI09J1'],
   pro_mensuel: ['price_1TLWc07qMJeoJ4KrbyyfYOlH', 'price_1TMlVx60FYcAjVxlm2p12mJm'],
-  pro_annuel_once: ['price_1TLWc07qMJeoJ4KrP8wZXL9U', 'price_1TMlVx60FYcAjVxlTlIYvWFd'],
+  pro_annuel_once: ['price_1TLWc07qMJeoJ4KrP8wZXL9U', 'price_1TMlVx60FYcAjVxlTlIYvWFd', 'price_1TdQrY60FYcAjVxlFIxW5eRJ'],
   pro_annuel_mensuel: ['price_1TLWc07qMJeoJ4KrvqLZfE0u', 'price_1TMlVw60FYcAjVxlVWNs7aJd'],
+  business_mensuel: [],
+  business_annuel_once: ['price_1TdQsh60FYcAjVxlm2MTX3tg'],
+  business_annuel_mensuel: [],
   accompagnement: ['price_1TLUSQ7qMJeoJ4KrYRnAjiPT', 'price_1TMlVu60FYcAjVxl8HONXsoV'],
   scanner: ['price_1TLUSR7qMJeoJ4KraAIhkZNc', 'price_1TMlVy60FYcAjVxl06t2Sgq1'],
   sms_100: ['price_1TLUSS7qMJeoJ4KrmbPWFh9V', 'price_1TMlVy60FYcAjVxln9HC0DaE'],
@@ -71,20 +77,21 @@ function resolvePlanFromSlot(slot) {
   if (!slot) return null;
   if (slot.startsWith('starter_')) return 'starter';
   if (slot.startsWith('pro_')) return 'pro';
+  if (slot.startsWith('business_')) return 'business';
   return null;
 }
 
 function resolveCommitmentLabelFromSlot(slot) {
-  if (slot === 'starter_mensuel' || slot === 'pro_mensuel') return 'monthly-flex';
-  if (slot === 'starter_annuel_mensuel' || slot === 'pro_annuel_mensuel') return 'annual-12m-monthly';
-  if (slot === 'starter_annuel_once' || slot === 'pro_annuel_once') return 'annual-12m-once';
+  if (slot === 'starter_mensuel' || slot === 'pro_mensuel' || slot === 'business_mensuel') return 'monthly-flex';
+  if (slot === 'starter_annuel_mensuel' || slot === 'pro_annuel_mensuel' || slot === 'business_annuel_mensuel') return 'annual-12m-monthly';
+  if (slot === 'starter_annuel_once' || slot === 'pro_annuel_once' || slot === 'business_annuel_once') return 'annual-recurring';
   return 'unknown';
 }
 
 function resolveBillingIntervalFromSlot(slot) {
-  if (slot === 'starter_mensuel' || slot === 'pro_mensuel') return 'month';
-  if (slot === 'starter_annuel_mensuel' || slot === 'pro_annuel_mensuel') return 'month';
-  if (slot === 'starter_annuel_once' || slot === 'pro_annuel_once') return 'one_time';
+  if (slot === 'starter_mensuel' || slot === 'pro_mensuel' || slot === 'business_mensuel') return 'month';
+  if (slot === 'starter_annuel_mensuel' || slot === 'pro_annuel_mensuel' || slot === 'business_annuel_mensuel') return 'month';
+  if (slot === 'starter_annuel_once' || slot === 'pro_annuel_once' || slot === 'business_annuel_once') return 'year';
   return null;
 }
 
@@ -224,4 +231,3 @@ main()
     console.error('[billing-backfill] fatal:', error instanceof Error ? error.message : error);
     process.exit(1);
   });
-

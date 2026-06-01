@@ -51,13 +51,13 @@ export const PLAN_PRICE_SLOTS: PriceSlot[] = [
 
 export const LEGACY_PRICE_IDS: Record<PriceSlot, string[]> = {
   starter_mensuel: ['price_1TLWbz7qMJeoJ4KrW4C8UFLr', 'price_1TMlVz60FYcAjVxl8VNyc7o6'],
-  starter_annuel_once: ['price_1TLWbz7qMJeoJ4KrpUsFIFPs', 'price_1TMlVz60FYcAjVxlSG7wb8dA'],
+  starter_annuel_once: ['price_1TLWbz7qMJeoJ4KrpUsFIFPs', 'price_1TMlVz60FYcAjVxlSG7wb8dA', 'price_1TdQrV60FYcAjVxlVDXjt4PY'],
   starter_annuel_mensuel: ['price_1TLWbz7qMJeoJ4KrUuITfZUO', 'price_1TMlVy60FYcAjVxlsTpI09J1'],
   pro_mensuel: ['price_1TLWc07qMJeoJ4KrbyyfYOlH', 'price_1TMlVx60FYcAjVxlm2p12mJm'],
-  pro_annuel_once: ['price_1TLWc07qMJeoJ4KrP8wZXL9U', 'price_1TMlVx60FYcAjVxlTlIYvWFd'],
+  pro_annuel_once: ['price_1TLWc07qMJeoJ4KrP8wZXL9U', 'price_1TMlVx60FYcAjVxlTlIYvWFd', 'price_1TdQrY60FYcAjVxlFIxW5eRJ'],
   pro_annuel_mensuel: ['price_1TLWc07qMJeoJ4KrvqLZfE0u', 'price_1TMlVw60FYcAjVxlVWNs7aJd'],
   business_mensuel: [],
-  business_annuel_once: [],
+  business_annuel_once: ['price_1TdQsh60FYcAjVxlm2MTX3tg'],
   business_annuel_mensuel: [],
   accompagnement: ['price_1TLUSQ7qMJeoJ4KrYRnAjiPT', 'price_1TMlVu60FYcAjVxl8HONXsoV'],
   scanner: ['price_1TLUSR7qMJeoJ4KraAIhkZNc', 'price_1TMlVy60FYcAjVxl06t2Sgq1'],
@@ -68,13 +68,13 @@ export const LEGACY_PRICE_IDS: Record<PriceSlot, string[]> = {
 
 export const FALLBACK_PRICE_IDS: Record<PriceSlot, string> = {
   starter_mensuel: 'price_1TdQrU60FYcAjVxlBjtioXnr',
-  starter_annuel_once: 'price_1TdQrV60FYcAjVxlVDXjt4PY',
+  starter_annuel_once: 'price_1TdTej60FYcAjVxlkBzMrWwQ',
   starter_annuel_mensuel: '',
   pro_mensuel: 'price_1TdQrW60FYcAjVxlVJcylHrc',
-  pro_annuel_once: 'price_1TdQrY60FYcAjVxlFIxW5eRJ',
+  pro_annuel_once: 'price_1TdTek60FYcAjVxl6chYaXlD',
   pro_annuel_mensuel: '',
   business_mensuel: 'price_1TdQsf60FYcAjVxlPxRw7uBB',
-  business_annuel_once: 'price_1TdQsh60FYcAjVxlm2MTX3tg',
+  business_annuel_once: 'price_1TdTel60FYcAjVxlN56tBeCL',
   business_annuel_mensuel: '',
   accompagnement: 'price_1TdQrZ60FYcAjVxlQb01ADw1',
   scanner: 'price_1TMlVy60FYcAjVxl06t2Sgq1',
@@ -135,6 +135,7 @@ const STRIPE_CANONICAL_PRICE_CONFIG = {
     productDescription: '1 point de vente, 500 cartes actives, notifications incluses',
     amount: 29500,
     lookupKey: 'fidelopass_starter_annual_once',
+    recurring: { interval: 'year' as const },
   },
   pro_mensuel: {
     productName: 'Commerce Pro',
@@ -148,6 +149,7 @@ const STRIPE_CANONICAL_PRICE_CONFIG = {
     productDescription: '3 points de vente, 2000 cartes actives, automatisations et analytics avancés',
     amount: 69900,
     lookupKey: 'fidelopass_pro_annual_once',
+    recurring: { interval: 'year' as const },
   },
   business_mensuel: {
     productName: 'Business',
@@ -161,6 +163,7 @@ const STRIPE_CANONICAL_PRICE_CONFIG = {
     productDescription: 'Cartes actives illimitées, accompagnement setup inclus, support prioritaire',
     amount: 199000,
     lookupKey: 'fidelopass_business_annual_once',
+    recurring: { interval: 'year' as const },
   },
   accompagnement: {
     productName: 'Accompagnement Setup',
@@ -173,7 +176,7 @@ const STRIPE_CANONICAL_PRICE_CONFIG = {
   productDescription: string;
   amount: number;
   lookupKey: string;
-  recurring?: { interval: 'month' };
+  recurring?: { interval: 'month' | 'year' };
 }>>;
 
 let testPriceIdsPromise: Promise<Partial<Record<PriceSlot, string>>> | null = null;
@@ -208,20 +211,48 @@ async function findCanonicalPrice(stripe: Stripe, lookupKey: string) {
   return prices.data[0] ?? null;
 }
 
+function priceMatchesCanonicalConfig(
+  price: Stripe.Price,
+  config: (typeof STRIPE_CANONICAL_PRICE_CONFIG)[keyof typeof STRIPE_CANONICAL_PRICE_CONFIG],
+) {
+  const expectedType = config.recurring ? 'recurring' : 'one_time';
+  return price.active
+    && price.unit_amount === config.amount
+    && price.currency === 'eur'
+    && price.type === expectedType
+    && (!config.recurring || price.recurring?.interval === config.recurring.interval);
+}
+
+async function findEquivalentCanonicalPrice(
+  stripe: Stripe,
+  productId: string,
+  config: (typeof STRIPE_CANONICAL_PRICE_CONFIG)[keyof typeof STRIPE_CANONICAL_PRICE_CONFIG],
+) {
+  const prices = await stripe.prices.list({
+    product: productId,
+    active: true,
+    limit: 100,
+  });
+  return prices.data.find((price) => priceMatchesCanonicalConfig(price, config)) ?? null;
+}
+
 async function ensureCanonicalPrice(
   stripe: Stripe,
   productId: string,
   slot: PriceSlot,
   config: (typeof STRIPE_CANONICAL_PRICE_CONFIG)[keyof typeof STRIPE_CANONICAL_PRICE_CONFIG],
 ) {
+  const equivalent = await findEquivalentCanonicalPrice(stripe, productId, config);
+  if (equivalent) return equivalent;
+
   const existing = await findCanonicalPrice(stripe, config.lookupKey);
-  if (existing) return existing;
+  if (existing && priceMatchesCanonicalConfig(existing, config)) return existing;
 
   return stripe.prices.create({
     product: productId,
     unit_amount: config.amount,
     currency: 'eur',
-    lookup_key: config.lookupKey,
+    ...(existing ? {} : { lookup_key: config.lookupKey }),
     nickname: config.lookupKey,
     metadata: { kind: 'fidelopass_auto_test_pricing', slot },
     ...(config.recurring ? { recurring: config.recurring } : {}),
@@ -335,6 +366,9 @@ export function resolveExpectedModeFromSlot(slot: PriceSlot): 'subscription' | '
     || slot === 'pro_annuel_mensuel'
     || slot === 'business_mensuel'
     || slot === 'business_annuel_mensuel'
+    || slot === 'starter_annuel_once'
+    || slot === 'pro_annuel_once'
+    || slot === 'business_annuel_once'
   ) {
     return 'subscription';
   }
@@ -344,14 +378,14 @@ export function resolveExpectedModeFromSlot(slot: PriceSlot): 'subscription' | '
 export function resolveCommitmentLabelFromSlot(slot: PriceSlot) {
   if (slot === 'starter_mensuel' || slot === 'pro_mensuel' || slot === 'business_mensuel') return 'monthly-flex';
   if (slot === 'starter_annuel_mensuel' || slot === 'pro_annuel_mensuel' || slot === 'business_annuel_mensuel') return 'annual-12m-monthly';
-  if (slot === 'starter_annuel_once' || slot === 'pro_annuel_once' || slot === 'business_annuel_once') return 'annual-12m-once';
+  if (slot === 'starter_annuel_once' || slot === 'pro_annuel_once' || slot === 'business_annuel_once') return 'annual-recurring';
   return 'unknown';
 }
 
 export function resolveBillingIntervalFromSlot(slot: PriceSlot): 'month' | 'year' | 'one_time' | null {
   if (slot === 'starter_mensuel' || slot === 'pro_mensuel' || slot === 'business_mensuel') return 'month';
   if (slot === 'starter_annuel_mensuel' || slot === 'pro_annuel_mensuel' || slot === 'business_annuel_mensuel') return 'month';
-  if (slot === 'starter_annuel_once' || slot === 'pro_annuel_once' || slot === 'business_annuel_once') return 'one_time';
+  if (slot === 'starter_annuel_once' || slot === 'pro_annuel_once' || slot === 'business_annuel_once') return 'year';
   return null;
 }
 

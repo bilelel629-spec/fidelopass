@@ -132,17 +132,23 @@ async function findEquivalentActivePrice(stripe, productId, config, recurring) {
 }
 
 async function ensurePrice(stripe, productId, config, metadata, recurring = null) {
-  const existing = await findPriceByLookupKey(stripe, config.lookupKey);
-  if (existing) return existing;
-
   const equivalent = await findEquivalentActivePrice(stripe, productId, config, recurring);
   if (equivalent) return equivalent;
+
+  const existing = await findPriceByLookupKey(stripe, config.lookupKey);
+  if (existing) {
+    const expectedType = recurring ? 'recurring' : 'one_time';
+    const sameAmount = existing.unit_amount === config.amount && existing.currency === 'eur';
+    const sameType = existing.type === expectedType;
+    const sameRecurring = !recurring || existing.recurring?.interval === recurring.interval;
+    if (sameAmount && sameType && sameRecurring) return existing;
+  }
 
   return stripe.prices.create({
     product: productId,
     unit_amount: config.amount,
     currency: 'eur',
-    lookup_key: config.lookupKey,
+    ...(existing ? {} : { lookup_key: config.lookupKey }),
     nickname: config.lookupKey,
     metadata,
     ...(recurring ? { recurring } : {}),
@@ -188,7 +194,8 @@ async function main() {
       stripe,
       product.id,
       plan.annual,
-      { kind: 'fidelopass_plan', plan: plan.slot, billing: 'annual_once', slot: plan.annual.slot },
+      { kind: 'fidelopass_plan', plan: plan.slot, billing: 'annual_recurring', slot: plan.annual.slot },
+      { interval: 'year' },
     );
 
     ids[plan.monthly.slot] = monthly.id;

@@ -1162,8 +1162,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(publicCardUrl(id))}&bgcolor=ffffff&color=111827&qzone=1`;
   }
 
-  function scannerInstallUrl() {
-    return `${PUBLIC_SITE_URL}/app/install`;
+  function scannerInstallUrl(claim = '') {
+    return claim
+      ? `${PUBLIC_SITE_URL}/app/install?claim=${encodeURIComponent(claim)}`
+      : `${PUBLIC_SITE_URL}/app/install`;
   }
 
   function ensureQr(containerId: string, url: string, size = 150) {
@@ -1184,10 +1186,22 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     ensureQr('qr-container', publicCardUrl(id));
   }
 
-  function updateScannerTools() {
+  async function updateScannerTools() {
     const installLink = document.getElementById('scanner-install-link') as HTMLAnchorElement | null;
-    if (installLink) installLink.href = scannerInstallUrl();
-    ensureQr('scanner-qr-container', scannerInstallUrl());
+    const fallbackUrl = scannerInstallUrl();
+    if (installLink) installLink.href = fallbackUrl;
+    ensureQr('scanner-qr-container', fallbackUrl);
+
+    try {
+      const res = await authFetch('/api/scanners/install-token', { method: 'POST' });
+      const payload = await res.json().catch(() => null);
+      const installUrl = payload?.data?.install_url ?? scannerInstallUrl(payload?.data?.claim_token ?? '');
+      if (!res.ok || !installUrl) throw new Error('install token unavailable');
+      if (installLink) installLink.href = installUrl;
+      ensureQr('scanner-qr-container', installUrl);
+    } catch (error) {
+      console.warn('[scanner install token]', error);
+    }
   }
 
   function clearStepError(step: WizardStep) {

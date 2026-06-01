@@ -274,7 +274,7 @@ export async function generateGooglePass(
   if (barcodeType !== 'NONE') {
     loyaltyObject.barcode = {
       type: GOOGLE_BARCODE_MAP[barcodeType] ?? 'QR_CODE',
-      value: client.id,
+      value: String(client.wallet_code ?? client.id).trim() || client.id,
     };
   }
 

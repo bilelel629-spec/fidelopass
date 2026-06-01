@@ -149,14 +149,15 @@ import AppLayout from '../../layouts/AppLayout.astro';
   .scanner-reader #reader__dashboard_section_csr,
   .scanner-reader #reader__dashboard_section_fsr,
   .scanner-reader #reader__dashboard_section_swaplink,
-  .scanner-reader #reader__dashboard_section {
+  .scanner-reader #reader__dashboard_section,
+  .scanner-reader #reader__status_span,
+  .scanner-reader [id$="__status_span"] {
     display: none !important;
   }
 </style>
 
 <script>
-  import { authFetch } from '../../lib/api';
-
+  const API_URL = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
   type ScannerInstance = {
     start: (
       cameraConfigOrDeviceId: string | MediaTrackConstraints,
@@ -219,8 +220,33 @@ import AppLayout from '../../layouts/AppLayout.astro';
     ]);
   }
 
-  async function authFetchWithTimeout(path: string, init?: RequestInit): Promise<Response> {
-    return withTimeout(authFetch(path, init), API_TIMEOUT_MS);
+  function readScannerToken() {
+    try {
+      return localStorage.getItem(SCANNER_TOKEN_KEY)?.trim() ?? '';
+    } catch {
+      return '';
+    }
+  }
+
+  function scannerInstallUrl() {
+    return `/app/install?from=${encodeURIComponent('/app/scan')}`;
+  }
+
+  async function scannerFetchWithTimeout(path: string, init: RequestInit = {}): Promise<Response> {
+    const token = readScannerToken();
+    return withTimeout(fetch(`${API_URL}${path}`, {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(init.headers ?? {}),
+        'X-Scanner-Token': token,
+      },
+    }), API_TIMEOUT_MS);
+  }
+
+  async function readApiError(res: Response, fallback: string) {
+    const payload = await res.json().catch(() => null);
+    return String(payload?.error ?? fallback);
   }
 
   async function loadScannerModule() {
@@ -304,33 +330,6 @@ import AppLayout from '../../layouts/AppLayout.astro';
     cameraHelp.classList.add('hidden');
   }
 
-  function getScannerToken() {
-    let token = localStorage.getItem(SCANNER_TOKEN_KEY);
-    if (!token) {
-      token = `${crypto.randomUUID()}-${Date.now()}`;
-      localStorage.setItem(SCANNER_TOKEN_KEY, token);
-    }
-    return token;
-  }
-
-  function getDeviceName() {
-    const userAgentPlatform = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform;
-    return (userAgentPlatform ?? navigator.userAgent ?? 'Téléphone').slice(0, 120);
-  }
-
-  async function registerScannerInBackground() {
-    const token = getScannerToken();
-    authFetchWithTimeout('/api/scanners/register', {
-      method: 'POST',
-      body: JSON.stringify({
-        scanner_token: token,
-        device_name: getDeviceName(),
-      }),
-    }).catch((error) => {
-      console.warn('[scanner register background]', error);
-    });
-  }
-
   function rememberCameraId(deviceId: string | null) {
     if (!deviceId) return;
     try {
@@ -390,6 +389,18 @@ import AppLayout from '../../layouts/AppLayout.astro';
     setScannerStatus('Chargement du scanner...');
 
     try {
+      if (!readScannerToken()) {
+        window.location.replace(scannerInstallUrl());
+        return;
+      }
+      const scannerStatusRes = await scannerFetchWithTimeout('/api/scanners/me');
+      if (!scannerStatusRes.ok) {
+        const message = await readApiError(scannerStatusRes, 'Ce téléphone doit être associé au commerce avant de scanner.');
+        setScannerStatus('Téléphone non associé.');
+        showCameraHelp(`${message} Ouvrez le QR d’installation depuis l’espace commerçant.`);
+        return;
+      }
+
       const qrScanner = await ensureScannerInstance();
       setScannerStatus('Ouverture de la caméra...');
       const rememberedCameraId = readRememberedCameraId();
@@ -448,14 +459,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
     playBeep('scan');
 
     try {
-      // Les anciennes cartes contiennent l'UUID client, les nouvelles un code FID-XXXX scannable en caisse.
-      const normalized = decodedText.trim();
-      const fromUrl = normalized.match(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i);
-      const scannedCode = fromUrl?.[0] ?? normalized.replace(/\s+/g, '').toUpperCase();
-      const res = fromUrl
-        ? await authFetchWithTimeout(`/api/clients/${scannedCode}`)
-        : await authFetchWithTimeout(`/api/merchant/scan?code=${encodeURIComponent(scannedCode)}`);
-      if (!res.ok) throw new Error('Client introuvable');
+      const res = await scannerFetchWithTimeout(`/api/scanners/scan?code=${encodeURIComponent(decodedText.trim())}`);
+      if (!res.ok) throw new Error(await readApiError(res, 'Carte client introuvable.'));
 
       const payload = await res.json();
       const scanPayload = payload?.data ?? payload;
@@ -485,8 +490,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
       // Feedback haptique
       if (navigator.vibrate) navigator.vibrate(100);
-    } catch {
-      showToast('QR code non reconnu. Réessayez.', 'error');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'QR code non reconnu. Réessayez.', 'error');
       resumeScanner();
     }
   }
@@ -527,12 +532,12 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
   async function addTransaction(type: string, valeur: number) {
     try {
-      const res = await authFetchWithTimeout('/api/transactions', {
+      const res = await scannerFetchWithTimeout('/api/scanners/transactions', {
         method: 'POST',
         body: JSON.stringify({ client_id: currentClientId, type, valeur }),
       });
 
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(await readApiError(res, "Erreur lors de l'ajout. Réessayez."));
 
       const data = await res.json();
 
@@ -555,8 +560,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
       }
 
       closeResult();
-    } catch {
-      showToast("Erreur lors de l'ajout. Réessayez.", 'error');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Erreur lors de l'ajout. Réessayez.", 'error');
     }
   }
 
@@ -602,12 +607,10 @@ import AppLayout from '../../layouts/AppLayout.astro';
   document.addEventListener('pointerdown', unlockAudio, { once: true });
   document.addEventListener('touchstart', unlockAudio, { once: true });
   cameraPermissionBtn.addEventListener('click', async () => {
-    registerScannerInBackground();
     await startScanner({ fromUserAction: true });
   });
 
   (async () => {
-    registerScannerInBackground();
     await startScanner();
   })();
 </script>

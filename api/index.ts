@@ -40,7 +40,7 @@ const ALLOWED_ORIGINS = Array.from(new Set([
 app.use('*', logger());
 app.use('*', cors({
   origin: (origin) => (ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]),
-  allowHeaders: ['Content-Type', 'Authorization', 'X-Point-Vente-Id'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Point-Vente-Id', 'X-Scanner-Token'],
   allowMethods: ['GET', 'HEAD', 'PUT', 'POST', 'DELETE', 'PATCH', 'OPTIONS'],
   credentials: true,
 }));

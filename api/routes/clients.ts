@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { ApiEnv } from '../types';
 import { z } from 'zod';
+import { randomBytes } from 'crypto';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
@@ -17,6 +18,10 @@ export const clientsRoutes = new Hono<ApiEnv>();
 
 function normalizePhone(phone: string): string {
   return phone.replace(/[^\d+]/g, '');
+}
+
+function generateWalletCode() {
+  return `FID-${randomBytes(5).toString('hex').slice(0, 8).toUpperCase()}`;
 }
 
 /** GET /api/clients/public/:id — État minimal du client pour la page carte publique */
@@ -254,6 +259,7 @@ clientsRoutes.post('/', async (c) => {
       carte_id: parsed.data.carte_id,
       commerce_id: carte.commerce_id,
       point_vente_id: carte.point_vente_id,
+      wallet_code: generateWalletCode(),
       nom: parsed.data.nom,
       telephone: normalizedPhone,
       email: parsed.data.email ?? null,
@@ -271,6 +277,7 @@ clientsRoutes.post('/', async (c) => {
         carte_id: parsed.data.carte_id,
         commerce_id: carte.commerce_id,
         point_vente_id: carte.point_vente_id,
+        wallet_code: generateWalletCode(),
         nom: parsed.data.nom,
         telephone: normalizedPhone,
         email: parsed.data.email ?? null,

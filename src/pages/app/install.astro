@@ -107,8 +107,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 </AppLayout>
 
 <script>
-  import { authFetch } from '../../lib/api';
-
+  const API_URL = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
   const SCANNER_TOKEN_KEY = 'fidelopass_scanner_token';
   const registerBtn = document.getElementById('scanner-register-btn') as HTMLButtonElement;
   const planBadge = document.getElementById('scanner-plan-badge') as HTMLSpanElement;
@@ -118,6 +117,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
   const openScannerLink = document.getElementById('open-scanner-link') as HTMLAnchorElement;
   const scannerInstallQr = document.getElementById('scanner-install-qr') as HTMLImageElement | null;
   const scannerInstallLink = document.getElementById('scanner-install-link') as HTMLAnchorElement | null;
+  const claimToken = new URLSearchParams(window.location.search).get('claim')?.trim() ?? '';
 
   function setupInstallQr() {
     const installUrl = `${window.location.origin}/app/install`;
@@ -139,7 +139,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
   function setScannerBlocked(blocked: boolean, message = '') {
     openScannerLink.classList.toggle('pointer-events-none', blocked);
     openScannerLink.classList.toggle('opacity-50', blocked);
-    if (blocked) registerBtn.disabled = true;
+    if (blocked && !claimToken) registerBtn.disabled = true;
     if (message) {
       limitMsg.textContent = message;
       limitMsg.classList.remove('hidden');
@@ -150,41 +150,34 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
   async function loadScannerStatus() {
     const token = getScannerToken();
-    const res = await authFetch(`/api/scanners/status?scanner_token=${encodeURIComponent(token)}`);
-    if (!res.ok) throw new Error('Impossible de charger les scanners.');
-    const payload = await res.json();
-    const data = payload?.data;
-    if (!data) throw new Error('Réponse scanner invalide.');
+    const res = await fetch(`${API_URL}/api/scanners/me`, {
+      headers: { 'X-Scanner-Token': token },
+    });
 
-    const plan = String(data.plan ?? 'starter').trim().toLowerCase();
-    const isPro = plan === 'pro'
-      || plan.startsWith('pro-')
-      || plan.includes('pro')
-      || plan === 'business'
-      || plan.startsWith('business-')
-      || plan.includes('business');
-    planBadge.textContent = isPro ? 'Pro' : 'Starter';
-    planBadge.className = isPro
-      ? 'rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-violet-700'
-      : 'rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-sky-700';
-
-    usageText.textContent = data.registered_for_token
-      ? 'Téléphone déjà associé'
-      : 'Téléphone non associé';
-    remainingText.textContent = data.registered_for_token
-      ? `${data.current_scanners} scanner(s) actif(s). Vous pouvez ouvrir le scanner.`
-      : `Scanners illimités inclus. ${data.current_scanners} scanner(s) actif(s) actuellement.`;
-
-    if (data.registered_for_token) {
+    if (res.ok) {
+      const payload = await res.json();
+      const data = payload?.data ?? {};
+      planBadge.textContent = 'Associé';
+      planBadge.className = 'rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-emerald-700';
+      usageText.textContent = 'Scanner prêt';
+      remainingText.textContent = `${data.commerce_nom ?? 'Commerce'} — ${data.point_vente_nom ?? 'Point de vente'}. Vous pouvez ouvrir le scanner.`;
       registerBtn.textContent = 'Téléphone déjà enregistré';
       registerBtn.disabled = true;
       setScannerBlocked(false);
       return;
     }
 
-    registerBtn.textContent = 'Associer ce téléphone';
-    registerBtn.disabled = false;
-    setScannerBlocked(false);
+    planBadge.textContent = claimToken ? 'À associer' : 'Non associé';
+    planBadge.className = claimToken
+      ? 'rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-sky-700'
+      : 'rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-amber-700';
+    usageText.textContent = claimToken ? 'Prêt à associer ce téléphone' : 'Téléphone non associé';
+    remainingText.textContent = claimToken
+      ? 'Appuyez sur le bouton ci-dessous pour lier ce téléphone au point de vente.'
+      : 'Scannez le QR d’installation depuis l’espace commerçant pour associer ce téléphone.';
+    registerBtn.textContent = claimToken ? 'Associer ce téléphone' : 'QR d’installation requis';
+    registerBtn.disabled = !claimToken;
+    setScannerBlocked(true, claimToken ? '' : 'Ouvrez cette page depuis le QR d’installation généré dans l’espace commerçant.');
   }
 
   registerBtn.addEventListener('click', async () => {
@@ -195,9 +188,12 @@ import AppLayout from '../../layouts/AppLayout.astro';
     const previous = registerBtn.textContent;
     registerBtn.textContent = 'Association...';
     try {
-      const res = await authFetch('/api/scanners/register', {
+      if (!claimToken) throw new Error('QR d’installation requis.');
+      const res = await fetch(`${API_URL}/api/scanners/claim`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          claim_token: claimToken,
           scanner_token: token,
           device_name: deviceName,
         }),
@@ -213,9 +209,9 @@ import AppLayout from '../../layouts/AppLayout.astro';
   });
 
   loadScannerStatus().catch((error) => {
-    usageText.textContent = 'Impossible de charger les scanners.';
+    usageText.textContent = claimToken ? 'Prêt à associer ce téléphone' : 'Téléphone non associé';
     remainingText.textContent = '';
-    setScannerBlocked(true, error instanceof Error ? error.message : 'Vérifiez votre connexion et réessayez.');
+    setScannerBlocked(true, error instanceof Error ? error.message : 'Scannez le QR d’installation depuis l’espace commerçant.');
   });
   setupInstallQr();
 </script>

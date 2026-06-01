@@ -15,7 +15,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
           <p class="text-xs font-semibold uppercase tracking-[0.28em] text-sky-700/75">Scanner boutique</p>
           <h1 class="mt-3 font-display text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Installer le scanner</h1>
           <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-            Associez ce téléphone à votre commerce, puis ajoutez l’icône Fidelopass à l’écran d’accueil.
+            Connectez-vous au compte commerçant, puis ajoutez l’icône Fidelopass à l’écran d’accueil pour scanner plus vite.
           </p>
         </div>
         <div class="flex h-20 w-20 items-center justify-center rounded-[1.5rem] border border-sky-100 bg-white shadow-[0_24px_60px_-40px_rgba(59,130,246,0.55)]">
@@ -27,18 +27,18 @@ import AppLayout from '../../layouts/AppLayout.astro';
         <section id="scanner-quota-card" class="card p-5 sm:p-7">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p class="text-sm font-semibold text-slate-500">Ce téléphone</p>
-              <h2 id="scanner-usage" class="mt-2 font-display text-2xl font-bold text-slate-950">Chargement du statut…</h2>
-              <p id="scanner-remaining" class="mt-2 text-sm leading-6 text-slate-500"></p>
+              <p class="text-sm font-semibold text-slate-500">Accès scanner</p>
+              <h2 id="scanner-usage" class="mt-2 font-display text-2xl font-bold text-slate-950">Scanner disponible</h2>
+              <p id="scanner-remaining" class="mt-2 text-sm leading-6 text-slate-500">Scanners illimités inclus. Toute personne connectée au compte commerçant peut utiliser le scanner caméra.</p>
             </div>
-            <span id="scanner-plan-badge" class="w-fit rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-sky-700">Chargement…</span>
+            <span id="scanner-plan-badge" class="w-fit rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-emerald-700">Illimité</span>
           </div>
 
           <p id="scanner-limit-msg" class="hidden mt-5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"></p>
 
           <div class="mt-6 grid gap-3 sm:grid-cols-2">
             <button id="scanner-register-btn" type="button" class="btn-primary px-4 py-3 text-sm">
-              Associer ce téléphone
+              Ouvrir le scanner
             </button>
             <a id="open-scanner-link" href="/app/scan" class="btn-secondary px-4 py-3 text-center text-sm">
               Ouvrir le scanner
@@ -56,13 +56,13 @@ import AppLayout from '../../layouts/AppLayout.astro';
         </section>
 
         <details class="rounded-[1.5rem] border border-slate-200 bg-white/90 p-4 shadow-[0_22px_60px_-46px_rgba(15,23,42,0.4)]">
-          <summary class="cursor-pointer text-sm font-bold text-slate-900">Installer sur un autre téléphone</summary>
+          <summary class="cursor-pointer text-sm font-bold text-slate-900">Ouvrir sur un autre téléphone</summary>
           <div class="mt-4">
             <div class="mx-auto w-fit rounded-2xl border border-slate-200 bg-white p-2">
               <img id="scanner-install-qr" src="" alt="QR code pour installer le scanner Fidelopass" class="h-40 w-40 rounded-xl" />
             </div>
             <p class="mt-4 text-center text-sm leading-6 text-slate-600">
-              Scannez ce QR avec le téléphone utilisé en caisse.
+              Scannez ce QR avec le téléphone utilisé en caisse, puis connectez-vous au compte commerçant.
             </p>
             <a id="scanner-install-link" href="/app/install" class="mt-3 block text-center text-sm font-semibold text-sky-700 transition hover:text-sky-900">
               Ouvrir le lien d’installation
@@ -96,7 +96,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
       <details class="mt-4 rounded-[1.5rem] border border-slate-200 bg-white/80 p-4">
         <summary class="cursor-pointer text-sm font-bold text-slate-900">Aide</summary>
         <p class="mt-3 text-sm leading-6 text-slate-600">
-          Une fois le téléphone associé, autorisez la caméra une première fois. Le scanner restera accessible depuis l’icône Fidelopass ou depuis le bouton Ouvrir le scanner.
+          Autorisez la caméra une première fois. Le scanner restera accessible depuis l’icône Fidelopass ou depuis le bouton Ouvrir le scanner.
         </p>
         <a href="/dashboard/parametres" class="mt-3 inline-flex text-sm font-semibold text-sky-700 transition hover:text-sky-900">
           Voir mon compte
@@ -107,8 +107,6 @@ import AppLayout from '../../layouts/AppLayout.astro';
 </AppLayout>
 
 <script>
-  const API_URL = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
-  const SCANNER_TOKEN_KEY = 'fidelopass_scanner_token';
   const registerBtn = document.getElementById('scanner-register-btn') as HTMLButtonElement;
   const planBadge = document.getElementById('scanner-plan-badge') as HTMLSpanElement;
   const usageText = document.getElementById('scanner-usage') as HTMLParagraphElement;
@@ -117,7 +115,6 @@ import AppLayout from '../../layouts/AppLayout.astro';
   const openScannerLink = document.getElementById('open-scanner-link') as HTMLAnchorElement;
   const scannerInstallQr = document.getElementById('scanner-install-qr') as HTMLImageElement | null;
   const scannerInstallLink = document.getElementById('scanner-install-link') as HTMLAnchorElement | null;
-  const claimToken = new URLSearchParams(window.location.search).get('claim')?.trim() ?? '';
 
   function setupInstallQr() {
     const installUrl = `${window.location.origin}/app/install`;
@@ -127,19 +124,10 @@ import AppLayout from '../../layouts/AppLayout.astro';
     }
   }
 
-  function getScannerToken() {
-    let token = localStorage.getItem(SCANNER_TOKEN_KEY);
-    if (!token) {
-      token = `${crypto.randomUUID()}-${Date.now()}`;
-      localStorage.setItem(SCANNER_TOKEN_KEY, token);
-    }
-    return token;
-  }
-
   function setScannerBlocked(blocked: boolean, message = '') {
     openScannerLink.classList.toggle('pointer-events-none', blocked);
     openScannerLink.classList.toggle('opacity-50', blocked);
-    if (blocked && !claimToken) registerBtn.disabled = true;
+    registerBtn.disabled = blocked;
     if (message) {
       limitMsg.textContent = message;
       limitMsg.classList.remove('hidden');
@@ -148,70 +136,18 @@ import AppLayout from '../../layouts/AppLayout.astro';
     }
   }
 
-  async function loadScannerStatus() {
-    const token = getScannerToken();
-    const res = await fetch(`${API_URL}/api/scanners/me`, {
-      headers: { 'X-Scanner-Token': token },
-    });
-
-    if (res.ok) {
-      const payload = await res.json();
-      const data = payload?.data ?? {};
-      planBadge.textContent = 'Associé';
-      planBadge.className = 'rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-emerald-700';
-      usageText.textContent = 'Scanner prêt';
-      remainingText.textContent = `${data.commerce_nom ?? 'Commerce'} — ${data.point_vente_nom ?? 'Point de vente'}. Vous pouvez ouvrir le scanner.`;
-      registerBtn.textContent = 'Téléphone déjà enregistré';
-      registerBtn.disabled = true;
-      setScannerBlocked(false);
-      return;
-    }
-
-    planBadge.textContent = claimToken ? 'À associer' : 'Non associé';
-    planBadge.className = claimToken
-      ? 'rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-sky-700'
-      : 'rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-amber-700';
-    usageText.textContent = claimToken ? 'Prêt à associer ce téléphone' : 'Téléphone non associé';
-    remainingText.textContent = claimToken
-      ? 'Appuyez sur le bouton ci-dessous pour lier ce téléphone au point de vente.'
-      : 'Scannez le QR d’installation depuis l’espace commerçant pour associer ce téléphone.';
-    registerBtn.textContent = claimToken ? 'Associer ce téléphone' : 'QR d’installation requis';
-    registerBtn.disabled = !claimToken;
-    setScannerBlocked(true, claimToken ? '' : 'Ouvrez cette page depuis le QR d’installation généré dans l’espace commerçant.');
+  function loadScannerStatus() {
+    planBadge.textContent = 'Illimité';
+    usageText.textContent = 'Scanner disponible';
+    remainingText.textContent = 'Scanners illimités inclus. Toute personne connectée au compte commerçant peut utiliser le scanner caméra.';
+    registerBtn.textContent = 'Ouvrir le scanner';
+    setScannerBlocked(false);
   }
 
-  registerBtn.addEventListener('click', async () => {
-    const token = getScannerToken();
-    const userAgentPlatform = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform;
-    const deviceName = (userAgentPlatform ?? navigator.userAgent ?? 'Téléphone').slice(0, 120);
-    registerBtn.disabled = true;
-    const previous = registerBtn.textContent;
-    registerBtn.textContent = 'Association...';
-    try {
-      if (!claimToken) throw new Error('QR d’installation requis.');
-      const res = await fetch(`${API_URL}/api/scanners/claim`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          claim_token: claimToken,
-          scanner_token: token,
-          device_name: deviceName,
-        }),
-      });
-      const payload = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(payload?.error ?? 'Impossible d’enregistrer ce scanner.');
-      await loadScannerStatus();
-    } catch (error) {
-      registerBtn.disabled = false;
-      registerBtn.textContent = previous ?? 'Associer ce téléphone';
-      setScannerBlocked(false, error instanceof Error ? error.message : 'Impossible d’enregistrer ce scanner.');
-    }
+  registerBtn.addEventListener('click', () => {
+    window.location.assign('/app/scan');
   });
 
-  loadScannerStatus().catch((error) => {
-    usageText.textContent = claimToken ? 'Prêt à associer ce téléphone' : 'Téléphone non associé';
-    remainingText.textContent = '';
-    setScannerBlocked(true, error instanceof Error ? error.message : 'Scannez le QR d’installation depuis l’espace commerçant.');
-  });
+  loadScannerStatus();
   setupInstallQr();
 </script>

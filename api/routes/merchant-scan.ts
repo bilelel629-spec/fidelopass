@@ -77,6 +77,28 @@ function normalizeScanCode(value: string | null | undefined): string {
   return String(value ?? '').replace(/\s+/g, '').trim().toUpperCase();
 }
 
+function extractScanCode(value: string | null | undefined): string {
+  const raw = String(value ?? '').trim();
+  const uuidMatch = raw.match(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i);
+  if (uuidMatch?.[0]) return uuidMatch[0];
+
+  const fidMatch = raw.match(/FID-[A-Z0-9]{4,16}/i);
+  if (fidMatch?.[0]) return normalizeScanCode(fidMatch[0]);
+
+  try {
+    const url = new URL(raw);
+    const explicitCode = url.searchParams.get('code')
+      ?? url.searchParams.get('wallet_code')
+      ?? url.searchParams.get('client')
+      ?? url.searchParams.get('client_id');
+    if (explicitCode) return normalizeScanCode(explicitCode);
+  } catch {
+    // Ce n'est pas une URL, on garde le texte brut.
+  }
+
+  return normalizeScanCode(raw);
+}
+
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
@@ -224,7 +246,7 @@ async function assertClientScope(
 
 merchantScanRoutes.get('/scan', async (c) => {
   const userId = c.get('userId') as string;
-  const code = normalizeScanCode(c.req.query('code'));
+  const code = extractScanCode(c.req.query('code'));
 
   if (!code) return c.json({ success: false, error: 'Scan vide, veuillez réessayer.' }, 400);
 

@@ -29,7 +29,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
       <div class="mt-4 w-full max-w-sm text-center">
         <p class="text-sm font-semibold text-slate-900">Placez le QR code dans le cadre</p>
         <a href="/app/install" class="mt-2 inline-flex text-xs font-semibold text-sky-700 transition hover:text-sky-900">
-          Installer ou associer ce téléphone
+          Installer l’icône scanner
         </a>
         <div id="camera-help" class="hidden mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-left">
           <p class="text-amber-900 text-sm font-semibold">Autorisation caméra nécessaire</p>
@@ -157,7 +157,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
 </style>
 
 <script>
-  const API_URL = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
+  import { authFetch } from '../../lib/api';
+
   type ScannerInstance = {
     start: (
       cameraConfigOrDeviceId: string | MediaTrackConstraints,
@@ -194,8 +195,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
   let scannerModulePromise: Promise<Html5QrcodeModule> | null = null;
   let scannerStarting = false;
   const CAMERA_CACHE_KEY = 'fidelopass_scanner_camera_id';
-  const SCANNER_TOKEN_KEY = 'fidelopass_scanner_token';
-  const API_TIMEOUT_MS = Number(import.meta.env.PUBLIC_API_FETCH_TIMEOUT_MS ?? 3500);
+  const API_TIMEOUT_MS = Number(import.meta.env.PUBLIC_API_FETCH_TIMEOUT_MS ?? 8000);
   const scanConfigBase = {
     fps: 15,
     aspectRatio: 4 / 5,
@@ -220,32 +220,14 @@ import AppLayout from '../../layouts/AppLayout.astro';
     ]);
   }
 
-  function readScannerToken() {
-    try {
-      return localStorage.getItem(SCANNER_TOKEN_KEY)?.trim() ?? '';
-    } catch {
-      return '';
-    }
-  }
-
-  function scannerInstallUrl() {
-    return `/app/install?from=${encodeURIComponent('/app/scan')}`;
-  }
-
-  async function scannerFetchWithTimeout(path: string, init: RequestInit = {}): Promise<Response> {
-    const token = readScannerToken();
-    return withTimeout(fetch(`${API_URL}${path}`, {
-      ...init,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(init.headers ?? {}),
-        'X-Scanner-Token': token,
-      },
-    }), API_TIMEOUT_MS);
+  async function authFetchWithTimeout(path: string, init?: RequestInit): Promise<Response> {
+    return withTimeout(authFetch(path, init), API_TIMEOUT_MS);
   }
 
   async function readApiError(res: Response, fallback: string) {
     const payload = await res.json().catch(() => null);
+    if (res.status === 401) return 'Session expirée. Reconnectez-vous au compte commerçant pour utiliser le scanner.';
+    if (res.status === 402) return 'Abonnement requis pour utiliser le scanner.';
     return String(payload?.error ?? fallback);
   }
 
@@ -389,18 +371,6 @@ import AppLayout from '../../layouts/AppLayout.astro';
     setScannerStatus('Chargement du scanner...');
 
     try {
-      if (!readScannerToken()) {
-        window.location.replace(scannerInstallUrl());
-        return;
-      }
-      const scannerStatusRes = await scannerFetchWithTimeout('/api/scanners/me');
-      if (!scannerStatusRes.ok) {
-        const message = await readApiError(scannerStatusRes, 'Ce téléphone doit être associé au commerce avant de scanner.');
-        setScannerStatus('Téléphone non associé.');
-        showCameraHelp(`${message} Ouvrez le QR d’installation depuis l’espace commerçant.`);
-        return;
-      }
-
       const qrScanner = await ensureScannerInstance();
       setScannerStatus('Ouverture de la caméra...');
       const rememberedCameraId = readRememberedCameraId();
@@ -459,7 +429,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
     playBeep('scan');
 
     try {
-      const res = await scannerFetchWithTimeout(`/api/scanners/scan?code=${encodeURIComponent(decodedText.trim())}`);
+      const res = await authFetchWithTimeout(`/api/merchant/scan?code=${encodeURIComponent(decodedText.trim())}`);
       if (!res.ok) throw new Error(await readApiError(res, 'Carte client introuvable.'));
 
       const payload = await res.json();
@@ -532,7 +502,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
   async function addTransaction(type: string, valeur: number) {
     try {
-      const res = await scannerFetchWithTimeout('/api/scanners/transactions', {
+      const res = await authFetchWithTimeout('/api/transactions', {
         method: 'POST',
         body: JSON.stringify({ client_id: currentClientId, type, valeur }),
       });

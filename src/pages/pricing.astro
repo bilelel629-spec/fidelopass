@@ -6,9 +6,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 const isNew = Astro.url.searchParams.get('new') === '1';
 
 const faq = [
-  { q: 'Y a-t-il un engagement minimum ?', a: "Les plans mensuels sont sans engagement, résiliables à tout moment. L'option annuelle est payée en une fois pour 12 mois d'accès." },
+  { q: 'Y a-t-il un engagement minimum ?', a: "Les plans mensuels sont sans engagement, résiliables à tout moment. L'option annuelle est un abonnement renouvelé automatiquement chaque année." },
   { q: "Comment fonctionne l'essai gratuit ?", a: "L’essai gratuit nécessite une carte bancaire afin d’activer le plan choisi. Vous pouvez résilier à tout moment pendant les 14 jours d’essai. Sans résiliation, l’abonnement démarre automatiquement sur le forfait sélectionné." },
-  { q: "Quelle est la différence entre mensuel et annuel ?", a: "Le mensuel est facturé chaque mois. L'annuel est payé en une fois: 295€ pour Starter, 699€ pour Pro et 1990€ pour Business." },
+  { q: "Quelle est la différence entre mensuel et annuel ?", a: "Le mensuel est facturé chaque mois. L'annuel est facturé une fois par an et se renouvelle automatiquement: 295€ pour Starter, 699€ pour Pro et 1990€ pour Business." },
   { q: 'Puis-je changer de plan ?', a: 'Oui, vous pouvez évoluer ou rétrograder à tout moment depuis votre espace commerçant.' },
   { q: "Mes clients doivent-ils télécharger une app ?", a: "Non. Vos clients utilisent Apple Wallet ou Google Wallet, déjà installés sur leur téléphone. Aucun téléchargement supplémentaire." },
 ];
@@ -282,10 +282,10 @@ const plans = [
       <div class="mt-14 rounded-[2rem] border border-sky-100 bg-white p-5 shadow-[0_24px_70px_-52px_rgba(37,99,235,0.45)] sm:p-7">
         <div class="grid gap-8 lg:grid-cols-[1fr_0.95fr] lg:items-center">
           <div>
-            <p class="text-[0.7rem] font-bold uppercase tracking-[0.24em] text-sky-700">Simulateur de bénéfice</p>
-            <h2 class="mt-3 font-display text-3xl font-bold tracking-[-0.04em] text-slate-950 sm:text-4xl">Combien peut rapporter votre fidélité ?</h2>
+            <p class="text-[0.7rem] font-bold uppercase tracking-[0.24em] text-sky-700">Simulateur de revenus</p>
+            <h2 class="mt-3 font-display text-3xl font-bold tracking-[-0.04em] text-slate-950 sm:text-4xl">Combien Fidelopass peut vous rapporter ?</h2>
             <p class="mt-3 text-sm leading-7 text-slate-600">
-              Estimez simplement le chiffre d’affaires supplémentaire si une partie de vos clients revient une fois de plus dans le mois grâce à FideloPass.
+              Indiquez votre nombre de clients fidélisés, votre panier moyen et le pourcentage de clients susceptibles de revenir grâce à Fidelopass.
             </p>
 
             <div class="mt-6 grid gap-3 sm:grid-cols-3">
@@ -307,31 +307,45 @@ const plans = [
 
             <div class="mt-6 grid gap-5">
               <label class="roi-range">
-                <span><strong>Cartes clients actives</strong><em id="roi-cards-label">500 cartes</em></span>
+                <span><strong>Clients fidélisés</strong><em id="roi-cards-label">500 clients</em></span>
+                <small>Nombre de clients ayant une carte Fidelopass active.</small>
                 <input id="roi-cards" type="range" min="50" max="5000" step="50" value="500" />
               </label>
               <label class="roi-range">
-                <span><strong>Panier moyen</strong><em id="roi-basket-label">25€</em></span>
+                <span><strong>Panier moyen client</strong><em id="roi-basket-label">25€</em></span>
+                <small>Montant moyen dépensé à chaque visite.</small>
                 <input id="roi-basket" type="range" min="5" max="150" step="1" value="25" />
+              </label>
+              <label class="roi-range">
+                <span><strong>Taux de retour estimé</strong><em id="roi-return-label">27%</em></span>
+                <small>Part des clients qui reviennent une fois de plus dans le mois.</small>
+                <input id="roi-return" type="range" min="5" max="50" step="1" value="27" />
               </label>
             </div>
           </div>
 
           <div class="rounded-[1.8rem] border border-slate-200 bg-[linear-gradient(155deg,#0f172a_0%,#1e3a8a_62%,#0891b2_100%)] p-6 text-white shadow-[0_28px_70px_-42px_rgba(15,23,42,0.75)]">
-            <p class="text-xs font-bold uppercase tracking-[0.22em] text-cyan-100/80">Projection simple</p>
-            <p id="roi-formula" class="mt-4 text-sm leading-7 text-blue-50">135 clients reviennent x 25€ = 3 375€ / mois</p>
-            <div class="mt-6 rounded-2xl bg-white/14 p-4 ring-1 ring-white/20">
-              <p class="text-sm font-semibold text-cyan-50">Chiffre d’affaires potentiel</p>
-              <p id="roi-revenue" class="mt-1 font-display text-4xl font-extrabold tracking-[-0.05em] text-white [text-shadow:0_2px_24px_rgba(255,255,255,0.28)]">3 375€</p>
+            <p class="text-xs font-bold uppercase tracking-[0.22em] text-cyan-100/80">Votre gain estimé</p>
+            <div class="mt-4 rounded-3xl bg-white p-5 text-slate-950 shadow-[0_24px_55px_-34px_rgba(15,23,42,0.75)]">
+              <p id="roi-profit" class="font-display text-5xl font-extrabold tracking-[-0.06em] text-emerald-600">3 306€ / mois</p>
+              <p id="roi-yearly" class="mt-2 text-sm font-bold text-slate-500">≈ 39 672€ / an</p>
             </div>
-            <div class="mt-3 rounded-2xl bg-white/10 p-4 ring-1 ring-white/15">
-              <p id="roi-plan-cost" class="text-sm text-blue-100">Plan Pro : 69€ / mois</p>
-              <p class="mt-1 text-xs text-blue-100/80">Hypothèse : 27% des cartes actives génèrent 1 visite supplémentaire par mois (moyenne observée).</p>
+            <div class="mt-4 rounded-2xl bg-white/12 p-4 ring-1 ring-white/15">
+              <p class="text-sm font-bold text-white">Détail du calcul</p>
+              <ul class="mt-3 space-y-2 text-sm leading-6 text-blue-50">
+                <li id="roi-detail-clients">500 clients fidélisés</li>
+                <li id="roi-detail-return">27% reviennent 1 fois dans le mois</li>
+                <li id="roi-detail-visits">135 visites supplémentaires</li>
+                <li id="roi-detail-basket">Panier moyen : 25€</li>
+                <li id="roi-detail-revenue">CA généré : +3 375€</li>
+                <li id="roi-plan-cost">Abonnement Pro : -69€</li>
+              </ul>
             </div>
-            <div class="mt-5 rounded-2xl bg-white p-4 text-slate-950">
-              <p class="text-sm font-semibold text-slate-500">Gain estimé après abonnement</p>
-              <p id="roi-profit" class="mt-1 font-display text-4xl font-extrabold tracking-[-0.05em] text-emerald-600">3 306€</p>
+            <div class="mt-4 rounded-2xl bg-cyan-50/95 p-4 text-slate-950">
+              <p id="roi-roi" class="text-lg font-extrabold text-blue-700">ROI : x49</p>
+              <p id="roi-roi-text" class="mt-1 text-xs leading-5 text-slate-600">Pour 1€ investi dans Fidelopass, vous pourriez générer environ 49€ de chiffre d’affaires supplémentaire.</p>
             </div>
+            <p class="mt-4 text-xs leading-5 text-blue-100/80">Estimation indicative basée sur une visite supplémentaire par client revenu. Les résultats peuvent varier selon votre activité, votre fréquence de passage et vos campagnes.</p>
           </div>
         </div>
       </div>
@@ -377,6 +391,39 @@ const plans = [
   <PublicFooter />
 </BaseLayout>
 
+<style>
+  .roi-range {
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .roi-range span {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    color: #0f172a;
+    font-size: 0.92rem;
+  }
+
+  .roi-range em {
+    color: #64748b;
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  .roi-range small {
+    color: #64748b;
+    font-size: 0.76rem;
+    line-height: 1.45;
+  }
+
+  .roi-range input {
+    accent-color: #2563eb;
+  }
+</style>
+
 <script>
   const billingButtons = Array.from(document.querySelectorAll('[data-billing-mode]'));
 
@@ -409,11 +456,11 @@ const plans = [
     });
 
     document.querySelectorAll('.billing-note').forEach((note) => {
-      note.textContent = isAnnual ? 'Paiement annuel en une fois' : 'Facturation mensuelle';
+      note.textContent = isAnnual ? 'Renouvellement annuel automatique' : 'Facturation mensuelle';
     });
 
     document.querySelectorAll('.trial-note').forEach((note) => {
-      note.textContent = isAnnual ? '14 jours gratuits · Paiement annuel' : '14 jours gratuits · Annuler à tout moment';
+      note.textContent = isAnnual ? '14 jours gratuits · Abonnement annuel' : '14 jours gratuits · Annuler à tout moment';
     });
 
     document.querySelectorAll('[data-plan-cta]').forEach((link) => {
@@ -434,26 +481,37 @@ const plans = [
   const roiButtons = Array.from(document.querySelectorAll('[data-roi-plan]'));
   const roiCards = document.getElementById('roi-cards');
   const roiBasket = document.getElementById('roi-basket');
+  const roiReturn = document.getElementById('roi-return');
   const roiCardsLabel = document.getElementById('roi-cards-label');
   const roiBasketLabel = document.getElementById('roi-basket-label');
-  const roiFormula = document.getElementById('roi-formula');
-  const roiRevenue = document.getElementById('roi-revenue');
+  const roiReturnLabel = document.getElementById('roi-return-label');
   const roiPlanCost = document.getElementById('roi-plan-cost');
   const roiProfit = document.getElementById('roi-profit');
+  const roiYearly = document.getElementById('roi-yearly');
+  const roiDetailClients = document.getElementById('roi-detail-clients');
+  const roiDetailReturn = document.getElementById('roi-detail-return');
+  const roiDetailVisits = document.getElementById('roi-detail-visits');
+  const roiDetailBasket = document.getElementById('roi-detail-basket');
+  const roiDetailRevenue = document.getElementById('roi-detail-revenue');
+  const roiRoi = document.getElementById('roi-roi');
+  const roiRoiText = document.getElementById('roi-roi-text');
   let selectedRoiPlan = 'pro';
 
   function euro(value) {
-    return `${Math.max(0, Math.round(value)).toLocaleString('fr-FR')}€`;
+    return `${Math.round(value).toLocaleString('fr-FR')}€`;
   }
 
   function updateRoi() {
     const cards = Number(roiCards?.value ?? 500);
     const basket = Number(roiBasket?.value ?? 25);
+    const returnRate = Number(roiReturn?.value ?? 27);
     const activeButton = roiButtons.find((button) => button.dataset.roiPlan === selectedRoiPlan) ?? roiButtons[0];
     const cost = Number(activeButton?.dataset.roiCost ?? 69);
-    const returnClients = Math.round(cards * 0.27);
+    const planName = activeButton?.querySelector('span')?.textContent?.trim() ?? 'Pro';
+    const returnClients = Math.round(cards * returnRate / 100);
     const revenue = returnClients * basket;
     const profit = revenue - cost;
+    const roi = cost > 0 ? Math.max(1, Math.round(revenue / cost)) : 0;
 
     roiButtons.forEach((button) => {
       const active = button.dataset.roiPlan === selectedRoiPlan;
@@ -462,12 +520,19 @@ const plans = [
       button.classList.toggle('shadow-[0_16px_36px_-28px_rgba(79,70,229,0.65)]', active);
     });
 
-    if (roiCardsLabel) roiCardsLabel.textContent = `${cards.toLocaleString('fr-FR')} cartes`;
+    if (roiCardsLabel) roiCardsLabel.textContent = `${cards.toLocaleString('fr-FR')} clients`;
     if (roiBasketLabel) roiBasketLabel.textContent = `${basket.toLocaleString('fr-FR')}€`;
-    if (roiFormula) roiFormula.textContent = `${returnClients.toLocaleString('fr-FR')} clients reviennent x ${basket.toLocaleString('fr-FR')}€ = ${euro(revenue)} / mois`;
-    if (roiRevenue) roiRevenue.textContent = euro(revenue);
-    if (roiPlanCost) roiPlanCost.textContent = `Plan ${activeButton?.textContent?.trim().split(/\s+/)[0] ?? 'Pro'} : ${cost}€ / mois`;
-    if (roiProfit) roiProfit.textContent = euro(profit);
+    if (roiReturnLabel) roiReturnLabel.textContent = `${returnRate}%`;
+    if (roiProfit) roiProfit.textContent = `${euro(profit)} / mois`;
+    if (roiYearly) roiYearly.textContent = `≈ ${euro(profit * 12)} / an`;
+    if (roiDetailClients) roiDetailClients.textContent = `${cards.toLocaleString('fr-FR')} clients fidélisés`;
+    if (roiDetailReturn) roiDetailReturn.textContent = `${returnRate}% reviennent 1 fois dans le mois`;
+    if (roiDetailVisits) roiDetailVisits.textContent = `${returnClients.toLocaleString('fr-FR')} visites supplémentaires`;
+    if (roiDetailBasket) roiDetailBasket.textContent = `Panier moyen : ${basket.toLocaleString('fr-FR')}€`;
+    if (roiDetailRevenue) roiDetailRevenue.textContent = `CA généré : +${euro(revenue)}`;
+    if (roiPlanCost) roiPlanCost.textContent = `Abonnement ${planName} : -${cost}€`;
+    if (roiRoi) roiRoi.textContent = `ROI : x${roi}`;
+    if (roiRoiText) roiRoiText.textContent = `Pour 1€ investi dans Fidelopass, vous pourriez générer environ ${roi}€ de chiffre d’affaires supplémentaire.`;
   }
 
   roiButtons.forEach((button) => {
@@ -478,6 +543,7 @@ const plans = [
   });
   roiCards?.addEventListener('input', updateRoi);
   roiBasket?.addEventListener('input', updateRoi);
+  roiReturn?.addEventListener('input', updateRoi);
   updateRoi();
 
   document.querySelectorAll('#pricing-faq [data-faq]').forEach((item) => {

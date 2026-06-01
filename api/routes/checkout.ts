@@ -210,7 +210,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   }
 
   const successUrl = isPlanCheckout
-    ? `${PUBLIC_SITE_URL}/onboarding?paid=1`
+    ? `${PUBLIC_SITE_URL}/dashboard?tour=1`
     : `${PUBLIC_SITE_URL}/dashboard/parametres?tab=abonnement&checkout=success`;
   const cancelUrl = isPlanCheckout
     ? `${PUBLIC_SITE_URL}/abonnement/choix?cancelled=1`

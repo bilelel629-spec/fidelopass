@@ -185,6 +185,21 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
     }
   }
 
+  async function markOnboardingCompleted(accessToken: string) {
+    try {
+      await fetch(`${API}/api/commerces/me`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ onboarding_completed: true }),
+      });
+    } catch {
+      // best effort
+    }
+  }
+
   function getCurrentPath() {
     return window.location.pathname;
   }
@@ -230,7 +245,7 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
     window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
   }
 
-  function startDashboardTour(accessToken: string, startIndex = 0) {
+  function startDashboardTour(accessToken: string, startIndex = 0, onboardingCompleted = true) {
     const style = document.createElement('style');
     style.textContent = `
       .dashboard-tour-highlight {
@@ -288,6 +303,10 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       window.sessionStorage.removeItem(TOUR_POSTPONED_KEY);
       clearTourUrl();
       await setTourSeen(accessToken, true);
+      if (!onboardingCompleted) {
+        await markOnboardingCompleted(accessToken);
+        window.location.href = '/dashboard/carte?setup=1';
+      }
     };
 
     const postpone = async () => {
@@ -432,7 +451,7 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
     render();
   }
 
-  async function maybeShowTour(session: SessionLike) {
+  async function maybeShowTour(session: SessionLike, onboardingCompleted = true) {
     try {
       const res = await fetch(`${API}/api/dashboard/tour-status`, {
         headers: {
@@ -444,7 +463,7 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       const payload = await res.json().catch(() => null);
       if (window.sessionStorage.getItem(TOUR_POSTPONED_KEY) === '1' && !isTourForced()) return;
       if (payload?.data?.seen && !isTourForced()) return;
-      startDashboardTour(session.access_token, isTourForced() ? getStepFromUrl() : 0);
+      startDashboardTour(session.access_token, isTourForced() ? getStepFromUrl() : 0, onboardingCompleted);
     } catch {
       // ignore
     }
@@ -484,13 +503,8 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
       window.location.replace('/abonnement/choix');
       return;
     }
-    if (!billing.payload?.data?.onboarding_completed) {
-      window.location.replace('/onboarding');
-      return;
-    }
-
     overlay?.remove();
-    maybeShowTour(session as SessionLike);
+    maybeShowTour(session as SessionLike, Boolean(billing.payload?.data?.onboarding_completed));
   }
 
   initDashboardGuard();

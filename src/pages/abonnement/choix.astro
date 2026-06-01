@@ -440,7 +440,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     }).then((r) => r.json()).catch(() => ({})), BILLING_CHECK_TIMEOUT_MS).catch(() => ({}));
 
     if (billing?.data?.has_access) {
-      window.location.replace(billing?.data?.onboarding_completed ? '/dashboard/carte' : '/onboarding');
+      window.location.replace(billing?.data?.onboarding_completed ? '/dashboard/carte' : '/dashboard?tour=1');
       return null;
     }
 

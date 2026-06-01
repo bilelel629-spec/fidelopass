@@ -174,7 +174,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       return;
     }
 
-    const nextUrl = billing?.data?.onboarding_completed ? redirectTarget : '/onboarding';
+    const nextUrl = billing?.data?.onboarding_completed ? redirectTarget : '/dashboard?tour=1';
     window.location.href = nextUrl;
   }
 

@@ -31,7 +31,7 @@ function buildSubject(input: ActivationEmailInput) {
 
 function buildHtml(input: ActivationEmailInput) {
   const publicSiteUrl = (getPublicSiteUrl() || 'https://www.fidelopass.com').replace(/\/$/, '');
-  const onboardingUrl = `${publicSiteUrl}/onboarding`;
+  const onboardingUrl = `${publicSiteUrl}/dashboard?tour=1`;
   const cardEditorUrl = `${publicSiteUrl}/dashboard/carte`;
   const scannerUrl = `${publicSiteUrl}/app/install`;
   const qrShareUrl = `${publicSiteUrl}/dashboard/qr-client`;
@@ -79,7 +79,7 @@ function buildHtml(input: ActivationEmailInput) {
           <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
             <tr>
               <td style="padding:8px 0;border-top:1px solid #e2e8f0;">
-                <a href="${onboardingUrl}" style="font-size:13px;color:#334155;text-decoration:none;">Finaliser l’onboarding</a>
+                <a href="${onboardingUrl}" style="font-size:13px;color:#334155;text-decoration:none;">Ouvrir le guide de démarrage</a>
               </td>
             </tr>
             <tr>

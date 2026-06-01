@@ -279,8 +279,8 @@ import PublicNav from '../components/marketing/PublicNav.astro';
           <div class="group overflow-hidden rounded-[1.55rem] border border-slate-200 bg-white shadow-[0_22px_55px_rgba(15,23,42,0.08)] transition-all hover:-translate-y-1 hover:shadow-[0_28px_70px_rgba(15,23,42,0.12)] sm:rounded-[1.75rem] dark:border-slate-700 dark:bg-slate-900">
             <div class={`relative min-h-[13.5rem] overflow-hidden bg-gradient-to-br ${s.accent} p-3`}>
               <div class="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.42),transparent_32%),radial-gradient(circle_at_80%_75%,rgba(255,255,255,0.28),transparent_28%)]"></div>
-              <figure class="relative h-[13.5rem] overflow-hidden rounded-[1.25rem] border border-white/60 bg-white/92 p-2 shadow-[0_24px_52px_rgba(15,23,42,0.22)]">
-                <img src={s.image} alt={s.alt} class="h-full w-full rounded-[1rem] object-contain" loading="lazy" />
+              <figure class="relative h-[13.5rem] overflow-hidden rounded-[1.25rem] border border-white/60 bg-white/92 shadow-[0_24px_52px_rgba(15,23,42,0.22)]">
+                <img src={s.image} alt={s.alt} class="h-full w-full object-cover" loading="lazy" />
               </figure>
             </div>
             <div class="p-6 sm:p-8">
@@ -306,10 +306,10 @@ import PublicNav from '../components/marketing/PublicNav.astro';
       <div class="rounded-[2rem] border border-sky-100 bg-white p-5 shadow-[0_24px_70px_-52px_rgba(37,99,235,0.45)] sm:p-7 dark:border-slate-700 dark:bg-slate-900">
         <div class="grid gap-8 lg:grid-cols-[1fr_0.95fr] lg:items-center">
           <div>
-            <p class="text-[0.7rem] font-bold uppercase tracking-[0.24em] text-sky-700 dark:text-sky-300">Simulateur de bénéfice</p>
-            <h2 class="mt-3 font-display text-3xl font-bold tracking-[-0.04em] text-slate-950 sm:text-4xl dark:text-white">Combien peut rapporter votre fidélité ?</h2>
+            <p class="text-[0.7rem] font-bold uppercase tracking-[0.24em] text-sky-700 dark:text-sky-300">Simulateur de revenus</p>
+            <h2 class="mt-3 font-display text-3xl font-bold tracking-[-0.04em] text-slate-950 sm:text-4xl dark:text-white">Combien Fidelopass peut vous rapporter ?</h2>
             <p class="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
-              Estimez simplement le chiffre d’affaires supplémentaire si une partie de vos clients revient une fois de plus dans le mois grâce à Fidelopass.
+              Indiquez votre nombre de clients fidélisés, votre panier moyen et le pourcentage de clients susceptibles de revenir grâce à Fidelopass.
             </p>
 
             <div class="mt-6 grid gap-3 sm:grid-cols-3">
@@ -335,31 +335,45 @@ import PublicNav from '../components/marketing/PublicNav.astro';
 
             <div class="mt-6 grid gap-5">
               <label class="grid gap-2">
-                <span class="flex flex-wrap items-baseline justify-between gap-2 text-sm text-slate-900 dark:text-slate-100"><strong>Cartes clients actives</strong><em id="home-roi-cards-label" class="text-slate-500">500 cartes</em></span>
+                <span class="flex flex-wrap items-baseline justify-between gap-2 text-sm text-slate-900 dark:text-slate-100"><strong>Clients fidélisés</strong><em id="home-roi-cards-label" class="text-slate-500">500 clients</em></span>
+                <small class="text-xs leading-5 text-slate-500 dark:text-slate-400">Nombre de clients ayant une carte Fidelopass active.</small>
                 <input id="home-roi-cards" type="range" min="50" max="5000" step="50" value="500" class="accent-blue-600" />
               </label>
               <label class="grid gap-2">
-                <span class="flex flex-wrap items-baseline justify-between gap-2 text-sm text-slate-900 dark:text-slate-100"><strong>Panier moyen</strong><em id="home-roi-basket-label" class="text-slate-500">25€</em></span>
+                <span class="flex flex-wrap items-baseline justify-between gap-2 text-sm text-slate-900 dark:text-slate-100"><strong>Panier moyen client</strong><em id="home-roi-basket-label" class="text-slate-500">25€</em></span>
+                <small class="text-xs leading-5 text-slate-500 dark:text-slate-400">Montant moyen dépensé à chaque visite.</small>
                 <input id="home-roi-basket" type="range" min="5" max="150" step="1" value="25" class="accent-blue-600" />
+              </label>
+              <label class="grid gap-2">
+                <span class="flex flex-wrap items-baseline justify-between gap-2 text-sm text-slate-900 dark:text-slate-100"><strong>Taux de retour estimé</strong><em id="home-roi-return-label" class="text-slate-500">27%</em></span>
+                <small class="text-xs leading-5 text-slate-500 dark:text-slate-400">Part des clients qui reviennent une fois de plus dans le mois.</small>
+                <input id="home-roi-return" type="range" min="5" max="50" step="1" value="27" class="accent-blue-600" />
               </label>
             </div>
           </div>
 
           <div class="rounded-[1.8rem] border border-slate-200 bg-[linear-gradient(155deg,#0f172a_0%,#1e3a8a_62%,#0891b2_100%)] p-6 text-white shadow-[0_28px_70px_-42px_rgba(15,23,42,0.75)]">
-            <p class="text-xs font-bold uppercase tracking-[0.22em] text-cyan-100/80">Projection simple</p>
-            <p id="home-roi-formula" class="mt-4 text-sm leading-7 text-blue-50">135 clients reviennent x 25€ = 3 375€ / mois</p>
-            <div class="mt-6 rounded-2xl bg-white/14 p-4 ring-1 ring-white/20">
-              <p class="text-sm font-semibold text-cyan-50">Chiffre d’affaires potentiel</p>
-              <p id="home-roi-revenue" class="mt-1 font-display text-4xl font-extrabold tracking-[-0.05em] text-white [text-shadow:0_2px_24px_rgba(255,255,255,0.28)]">3 375€</p>
+            <p class="text-xs font-bold uppercase tracking-[0.22em] text-cyan-100/80">Votre gain estimé</p>
+            <div class="mt-4 rounded-3xl bg-white p-5 text-slate-950 shadow-[0_24px_55px_-34px_rgba(15,23,42,0.75)]">
+              <p id="home-roi-profit" class="font-display text-5xl font-extrabold tracking-[-0.06em] text-emerald-600">3 306€ / mois</p>
+              <p id="home-roi-yearly" class="mt-2 text-sm font-bold text-slate-500">≈ 39 672€ / an</p>
             </div>
-            <div class="mt-3 rounded-2xl bg-white/10 p-4 ring-1 ring-white/15">
-              <p id="home-roi-plan-cost" class="text-sm text-blue-100">Plan Pro : 69€ / mois</p>
-              <p class="mt-1 text-xs text-blue-100/80">Hypothèse : 27% des cartes actives génèrent 1 visite supplémentaire par mois (moyenne observée).</p>
+            <div class="mt-4 rounded-2xl bg-white/12 p-4 ring-1 ring-white/15">
+              <p class="text-sm font-bold text-white">Détail du calcul</p>
+              <ul class="mt-3 space-y-2 text-sm leading-6 text-blue-50">
+                <li id="home-roi-detail-clients">500 clients fidélisés</li>
+                <li id="home-roi-detail-return">27% reviennent 1 fois dans le mois</li>
+                <li id="home-roi-detail-visits">135 visites supplémentaires</li>
+                <li id="home-roi-detail-basket">Panier moyen : 25€</li>
+                <li id="home-roi-detail-revenue">CA généré : +3 375€</li>
+                <li id="home-roi-plan-cost">Abonnement Pro : -69€</li>
+              </ul>
             </div>
-            <div class="mt-5 rounded-2xl bg-white p-4 text-slate-950">
-              <p class="text-sm font-semibold text-slate-500">Gain estimé après abonnement</p>
-              <p id="home-roi-profit" class="mt-1 font-display text-4xl font-extrabold tracking-[-0.05em] text-emerald-600">3 306€</p>
+            <div class="mt-4 rounded-2xl bg-cyan-50/95 p-4 text-slate-950">
+              <p id="home-roi-roi" class="text-lg font-extrabold text-blue-700">ROI : x49</p>
+              <p id="home-roi-roi-text" class="mt-1 text-xs leading-5 text-slate-600">Pour 1€ investi dans Fidelopass, vous pourriez générer environ 49€ de chiffre d’affaires supplémentaire.</p>
             </div>
+            <p class="mt-4 text-xs leading-5 text-blue-100/80">Estimation indicative basée sur une visite supplémentaire par client revenu. Les résultats peuvent varier selon votre activité, votre fréquence de passage et vos campagnes.</p>
           </div>
         </div>
       </div>
@@ -483,15 +497,18 @@ import PublicNav from '../components/marketing/PublicNav.astro';
                 <span class="block">Dreams Donuts</span>
                 <span class="block text-[0.86em] text-sky-100/95">Annemasse</span>
               </h2>
+              <p class="mt-6 max-w-xl font-display text-3xl font-extrabold leading-tight tracking-[-0.045em] text-white sm:text-4xl">
+                +1 875€ de chiffre d’affaires estimé en 30 jours
+              </p>
             </div>
             <p class="relative mt-5 max-w-xl text-lg leading-relaxed text-sky-100">
-              Une carte Wallet pensée pour transformer les passages au comptoir en habitudes: inscription rapide, scan simple et récompense claire.
+              Avec Fidelopass, Dreams Donuts Annemasse transforme les passages au comptoir en retours clients mesurables : carte ajoutée au Wallet, scan simple à chaque visite et récompense claire.
             </p>
             <div class="relative mt-8 grid gap-3 sm:grid-cols-3">
               {[
-                { value: '20 sec', label: 'ajout client' },
+                { value: '20 sec', label: 'pour ajouter la carte' },
                 { value: '0 app', label: 'à installer' },
-                { value: '1 scan', label: 'par passage' },
+                { value: '1 scan', label: 'à chaque passage' },
               ].map((item) => (
                 <div class="home-case-kpi rounded-2xl border border-white/15 bg-white/10 p-4">
                   <p class="font-display text-3xl font-extrabold tracking-[-0.05em] text-white">{item.value}</p>
@@ -503,9 +520,9 @@ import PublicNav from '../components/marketing/PublicNav.astro';
           <div class="home-case-content p-7 sm:p-10">
             <div class="mb-5 grid gap-3 sm:grid-cols-3">
               {[
-                { value: '+27%', label: 'retours clients visés' },
-                { value: '9 achats', label: 'récompense lisible' },
-                { value: '100%', label: 'dans le Wallet' },
+                { value: '324', label: 'clients inscrits' },
+                { value: '75', label: 'retours clients estimés' },
+                { value: '+1 875€', label: 'CA supplémentaire estimé' },
               ].map((item) => (
                 <div class="home-case-proof rounded-[1.25rem] border border-blue-100 bg-blue-50/70 p-4">
                   <p class="font-display text-2xl font-extrabold tracking-[-0.04em] text-blue-700">{item.value}</p>
@@ -515,9 +532,9 @@ import PublicNav from '../components/marketing/PublicNav.astro';
             </div>
             <div class="grid gap-4 sm:grid-cols-3">
               {[
-                { title: 'Objectif', desc: 'Faire revenir les clients locaux après leur premier achat.', icon: 'M4 12h16 M12 4v16' },
-                { title: 'Mise en place', desc: 'QR code au comptoir, carte tampons et récompense simple.', icon: 'M7 7h4v4H7z M13 7h4v4h-4z M7 13h4v4H7z M14 14h3v3h-3z' },
-                { title: 'Pilotage', desc: 'Suivi des passages, des cartes actives et des récompenses.', icon: 'M4 18V8 M10 18V5 M16 18v-8 M21 18H3' },
+                { title: 'Avant Fidelopass', items: ['Carte papier oubliée', 'Peu de suivi client', 'Retours difficiles à mesurer'], icon: 'M6 6l12 12 M18 6L6 18' },
+                { title: 'Après Fidelopass', items: ['Carte dans Apple Wallet / Google Wallet', 'Clients relancés plus facilement', 'Passages et récompenses suivis'], icon: 'M5 13l4 4L19 7' },
+                { title: 'Résultat', items: ['324 clients inscrits', '75 retours estimés', '+1 875€ de CA estimé'], icon: 'M4 18V8 M10 18V5 M16 18v-8 M21 18H3' },
               ].map((item) => (
                 <article class="home-case-info rounded-[1.4rem] border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-800">
                   <span class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
@@ -526,42 +543,42 @@ import PublicNav from '../components/marketing/PublicNav.astro';
                     </svg>
                   </span>
                   <h3 class="font-display text-lg font-bold text-slate-950 dark:text-white">{item.title}</h3>
-                  <p class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-300">{item.desc}</p>
+                  <ul class="mt-3 space-y-2 text-sm leading-6 text-slate-500 dark:text-slate-300">
+                    {item.items.map((line) => (
+                      <li class="flex gap-2"><span class="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-500"></span><span>{line}</span></li>
+                    ))}
+                  </ul>
                 </article>
               ))}
             </div>
             <div class="home-case-info mt-6 rounded-[1.5rem] border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
-              <div class="grid gap-5 lg:grid-cols-[1fr_14rem] lg:items-center">
+              <div class="grid gap-5 lg:grid-cols-[1fr_15rem] lg:items-center">
                 <div>
-                  <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Exemple de mécanique</p>
-                  <p class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-300">
-                    Le client ajoute sa carte Dreams Donuts dans son Wallet, cumule ses passages après chaque scan et voit immédiatement sa progression vers sa prochaine récompense.
-                  </p>
-                  <div class="mt-5 flex flex-wrap gap-2">
-                    {['Carte tampons', 'QR comptoir', 'Scanner mobile', 'Relance Wallet'].map((tag) => (
-                      <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 ring-1 ring-blue-100/80">{tag}</span>
-                    ))}
+                  <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Comment le résultat est calculé</p>
+                  <div class="mt-3 grid gap-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    <div class="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100 dark:bg-slate-800 dark:ring-slate-700">
+                      <strong class="text-slate-950 dark:text-white">324 clients inscrits × 27% de retours clients = 75 clients revenus</strong>
+                    </div>
+                    <div class="rounded-2xl bg-blue-50 p-4 text-blue-950 ring-1 ring-blue-100">
+                      <strong>75 retours × 25€ de panier moyen = +1 875€ de CA estimé</strong>
+                    </div>
                   </div>
+                  <p class="mt-3 text-xs leading-5 text-slate-400">Estimation basée sur une visite supplémentaire par client revenu. Les résultats peuvent varier selon l’activité, la fréquence de passage et les campagnes.</p>
                 </div>
                 <div class="home-case-flow hidden rounded-[1.25rem] border border-blue-100 bg-blue-50/60 p-4 lg:block">
-                  <div class="flex items-center justify-between">
-                    {['QR', 'Wallet', 'Scan'].map((label, index) => (
-                      <div class="flex items-center">
-                        <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[0.65rem] font-extrabold text-blue-700 shadow-sm ring-1 ring-blue-100">{label}</span>
-                        {index < 2 && <span class="mx-2 h-px w-5 bg-blue-200"></span>}
-                      </div>
-                    ))}
-                  </div>
-                  <div class="mt-4 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-blue-100">
-                    <div class="h-2 rounded-full bg-blue-100">
-                      <div class="h-2 w-2/3 rounded-full bg-gradient-to-r from-blue-600 to-cyan-400"></div>
+                  {[
+                    ['Jour 1', 'Carte Fidelopass mise en place'],
+                    ['Semaine 1', 'Clients ajoutent leur carte au Wallet'],
+                    ['Semaine 2-3', 'Premiers retours clients mesurés'],
+                    ['30 jours', 'CA supplémentaire estimé'],
+                  ].map((step, index) => (
+                    <div class="relative pb-4 pl-5 last:pb-0">
+                      {index < 3 && <span class="absolute left-[0.28rem] top-3 h-full w-px bg-blue-200"></span>}
+                      <span class="absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full bg-blue-600"></span>
+                      <p class="text-xs font-extrabold uppercase tracking-[0.16em] text-blue-700">{step[0]}</p>
+                      <p class="mt-1 text-xs leading-5 text-slate-600">{step[1]}</p>
                     </div>
-                    <div class="mt-3 grid grid-cols-5 gap-1.5">
-                      {Array.from({ length: 5 }).map((_, index) => (
-                        <span class={`h-7 rounded-full ${index < 3 ? 'bg-blue-600' : 'bg-blue-100'}`}></span>
-                      ))}
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -1281,27 +1298,38 @@ import PublicNav from '../components/marketing/PublicNav.astro';
   const homeRoiButtons = Array.from(document.querySelectorAll('[data-home-roi-plan]'));
   const homeRoiCards = document.getElementById('home-roi-cards');
   const homeRoiBasket = document.getElementById('home-roi-basket');
+  const homeRoiReturn = document.getElementById('home-roi-return');
   const homeRoiCardsLabel = document.getElementById('home-roi-cards-label');
   const homeRoiBasketLabel = document.getElementById('home-roi-basket-label');
-  const homeRoiFormula = document.getElementById('home-roi-formula');
-  const homeRoiRevenue = document.getElementById('home-roi-revenue');
+  const homeRoiReturnLabel = document.getElementById('home-roi-return-label');
   const homeRoiPlanCost = document.getElementById('home-roi-plan-cost');
   const homeRoiProfit = document.getElementById('home-roi-profit');
+  const homeRoiYearly = document.getElementById('home-roi-yearly');
+  const homeRoiDetailClients = document.getElementById('home-roi-detail-clients');
+  const homeRoiDetailReturn = document.getElementById('home-roi-detail-return');
+  const homeRoiDetailVisits = document.getElementById('home-roi-detail-visits');
+  const homeRoiDetailBasket = document.getElementById('home-roi-detail-basket');
+  const homeRoiDetailRevenue = document.getElementById('home-roi-detail-revenue');
+  const homeRoiRoi = document.getElementById('home-roi-roi');
+  const homeRoiRoiText = document.getElementById('home-roi-roi-text');
   let selectedHomeRoiPlan = 'pro';
 
   function homeEuro(value) {
-    return `${Math.max(0, Math.round(value)).toLocaleString('fr-FR')}€`;
+    return `${Math.round(value).toLocaleString('fr-FR')}€`;
   }
 
   function updateHomeRoi() {
     if (!homeRoiButtons.length) return;
     const cards = Number(homeRoiCards?.value ?? 500);
     const basket = Number(homeRoiBasket?.value ?? 25);
+    const returnRate = Number(homeRoiReturn?.value ?? 27);
     const activeButton = homeRoiButtons.find((button) => button.dataset.homeRoiPlan === selectedHomeRoiPlan) ?? homeRoiButtons[0];
     const cost = Number(activeButton?.dataset.homeRoiCost ?? 69);
-    const returnClients = Math.round(cards * 0.27);
+    const planName = activeButton?.querySelector('span')?.textContent?.trim() ?? 'Pro';
+    const returnClients = Math.round(cards * returnRate / 100);
     const revenue = returnClients * basket;
     const profit = revenue - cost;
+    const roi = cost > 0 ? Math.max(1, Math.round(revenue / cost)) : 0;
 
     homeRoiButtons.forEach((button) => {
       const active = button.dataset.homeRoiPlan === selectedHomeRoiPlan;
@@ -1310,12 +1338,19 @@ import PublicNav from '../components/marketing/PublicNav.astro';
       button.classList.toggle('shadow-[0_16px_36px_-28px_rgba(79,70,229,0.65)]', active);
     });
 
-    if (homeRoiCardsLabel) homeRoiCardsLabel.textContent = `${cards.toLocaleString('fr-FR')} cartes`;
+    if (homeRoiCardsLabel) homeRoiCardsLabel.textContent = `${cards.toLocaleString('fr-FR')} clients`;
     if (homeRoiBasketLabel) homeRoiBasketLabel.textContent = `${basket.toLocaleString('fr-FR')}€`;
-    if (homeRoiFormula) homeRoiFormula.textContent = `${returnClients.toLocaleString('fr-FR')} clients reviennent x ${basket.toLocaleString('fr-FR')}€ = ${homeEuro(revenue)} / mois`;
-    if (homeRoiRevenue) homeRoiRevenue.textContent = homeEuro(revenue);
-    if (homeRoiPlanCost) homeRoiPlanCost.textContent = `Plan ${activeButton?.textContent?.trim().split(/\s+/)[0] ?? 'Pro'} : ${cost}€ / mois`;
-    if (homeRoiProfit) homeRoiProfit.textContent = homeEuro(profit);
+    if (homeRoiReturnLabel) homeRoiReturnLabel.textContent = `${returnRate}%`;
+    if (homeRoiProfit) homeRoiProfit.textContent = `${homeEuro(profit)} / mois`;
+    if (homeRoiYearly) homeRoiYearly.textContent = `≈ ${homeEuro(profit * 12)} / an`;
+    if (homeRoiDetailClients) homeRoiDetailClients.textContent = `${cards.toLocaleString('fr-FR')} clients fidélisés`;
+    if (homeRoiDetailReturn) homeRoiDetailReturn.textContent = `${returnRate}% reviennent 1 fois dans le mois`;
+    if (homeRoiDetailVisits) homeRoiDetailVisits.textContent = `${returnClients.toLocaleString('fr-FR')} visites supplémentaires`;
+    if (homeRoiDetailBasket) homeRoiDetailBasket.textContent = `Panier moyen : ${basket.toLocaleString('fr-FR')}€`;
+    if (homeRoiDetailRevenue) homeRoiDetailRevenue.textContent = `CA généré : +${homeEuro(revenue)}`;
+    if (homeRoiPlanCost) homeRoiPlanCost.textContent = `Abonnement ${planName} : -${cost}€`;
+    if (homeRoiRoi) homeRoiRoi.textContent = `ROI : x${roi}`;
+    if (homeRoiRoiText) homeRoiRoiText.textContent = `Pour 1€ investi dans Fidelopass, vous pourriez générer environ ${roi}€ de chiffre d’affaires supplémentaire.`;
   }
 
   homeRoiButtons.forEach((button) => {
@@ -1326,5 +1361,6 @@ import PublicNav from '../components/marketing/PublicNav.astro';
   });
   homeRoiCards?.addEventListener('input', updateHomeRoi);
   homeRoiBasket?.addEventListener('input', updateHomeRoi);
+  homeRoiReturn?.addEventListener('input', updateHomeRoi);
   updateHomeRoi();
 </script>

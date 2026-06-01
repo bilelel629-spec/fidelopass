@@ -62,7 +62,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       },
     }).then((response) => response.json()).catch(() => ({}));
 
-    window.location.href = check.data?.nom ? redirectTarget : '/onboarding';
+    window.location.href = check.data?.nom ? redirectTarget : '/dashboard?tour=1';
   }
 
   async function confirmFromEmailLink() {

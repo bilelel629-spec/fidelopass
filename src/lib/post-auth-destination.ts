@@ -73,7 +73,7 @@ export async function resolvePostAuthDestination(
     if (!data?.has_access) return '/abonnement/choix';
 
     const preferred = normalizePreferredDestination(preferredDestination);
-    if (!data?.onboarding_completed) return '/onboarding';
+    if (!data?.onboarding_completed) return '/dashboard?tour=1';
     return preferred ?? data.recommended_redirect ?? '/dashboard';
   } catch {
     return ACCESS_CHECK_UNCERTAIN_DESTINATION;

@@ -49,7 +49,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
         </div>
       </div>
       <div class="mt-4 w-full max-w-sm text-center">
-        <p class="text-sm font-semibold text-slate-900">Placez le QR code dans le cadre</p>
+        <p class="text-sm font-semibold text-slate-900">Placez le code dans le cadre</p>
         <a href="/app/install" class="mt-2 inline-flex text-xs font-semibold text-sky-700 transition hover:text-sky-900">
           Installer l’icône scanner
         </a>
@@ -137,6 +137,14 @@ import AppLayout from '../../layouts/AppLayout.astro';
 <script>
   import { authFetch } from '../../lib/api';
   import jsQR from 'jsqr';
+  import {
+    BarcodeFormat,
+    BinaryBitmap,
+    DecodeHintType,
+    HybridBinarizer,
+    MultiFormatReader,
+    RGBLuminanceSource,
+  } from '@zxing/library';
 
   let currentClientId: string | null = null;
   let currentClientRecompenses = 0;
@@ -148,6 +156,24 @@ import AppLayout from '../../layouts/AppLayout.astro';
   let mediaStream: MediaStream | null = null;
   let scanFrameId: number | null = null;
   let lastDecodeAttemptAt = 0;
+  const barcodeReader = new MultiFormatReader();
+  const barcodeHints = new Map<DecodeHintType, unknown>();
+  barcodeHints.set(DecodeHintType.POSSIBLE_FORMATS, [
+    BarcodeFormat.QR_CODE,
+    BarcodeFormat.CODE_128,
+    BarcodeFormat.PDF_417,
+    BarcodeFormat.AZTEC,
+    BarcodeFormat.EAN_13,
+    BarcodeFormat.EAN_8,
+    BarcodeFormat.UPC_A,
+    BarcodeFormat.UPC_E,
+    BarcodeFormat.CODE_39,
+    BarcodeFormat.CODE_93,
+    BarcodeFormat.ITF,
+    BarcodeFormat.CODABAR,
+  ]);
+  barcodeHints.set(DecodeHintType.TRY_HARDER, true);
+  barcodeReader.setHints(barcodeHints);
 
   const scannerStatus = document.getElementById('scanner-status')!;
   const cameraHelp = document.getElementById('camera-help')!;
@@ -167,6 +193,17 @@ import AppLayout from '../../layouts/AppLayout.astro';
   const API_TIMEOUT_MS = Number(import.meta.env.PUBLIC_API_FETCH_TIMEOUT_MS ?? 8000);
   const DECODE_INTERVAL_MS = 120;
   const MAX_DECODE_WIDTH = 900;
+
+  function decodeMultiFormatBarcode(imageData: ImageData, width: number, height: number) {
+    try {
+      const luminanceSource = new RGBLuminanceSource(imageData.data, width, height);
+      const binaryBitmap = new BinaryBitmap(new HybridBinarizer(luminanceSource));
+      const result = barcodeReader.decodeWithState(binaryBitmap);
+      return result.getText()?.trim() || null;
+    } catch {
+      return null;
+    }
+  }
 
   function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
     return Promise.race([
@@ -394,7 +431,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
       inversionAttempts: 'attemptBoth',
     });
 
-    return code?.data?.trim() || null;
+    return code?.data?.trim() || decodeMultiFormatBarcode(imageData, targetWidth, targetHeight);
   }
 
   function scanFrame(timestamp: number) {
@@ -451,7 +488,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
           rememberStreamCamera(mediaStream);
           startDecodeLoop();
           hideScannerOverlays();
-          setScannerStatus('Scanner prêt. Placez le QR code dans l’image.');
+          setScannerStatus('Scanner prêt. Placez le code dans l’image.');
           return;
         } catch (error) {
           lastError = error;
@@ -484,13 +521,13 @@ import AppLayout from '../../layouts/AppLayout.astro';
   function resumeScanner() {
     if (!scannerPaused) return;
     scannerPaused = false;
-    setScannerStatus('Scanner prêt. Placez le QR code dans l’image.');
+    setScannerStatus('Scanner prêt. Placez le code dans l’image.');
   }
 
   async function handleScan(decodedText: string) {
     if (scannerPaused) return;
     scannerPaused = true;
-    setScannerStatus('QR code détecté...');
+    setScannerStatus('Code détecté...');
     playBeep('scan');
 
     try {
@@ -526,7 +563,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
       // Feedback haptique
       if (navigator.vibrate) navigator.vibrate(100);
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'QR code non reconnu. Réessayez.', 'error');
+      showToast(error instanceof Error ? error.message : 'Code non reconnu. Réessayez.', 'error');
       resumeScanner();
     }
   }

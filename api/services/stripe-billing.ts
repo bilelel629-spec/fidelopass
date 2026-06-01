@@ -66,6 +66,27 @@ export const LEGACY_PRICE_IDS: Record<PriceSlot, string[]> = {
   sms_2000: ['price_1TLUSS7qMJeoJ4Krtl3iQKiF', 'price_1TMlVy60FYcAjVxlD5phFUTz'],
 };
 
+export const FALLBACK_PRICE_IDS: Record<PriceSlot, string> = {
+  starter_mensuel: 'price_1TdQrU60FYcAjVxlBjtioXnr',
+  starter_annuel_once: 'price_1TdQrV60FYcAjVxlVDXjt4PY',
+  starter_annuel_mensuel: '',
+  pro_mensuel: 'price_1TdQrW60FYcAjVxlVJcylHrc',
+  pro_annuel_once: 'price_1TdQrY60FYcAjVxlFIxW5eRJ',
+  pro_annuel_mensuel: '',
+  business_mensuel: 'price_1TdQsf60FYcAjVxlPxRw7uBB',
+  business_annuel_once: 'price_1TdQsh60FYcAjVxlm2MTX3tg',
+  business_annuel_mensuel: '',
+  accompagnement: 'price_1TdQrZ60FYcAjVxlQb01ADw1',
+  scanner: 'price_1TMlVy60FYcAjVxl06t2Sgq1',
+  sms_100: 'price_1TMlVy60FYcAjVxln9HC0DaE',
+  sms_500: 'price_1TMlVy60FYcAjVxlRDOgzQWc',
+  sms_2000: 'price_1TMlVy60FYcAjVxlD5phFUTz',
+};
+
+function isLegacyPriceId(slot: PriceSlot, priceId: string) {
+  return LEGACY_PRICE_IDS[slot]?.includes(priceId) ?? false;
+}
+
 export function getStripe(config?: ConstructorParameters<typeof Stripe>[1]) {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error('STRIPE_SECRET_KEY manquant');
@@ -76,31 +97,22 @@ export function loadPriceIds() {
   const envPriceIds = Object.fromEntries(
     PRICE_SLOTS.map((slot) => [slot, process.env[`STRIPE_PRICE_ID_${slot.toUpperCase()}`] ?? '']),
   ) as Record<PriceSlot, string>;
-  const mergeEnv = (base: Record<string, string>) => ({
-    ...base,
-    ...Object.fromEntries(Object.entries(envPriceIds).filter(([, value]) => Boolean(value))),
-  });
+  const mergeEnv = (base: Record<PriceSlot, string>) => {
+    const merged = { ...base };
+    PRICE_SLOTS.forEach((slot) => {
+      const envValue = envPriceIds[slot];
+      if (envValue && !isLegacyPriceId(slot, envValue)) {
+        merged[slot] = envValue;
+      }
+    });
+    return merged;
+  };
 
   try {
     const raw = readFileSync(resolve(process.cwd(), 'stripe-price-ids.json'), 'utf8');
-    return mergeEnv(JSON.parse(raw) as Record<string, string>);
+    return mergeEnv({ ...FALLBACK_PRICE_IDS, ...(JSON.parse(raw) as Partial<Record<PriceSlot, string>>) });
   } catch {
-    return mergeEnv({
-      starter_mensuel: 'price_1TMlVz60FYcAjVxl8VNyc7o6',
-      starter_annuel_once: 'price_1TMlVz60FYcAjVxlSG7wb8dA',
-      starter_annuel_mensuel: 'price_1TMlVy60FYcAjVxlsTpI09J1',
-      pro_mensuel: 'price_1TMlVx60FYcAjVxlm2p12mJm',
-      pro_annuel_once: 'price_1TMlVx60FYcAjVxlTlIYvWFd',
-      pro_annuel_mensuel: 'price_1TMlVw60FYcAjVxlVWNs7aJd',
-      business_mensuel: '',
-      business_annuel_once: '',
-      business_annuel_mensuel: '',
-      accompagnement: 'price_1TMlVu60FYcAjVxl8HONXsoV',
-      scanner: 'price_1TMlVy60FYcAjVxl06t2Sgq1',
-      sms_100: 'price_1TMlVy60FYcAjVxln9HC0DaE',
-      sms_500: 'price_1TMlVy60FYcAjVxlRDOgzQWc',
-      sms_2000: 'price_1TMlVy60FYcAjVxlD5phFUTz',
-    } satisfies Record<string, string>);
+    return mergeEnv(FALLBACK_PRICE_IDS);
   }
 }
 

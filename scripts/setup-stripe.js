@@ -1,184 +1,220 @@
 #!/usr/bin/env node
-// scripts/setup-stripe.js
-// Usage : STRIPE_SECRET_KEY=sk_test_... node scripts/setup-stripe.js
+// Usage:
+//   STRIPE_SECRET_KEY=sk_test_... node scripts/setup-stripe.js --mode=test
+//   STRIPE_SECRET_KEY=sk_live_... node scripts/setup-stripe.js --mode=live
+//
+// Le script crée uniquement la grille canonique FideloPass. En test, il écrit
+// stripe-price-ids.test.json pour éviter de mélanger des Price IDs live/test.
 
 import Stripe from 'stripe';
-import { writeFileSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { writeFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const key = process.env.STRIPE_SECRET_KEY;
-if (!key) {
-  console.error('❌  STRIPE_SECRET_KEY manquant');
-  process.exit(1);
+const PLANS = [
+  {
+    slot: 'starter',
+    productName: 'Starter Indépendant',
+    description: '1 point de vente, 500 cartes actives, notifications incluses',
+    monthly: { slot: 'starter_mensuel', amount: 2900, lookupKey: 'fidelopass_starter_monthly' },
+    annual: { slot: 'starter_annuel_once', amount: 29500, lookupKey: 'fidelopass_starter_annual_once' },
+  },
+  {
+    slot: 'pro',
+    productName: 'Commerce Pro',
+    description: '3 points de vente, 2000 cartes actives, automatisations et analytics avancés',
+    monthly: { slot: 'pro_mensuel', amount: 6900, lookupKey: 'fidelopass_pro_monthly' },
+    annual: { slot: 'pro_annuel_once', amount: 69900, lookupKey: 'fidelopass_pro_annual_once' },
+  },
+  {
+    slot: 'business',
+    productName: 'Business',
+    description: 'Cartes actives illimitées, accompagnement setup inclus, support prioritaire',
+    monthly: { slot: 'business_mensuel', amount: 19900, lookupKey: 'fidelopass_business_monthly' },
+    annual: { slot: 'business_annuel_once', amount: 199000, lookupKey: 'fidelopass_business_annual_once' },
+  },
+];
+
+const ADDONS = [
+  {
+    slot: 'accompagnement',
+    productName: 'Accompagnement Setup',
+    description: 'Aide à la configuration et mise en ligne de la première carte',
+    amount: 9000,
+    lookupKey: 'fidelopass_setup_assistance',
+  },
+  {
+    slot: 'sms_100',
+    productName: 'Pack SMS',
+    description: 'Crédits SMS pour campagnes clients',
+    amount: 1200,
+    lookupKey: 'fidelopass_sms_100',
+    metadata: { credits: '100' },
+  },
+  {
+    slot: 'sms_500',
+    productName: 'Pack SMS',
+    description: 'Crédits SMS pour campagnes clients',
+    amount: 4900,
+    lookupKey: 'fidelopass_sms_500',
+    metadata: { credits: '500' },
+  },
+  {
+    slot: 'sms_2000',
+    productName: 'Pack SMS',
+    description: 'Crédits SMS pour campagnes clients',
+    amount: 15900,
+    lookupKey: 'fidelopass_sms_2000',
+    metadata: { credits: '2000' },
+  },
+];
+
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const modeArg = args.find((arg) => arg.startsWith('--mode='))?.split('=')[1];
+  return {
+    mode: modeArg === 'live' ? 'live' : 'test',
+  };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const stripe = new Stripe(key);
+function assertKeyMatchesMode(key, mode) {
+  if (mode === 'live' && !key.startsWith('sk_live_')) {
+    throw new Error('Mode live demandé, mais STRIPE_SECRET_KEY ne commence pas par sk_live_.');
+  }
+  if (mode === 'test' && !key.startsWith('sk_test_')) {
+    throw new Error('Mode test demandé, mais STRIPE_SECRET_KEY ne commence pas par sk_test_.');
+  }
+}
 
-async function create() {
-  console.log('🚀  Création des produits et prix Stripe…\n');
-
-  // ── 1. Starter Indépendant ──────────────────────────────────────────
-  const starter = await stripe.products.create({
-    name: 'Starter Indépendant',
-    description: '1 point de vente, 500 cartes actives, push illimitées, analytics de base',
-    metadata: { plan: 'starter' },
+async function findProduct(stripe, name) {
+  const products = await stripe.products.search({
+    query: `name:"${name.replace(/"/g, '\\"')}"`,
+    limit: 10,
   });
-  console.log('✅  Produit Starter :', starter.id);
+  return products.data.find((product) => product.name === name && product.active) ?? null;
+}
 
-  const starterMensuel = await stripe.prices.create({
-    product: starter.id,
-    unit_amount: 2900,
+async function ensureProduct(stripe, config, metadata) {
+  const existing = await findProduct(stripe, config.productName);
+  if (existing) return existing;
+
+  return stripe.products.create({
+    name: config.productName,
+    description: config.description,
+    metadata,
+  });
+}
+
+async function findPriceByLookupKey(stripe, lookupKey) {
+  const prices = await stripe.prices.search({
+    query: `lookup_key:"${lookupKey}" AND active:"true"`,
+    limit: 10,
+  });
+  return prices.data[0] ?? null;
+}
+
+async function findEquivalentActivePrice(stripe, productId, config, recurring) {
+  const prices = await stripe.prices.list({
+    product: productId,
+    active: true,
+    limit: 100,
+  });
+
+  return prices.data.find((price) => {
+    const sameAmount = price.unit_amount === config.amount && price.currency === 'eur';
+    const expectedType = recurring ? 'recurring' : 'one_time';
+    const sameType = price.type === expectedType;
+    const sameRecurring = !recurring || price.recurring?.interval === recurring.interval;
+    return sameAmount && sameType && sameRecurring;
+  }) ?? null;
+}
+
+async function ensurePrice(stripe, productId, config, metadata, recurring = null) {
+  const existing = await findPriceByLookupKey(stripe, config.lookupKey);
+  if (existing) return existing;
+
+  const equivalent = await findEquivalentActivePrice(stripe, productId, config, recurring);
+  if (equivalent) return equivalent;
+
+  return stripe.prices.create({
+    product: productId,
+    unit_amount: config.amount,
     currency: 'eur',
-    recurring: { interval: 'month', trial_period_days: 14 },
-    nickname: 'Starter mensuel',
-    metadata: { plan: 'starter', billing: 'monthly' },
+    lookup_key: config.lookupKey,
+    nickname: config.lookupKey,
+    metadata,
+    ...(recurring ? { recurring } : {}),
   });
-  console.log('   Prix mensuel :', starterMensuel.id);
+}
 
-  const starterAnnuel = await stripe.prices.create({
-    product: starter.id,
-    unit_amount: 29500,
-    currency: 'eur',
-    nickname: 'Starter annuel',
-    metadata: { plan: 'starter', billing: 'annual_once' },
-  });
-  console.log('   Prix annuel  :', starterAnnuel.id);
+async function main() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error('STRIPE_SECRET_KEY manquant');
 
-  // ── 2. Commerce Pro ─────────────────────────────────────────────────
-  const pro = await stripe.products.create({
-    name: 'Commerce Pro',
-    description: '3 points de vente, 2000 cartes actives, push ciblées, analytics avancés, campagne avis Google',
-    metadata: { plan: 'pro' },
-  });
-  console.log('\n✅  Produit Pro :', pro.id);
+  const { mode } = parseArgs();
+  assertKeyMatchesMode(key, mode);
 
-  const proMensuel = await stripe.prices.create({
-    product: pro.id,
-    unit_amount: 6900,
-    currency: 'eur',
-    recurring: { interval: 'month', trial_period_days: 14 },
-    nickname: 'Pro mensuel',
-    metadata: { plan: 'pro', billing: 'monthly' },
-  });
-  console.log('   Prix mensuel :', proMensuel.id);
-
-  const proAnnuel = await stripe.prices.create({
-    product: pro.id,
-    unit_amount: 69900,
-    currency: 'eur',
-    nickname: 'Pro annuel',
-    metadata: { plan: 'pro', billing: 'annual_once' },
-  });
-  console.log('   Prix annuel  :', proAnnuel.id);
-
-  // ── 3. Business ────────────────────────────────────────────────────
-  const business = await stripe.products.create({
-    name: 'Business',
-    description: 'Cartes actives illimitées, accompagnement setup inclus, pilotage avancé',
-    metadata: { plan: 'business' },
-  });
-  console.log('\n✅  Produit Business :', business.id);
-
-  const businessMensuel = await stripe.prices.create({
-    product: business.id,
-    unit_amount: 19900,
-    currency: 'eur',
-    recurring: { interval: 'month', trial_period_days: 14 },
-    nickname: 'Business mensuel',
-    metadata: { plan: 'business', billing: 'monthly' },
-  });
-  console.log('   Prix mensuel :', businessMensuel.id);
-
-  const businessAnnuel = await stripe.prices.create({
-    product: business.id,
-    unit_amount: 199000,
-    currency: 'eur',
-    nickname: 'Business annuel',
-    metadata: { plan: 'business', billing: 'annual_once' },
-  });
-  console.log('   Prix annuel  :', businessAnnuel.id);
-
-  // ── 4. Accompagnement Setup (one-time) ──────────────────────────────
-  const accompagnement = await stripe.products.create({
-    name: 'Accompagnement Setup',
-    description: 'Aide à la configuration, paramétrage initial et mise en ligne de votre première carte',
-    metadata: { type: 'one_time', action: 'onboarding_purchased' },
-  });
-  const accompagnementPrice = await stripe.prices.create({
-    product: accompagnement.id,
-    unit_amount: 9000,
-    currency: 'eur',
-    nickname: 'Accompagnement Setup',
-    metadata: { type: 'one_time', action: 'onboarding_purchased' },
-  });
-  console.log('\n✅  Accompagnement Setup :', accompagnementPrice.id);
-
-  // ── 5. Pack SMS 100 ─────────────────────────────────────────────────
-  const sms = await stripe.products.create({
-    name: 'Pack SMS',
-    description: 'Crédits SMS pour campagnes clients',
-    metadata: { type: 'one_time', action: 'sms_credits' },
-  });
-
-  const sms100 = await stripe.prices.create({
-    product: sms.id,
-    unit_amount: 1200,
-    currency: 'eur',
-    nickname: 'Pack SMS 100',
-    metadata: { type: 'one_time', action: 'sms_credits', credits: '100' },
-  });
-  console.log('\n✅  Pack SMS 100  :', sms100.id);
-
-  const sms500 = await stripe.prices.create({
-    product: sms.id,
-    unit_amount: 4900,
-    currency: 'eur',
-    nickname: 'Pack SMS 500',
-    metadata: { type: 'one_time', action: 'sms_credits', credits: '500' },
-  });
-  console.log('✅  Pack SMS 500  :', sms500.id);
-
-  const sms2000 = await stripe.prices.create({
-    product: sms.id,
-    unit_amount: 15900,
-    currency: 'eur',
-    nickname: 'Pack SMS 2000',
-    metadata: { type: 'one_time', action: 'sms_credits', credits: '2000' },
-  });
-  console.log('✅  Pack SMS 2000 :', sms2000.id);
-
-  // ── Résumé ───────────────────────────────────────────────────────────
+  const stripe = new Stripe(key, { maxNetworkRetries: 1 });
   const ids = {
-    starter_mensuel: starterMensuel.id,
-    starter_annuel_once:  starterAnnuel.id,
-    starter_annuel_mensuel:  '',
-    pro_mensuel:     proMensuel.id,
-    pro_annuel_once:      proAnnuel.id,
-    pro_annuel_mensuel:      '',
-    business_mensuel: businessMensuel.id,
-    business_annuel_once: businessAnnuel.id,
+    starter_mensuel: '',
+    starter_annuel_once: '',
+    starter_annuel_mensuel: '',
+    pro_mensuel: '',
+    pro_annuel_once: '',
+    pro_annuel_mensuel: '',
+    business_mensuel: '',
+    business_annuel_once: '',
     business_annuel_mensuel: '',
-    accompagnement:  accompagnementPrice.id,
-    sms_100:         sms100.id,
-    sms_500:         sms500.id,
-    sms_2000:        sms2000.id,
+    accompagnement: '',
+    sms_100: '',
+    sms_500: '',
+    sms_2000: '',
   };
 
-  console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('PRICE IDs :');
-  console.log(JSON.stringify(ids, null, 2));
+  console.log(`Stripe ${mode}: synchronisation de la grille canonique FideloPass.`);
 
-  const outPath = resolve(__dirname, '..', 'stripe-price-ids.json');
-  writeFileSync(outPath, JSON.stringify(ids, null, 2));
-  console.log(`\n💾  Sauvegardé dans ${outPath}`);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  for (const plan of PLANS) {
+    const product = await ensureProduct(stripe, plan, { kind: 'fidelopass_plan', plan: plan.slot });
+    const monthly = await ensurePrice(
+      stripe,
+      product.id,
+      plan.monthly,
+      { kind: 'fidelopass_plan', plan: plan.slot, billing: 'monthly', slot: plan.monthly.slot },
+      { interval: 'month' },
+    );
+    const annual = await ensurePrice(
+      stripe,
+      product.id,
+      plan.annual,
+      { kind: 'fidelopass_plan', plan: plan.slot, billing: 'annual_once', slot: plan.annual.slot },
+    );
+
+    ids[plan.monthly.slot] = monthly.id;
+    ids[plan.annual.slot] = annual.id;
+    console.log(`${plan.productName}: ${monthly.id} / ${annual.id}`);
+  }
+
+  for (const addon of ADDONS) {
+    const product = await ensureProduct(stripe, addon, { kind: 'fidelopass_addon' });
+    const price = await ensurePrice(
+      stripe,
+      product.id,
+      addon,
+      { kind: 'fidelopass_addon', slot: addon.slot, ...(addon.metadata ?? {}) },
+    );
+    ids[addon.slot] = price.id;
+    console.log(`${addon.productName} ${addon.slot}: ${price.id}`);
+  }
+
+  const outFile = mode === 'test' ? 'stripe-price-ids.test.json' : 'stripe-price-ids.json';
+  const outPath = resolve(__dirname, '..', outFile);
+  writeFileSync(outPath, `${JSON.stringify(ids, null, 2)}\n`);
+  console.log(`Sauvegardé dans ${outPath}`);
 }
 
-create().catch((err) => {
-  console.error('❌  Erreur Stripe :', err.message);
+main().catch((error) => {
+  console.error('Erreur Stripe:', error instanceof Error ? error.message : error);
   process.exit(1);
 });

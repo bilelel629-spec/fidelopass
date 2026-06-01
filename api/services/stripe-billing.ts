@@ -108,10 +108,29 @@ export function loadPriceIds() {
     return merged;
   };
 
+  const stripeKey = String(process.env.STRIPE_SECRET_KEY ?? '');
+  const priceIdsFile = stripeKey.startsWith('sk_test_') ? 'stripe-price-ids.test.json' : 'stripe-price-ids.json';
+
   try {
-    const raw = readFileSync(resolve(process.cwd(), 'stripe-price-ids.json'), 'utf8');
+    const raw = readFileSync(resolve(process.cwd(), priceIdsFile), 'utf8');
     return mergeEnv({ ...FALLBACK_PRICE_IDS, ...(JSON.parse(raw) as Partial<Record<PriceSlot, string>>) });
   } catch {
+    if (priceIdsFile !== 'stripe-price-ids.json') {
+      return mergeEnv({
+        ...FALLBACK_PRICE_IDS,
+        starter_mensuel: '',
+        starter_annuel_once: '',
+        pro_mensuel: '',
+        pro_annuel_once: '',
+        business_mensuel: '',
+        business_annuel_once: '',
+        accompagnement: '',
+        scanner: '',
+        sms_100: '',
+        sms_500: '',
+        sms_2000: '',
+      });
+    }
     return mergeEnv(FALLBACK_PRICE_IDS);
   }
 }

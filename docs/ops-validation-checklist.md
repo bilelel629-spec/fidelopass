@@ -16,7 +16,7 @@ npm run ops:checkout-validate
 Ce script:
 - vérifie `/api/checkout/pricing-config`,
 - valide tous les slots Starter/Pro disponibles via `dryRun` sur `/api/checkout/create-session`,
-- vérifie aussi l’option setup (+20€).
+- vérifie aussi l’option setup (+90€).
 
 ## 3) Validation multi-point de vente
 Commande:
@@ -47,4 +47,3 @@ Vérifier:
   - `admin_audit_logs_table.ok`
   - `clients_birth_date_column.ok`
   - `cartes_birthday_column.ok`
-

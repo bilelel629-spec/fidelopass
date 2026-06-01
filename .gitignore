@@ -2,6 +2,7 @@
 .env
 .env.local
 .env.*.local
+stripe-price-ids.test.json
 
 # Certificats & secrets (NE JAMAIS COMMIT)
 certs/

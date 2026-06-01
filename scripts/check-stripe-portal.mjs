@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import Stripe from 'stripe';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const PLAN_PRICE_SLOTS = [
@@ -10,11 +10,18 @@ const PLAN_PRICE_SLOTS = [
   'pro_mensuel',
   'pro_annuel_once',
   'pro_annuel_mensuel',
+  'business_mensuel',
+  'business_annuel_once',
+  'business_annuel_mensuel',
 ];
 
 function loadPriceIds() {
+  const stripeKey = String(process.env.STRIPE_SECRET_KEY ?? '');
+  const preferredFile = stripeKey.startsWith('sk_test_') ? 'stripe-price-ids.test.json' : 'stripe-price-ids.json';
+  const file = existsSync(resolve(process.cwd(), preferredFile)) ? preferredFile : 'stripe-price-ids.json';
+
   try {
-    return JSON.parse(readFileSync(resolve(process.cwd(), 'stripe-price-ids.json'), 'utf8'));
+    return JSON.parse(readFileSync(resolve(process.cwd(), file), 'utf8'));
   } catch {
     return {};
   }
@@ -72,4 +79,3 @@ main()
     console.error('[billing-portal-check] fatal:', error instanceof Error ? error.message : error);
     process.exit(1);
   });
-

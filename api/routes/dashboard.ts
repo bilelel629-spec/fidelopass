@@ -87,8 +87,15 @@ dashboardRoutes.get('/plan', async (c) => {
   const { count: clientsCount } = await db
     .from('clients')
     .select('id', { count: 'exact', head: true })
-    .eq('commerce_id', commerce.id)
-    .eq('point_vente_id', pointVente?.id ?? '');
+    .eq('commerce_id', commerce.id);
+
+  const { count: selectedPointClientsCount } = pointVente
+    ? await db
+      .from('clients')
+      .select('id', { count: 'exact', head: true })
+      .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id)
+    : { count: 0 };
 
   return c.json({
     data: {
@@ -98,6 +105,7 @@ dashboardRoutes.get('/plan', async (c) => {
       normalized_plan: normalizedPlan,
       limits,
       clientsCount: clientsCount ?? 0,
+      selectedPointClientsCount: selectedPointClientsCount ?? 0,
       pointsVenteCount: pointsVente.length,
       selectedPointVenteId: pointVente?.id ?? null,
     },

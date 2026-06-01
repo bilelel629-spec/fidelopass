@@ -166,26 +166,11 @@ clientsRoutes.post('/', async (c) => {
 
   if (!carte) return c.json({ error: 'Carte introuvable' }, 404);
 
-  // Vérification limite de cartes selon plan
   const { data: commerce } = await db
     .from('commerces')
-    .select('id, plan, nom, sms_welcome_enabled, sms_welcome_message, sms_credits')
+    .select('id, plan, plan_override, nom, sms_welcome_enabled, sms_welcome_message, sms_credits')
     .eq('id', carte.commerce_id)
     .single();
-
-  if (commerce) {
-    const limits = getPlanLimits(getEffectivePlanRaw(commerce));
-    const { count: activeCount } = await db
-      .from('clients')
-      .select('id', { count: 'exact', head: true })
-      .eq('commerce_id', commerce.id);
-
-    if (typeof limits.maxClients === 'number' && (activeCount ?? 0) >= limits.maxClients) {
-      return c.json({
-        error: `Limite de ${limits.maxClients} cartes actives atteinte pour votre plan. Passez au plan supérieur pour continuer.`,
-      }, 403);
-    }
-  }
 
   const { data: existingClient, error: existingClientError } = await db
     .from('clients')
@@ -246,6 +231,21 @@ clientsRoutes.post('/', async (c) => {
     }
 
     return c.json({ data: updatedClient, existing: true });
+  }
+
+  // Vérification limite de cartes selon plan uniquement pour une nouvelle carte client.
+  if (commerce) {
+    const limits = getPlanLimits(getEffectivePlanRaw(commerce));
+    const { count: activeCount } = await db
+      .from('clients')
+      .select('id', { count: 'exact', head: true })
+      .eq('commerce_id', commerce.id);
+
+    if (typeof limits.maxClients === 'number' && (activeCount ?? 0) >= limits.maxClients) {
+      return c.json({
+        error: `Limite de ${limits.maxClients} cartes actives atteinte pour votre plan. Passez au plan supérieur pour continuer.`,
+      }, 403);
+    }
   }
 
   let insertResult = await db

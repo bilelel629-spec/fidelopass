@@ -3017,7 +3017,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         const bar = document.getElementById('error-msg') as HTMLDivElement | null;
         const infoMsg = document.createElement('div');
         infoMsg.className = 'text-amber-600 text-sm bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4';
-        infoMsg.textContent = `${clientsCount} / ${limits.maxClients} cartes actives utilisées sur votre plan ${isProPlan ? 'pro' : 'starter'}.`;
+        const planLabel = String(data?.normalized_plan ?? data?.plan ?? 'starter');
+        infoMsg.textContent = `${clientsCount} / ${limits.maxClients} cartes actives utilisées sur votre plan ${planLabel}.`;
         bar?.parentNode?.insertBefore(infoMsg, bar);
       }
     } catch { /* silencieux */ }

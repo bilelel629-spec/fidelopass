@@ -122,6 +122,150 @@ export function getStripe(config?: ConstructorParameters<typeof Stripe>[1]) {
   return new Stripe(key, config);
 }
 
+const STRIPE_CANONICAL_PRICE_CONFIG = {
+  starter_mensuel: {
+    productName: 'Starter Indépendant',
+    productDescription: '1 point de vente, 500 cartes actives, notifications incluses',
+    amount: 2900,
+    lookupKey: 'fidelopass_starter_monthly',
+    recurring: { interval: 'month' as const },
+  },
+  starter_annuel_once: {
+    productName: 'Starter Indépendant',
+    productDescription: '1 point de vente, 500 cartes actives, notifications incluses',
+    amount: 29500,
+    lookupKey: 'fidelopass_starter_annual_once',
+  },
+  pro_mensuel: {
+    productName: 'Commerce Pro',
+    productDescription: '3 points de vente, 2000 cartes actives, automatisations et analytics avancés',
+    amount: 6900,
+    lookupKey: 'fidelopass_pro_monthly',
+    recurring: { interval: 'month' as const },
+  },
+  pro_annuel_once: {
+    productName: 'Commerce Pro',
+    productDescription: '3 points de vente, 2000 cartes actives, automatisations et analytics avancés',
+    amount: 69900,
+    lookupKey: 'fidelopass_pro_annual_once',
+  },
+  business_mensuel: {
+    productName: 'Business',
+    productDescription: 'Cartes actives illimitées, accompagnement setup inclus, support prioritaire',
+    amount: 19900,
+    lookupKey: 'fidelopass_business_monthly',
+    recurring: { interval: 'month' as const },
+  },
+  business_annuel_once: {
+    productName: 'Business',
+    productDescription: 'Cartes actives illimitées, accompagnement setup inclus, support prioritaire',
+    amount: 199000,
+    lookupKey: 'fidelopass_business_annual_once',
+  },
+  accompagnement: {
+    productName: 'Accompagnement Setup',
+    productDescription: 'Aide à la configuration et mise en ligne de la première carte',
+    amount: 9000,
+    lookupKey: 'fidelopass_setup_assistance',
+  },
+} satisfies Partial<Record<PriceSlot, {
+  productName: string;
+  productDescription: string;
+  amount: number;
+  lookupKey: string;
+  recurring?: { interval: 'month' };
+}>>;
+
+let testPriceIdsPromise: Promise<Partial<Record<PriceSlot, string>>> | null = null;
+
+async function findCanonicalProduct(stripe: Stripe, name: string) {
+  const products = await stripe.products.search({
+    query: `name:"${name.replace(/"/g, '\\"')}"`,
+    limit: 10,
+  });
+  return products.data.find((product) => product.name === name && product.active) ?? null;
+}
+
+async function ensureCanonicalProduct(
+  stripe: Stripe,
+  config: (typeof STRIPE_CANONICAL_PRICE_CONFIG)[keyof typeof STRIPE_CANONICAL_PRICE_CONFIG],
+) {
+  const existing = await findCanonicalProduct(stripe, config.productName);
+  if (existing) return existing;
+
+  return stripe.products.create({
+    name: config.productName,
+    description: config.productDescription,
+    metadata: { kind: 'fidelopass_auto_test_pricing' },
+  });
+}
+
+async function findCanonicalPrice(stripe: Stripe, lookupKey: string) {
+  const prices = await stripe.prices.search({
+    query: `lookup_key:"${lookupKey}" AND active:"true"`,
+    limit: 10,
+  });
+  return prices.data[0] ?? null;
+}
+
+async function ensureCanonicalPrice(
+  stripe: Stripe,
+  productId: string,
+  slot: PriceSlot,
+  config: (typeof STRIPE_CANONICAL_PRICE_CONFIG)[keyof typeof STRIPE_CANONICAL_PRICE_CONFIG],
+) {
+  const existing = await findCanonicalPrice(stripe, config.lookupKey);
+  if (existing) return existing;
+
+  return stripe.prices.create({
+    product: productId,
+    unit_amount: config.amount,
+    currency: 'eur',
+    lookup_key: config.lookupKey,
+    nickname: config.lookupKey,
+    metadata: { kind: 'fidelopass_auto_test_pricing', slot },
+    ...(config.recurring ? { recurring: config.recurring } : {}),
+  });
+}
+
+async function createCanonicalTestPriceIds(stripe: Stripe) {
+  const ids: Partial<Record<PriceSlot, string>> = {};
+
+  for (const [slot, config] of Object.entries(STRIPE_CANONICAL_PRICE_CONFIG) as Array<[
+    keyof typeof STRIPE_CANONICAL_PRICE_CONFIG,
+    (typeof STRIPE_CANONICAL_PRICE_CONFIG)[keyof typeof STRIPE_CANONICAL_PRICE_CONFIG],
+  ]>) {
+    const product = await ensureCanonicalProduct(stripe, config);
+    const price = await ensureCanonicalPrice(stripe, product.id, slot, config);
+    ids[slot] = price.id;
+  }
+
+  return ids;
+}
+
+export async function loadRuntimePriceIds(stripe?: Stripe) {
+  const priceIds = loadPriceIds();
+  const diagnostics = getPriceIdsDiagnostics(priceIds);
+
+  if (
+    diagnostics.stripeMode !== 'test'
+    || diagnostics.missingRequiredSlots.length === 0
+    || !stripe
+  ) {
+    return priceIds;
+  }
+
+  testPriceIdsPromise ??= createCanonicalTestPriceIds(stripe).catch((error) => {
+    testPriceIdsPromise = null;
+    throw error;
+  });
+
+  return {
+    ...priceIds,
+    ...(await testPriceIdsPromise),
+  };
+}
+
 export function loadPriceIds() {
   const envPriceIds = Object.fromEntries(
     PRICE_SLOTS.map((slot) => [slot, process.env[`STRIPE_PRICE_ID_${slot.toUpperCase()}`] ?? '']),

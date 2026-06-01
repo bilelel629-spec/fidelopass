@@ -7,7 +7,7 @@ import { createServiceClient } from '../../src/lib/supabase';
 import {
   getStripe,
   getPriceIdsDiagnostics,
-  loadPriceIds,
+  loadRuntimePriceIds,
   type PriceSlot,
   resolvePriceSlot,
   resolveExpectedModeFromSlot,
@@ -41,7 +41,7 @@ function pricingItem(slot: string, priceIds: Record<string, string>) {
 
 /** GET /api/checkout/pricing-config */
 checkoutRoutes.get('/pricing-config', authMiddleware, async (c) => {
-  const priceIds = loadPriceIds();
+  const priceIds = await loadRuntimePriceIds(getStripe({ maxNetworkRetries: 1 }));
   const meta = getPriceIdsDiagnostics(priceIds);
   if (meta.missingRequiredSlots.length > 0) {
     console.warn('[checkout] pricing-config missing required slots', meta);
@@ -83,7 +83,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   }
 
   const { priceId, mode, includeAccompagnement, dryRun } = parsed.data;
-  const priceIds = loadPriceIds();
+  const priceIds = await loadRuntimePriceIds(getStripe({ maxNetworkRetries: 1 }));
   const selectedSlot = resolvePriceSlot(priceId, priceIds);
 
   if (!selectedSlot) {

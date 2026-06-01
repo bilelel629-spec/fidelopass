@@ -23,7 +23,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
       <div class="relative w-full max-w-sm">
         <div class="scanner-reader-shell rounded-[2rem] border border-sky-100 bg-white p-3 shadow-[0_32px_70px_-42px_rgba(59,130,246,0.45)]">
           <div class="scanner-reader-frame relative overflow-hidden rounded-[1.4rem] border border-sky-100 bg-slate-950">
-            <div id="reader" class="scanner-reader absolute inset-0"></div>
+            <video id="camera-video" class="camera-video absolute inset-0 h-full w-full object-cover" playsinline muted autoplay></video>
+            <canvas id="scan-canvas" class="hidden"></canvas>
             <div id="scanner-launch" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950 px-6 text-center text-white">
               <div class="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-sky-200 shadow-[0_20px_60px_-30px_rgba(56,189,248,0.8)]">
                 <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -127,80 +128,15 @@ import AppLayout from '../../layouts/AppLayout.astro';
     aspect-ratio: 4 / 5;
   }
 
-  .scanner-reader {
-    position: absolute !important;
-    display: block !important;
-    contain: layout paint !important;
-    line-height: 0 !important;
-  }
-
-  .scanner-reader * {
-    box-sizing: border-box !important;
-  }
-
-  .scanner-reader > div,
-  .scanner-reader #reader__scan_region {
-    position: absolute !important;
-    inset: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    overflow: hidden !important;
-    border: 0 !important;
-    background: transparent !important;
-  }
-
-  .scanner-reader video {
-    position: absolute !important;
-    inset: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    max-width: none !important;
-    object-fit: cover !important;
-    border-radius: 1rem !important;
-  }
-
-  .scanner-reader canvas {
-    position: absolute !important;
-    inset: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-  }
-
-  .scanner-reader #reader__dashboard,
-  .scanner-reader #reader__header_message,
-  .scanner-reader #reader__camera_permission_button,
-  .scanner-reader #reader__camera_selection,
-  .scanner-reader #reader__dashboard_section_csr,
-  .scanner-reader #reader__dashboard_section_fsr,
-  .scanner-reader #reader__dashboard_section_swaplink,
-  .scanner-reader #reader__dashboard_section,
-  .scanner-reader #reader__status_span,
-  .scanner-reader [id$="__status_span"] {
-    display: none !important;
+  .camera-video {
+    background: #020617;
+    border-radius: 1rem;
   }
 </style>
 
 <script>
   import { authFetch } from '../../lib/api';
-
-  type ScannerInstance = {
-    start: (
-      cameraConfigOrDeviceId: string | MediaTrackConstraints,
-      configuration: Record<string, unknown>,
-      qrCodeSuccessCallback: (decodedText: string) => void,
-      qrCodeErrorCallback?: (errorMessage: string) => void,
-    ) => Promise<void>;
-    pause: () => void;
-    resume: () => void;
-  };
-
-  type Html5QrcodeModule = {
-    Html5Qrcode: new (elementId: string, verbose?: boolean) => ScannerInstance;
-    Html5QrcodeSupportedFormats: {
-      QR_CODE: number;
-    };
-  };
+  import jsQR from 'jsqr';
 
   let currentClientId: string | null = null;
   let currentClientRecompenses = 0;
@@ -209,6 +145,9 @@ import AppLayout from '../../layouts/AppLayout.astro';
   let audioContext: AudioContext | null = null;
   let confettiPromise: Promise<any> | null = null;
   let toastTimeout: ReturnType<typeof setTimeout> | null = null;
+  let mediaStream: MediaStream | null = null;
+  let scanFrameId: number | null = null;
+  let lastDecodeAttemptAt = 0;
 
   const scannerStatus = document.getElementById('scanner-status')!;
   const cameraHelp = document.getElementById('camera-help')!;
@@ -220,27 +159,14 @@ import AppLayout from '../../layouts/AppLayout.astro';
   const scannerLaunchText = document.getElementById('scanner-launch-text')!;
   const scannerLoading = document.getElementById('scanner-loading')!;
   const scanToast = document.getElementById('scan-toast')!;
-  let scanner: ScannerInstance | null = null;
-  let html5QrcodeModule: Html5QrcodeModule | null = null;
-  let scannerModulePromise: Promise<Html5QrcodeModule> | null = null;
+  const cameraVideo = document.getElementById('camera-video') as HTMLVideoElement;
+  const scanCanvas = document.getElementById('scan-canvas') as HTMLCanvasElement;
+  const scanContext = scanCanvas.getContext('2d', { willReadFrequently: true });
   let scannerStarting = false;
   const CAMERA_CACHE_KEY = 'fidelopass_scanner_camera_id';
   const API_TIMEOUT_MS = Number(import.meta.env.PUBLIC_API_FETCH_TIMEOUT_MS ?? 8000);
-  const scanConfigBase = {
-    fps: 15,
-    disableFlip: true,
-    experimentalFeatures: {
-      useBarCodeDetectorIfSupported: true,
-    },
-  };
-
-  function getScanConfig() {
-    if (!html5QrcodeModule) return scanConfigBase;
-    return {
-      ...scanConfigBase,
-      formatsToSupport: [html5QrcodeModule.Html5QrcodeSupportedFormats.QR_CODE],
-    };
-  }
+  const DECODE_INTERVAL_MS = 120;
+  const MAX_DECODE_WIDTH = 900;
 
   function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
     return Promise.race([
@@ -258,27 +184,6 @@ import AppLayout from '../../layouts/AppLayout.astro';
     if (res.status === 401) return 'Session expirée. Reconnectez-vous au compte commerçant pour utiliser le scanner.';
     if (res.status === 402) return 'Abonnement requis pour utiliser le scanner.';
     return String(payload?.error ?? fallback);
-  }
-
-  async function loadScannerModule() {
-    if (html5QrcodeModule) return html5QrcodeModule;
-    if (!scannerModulePromise) {
-      scannerModulePromise = import('html5-qrcode')
-        .then((module) => module as unknown as Html5QrcodeModule)
-        .catch((error) => {
-          scannerModulePromise = null;
-          throw error;
-        });
-    }
-    html5QrcodeModule = await scannerModulePromise;
-    return html5QrcodeModule;
-  }
-
-  async function ensureScannerInstance() {
-    if (scanner) return scanner;
-    const module = await loadScannerModule();
-    scanner = new module.Html5Qrcode('reader', false);
-    return scanner;
   }
 
   function setScannerStatus(message: string) {
@@ -395,9 +300,21 @@ import AppLayout from '../../layouts/AppLayout.astro';
   function defaultCameraConstraints(): MediaTrackConstraints {
     return {
       facingMode: { ideal: 'environment' },
-      width: { ideal: 1280 },
-      height: { ideal: 720 },
+      width: { ideal: 1280, max: 1920 },
+      height: { ideal: 720, max: 1080 },
     };
+  }
+
+  function cameraAttempts(): MediaStreamConstraints[] {
+    const rememberedCameraId = readRememberedCameraId();
+    const attempts: MediaStreamConstraints[] = [];
+    if (rememberedCameraId) {
+      attempts.push({ video: { deviceId: { exact: rememberedCameraId } }, audio: false });
+    }
+    attempts.push({ video: defaultCameraConstraints(), audio: false });
+    attempts.push({ video: { facingMode: 'environment' }, audio: false });
+    attempts.push({ video: true, audio: false });
+    return attempts;
   }
 
   async function getRearCameraId() {
@@ -418,6 +335,94 @@ import AppLayout from '../../layouts/AppLayout.astro';
     return rearCamera?.deviceId ?? cameras[cameras.length - 1]?.deviceId ?? null;
   }
 
+  function stopCameraStream() {
+    if (scanFrameId !== null) {
+      cancelAnimationFrame(scanFrameId);
+      scanFrameId = null;
+    }
+    if (mediaStream) {
+      for (const track of mediaStream.getTracks()) track.stop();
+      mediaStream = null;
+    }
+    cameraVideo.pause();
+    cameraVideo.srcObject = null;
+  }
+
+  function rememberStreamCamera(stream: MediaStream) {
+    const track = stream.getVideoTracks()[0];
+    const settings = track?.getSettings?.();
+    if (settings?.deviceId) {
+      rememberCameraId(settings.deviceId);
+      return;
+    }
+    getRearCameraId().then((rearCameraId) => rememberCameraId(rearCameraId)).catch(() => {});
+  }
+
+  async function waitForVideoReady(video: HTMLVideoElement) {
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0) return;
+    await new Promise<void>((resolve) => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        video.removeEventListener('loadedmetadata', finish);
+        video.removeEventListener('canplay', finish);
+        resolve();
+      };
+      video.addEventListener('loadedmetadata', finish, { once: true });
+      video.addEventListener('canplay', finish, { once: true });
+      window.setTimeout(finish, 1800);
+    });
+  }
+
+  function decodeCurrentFrame() {
+    if (!scanContext || !mediaStream || cameraVideo.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return null;
+    const sourceWidth = cameraVideo.videoWidth;
+    const sourceHeight = cameraVideo.videoHeight;
+    if (!sourceWidth || !sourceHeight) return null;
+
+    const targetWidth = Math.min(MAX_DECODE_WIDTH, sourceWidth);
+    const targetHeight = Math.round((targetWidth / sourceWidth) * sourceHeight);
+    if (scanCanvas.width !== targetWidth || scanCanvas.height !== targetHeight) {
+      scanCanvas.width = targetWidth;
+      scanCanvas.height = targetHeight;
+    }
+
+    scanContext.drawImage(cameraVideo, 0, 0, targetWidth, targetHeight);
+    const imageData = scanContext.getImageData(0, 0, targetWidth, targetHeight);
+    const code = jsQR(imageData.data, targetWidth, targetHeight, {
+      inversionAttempts: 'attemptBoth',
+    });
+
+    return code?.data?.trim() || null;
+  }
+
+  function scanFrame(timestamp: number) {
+    if (!mediaStream) return;
+
+    if (!scannerPaused && timestamp - lastDecodeAttemptAt >= DECODE_INTERVAL_MS) {
+      lastDecodeAttemptAt = timestamp;
+      const decodedText = decodeCurrentFrame();
+      if (decodedText) {
+        void handleScan(decodedText);
+      }
+    }
+
+    scanFrameId = requestAnimationFrame(scanFrame);
+  }
+
+  function startDecodeLoop() {
+    if (scanFrameId !== null) cancelAnimationFrame(scanFrameId);
+    lastDecodeAttemptAt = 0;
+    scanFrameId = requestAnimationFrame(scanFrame);
+  }
+
+  function formatCameraError(error: unknown) {
+    if (!(error instanceof Error)) return 'Caméra indisponible.';
+    const name = error.name ? `${error.name}: ` : '';
+    return `${name}${error.message || 'Caméra indisponible.'}`;
+  }
+
   async function startScanner({ fromUserAction = false } = {}) {
     if (scannerStarting) return;
     scannerStarting = true;
@@ -431,44 +436,38 @@ import AppLayout from '../../layouts/AppLayout.astro';
         throw new Error('La caméra n’est pas disponible dans ce navigateur. Ouvrez cette page en HTTPS dans Safari ou Chrome.');
       }
 
-      const qrScanner = await ensureScannerInstance();
+      stopCameraStream();
       setScannerStatus('Ouverture de la caméra...');
-      const rememberedCameraId = readRememberedCameraId();
-      const attempts: Array<string | MediaTrackConstraints> = rememberedCameraId
-        ? [{ deviceId: { exact: rememberedCameraId } }, defaultCameraConstraints()]
-        : [defaultCameraConstraints()];
       let lastError: unknown = null;
 
-      for (const [index, cameraConfig] of attempts.entries()) {
+      for (const [index, constraints] of cameraAttempts().entries()) {
         try {
-          await qrScanner.start(
-            cameraConfig,
-            getScanConfig(),
-            handleScan,
-            () => {},
-          );
-          if (index === 0 && rememberedCameraId) {
-            rememberCameraId(rememberedCameraId);
-          } else {
-            getRearCameraId().then((rearCameraId) => rememberCameraId(rearCameraId)).catch(() => {});
-          }
+          mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+          cameraVideo.srcObject = mediaStream;
+          cameraVideo.muted = true;
+          cameraVideo.setAttribute('playsinline', 'true');
+          await cameraVideo.play();
+          await waitForVideoReady(cameraVideo);
+          rememberStreamCamera(mediaStream);
+          startDecodeLoop();
           hideScannerOverlays();
           setScannerStatus('Scanner prêt. Placez le QR code dans l’image.');
           return;
         } catch (error) {
           lastError = error;
-          if (index === 0 && rememberedCameraId) forgetRememberedCameraId();
+          stopCameraStream();
+          if (index === 0) forgetRememberedCameraId();
         }
       }
 
       throw lastError ?? new Error('Caméra indisponible.');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Caméra indisponible.';
+      const message = formatCameraError(error);
       setScannerStatus('Caméra à autoriser.');
       showLaunchOverlay(
         'Caméra non ouverte',
         fromUserAction
-          ? 'La caméra n’a pas pu démarrer. Vérifiez l’autorisation caméra du navigateur, puis réessayez.'
+          ? 'La caméra n’a pas pu démarrer. Vérifiez que Safari/Chrome autorise bien la caméra, puis réessayez.'
           : 'Touchez le bouton pour ouvrir la caméra.',
         'Réessayer'
       );
@@ -483,16 +482,14 @@ import AppLayout from '../../layouts/AppLayout.astro';
   }
 
   function resumeScanner() {
-    if (!scannerPaused || !scanner) return;
+    if (!scannerPaused) return;
     scannerPaused = false;
-    scanner.resume();
     setScannerStatus('Scanner prêt. Placez le QR code dans l’image.');
   }
 
   async function handleScan(decodedText: string) {
-    if (scannerPaused || !scanner) return;
+    if (scannerPaused) return;
     scannerPaused = true;
-    scanner.pause();
     setScannerStatus('QR code détecté...');
     playBeep('scan');
 
@@ -659,14 +656,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
       'Ouvrez cette page en HTTPS dans Safari ou Chrome, puis autorisez la caméra.',
       'Réessayer'
     );
-  } else {
-    loadScannerModule().catch(() => {
-      setScannerStatus('Scanner indisponible.');
-      showLaunchOverlay(
-        'Scanner indisponible',
-        'Le module caméra n’a pas pu charger. Vérifiez la connexion puis rechargez la page.',
-        'Réessayer'
-      );
-    });
   }
+
+  window.addEventListener('pagehide', stopCameraStream);
 </script>

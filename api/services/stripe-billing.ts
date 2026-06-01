@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 export type PlanName = 'starter' | 'pro' | 'business';
@@ -83,6 +83,35 @@ export const FALLBACK_PRICE_IDS: Record<PriceSlot, string> = {
   sms_2000: 'price_1TMlVy60FYcAjVxlD5phFUTz',
 };
 
+export function resolveStripeRuntimeMode(): 'test' | 'live' | 'unknown' {
+  const stripeKey = String(process.env.STRIPE_SECRET_KEY ?? '');
+  if (stripeKey.startsWith('sk_test_')) return 'test';
+  if (stripeKey.startsWith('sk_live_')) return 'live';
+  return 'unknown';
+}
+
+export function resolveStripePriceIdsFile() {
+  return resolveStripeRuntimeMode() === 'test' ? 'stripe-price-ids.test.json' : 'stripe-price-ids.json';
+}
+
+export function getPriceIdsDiagnostics(priceIds: Record<PriceSlot, string>) {
+  const requiredSlots: PriceSlot[] = [
+    'starter_mensuel',
+    'starter_annuel_once',
+    'pro_mensuel',
+    'pro_annuel_once',
+    'business_mensuel',
+    'business_annuel_once',
+    'accompagnement',
+  ];
+  return {
+    stripeMode: resolveStripeRuntimeMode(),
+    priceIdsFile: resolveStripePriceIdsFile(),
+    priceIdsFileFound: existsSync(resolve(process.cwd(), resolveStripePriceIdsFile())),
+    missingRequiredSlots: requiredSlots.filter((slot) => !priceIds[slot]),
+  };
+}
+
 function isLegacyPriceId(slot: PriceSlot, priceId: string) {
   return LEGACY_PRICE_IDS[slot]?.includes(priceId) ?? false;
 }
@@ -108,8 +137,7 @@ export function loadPriceIds() {
     return merged;
   };
 
-  const stripeKey = String(process.env.STRIPE_SECRET_KEY ?? '');
-  const priceIdsFile = stripeKey.startsWith('sk_test_') ? 'stripe-price-ids.test.json' : 'stripe-price-ids.json';
+  const priceIdsFile = resolveStripePriceIdsFile();
 
   try {
     const raw = readFileSync(resolve(process.cwd(), priceIdsFile), 'utf8');

@@ -6,7 +6,9 @@ import { authMiddleware } from '../middleware/auth';
 import { createServiceClient } from '../../src/lib/supabase';
 import {
   getStripe,
+  getPriceIdsDiagnostics,
   loadPriceIds,
+  type PriceSlot,
   resolvePriceSlot,
   resolveExpectedModeFromSlot,
   resolveCommitmentLabelFromSlot,
@@ -22,6 +24,7 @@ const createSessionSchema = z.object({
   mode: z.enum(['subscription', 'payment']),
   priceSlot: z.string().optional(),
   includeAccompagnement: z.boolean().optional().default(false),
+  dryRun: z.boolean().optional().default(false),
 });
 
 function pricingItem(slot: string, priceIds: Record<string, string>) {
@@ -31,6 +34,7 @@ function pricingItem(slot: string, priceIds: Record<string, string>) {
   return {
     slot,
     priceId,
+    mode: resolveExpectedModeFromSlot(slot as PriceSlot),
     available: Boolean(priceId) && !isLegacyPrice,
   };
 }
@@ -38,8 +42,13 @@ function pricingItem(slot: string, priceIds: Record<string, string>) {
 /** GET /api/checkout/pricing-config */
 checkoutRoutes.get('/pricing-config', authMiddleware, async (c) => {
   const priceIds = loadPriceIds();
+  const meta = getPriceIdsDiagnostics(priceIds);
+  if (meta.missingRequiredSlots.length > 0) {
+    console.warn('[checkout] pricing-config missing required slots', meta);
+  }
   return c.json({
-    degraded: false,
+    degraded: meta.missingRequiredSlots.length > 0,
+    meta,
     data: {
       starter: {
         monthly: pricingItem('starter_mensuel', priceIds),
@@ -73,7 +82,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
     return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides' }, 400);
   }
 
-  const { priceId, mode, includeAccompagnement } = parsed.data;
+  const { priceId, mode, includeAccompagnement, dryRun } = parsed.data;
   const priceIds = loadPriceIds();
   const selectedSlot = resolvePriceSlot(priceId, priceIds);
 
@@ -186,6 +195,19 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   const resolvedAccompagnementPriceId = includeAccompagnement
     ? await resolveUsablePriceId(stripe, 'accompagnement', priceIds.accompagnement, priceIds)
     : null;
+
+  if (dryRun) {
+    return c.json({
+      ok: true,
+      data: {
+        selectedSlot,
+        selectedPlan,
+        mode,
+        resolvedBasePriceId,
+        resolvedAccompagnementPriceId,
+      },
+    });
+  }
 
   const successUrl = isPlanCheckout
     ? `${PUBLIC_SITE_URL}/onboarding?paid=1`

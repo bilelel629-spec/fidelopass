@@ -2,20 +2,20 @@
 import AppLayout from '../../layouts/AppLayout.astro';
 ---
 
-<AppLayout title="Installer le scanner — Fidelopass">
+<AppLayout title="Scanner mobile — Fidelopass">
   <div class="min-h-[100dvh] px-5 py-7">
     <div class="mx-auto max-w-5xl">
       <a href="/dashboard" class="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900">
         <span>←</span>
-        <span>Retour</span>
+        <span>Retour à l’espace commerçant</span>
       </a>
 
-      <header class="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header class="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.28em] text-sky-700/75">Scanner boutique</p>
-          <h1 class="mt-3 font-display text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Installer le scanner</h1>
-          <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-            Connectez-vous au compte commerçant, puis ajoutez l’icône Fidelopass à l’écran d’accueil pour scanner plus vite.
+          <p class="text-xs font-semibold uppercase tracking-[0.28em] text-sky-700/75">Scanner mobile</p>
+          <h1 class="mt-3 font-display text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">Ouvrir le scanner Fidelopass</h1>
+          <p class="mt-4 max-w-2xl text-base leading-7 text-slate-600">
+            Scanners illimités inclus. Toute personne connectée au compte commerçant peut ouvrir la caméra et scanner les cartes clients.
           </p>
         </div>
         <div class="flex h-20 w-20 items-center justify-center rounded-[1.5rem] border border-sky-100 bg-white shadow-[0_24px_60px_-40px_rgba(59,130,246,0.55)]">
@@ -23,131 +23,88 @@ import AppLayout from '../../layouts/AppLayout.astro';
         </div>
       </header>
 
-      <main class="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_21rem]">
-        <section id="scanner-quota-card" class="card p-5 sm:p-7">
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p class="text-sm font-semibold text-slate-500">Accès scanner</p>
-              <h2 id="scanner-usage" class="mt-2 font-display text-2xl font-bold text-slate-950">Scanner disponible</h2>
-              <p id="scanner-remaining" class="mt-2 text-sm leading-6 text-slate-500">Scanners illimités inclus. Toute personne connectée au compte commerçant peut utiliser le scanner caméra.</p>
-            </div>
-            <span id="scanner-plan-badge" class="w-fit rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-emerald-700">Illimité</span>
+      <main class="mt-7 grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <section class="card overflow-hidden p-5 sm:p-7">
+          <div class="rounded-[1.35rem] border border-emerald-200 bg-emerald-50 px-4 py-3">
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Accès direct</p>
+            <p class="mt-1 text-sm leading-6 text-emerald-900">
+              Aucun téléphone à associer, aucune limite de scanner. Il suffit d’être connecté au compte commerçant.
+            </p>
           </div>
-
-          <p id="scanner-limit-msg" class="hidden mt-5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"></p>
 
           <div class="mt-6 grid gap-3 sm:grid-cols-2">
-            <button id="scanner-register-btn" type="button" class="btn-primary px-4 py-3 text-sm">
-              Ouvrir le scanner
-            </button>
-            <a id="open-scanner-link" href="/app/scan" class="btn-secondary px-4 py-3 text-center text-sm">
-              Ouvrir le scanner
+            <a href="/app/scan" class="btn-primary flex min-h-14 items-center justify-center px-4 py-4 text-center text-base">
+              Ouvrir le scanner caméra
+            </a>
+            <a href="/dashboard/scan" class="btn-secondary flex min-h-14 items-center justify-center px-4 py-4 text-center text-base">
+              Mode scannette ordinateur
             </a>
           </div>
 
-          <div class="mt-5 grid gap-3 sm:grid-cols-2">
-            <a href="/app/scan" class="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-800 transition hover:border-sky-200 hover:bg-sky-100">
-              Scanner caméra
-            </a>
-            <a href="/dashboard/scan" class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800 transition hover:border-emerald-200 hover:bg-emerald-100">
-              Mode scannette
-            </a>
+          <div class="mt-6 grid gap-3 md:grid-cols-3">
+            <div class="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+              <p class="text-sm font-bold text-slate-950">1. Connectez-vous</p>
+              <p class="mt-2 text-sm leading-6 text-slate-500">Utilisez le même compte commerçant que sur le dashboard.</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+              <p class="text-sm font-bold text-slate-950">2. Autorisez la caméra</p>
+              <p class="mt-2 text-sm leading-6 text-slate-500">Touchez “Démarrer le scanner”, puis acceptez la demande du navigateur.</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+              <p class="text-sm font-bold text-slate-950">3. Scannez la carte</p>
+              <p class="mt-2 text-sm leading-6 text-slate-500">Ajoutez un passage, des points ou utilisez une récompense.</p>
+            </div>
           </div>
         </section>
 
-        <details class="rounded-[1.5rem] border border-slate-200 bg-white/90 p-4 shadow-[0_22px_60px_-46px_rgba(15,23,42,0.4)]">
-          <summary class="cursor-pointer text-sm font-bold text-slate-900">Ouvrir sur un autre téléphone</summary>
-          <div class="mt-4">
-            <div class="mx-auto w-fit rounded-2xl border border-slate-200 bg-white p-2">
-              <img id="scanner-install-qr" src="" alt="QR code pour installer le scanner Fidelopass" class="h-40 w-40 rounded-xl" />
+        <aside class="space-y-5">
+          <section class="rounded-[1.5rem] border border-slate-200 bg-white/90 p-5 shadow-[0_22px_60px_-46px_rgba(15,23,42,0.4)]">
+            <p class="text-sm font-bold text-slate-950">Ouvrir sur un autre téléphone</p>
+            <div class="mt-4">
+              <div class="mx-auto w-fit rounded-2xl border border-slate-200 bg-white p-2">
+                <img id="scanner-install-qr" src="" alt="QR code pour ouvrir le scanner Fidelopass" class="h-40 w-40 rounded-xl" />
+              </div>
+              <p class="mt-4 text-center text-sm leading-6 text-slate-600">
+                Scannez ce QR avec le téléphone utilisé en caisse, connectez-vous, puis ouvrez le scanner.
+              </p>
             </div>
-            <p class="mt-4 text-center text-sm leading-6 text-slate-600">
-              Scannez ce QR avec le téléphone utilisé en caisse, puis connectez-vous au compte commerçant.
-            </p>
-            <a id="scanner-install-link" href="/app/install" class="mt-3 block text-center text-sm font-semibold text-sky-700 transition hover:text-sky-900">
-              Ouvrir le lien d’installation
-            </a>
-          </div>
-        </details>
-      </main>
+          </section>
 
-      <details class="mt-5 rounded-[1.5rem] border border-slate-200 bg-white/88 p-4 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.3)]">
-        <summary class="cursor-pointer text-sm font-bold text-slate-900">Ajouter l’icône à l’écran d’accueil</summary>
-        <div class="mt-4 grid gap-4 md:grid-cols-2">
-          <div class="rounded-2xl border border-sky-100 bg-sky-50 p-4">
-            <p class="font-semibold text-slate-900">iPhone</p>
+          <section class="rounded-[1.5rem] border border-sky-100 bg-sky-50 p-5">
+            <p class="text-sm font-bold text-slate-950">Ajouter l’icône sur iPhone</p>
             <ol class="mt-3 space-y-2 text-sm leading-6 text-slate-700">
               <li>1. Ouvrez cette page dans Safari.</li>
               <li>2. Touchez le bouton Partager.</li>
-              <li>3. Choisissez Sur l’écran d’accueil.</li>
+              <li>3. Choisissez “Sur l’écran d’accueil”.</li>
             </ol>
-          </div>
-          <div class="rounded-2xl border border-slate-200 bg-white p-4">
-            <p class="font-semibold text-slate-900">Android</p>
+          </section>
+
+          <section class="rounded-[1.5rem] border border-slate-200 bg-white p-5">
+            <p class="text-sm font-bold text-slate-950">Ajouter l’icône sur Android</p>
             <ol class="mt-3 space-y-2 text-sm leading-6 text-slate-700">
               <li>1. Ouvrez cette page dans Chrome.</li>
               <li>2. Ouvrez le menu du navigateur.</li>
-              <li>3. Touchez Installer l’application.</li>
+              <li>3. Touchez “Installer l’application”.</li>
             </ol>
-          </div>
-        </div>
-      </details>
+          </section>
+        </aside>
+      </main>
 
-      <details class="mt-4 rounded-[1.5rem] border border-slate-200 bg-white/80 p-4">
-        <summary class="cursor-pointer text-sm font-bold text-slate-900">Aide</summary>
-        <p class="mt-3 text-sm leading-6 text-slate-600">
-          Autorisez la caméra une première fois. Le scanner restera accessible depuis l’icône Fidelopass ou depuis le bouton Ouvrir le scanner.
+      <section class="mt-5 rounded-[1.5rem] border border-amber-200 bg-amber-50 px-5 py-4">
+        <p class="text-sm font-bold text-amber-950">Si la caméra ne s’ouvre pas</p>
+        <p class="mt-1 text-sm leading-6 text-amber-800">
+          Vérifiez que la page est ouverte en HTTPS, que la caméra est autorisée pour fidelopass.com, puis rechargez la page. Sur iPhone, Safari offre généralement le comportement le plus stable.
         </p>
-        <a href="/dashboard/parametres" class="mt-3 inline-flex text-sm font-semibold text-sky-700 transition hover:text-sky-900">
-          Voir mon compte
-        </a>
-      </details>
+      </section>
     </div>
   </div>
 </AppLayout>
 
 <script>
-  const registerBtn = document.getElementById('scanner-register-btn') as HTMLButtonElement;
-  const planBadge = document.getElementById('scanner-plan-badge') as HTMLSpanElement;
-  const usageText = document.getElementById('scanner-usage') as HTMLParagraphElement;
-  const remainingText = document.getElementById('scanner-remaining') as HTMLParagraphElement;
-  const limitMsg = document.getElementById('scanner-limit-msg') as HTMLParagraphElement;
-  const openScannerLink = document.getElementById('open-scanner-link') as HTMLAnchorElement;
   const scannerInstallQr = document.getElementById('scanner-install-qr') as HTMLImageElement | null;
-  const scannerInstallLink = document.getElementById('scanner-install-link') as HTMLAnchorElement | null;
 
-  function setupInstallQr() {
-    const installUrl = `${window.location.origin}/app/install`;
-    if (scannerInstallLink) scannerInstallLink.href = installUrl;
-    if (scannerInstallQr) {
-      scannerInstallQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=420x420&data=${encodeURIComponent(installUrl)}&bgcolor=ffffff&color=111827&qzone=1`;
-    }
+  const installUrl = `${window.location.origin}/app/install`;
+  if (scannerInstallQr) {
+    scannerInstallQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=420x420&data=${encodeURIComponent(installUrl)}&bgcolor=ffffff&color=111827&qzone=1`;
   }
-
-  function setScannerBlocked(blocked: boolean, message = '') {
-    openScannerLink.classList.toggle('pointer-events-none', blocked);
-    openScannerLink.classList.toggle('opacity-50', blocked);
-    registerBtn.disabled = blocked;
-    if (message) {
-      limitMsg.textContent = message;
-      limitMsg.classList.remove('hidden');
-    } else {
-      limitMsg.classList.add('hidden');
-    }
-  }
-
-  function loadScannerStatus() {
-    planBadge.textContent = 'Illimité';
-    usageText.textContent = 'Scanner disponible';
-    remainingText.textContent = 'Scanners illimités inclus. Toute personne connectée au compte commerçant peut utiliser le scanner caméra.';
-    registerBtn.textContent = 'Ouvrir le scanner';
-    setScannerBlocked(false);
-  }
-
-  registerBtn.addEventListener('click', () => {
-    window.location.assign('/app/scan');
-  });
-
-  loadScannerStatus();
-  setupInstallQr();
 </script>

@@ -22,8 +22,29 @@ import AppLayout from '../../layouts/AppLayout.astro';
     <div class="flex-1 flex flex-col items-center justify-center px-4 pb-5">
       <div class="relative w-full max-w-sm">
         <div class="scanner-reader-shell rounded-[2rem] border border-sky-100 bg-white p-3 shadow-[0_32px_70px_-42px_rgba(59,130,246,0.45)]">
-          <div id="reader" class="scanner-reader w-full aspect-[4/5] rounded-[1.4rem] overflow-hidden border border-sky-100 bg-slate-950"></div>
-          <div class="pointer-events-none absolute inset-[1.35rem] rounded-[1.4rem] border border-white/70 shadow-[0_0_30px_rgba(59,130,246,0.28)]"></div>
+          <div class="scanner-reader-frame relative overflow-hidden rounded-[1.4rem] border border-sky-100 bg-slate-950">
+            <div id="reader" class="scanner-reader absolute inset-0"></div>
+            <div id="scanner-launch" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950 px-6 text-center text-white">
+              <div class="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-sky-200 shadow-[0_20px_60px_-30px_rgba(56,189,248,0.8)]">
+                <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M7 7h2M15 7h2M7 17h2M15 17h2M5 10V8a3 3 0 0 1 3-3h2M19 10V8a3 3 0 0 0-3-3h-2M5 14v2a3 3 0 0 0 3 3h2M19 14v2a3 3 0 0 1-3 3h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+              </div>
+              <p id="scanner-launch-title" class="font-display text-xl font-bold">Scanner caméra</p>
+              <p id="scanner-launch-text" class="mt-2 max-w-[15rem] text-sm leading-6 text-slate-300">
+                Touchez le bouton pour autoriser la caméra et scanner une carte client.
+              </p>
+              <button id="btn-start-camera" type="button" class="mt-5 inline-flex min-h-12 w-full max-w-[15rem] items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-bold text-slate-950 shadow-[0_18px_45px_-25px_rgba(255,255,255,0.75)] transition hover:-translate-y-0.5 hover:bg-sky-50 active:translate-y-0">
+                Démarrer le scanner
+              </button>
+            </div>
+            <div id="scanner-loading" class="hidden absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950/92 px-6 text-center text-white">
+              <div class="h-10 w-10 animate-spin rounded-full border-2 border-white/20 border-t-sky-300"></div>
+              <p class="mt-4 text-sm font-semibold">Ouverture de la caméra...</p>
+              <p class="mt-1 text-xs text-slate-300">Acceptez la demande du navigateur si elle apparaît.</p>
+            </div>
+            <div class="pointer-events-none absolute inset-4 z-10 rounded-[1.15rem] border border-white/70 shadow-[0_0_30px_rgba(59,130,246,0.28)]"></div>
+          </div>
         </div>
       </div>
       <div class="mt-4 w-full max-w-sm text-center">
@@ -102,8 +123,12 @@ import AppLayout from '../../layouts/AppLayout.astro';
     position: relative;
   }
 
+  .scanner-reader-frame {
+    aspect-ratio: 4 / 5;
+  }
+
   .scanner-reader {
-    position: relative !important;
+    position: absolute !important;
     display: block !important;
     contain: layout paint !important;
     line-height: 0 !important;
@@ -189,6 +214,11 @@ import AppLayout from '../../layouts/AppLayout.astro';
   const cameraHelp = document.getElementById('camera-help')!;
   const cameraHelpText = document.getElementById('camera-help-text')!;
   const cameraPermissionBtn = document.getElementById('btn-camera-permission') as HTMLButtonElement;
+  const startCameraBtn = document.getElementById('btn-start-camera') as HTMLButtonElement;
+  const scannerLaunch = document.getElementById('scanner-launch')!;
+  const scannerLaunchTitle = document.getElementById('scanner-launch-title')!;
+  const scannerLaunchText = document.getElementById('scanner-launch-text')!;
+  const scannerLoading = document.getElementById('scanner-loading')!;
   const scanToast = document.getElementById('scan-toast')!;
   let scanner: ScannerInstance | null = null;
   let html5QrcodeModule: Html5QrcodeModule | null = null;
@@ -198,7 +228,6 @@ import AppLayout from '../../layouts/AppLayout.astro';
   const API_TIMEOUT_MS = Number(import.meta.env.PUBLIC_API_FETCH_TIMEOUT_MS ?? 8000);
   const scanConfigBase = {
     fps: 15,
-    aspectRatio: 4 / 5,
     disableFlip: true,
     experimentalFeatures: {
       useBarCodeDetectorIfSupported: true,
@@ -234,7 +263,12 @@ import AppLayout from '../../layouts/AppLayout.astro';
   async function loadScannerModule() {
     if (html5QrcodeModule) return html5QrcodeModule;
     if (!scannerModulePromise) {
-      scannerModulePromise = import('html5-qrcode').then((module) => module as unknown as Html5QrcodeModule);
+      scannerModulePromise = import('html5-qrcode')
+        .then((module) => module as unknown as Html5QrcodeModule)
+        .catch((error) => {
+          scannerModulePromise = null;
+          throw error;
+        });
     }
     html5QrcodeModule = await scannerModulePromise;
     return html5QrcodeModule;
@@ -249,6 +283,27 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
   function setScannerStatus(message: string) {
     scannerStatus.textContent = message;
+  }
+
+  function showLaunchOverlay(title: string, text: string, buttonText = 'Démarrer le scanner') {
+    scannerLaunchTitle.textContent = title;
+    scannerLaunchText.textContent = text;
+    startCameraBtn.textContent = buttonText;
+    startCameraBtn.disabled = false;
+    scannerLoading.classList.add('hidden');
+    scannerLaunch.classList.remove('hidden');
+  }
+
+  function showScannerLoading() {
+    startCameraBtn.disabled = true;
+    scannerLaunch.classList.add('hidden');
+    scannerLoading.classList.remove('hidden');
+  }
+
+  function hideScannerOverlays() {
+    scannerLaunch.classList.add('hidden');
+    scannerLoading.classList.add('hidden');
+    startCameraBtn.disabled = false;
   }
 
   function getAudioContext() {
@@ -368,9 +423,14 @@ import AppLayout from '../../layouts/AppLayout.astro';
     scannerStarting = true;
     scannerPaused = false;
     hideCameraHelp();
+    showScannerLoading();
     setScannerStatus('Chargement du scanner...');
 
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('La caméra n’est pas disponible dans ce navigateur. Ouvrez cette page en HTTPS dans Safari ou Chrome.');
+      }
+
       const qrScanner = await ensureScannerInstance();
       setScannerStatus('Ouverture de la caméra...');
       const rememberedCameraId = readRememberedCameraId();
@@ -392,6 +452,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
           } else {
             getRearCameraId().then((rearCameraId) => rememberCameraId(rearCameraId)).catch(() => {});
           }
+          hideScannerOverlays();
           setScannerStatus('Scanner prêt. Placez le QR code dans l’image.');
           return;
         } catch (error) {
@@ -403,7 +464,14 @@ import AppLayout from '../../layouts/AppLayout.astro';
       throw lastError ?? new Error('Caméra indisponible.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Caméra indisponible.';
-      setScannerStatus('Caméra non autorisée.');
+      setScannerStatus('Caméra à autoriser.');
+      showLaunchOverlay(
+        'Caméra non ouverte',
+        fromUserAction
+          ? 'La caméra n’a pas pu démarrer. Vérifiez l’autorisation caméra du navigateur, puis réessayez.'
+          : 'Touchez le bouton pour ouvrir la caméra.',
+        'Réessayer'
+      );
       showCameraHelp(
         fromUserAction
           ? `${message} Si vous avez refusé, activez la caméra dans les réglages du navigateur puis rechargez la page.`
@@ -579,8 +647,26 @@ import AppLayout from '../../layouts/AppLayout.astro';
   cameraPermissionBtn.addEventListener('click', async () => {
     await startScanner({ fromUserAction: true });
   });
+  startCameraBtn.addEventListener('click', async () => {
+    await startScanner({ fromUserAction: true });
+  });
 
-  (async () => {
-    await startScanner();
-  })();
+  setScannerStatus('Prêt à démarrer.');
+  if (!navigator.mediaDevices?.getUserMedia) {
+    setScannerStatus('Caméra indisponible.');
+    showLaunchOverlay(
+      'Caméra indisponible',
+      'Ouvrez cette page en HTTPS dans Safari ou Chrome, puis autorisez la caméra.',
+      'Réessayer'
+    );
+  } else {
+    loadScannerModule().catch(() => {
+      setScannerStatus('Scanner indisponible.');
+      showLaunchOverlay(
+        'Scanner indisponible',
+        'Le module caméra n’a pas pu charger. Vérifiez la connexion puis rechargez la page.',
+        'Réessayer'
+      );
+    });
+  }
 </script>

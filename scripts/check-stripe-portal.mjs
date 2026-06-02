@@ -6,13 +6,10 @@ import { resolve } from 'node:path';
 const PLAN_PRICE_SLOTS = [
   'starter_mensuel',
   'starter_annuel_once',
-  'starter_annuel_mensuel',
   'pro_mensuel',
   'pro_annuel_once',
-  'pro_annuel_mensuel',
   'business_mensuel',
   'business_annuel_once',
-  'business_annuel_mensuel',
 ];
 
 function loadPriceIds() {

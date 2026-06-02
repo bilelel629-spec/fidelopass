@@ -80,17 +80,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   type Selection = {
     plan: 'starter' | 'pro' | 'business';
     mode: 'monthly' | 'annual';
-    annualPaymentType?: 'subscription' | 'payment';
     checkoutMode?: 'subscription' | 'payment';
     priceSlot?:
       | 'starter_mensuel'
-      | 'starter_annuel_mensuel'
       | 'starter_annuel_once'
       | 'pro_mensuel'
-      | 'pro_annuel_mensuel'
       | 'pro_annuel_once'
       | 'business_mensuel'
-      | 'business_annuel_mensuel'
       | 'business_annuel_once';
     priceId: string;
     setupRequested?: boolean;
@@ -106,7 +102,6 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       if (parsed.plan !== 'starter' && parsed.plan !== 'pro' && parsed.plan !== 'business') return null;
       if (parsed.mode !== 'monthly' && parsed.mode !== 'annual') return null;
       if (parsed.checkoutMode && parsed.checkoutMode !== 'subscription' && parsed.checkoutMode !== 'payment') return null;
-      if (parsed.annualPaymentType && parsed.annualPaymentType !== 'subscription' && parsed.annualPaymentType !== 'payment') return null;
       return parsed as Selection;
     } catch {
       return null;
@@ -172,14 +167,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       const payload = await res.json().catch(() => null);
       const lookup = {
         starter_mensuel: payload?.data?.starter?.monthly,
-        starter_annuel_mensuel: payload?.data?.starter?.annual_monthly,
-        starter_annuel_once: payload?.data?.starter?.annual_once,
+        starter_annuel_once: payload?.data?.starter?.annual ?? payload?.data?.starter?.annual_once,
         pro_mensuel: payload?.data?.pro?.monthly,
-        pro_annuel_mensuel: payload?.data?.pro?.annual_monthly,
-        pro_annuel_once: payload?.data?.pro?.annual_once,
+        pro_annuel_once: payload?.data?.pro?.annual ?? payload?.data?.pro?.annual_once,
         business_mensuel: payload?.data?.business?.monthly,
-        business_annuel_mensuel: payload?.data?.business?.annual_monthly,
-        business_annuel_once: payload?.data?.business?.annual_once,
+        business_annuel_once: payload?.data?.business?.annual ?? payload?.data?.business?.annual_once,
       } as const;
       const slot = selection.priceSlot;
       if (!slot || !lookup[slot]) return selection;

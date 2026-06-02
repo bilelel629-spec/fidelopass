@@ -47,22 +47,20 @@ async function run() {
 
   const entries = [
     toEntry('starter.monthly', data?.starter?.monthly),
-    toEntry('starter.annual_monthly', data?.starter?.annual_monthly),
-    toEntry('starter.annual_once', data?.starter?.annual_once),
+    toEntry('starter.annual', data?.starter?.annual ?? data?.starter?.annual_once),
     toEntry('pro.monthly', data?.pro?.monthly),
-    toEntry('pro.annual_monthly', data?.pro?.annual_monthly),
-    toEntry('pro.annual_once', data?.pro?.annual_once),
+    toEntry('pro.annual', data?.pro?.annual ?? data?.pro?.annual_once),
+    toEntry('business.monthly', data?.business?.monthly),
+    toEntry('business.annual', data?.business?.annual ?? data?.business?.annual_once),
   ];
 
-  const starterAny = entries
-    .filter((entry) => entry.label.startsWith('starter.'))
-    .some((entry) => entry.available && Boolean(entry.priceId));
-  const proAny = entries
-    .filter((entry) => entry.label.startsWith('pro.'))
-    .some((entry) => entry.available && Boolean(entry.priceId));
+  const requiredPlans = ['starter', 'pro', 'business'];
+  const unusablePlans = requiredPlans.filter((plan) => !entries
+    .filter((entry) => entry.label.startsWith(`${plan}.`))
+    .some((entry) => entry.available && Boolean(entry.priceId)));
 
-  if (!starterAny || !proAny) {
-    console.error('❌ Starter/Pro non exploitables dans pricing-config.');
+  if (unusablePlans.length > 0) {
+    console.error(`❌ Plans non exploitables dans pricing-config: ${unusablePlans.join(', ')}`);
     process.exit(1);
   }
 
@@ -138,4 +136,3 @@ run().catch((error) => {
   console.error('❌ Erreur validation checkout', error);
   process.exit(1);
 });
-

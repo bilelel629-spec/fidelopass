@@ -40,13 +40,10 @@ export const PRICE_SLOTS: PriceSlot[] = [
 export const PLAN_PRICE_SLOTS: PriceSlot[] = [
   'starter_mensuel',
   'starter_annuel_once',
-  'starter_annuel_mensuel',
   'pro_mensuel',
   'pro_annuel_once',
-  'pro_annuel_mensuel',
   'business_mensuel',
   'business_annuel_once',
-  'business_annuel_mensuel',
 ];
 
 export const LEGACY_PRICE_IDS: Record<PriceSlot, string[]> = {
@@ -90,7 +87,14 @@ export function resolveStripeRuntimeMode(): 'test' | 'live' | 'unknown' {
   return 'unknown';
 }
 
+export function isProductionRuntime() {
+  const nodeEnv = String(process.env.NODE_ENV ?? '').toLowerCase();
+  const railwayEnv = String(process.env.RAILWAY_ENVIRONMENT_NAME ?? process.env.RAILWAY_ENVIRONMENT ?? '').toLowerCase();
+  return nodeEnv === 'production' || railwayEnv === 'production';
+}
+
 export function resolveStripePriceIdsFile() {
+  if (isProductionRuntime()) return 'stripe-price-ids.json';
   return resolveStripeRuntimeMode() === 'test' ? 'stripe-price-ids.test.json' : 'stripe-price-ids.json';
 }
 
@@ -119,8 +123,19 @@ function isLegacyPriceId(slot: PriceSlot, priceId: string) {
 export function getStripe(config?: ConstructorParameters<typeof Stripe>[1]) {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error('STRIPE_SECRET_KEY manquant');
+  if (isProductionRuntime() && key.startsWith('sk_test_')) {
+    throw new Error('Clé Stripe test interdite en production. Configurez STRIPE_SECRET_KEY avec une clé sk_live_.');
+  }
   return new Stripe(key, config);
 }
+
+type CanonicalPriceConfig = {
+  productName: string;
+  productDescription: string;
+  amount: number;
+  lookupKey: string;
+  recurring?: { interval: 'month' | 'year' };
+};
 
 const STRIPE_CANONICAL_PRICE_CONFIG = {
   starter_mensuel: {
@@ -171,13 +186,7 @@ const STRIPE_CANONICAL_PRICE_CONFIG = {
     amount: 9000,
     lookupKey: 'fidelopass_setup_assistance',
   },
-} satisfies Partial<Record<PriceSlot, {
-  productName: string;
-  productDescription: string;
-  amount: number;
-  lookupKey: string;
-  recurring?: { interval: 'month' | 'year' };
-}>>;
+} satisfies Partial<Record<PriceSlot, CanonicalPriceConfig>>;
 
 let testPriceIdsPromise: Promise<Partial<Record<PriceSlot, string>>> | null = null;
 
@@ -191,7 +200,7 @@ async function findCanonicalProduct(stripe: Stripe, name: string) {
 
 async function ensureCanonicalProduct(
   stripe: Stripe,
-  config: (typeof STRIPE_CANONICAL_PRICE_CONFIG)[keyof typeof STRIPE_CANONICAL_PRICE_CONFIG],
+  config: CanonicalPriceConfig,
 ) {
   const existing = await findCanonicalProduct(stripe, config.productName);
   if (existing) return existing;
@@ -213,7 +222,7 @@ async function findCanonicalPrice(stripe: Stripe, lookupKey: string) {
 
 function priceMatchesCanonicalConfig(
   price: Stripe.Price,
-  config: (typeof STRIPE_CANONICAL_PRICE_CONFIG)[keyof typeof STRIPE_CANONICAL_PRICE_CONFIG],
+  config: CanonicalPriceConfig,
 ) {
   const expectedType = config.recurring ? 'recurring' : 'one_time';
   return price.active
@@ -226,7 +235,7 @@ function priceMatchesCanonicalConfig(
 async function findEquivalentCanonicalPrice(
   stripe: Stripe,
   productId: string,
-  config: (typeof STRIPE_CANONICAL_PRICE_CONFIG)[keyof typeof STRIPE_CANONICAL_PRICE_CONFIG],
+  config: CanonicalPriceConfig,
 ) {
   const prices = await stripe.prices.list({
     product: productId,
@@ -240,7 +249,7 @@ async function ensureCanonicalPrice(
   stripe: Stripe,
   productId: string,
   slot: PriceSlot,
-  config: (typeof STRIPE_CANONICAL_PRICE_CONFIG)[keyof typeof STRIPE_CANONICAL_PRICE_CONFIG],
+  config: CanonicalPriceConfig,
 ) {
   const equivalent = await findEquivalentCanonicalPrice(stripe, productId, config);
   if (equivalent) return equivalent;
@@ -262,10 +271,7 @@ async function ensureCanonicalPrice(
 async function createCanonicalTestPriceIds(stripe: Stripe) {
   const ids: Partial<Record<PriceSlot, string>> = {};
 
-  for (const [slot, config] of Object.entries(STRIPE_CANONICAL_PRICE_CONFIG) as Array<[
-    keyof typeof STRIPE_CANONICAL_PRICE_CONFIG,
-    (typeof STRIPE_CANONICAL_PRICE_CONFIG)[keyof typeof STRIPE_CANONICAL_PRICE_CONFIG],
-  ]>) {
+  for (const [slot, config] of Object.entries(STRIPE_CANONICAL_PRICE_CONFIG) as Array<[PriceSlot, CanonicalPriceConfig]>) {
     const product = await ensureCanonicalProduct(stripe, config);
     const price = await ensureCanonicalPrice(stripe, product.id, slot, config);
     ids[slot] = price.id;
@@ -280,6 +286,7 @@ export async function loadRuntimePriceIds(stripe?: Stripe) {
 
   if (
     diagnostics.stripeMode !== 'test'
+    || isProductionRuntime()
     || diagnostics.missingRequiredSlots.length === 0
     || !stripe
   ) {

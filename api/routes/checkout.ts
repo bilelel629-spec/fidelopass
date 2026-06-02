@@ -15,6 +15,7 @@ import {
   resolvePlanFromSlot,
   resolveUsablePriceId,
   LEGACY_PRICE_IDS,
+  loadPriceIds,
 } from '../services/stripe-billing';
 
 export const checkoutRoutes = new Hono<ApiEnv>();
@@ -41,29 +42,44 @@ function pricingItem(slot: string, priceIds: Record<string, string>) {
 
 /** GET /api/checkout/pricing-config */
 checkoutRoutes.get('/pricing-config', authMiddleware, async (c) => {
-  const priceIds = await loadRuntimePriceIds(getStripe({ maxNetworkRetries: 1 }));
-  const meta = getPriceIdsDiagnostics(priceIds);
-  if (meta.missingRequiredSlots.length > 0) {
-    console.warn('[checkout] pricing-config missing required slots', meta);
+  let priceIds: Record<PriceSlot, string>;
+  let meta: ReturnType<typeof getPriceIdsDiagnostics>;
+  try {
+    priceIds = await loadRuntimePriceIds();
+    meta = getPriceIdsDiagnostics(priceIds);
+    if (meta.missingRequiredSlots.length > 0) {
+      console.warn('[checkout] pricing-config missing required slots', meta);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Configuration Stripe indisponible.';
+    console.error('[checkout] pricing-config error:', message);
+    priceIds = loadPriceIds();
+    meta = getPriceIdsDiagnostics(priceIds);
   }
+  const starterAnnual = pricingItem('starter_annuel_once', priceIds);
+  const proAnnual = pricingItem('pro_annuel_once', priceIds);
+  const businessAnnual = pricingItem('business_annuel_once', priceIds);
   return c.json({
     degraded: meta.missingRequiredSlots.length > 0,
     meta,
     data: {
       starter: {
         monthly: pricingItem('starter_mensuel', priceIds),
-        annual_monthly: pricingItem('starter_annuel_mensuel', priceIds),
-        annual_once: pricingItem('starter_annuel_once', priceIds),
+        annual: starterAnnual,
+        annual_once: starterAnnual,
+        annual_monthly: null,
       },
       pro: {
         monthly: pricingItem('pro_mensuel', priceIds),
-        annual_monthly: pricingItem('pro_annuel_mensuel', priceIds),
-        annual_once: pricingItem('pro_annuel_once', priceIds),
+        annual: proAnnual,
+        annual_once: proAnnual,
+        annual_monthly: null,
       },
       business: {
         monthly: pricingItem('business_mensuel', priceIds),
-        annual_monthly: pricingItem('business_annuel_mensuel', priceIds),
-        annual_once: pricingItem('business_annuel_once', priceIds),
+        annual: businessAnnual,
+        annual_once: businessAnnual,
+        annual_monthly: null,
       },
       addons: {
         accompagnement: pricingItem('accompagnement', priceIds),

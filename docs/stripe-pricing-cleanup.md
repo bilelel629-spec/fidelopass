@@ -88,9 +88,15 @@ Le script bloque automatiquement l'archivage d'un Price s'il détecte un abonnem
 L'application choisit automatiquement le fichier selon `STRIPE_SECRET_KEY`:
 
 - `sk_live_...` => `stripe-price-ids.json`.
-- `sk_test_...` => `stripe-price-ids.test.json`.
+- `sk_test_...` => `stripe-price-ids.test.json` seulement hors production.
 
-Si une clé test est utilisée sans `stripe-price-ids.test.json`, l'API crée ou réutilise automatiquement des prix test canoniques. Les Price IDs live ne sont jamais envoyés à Stripe test.
+En production Railway, une clé `sk_test_...` est refusée. Il faut configurer:
+
+- `STRIPE_SECRET_KEY=sk_live_...`
+- `STRIPE_WEBHOOK_SECRET=whsec_...` depuis l'endpoint webhook live Stripe
+- `PUBLIC_SITE_URL=https://www.fidelopass.com`
+
+Si une clé test est utilisée hors production sans `stripe-price-ids.test.json`, l'API crée ou réutilise automatiquement des prix test canoniques. Les Price IDs live ne sont jamais envoyés à Stripe test.
 
 ## Créer la grille test
 

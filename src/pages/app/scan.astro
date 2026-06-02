@@ -165,9 +165,11 @@ import AppLayout from '../../layouts/AppLayout.astro';
     BarcodeFormat,
     BinaryBitmap,
     DecodeHintType,
+    GlobalHistogramBinarizer,
+    HTMLCanvasElementLuminanceSource,
     HybridBinarizer,
     MultiFormatReader,
-    RGBLuminanceSource,
+    MultiFormatOneDReader,
   } from '@zxing/library';
 
   let currentClientId: string | null = null;
@@ -180,13 +182,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
   let mediaStream: MediaStream | null = null;
   let scanFrameId: number | null = null;
   let lastDecodeAttemptAt = 0;
-  const barcodeReader = new MultiFormatReader();
-  const barcodeHints = new Map<DecodeHintType, unknown>();
-  barcodeHints.set(DecodeHintType.POSSIBLE_FORMATS, [
-    BarcodeFormat.QR_CODE,
+  const ONE_D_BARCODE_FORMATS = [
     BarcodeFormat.CODE_128,
-    BarcodeFormat.PDF_417,
-    BarcodeFormat.AZTEC,
     BarcodeFormat.EAN_13,
     BarcodeFormat.EAN_8,
     BarcodeFormat.UPC_A,
@@ -195,9 +192,23 @@ import AppLayout from '../../layouts/AppLayout.astro';
     BarcodeFormat.CODE_93,
     BarcodeFormat.ITF,
     BarcodeFormat.CODABAR,
-  ]);
-  barcodeHints.set(DecodeHintType.TRY_HARDER, true);
-  barcodeReader.setHints(barcodeHints);
+  ];
+  const TWO_D_BARCODE_FORMATS = [
+    BarcodeFormat.QR_CODE,
+    BarcodeFormat.PDF_417,
+    BarcodeFormat.AZTEC,
+  ];
+  const oneDBarcodeHints = new Map<DecodeHintType, unknown>();
+  oneDBarcodeHints.set(DecodeHintType.POSSIBLE_FORMATS, ONE_D_BARCODE_FORMATS);
+  oneDBarcodeHints.set(DecodeHintType.TRY_HARDER, true);
+  oneDBarcodeHints.set(DecodeHintType.ENABLE_CODE_39_EXTENDED_MODE, true);
+  const multiBarcodeHints = new Map<DecodeHintType, unknown>();
+  multiBarcodeHints.set(DecodeHintType.POSSIBLE_FORMATS, [...TWO_D_BARCODE_FORMATS, ...ONE_D_BARCODE_FORMATS]);
+  multiBarcodeHints.set(DecodeHintType.TRY_HARDER, true);
+  multiBarcodeHints.set(DecodeHintType.ENABLE_CODE_39_EXTENDED_MODE, true);
+  const oneDBarcodeReader = new MultiFormatOneDReader(oneDBarcodeHints);
+  const multiBarcodeReader = new MultiFormatReader();
+  multiBarcodeReader.setHints(multiBarcodeHints);
 
   const scannerStatus = document.getElementById('scanner-status')!;
   const cameraHelp = document.getElementById('camera-help')!;
@@ -212,6 +223,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
   const cameraVideo = document.getElementById('camera-video') as HTMLVideoElement;
   const scanCanvas = document.getElementById('scan-canvas') as HTMLCanvasElement;
   const scanContext = scanCanvas.getContext('2d', { willReadFrequently: true });
+  const barcodeCanvas = document.createElement('canvas');
+  const barcodeContext = barcodeCanvas.getContext('2d', { willReadFrequently: true });
   const zoomControl = document.getElementById('scanner-zoom-control')!;
   const zoomButtons = Array.from(document.querySelectorAll('.scanner-zoom-btn')) as HTMLButtonElement[];
   let scannerStarting = false;
@@ -222,16 +235,77 @@ import AppLayout from '../../layouts/AppLayout.astro';
   const CAMERA_CACHE_KEY = 'fidelopass_scanner_camera_id';
   const API_TIMEOUT_MS = Number(import.meta.env.PUBLIC_API_FETCH_TIMEOUT_MS ?? 8000);
   const DECODE_INTERVAL_MS = 120;
-  const MAX_DECODE_WIDTH = 900;
+  const MAX_QR_DECODE_WIDTH = 900;
+  const MAX_BARCODE_DECODE_WIDTH = 1600;
+  const BARCODE_SCAN_STRIPS = [
+    { y: 0.18, height: 0.28 },
+    { y: 0.30, height: 0.28 },
+    { y: 0.42, height: 0.28 },
+    { y: 0.54, height: 0.28 },
+    { y: 0.66, height: 0.24 },
+  ];
 
-  function decodeMultiFormatBarcode(imageData: ImageData, width: number, height: number) {
+  function createBinaryBitmapFromCanvas(canvas: HTMLCanvasElement, options: { globalHistogram?: boolean; inverted?: boolean } = {}) {
+    const source = new HTMLCanvasElementLuminanceSource(canvas, false);
+    const luminanceSource = options.inverted ? source.invert() : source;
+    const binarizer = options.globalHistogram
+      ? new GlobalHistogramBinarizer(luminanceSource)
+      : new HybridBinarizer(luminanceSource);
+    return new BinaryBitmap(binarizer);
+  }
+
+  function readDecodedText(result: { getText?: () => string | null } | null | undefined) {
+    const value = result?.getText?.()?.trim();
+    return value || null;
+  }
+
+  function decodeOneDBarcodeCanvas(canvas: HTMLCanvasElement, options: { exhaustive?: boolean } = {}) {
+    const attempts = [
+      () => oneDBarcodeReader.decode(createBinaryBitmapFromCanvas(canvas, { globalHistogram: true }), oneDBarcodeHints),
+      () => oneDBarcodeReader.decode(createBinaryBitmapFromCanvas(canvas, { globalHistogram: true, inverted: true }), oneDBarcodeHints),
+      ...(options.exhaustive
+        ? [
+            () => oneDBarcodeReader.decode(createBinaryBitmapFromCanvas(canvas), oneDBarcodeHints),
+            () => oneDBarcodeReader.decode(createBinaryBitmapFromCanvas(canvas, { inverted: true }), oneDBarcodeHints),
+          ]
+        : []),
+    ];
+
+    for (const attempt of attempts) {
+      try {
+        const decodedText = readDecodedText(attempt());
+        if (decodedText) return decodedText;
+      } catch {
+        // On tente la stratégie suivante.
+      }
+    }
+
+    return null;
+  }
+
+  function decodeMultiFormatCanvas(canvas: HTMLCanvasElement) {
     try {
-      const luminanceSource = new RGBLuminanceSource(imageData.data, width, height);
-      const binaryBitmap = new BinaryBitmap(new HybridBinarizer(luminanceSource));
-      const result = barcodeReader.decodeWithState(binaryBitmap);
-      return result.getText()?.trim() || null;
+      const decodedText = readDecodedText(multiBarcodeReader.decodeWithState(createBinaryBitmapFromCanvas(canvas)));
+      if (decodedText) return decodedText;
+    } catch {
+      // On tente aussi l'image inversée, utile avec certains visuels Wallet.
+    }
+
+    try {
+      return readDecodedText(multiBarcodeReader.decodeWithState(createBinaryBitmapFromCanvas(canvas, { inverted: true })));
     } catch {
       return null;
+    }
+  }
+
+  function decodeBarcodeCanvas(canvas: HTMLCanvasElement) {
+    return decodeOneDBarcodeCanvas(canvas, { exhaustive: true }) || decodeMultiFormatCanvas(canvas);
+  }
+
+  function resizeCanvas(canvas: HTMLCanvasElement, width: number, height: number) {
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
     }
   }
 
@@ -495,20 +569,51 @@ import AppLayout from '../../layouts/AppLayout.astro';
     const cropHeight = Math.max(1, Math.round(sourceHeight / decodeZoom));
     const cropX = Math.max(0, Math.round((sourceWidth - cropWidth) / 2));
     const cropY = Math.max(0, Math.round((sourceHeight - cropHeight) / 2));
-    const targetWidth = Math.min(MAX_DECODE_WIDTH, cropWidth);
+    const targetWidth = Math.min(MAX_QR_DECODE_WIDTH, cropWidth);
     const targetHeight = Math.round((targetWidth / cropWidth) * cropHeight);
-    if (scanCanvas.width !== targetWidth || scanCanvas.height !== targetHeight) {
-      scanCanvas.width = targetWidth;
-      scanCanvas.height = targetHeight;
-    }
+    resizeCanvas(scanCanvas, targetWidth, targetHeight);
 
     scanContext.drawImage(cameraVideo, cropX, cropY, cropWidth, cropHeight, 0, 0, targetWidth, targetHeight);
     const imageData = scanContext.getImageData(0, 0, targetWidth, targetHeight);
     const code = jsQR(imageData.data, targetWidth, targetHeight, {
       inversionAttempts: 'attemptBoth',
     });
+    const qrText = code?.data?.trim();
+    if (qrText) return qrText;
 
-    return code?.data?.trim() || decodeMultiFormatBarcode(imageData, targetWidth, targetHeight);
+    const fullFrameBarcode = decodeBarcodeCanvas(scanCanvas);
+    if (fullFrameBarcode) return fullFrameBarcode;
+
+    if (!barcodeContext) return null;
+
+    for (const strip of BARCODE_SCAN_STRIPS) {
+      const stripSourceY = cropY + Math.max(0, Math.round(cropHeight * strip.y));
+      const stripSourceHeight = Math.min(
+        sourceHeight - stripSourceY,
+        Math.max(80, Math.round(cropHeight * strip.height)),
+      );
+      if (stripSourceHeight <= 0) continue;
+
+      const stripTargetWidth = Math.min(MAX_BARCODE_DECODE_WIDTH, cropWidth);
+      const stripTargetHeight = Math.max(90, Math.round((stripTargetWidth / cropWidth) * stripSourceHeight));
+      resizeCanvas(barcodeCanvas, stripTargetWidth, stripTargetHeight);
+      barcodeContext.drawImage(
+        cameraVideo,
+        cropX,
+        stripSourceY,
+        cropWidth,
+        stripSourceHeight,
+        0,
+        0,
+        stripTargetWidth,
+        stripTargetHeight,
+      );
+
+      const decodedStrip = decodeOneDBarcodeCanvas(barcodeCanvas);
+      if (decodedStrip) return decodedStrip;
+    }
+
+    return null;
   }
 
   function scanFrame(timestamp: number) {

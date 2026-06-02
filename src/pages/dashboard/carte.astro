@@ -165,10 +165,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             {name:'Coiffeur', badge:'CF', fond:'#1d1f1e', texte:'#f8fafc', accent:'#f8fafc', fond2:'#111827', pattern:'none', layout:'background', stamp:'✂️', type:'tampons', total:'8', reward:'1 coupe offerte', label:'Client', desc:'Une coupe offerte après 8 passages', message:'Votre salon vous attend.', banner:'/banner-templates/template-17.png'},
             {name:'Nail salon', badge:'NA', fond:'#fff0e5', texte:'#df652a', accent:'#f5be9e', fond2:'#fee1d0', pattern:'none', layout:'background', stamp:'💅', type:'tampons', total:'8', reward:'1 nail art offert', label:'Cliente', desc:'Votre carte privilège nail salon', message:'Votre avantage beauté est disponible.', banner:'/banner-templates/nail-art.png'},
             {name:'Sport & coaching', badge:'SP', fond:'#045698', texte:'#ffffff', accent:'#dee7e6', fond2:'#0c4a6e', pattern:'none', layout:'background', stamp:'🏆', type:'points', total:'10', reward:'1 séance offerte', label:'Athlète', desc:'Transformez vos visites en récompenses', message:'Votre coach vous attend.', banner:'/banner-templates/template-06.png'},
-          ].map((preset, index) => (
+          ].map((preset) => (
             <button
               type="button"
-              class={`business-template-btn text-left rounded-[1.4rem] border border-sky-100 bg-gradient-to-br from-white to-sky-50/60 p-4 transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_24px_55px_-36px_rgba(59,130,246,0.45)] ${index >= 4 ? 'template-extra hidden' : ''}`}
+              class="business-template-btn text-left rounded-[1.4rem] border border-sky-100 bg-gradient-to-br from-white to-sky-50/60 p-4 transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_24px_55px_-36px_rgba(59,130,246,0.45)]"
               data-name={preset.name}
               data-icon={preset.badge}
               data-fond={preset.fond}
@@ -186,20 +186,34 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               data-message={preset.message}
               data-banner={preset.banner}
             >
-              <div class="flex items-center gap-3">
-                <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-sm font-bold tracking-[0.12em] text-sky-700">{preset.badge}</span>
-                <div>
-                  <p class="text-sm font-semibold text-slate-900">{preset.name}</p>
-                  <p class="mt-0.5 text-xs text-slate-500">{preset.reward}</p>
+              <div class="relative h-28 overflow-hidden rounded-[1.05rem] border border-white bg-slate-100 shadow-inner" style={`background:linear-gradient(135deg,${preset.fond},${preset.fond2})`}>
+                {preset.banner && (
+                  <img src={preset.banner} alt="" class="absolute inset-0 h-full w-full object-cover opacity-70" />
+                )}
+                <div class="absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,rgba(255,255,255,0.22),transparent_28%),radial-gradient(circle_at_88%_18%,rgba(255,255,255,0.16),transparent_30%)]"></div>
+                <div class="absolute inset-x-3 top-3 flex items-center justify-between gap-2">
+                  <span class="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/25 bg-white/20 text-lg shadow-sm backdrop-blur">{preset.stamp}</span>
+                  <span class="rounded-full bg-white/90 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.12em] shadow-sm" style={`color:${preset.fond}`}>
+                    {preset.type === 'points' ? 'Points' : `${preset.total} tampons`}
+                  </span>
+                </div>
+                <div class="absolute inset-x-3 bottom-3">
+                  <p class="truncate text-sm font-black tracking-[-0.02em]" style={`color:${preset.texte}`}>{preset.name}</p>
+                  <div class="mt-2 inline-flex max-w-full rounded-full px-3 py-1 text-[0.68rem] font-bold shadow-sm" style={`background:${preset.accent};color:${preset.texte}`}>
+                    <span class="truncate">{preset.reward}</span>
+                  </div>
                 </div>
               </div>
-              <div class="mt-3 h-10 rounded-xl border border-sky-100" style={`background:linear-gradient(135deg,${preset.fond},${preset.fond2})`}>
-                <div class="h-full w-1/3 rounded-l-xl" style={`background:${preset.accent}`}></div>
+              <div class="mt-3 flex items-center gap-3">
+                <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100 text-xs font-bold tracking-[0.12em] text-sky-700">{preset.badge}</span>
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-semibold text-slate-900">{preset.name}</p>
+                  <p class="mt-0.5 truncate text-xs text-slate-500">{preset.desc}</p>
+                </div>
               </div>
             </button>
           ))}
         </div>
-        <button id="toggle-more-templates-btn" type="button" class="mt-4 btn-secondary text-sm py-2.5 px-4">Voir plus de modèles</button>
       </div>
 
       <!-- Étape 2 : Identité -->
@@ -377,6 +391,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               {label}
             </button>
           ))}
+        </div>
+
+        <div class="mb-4 flex items-center justify-between rounded-2xl border border-sky-100 bg-white px-3 py-2 text-sm shadow-sm">
+          <button type="button" class="appearance-step-btn rounded-xl px-3 py-2 font-semibold text-slate-500 transition hover:bg-sky-50 hover:text-sky-700" data-appearance-step="prev">← Précédent</button>
+          <span id="appearance-step-label" class="font-bold text-slate-900">Thème</span>
+          <button type="button" class="appearance-step-btn rounded-xl px-3 py-2 font-semibold text-sky-700 transition hover:bg-sky-50" data-appearance-step="next">Suivant →</button>
         </div>
 
         <div data-appearance-panel="theme">
@@ -1494,6 +1514,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   });
 
   // Tabs Apparence
+  const appearancePanels = ['theme', 'banner', 'barcode'];
+  const appearanceLabels: Record<string, string> = {
+    theme: 'Thème',
+    banner: 'Bannière',
+    barcode: 'Code-barres',
+  };
+
   function setAppearancePanel(target: string) {
     document.querySelectorAll('.appearance-tab').forEach((tab) => {
       (tab as HTMLElement).dataset.active = ((tab as HTMLElement).dataset.appearanceTarget === target).toString();
@@ -1501,18 +1528,22 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     document.querySelectorAll('[data-appearance-panel]').forEach((panel) => {
       (panel as HTMLElement).classList.toggle('hidden', (panel as HTMLElement).dataset.appearancePanel !== target);
     });
+    const label = document.getElementById('appearance-step-label');
+    if (label) label.textContent = appearanceLabels[target] ?? 'Apparence';
   }
   document.querySelectorAll('.appearance-tab').forEach((tab) => {
     tab.addEventListener('click', () => setAppearancePanel((tab as HTMLElement).dataset.appearanceTarget ?? 'theme'));
   });
 
-  // Voir plus de templates
-  document.getElementById('toggle-more-templates-btn')!.addEventListener('click', () => {
-    const extra = document.querySelectorAll('.template-extra');
-    const btn = document.getElementById('toggle-more-templates-btn') as HTMLButtonElement;
-    const shouldOpen = Array.from(extra).some((item) => item.classList.contains('hidden'));
-    extra.forEach((item) => item.classList.toggle('hidden', !shouldOpen));
-    btn.textContent = shouldOpen ? 'Masquer les modèles supplémentaires' : 'Voir plus de modèles';
+  document.querySelectorAll('.appearance-step-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const active = document.querySelector('.appearance-tab[data-active="true"]') as HTMLElement | null;
+      const current = active?.dataset.appearanceTarget ?? 'theme';
+      const currentIndex = Math.max(0, appearancePanels.indexOf(current));
+      const direction = (btn as HTMLElement).dataset.appearanceStep === 'prev' ? -1 : 1;
+      const nextIndex = (currentIndex + direction + appearancePanels.length) % appearancePanels.length;
+      setAppearancePanel(appearancePanels[nextIndex]);
+    });
   });
 
   document.getElementById('theme-toggle-more-btn')?.addEventListener('click', () => {
@@ -2232,12 +2263,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   document.querySelectorAll('.business-template-btn').forEach(btn=>btn.addEventListener('click',()=>{
     const el=btn as HTMLElement;
-    setInput('nom-carte', `Carte ${el.dataset.name ?? 'fidélité'}`);
     setInput('description', el.dataset.desc ?? '');
     setInput('recompense', el.dataset.reward ?? '');
     setInput('label-client', el.dataset.label ?? 'Client');
     setInput('message-geo', el.dataset.message ?? '');
-    setInput('welcome-message', `Bienvenue chez ${el.dataset.name ?? 'nous'}, créez votre carte fidélité en 10 secondes.`);
+    setInput('welcome-message', 'Bienvenue, créez votre carte fidélité en 10 secondes.');
     setInput('success-message', 'Votre carte est prête, montrez-la à chaque passage.');
     setInput('couleur-fond', el.dataset.fond ?? '#0f172a');
     setInput('couleur-texte', el.dataset.texte ?? '#ffffff');

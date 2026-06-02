@@ -53,6 +53,22 @@ import AppLayout from '../../layouts/AppLayout.astro';
         <a href="/app/install" class="mt-2 inline-flex text-xs font-semibold text-sky-700 transition hover:text-sky-900">
           Installer l’icône scanner
         </a>
+        <div id="scanner-zoom-control" class="hidden mt-3 rounded-2xl border border-sky-100 bg-white/90 p-2 shadow-[0_18px_45px_-36px_rgba(59,130,246,0.5)] backdrop-blur">
+          <div class="flex items-center justify-between gap-2">
+            <span class="pl-2 text-[0.7rem] font-bold uppercase tracking-[0.2em] text-sky-700">Zoom</span>
+            <div class="flex rounded-xl bg-slate-100 p-1">
+              {[1, 1.5, 2, 3].map((zoom) => (
+                <button
+                  type="button"
+                  class="scanner-zoom-btn rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500 transition"
+                  data-zoom={zoom}
+                >
+                  {zoom === 1 ? '1x' : `${zoom}x`}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
         <div id="camera-help" class="hidden mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-left">
           <p class="text-amber-900 text-sm font-semibold">Autorisation caméra nécessaire</p>
           <p id="camera-help-text" class="text-amber-800/80 text-xs mt-1 leading-relaxed">
@@ -131,6 +147,14 @@ import AppLayout from '../../layouts/AppLayout.astro';
   .camera-video {
     background: #020617;
     border-radius: 1rem;
+    transform-origin: center;
+    transition: transform 180ms ease;
+  }
+
+  .scanner-zoom-btn[data-active='true'] {
+    background: white;
+    color: #0f172a;
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.1);
   }
 </style>
 
@@ -188,7 +212,13 @@ import AppLayout from '../../layouts/AppLayout.astro';
   const cameraVideo = document.getElementById('camera-video') as HTMLVideoElement;
   const scanCanvas = document.getElementById('scan-canvas') as HTMLCanvasElement;
   const scanContext = scanCanvas.getContext('2d', { willReadFrequently: true });
+  const zoomControl = document.getElementById('scanner-zoom-control')!;
+  const zoomButtons = Array.from(document.querySelectorAll('.scanner-zoom-btn')) as HTMLButtonElement[];
   let scannerStarting = false;
+  let currentZoom = 1;
+  let maxZoom = 3;
+  let supportsTrackZoom = false;
+  let activeCameraTrack: MediaStreamTrack | null = null;
   const CAMERA_CACHE_KEY = 'fidelopass_scanner_camera_id';
   const API_TIMEOUT_MS = Number(import.meta.env.PUBLIC_API_FETCH_TIMEOUT_MS ?? 8000);
   const DECODE_INTERVAL_MS = 120;
@@ -309,6 +339,44 @@ import AppLayout from '../../layouts/AppLayout.astro';
     cameraHelp.classList.add('hidden');
   }
 
+  function updateZoomButtons() {
+    zoomButtons.forEach((button) => {
+      const value = Number(button.dataset.zoom ?? '1');
+      button.dataset.active = Math.abs(value - currentZoom) < 0.05 ? 'true' : 'false';
+      button.disabled = value > maxZoom + 0.01;
+      button.classList.toggle('opacity-40', button.disabled);
+    });
+  }
+
+  async function applyCameraZoom(zoom: number) {
+    currentZoom = Math.max(1, Math.min(maxZoom, zoom));
+    cameraVideo.style.transform = supportsTrackZoom ? '' : `scale(${currentZoom})`;
+    updateZoomButtons();
+
+    if (!activeCameraTrack || !supportsTrackZoom) return;
+    try {
+      await activeCameraTrack.applyConstraints({ advanced: [{ zoom: currentZoom } as any] });
+    } catch {
+      supportsTrackZoom = false;
+      cameraVideo.style.transform = `scale(${currentZoom})`;
+      updateZoomButtons();
+    }
+  }
+
+  function setupZoomControls(stream: MediaStream) {
+    activeCameraTrack = stream.getVideoTracks()[0] ?? null;
+    supportsTrackZoom = false;
+    maxZoom = 3;
+    const capabilities = activeCameraTrack?.getCapabilities?.() as ({ zoom?: { min?: number; max?: number; step?: number } | number } | undefined);
+    const zoomCapabilities = capabilities?.zoom;
+    if (zoomCapabilities && typeof zoomCapabilities === 'object') {
+      supportsTrackZoom = true;
+      maxZoom = Math.max(1, Math.min(zoomCapabilities.max ?? 3, 3));
+    }
+    zoomControl.classList.remove('hidden');
+    void applyCameraZoom(Math.min(maxZoom, 1.5));
+  }
+
   function rememberCameraId(deviceId: string | null) {
     if (!deviceId) return;
     try {
@@ -381,6 +449,10 @@ import AppLayout from '../../layouts/AppLayout.astro';
       for (const track of mediaStream.getTracks()) track.stop();
       mediaStream = null;
     }
+    activeCameraTrack = null;
+    zoomControl.classList.add('hidden');
+    currentZoom = 1;
+    cameraVideo.style.transform = '';
     cameraVideo.pause();
     cameraVideo.srcObject = null;
   }
@@ -418,14 +490,19 @@ import AppLayout from '../../layouts/AppLayout.astro';
     const sourceHeight = cameraVideo.videoHeight;
     if (!sourceWidth || !sourceHeight) return null;
 
-    const targetWidth = Math.min(MAX_DECODE_WIDTH, sourceWidth);
-    const targetHeight = Math.round((targetWidth / sourceWidth) * sourceHeight);
+    const decodeZoom = supportsTrackZoom ? 1 : currentZoom;
+    const cropWidth = Math.max(1, Math.round(sourceWidth / decodeZoom));
+    const cropHeight = Math.max(1, Math.round(sourceHeight / decodeZoom));
+    const cropX = Math.max(0, Math.round((sourceWidth - cropWidth) / 2));
+    const cropY = Math.max(0, Math.round((sourceHeight - cropHeight) / 2));
+    const targetWidth = Math.min(MAX_DECODE_WIDTH, cropWidth);
+    const targetHeight = Math.round((targetWidth / cropWidth) * cropHeight);
     if (scanCanvas.width !== targetWidth || scanCanvas.height !== targetHeight) {
       scanCanvas.width = targetWidth;
       scanCanvas.height = targetHeight;
     }
 
-    scanContext.drawImage(cameraVideo, 0, 0, targetWidth, targetHeight);
+    scanContext.drawImage(cameraVideo, cropX, cropY, cropWidth, cropHeight, 0, 0, targetWidth, targetHeight);
     const imageData = scanContext.getImageData(0, 0, targetWidth, targetHeight);
     const code = jsQR(imageData.data, targetWidth, targetHeight, {
       inversionAttempts: 'attemptBoth',
@@ -486,6 +563,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
           await cameraVideo.play();
           await waitForVideoReady(cameraVideo);
           rememberStreamCamera(mediaStream);
+          setupZoomControls(mediaStream);
           startDecodeLoop();
           hideScannerOverlays();
           setScannerStatus('Scanner prêt. Placez le code dans l’image.');
@@ -683,6 +761,11 @@ import AppLayout from '../../layouts/AppLayout.astro';
   });
   startCameraBtn.addEventListener('click', async () => {
     await startScanner({ fromUserAction: true });
+  });
+  zoomButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      void applyCameraZoom(Number(button.dataset.zoom ?? '1'));
+    });
   });
 
   setScannerStatus('Prêt à démarrer.');

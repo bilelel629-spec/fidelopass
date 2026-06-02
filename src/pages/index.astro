@@ -632,14 +632,17 @@ import PublicNav from '../components/marketing/PublicNav.astro';
     </div>
   </section>
 
-  <!-- AVANT / APRÈS -->
+  <!-- CARTES PAPIER -->
   <section class="bg-white py-12 sm:py-20 dark:bg-slate-950">
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
       <div class="mb-10 text-center">
-        <span class="mb-4 inline-flex items-center rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-sky-300">Avant / Après</span>
+        <span class="mb-4 inline-flex items-center rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-sky-300">Cartes papier</span>
         <h2 class="font-display text-4xl font-bold tracking-[-0.04em] text-slate-900 sm:text-5xl dark:text-slate-100">
-          Passez d’une fidélité oubliée à une carte toujours dans la poche.
+          La carte papier coûte cher en fidélité perdue.
         </h2>
+        <p class="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-slate-500 dark:text-slate-300">
+          Quand la carte reste dans un tiroir, le client ne revient pas plus souvent et le commerçant ne mesure rien.
+        </p>
       </div>
 
       <div class="grid gap-5 lg:grid-cols-2">
@@ -664,6 +667,64 @@ import PublicNav from '../components/marketing/PublicNav.astro';
             <li>• Les messages Wallet aident à faire revenir au bon moment.</li>
           </ul>
         </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODÈLES RAPIDES -->
+  <section class="bg-[linear-gradient(180deg,#ffffff_0%,#f6fbff_100%)] py-12 sm:py-20 dark:bg-slate-950">
+    <div class="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
+      <div>
+        <span class="mb-4 inline-flex items-center rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-sky-300">Personnalisation rapide</span>
+        <h2 class="font-display text-4xl font-bold tracking-[-0.04em] text-slate-900 sm:text-5xl dark:text-slate-100">
+          Un modèle métier, puis votre vraie identité.
+        </h2>
+        <p class="mt-4 max-w-xl text-lg leading-relaxed text-slate-500 dark:text-slate-300">
+          Le commerçant choisit un modèle café, restaurant, nail salon ou sport pour partir vite. Fidelopass applique le style, mais conserve le nom, le logo et l’identité du commerce.
+        </p>
+      </div>
+
+      <div class="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_32px_90px_rgba(15,23,42,0.10)] sm:p-6 dark:border-slate-800 dark:bg-slate-900">
+        <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.24em] text-blue-600">Modèles rapides</p>
+            <h3 class="mt-1 font-display text-2xl font-bold text-slate-950 dark:text-white">Aperçu réel avant personnalisation</h3>
+          </div>
+          <span class="w-fit rounded-full bg-emerald-50 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-100">Nom conservé</span>
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-2">
+          {[
+            { name: 'Café cosy', emoji: '☕', fond: '#2b1608', fond2: '#5f3214', accent: '#d97706', text: '#fff7ed', reward: '1 boisson offerte' },
+            { name: 'Restaurant', emoji: '🍽️', fond: '#064e3b', fond2: '#0f766e', accent: '#34d399', text: '#ffffff', reward: '1 dessert offert' },
+            { name: 'Nail salon', emoji: '💅', fond: '#fff0e5', fond2: '#fee1d0', accent: '#f5be9e', text: '#df652a', reward: '1 nail art offert' },
+            { name: 'Sport & coaching', emoji: '🏆', fond: '#045698', fond2: '#0ea5e9', accent: '#dee7e6', text: '#ffffff', reward: '1 séance offerte' },
+          ].map((model) => (
+            <article class="group rounded-[1.4rem] border border-slate-200 bg-slate-50 p-3 transition-all hover:-translate-y-1 hover:shadow-[0_22px_50px_rgba(15,23,42,0.10)] dark:border-slate-700 dark:bg-slate-800">
+              <div
+                class="relative min-h-[210px] overflow-hidden rounded-[1.1rem] p-4 shadow-inner"
+                style={`background: radial-gradient(circle at 85% 20%, ${model.accent}44, transparent 34%), linear-gradient(135deg, ${model.fond}, ${model.fond2}); color: ${model.text};`}
+              >
+                <div class="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/15 blur-2xl"></div>
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <p class="text-[0.62rem] font-black uppercase tracking-[0.26em] opacity-80">Carte Wallet</p>
+                    <h4 class="mt-2 font-display text-2xl font-black tracking-[-0.04em]">Votre commerce</h4>
+                  </div>
+                  <span class="grid h-12 w-12 place-items-center rounded-2xl bg-white/90 text-2xl shadow-sm">{model.emoji}</span>
+                </div>
+                <div class="mt-10 rounded-2xl border border-white/25 bg-white/15 px-4 py-3 backdrop-blur">
+                  <p class="text-[0.62rem] font-black uppercase tracking-[0.24em] opacity-80">Récompense</p>
+                  <p class="mt-1 text-lg font-black">{model.reward}</p>
+                </div>
+                <div class="absolute bottom-4 left-4 right-4 flex items-center justify-between rounded-2xl bg-white/90 px-4 py-3 text-slate-950">
+                  <span class="text-sm font-bold">{model.name}</span>
+                  <span class="h-3 w-3 rounded-full" style={`background:${model.accent}`}></span>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
       </div>
     </div>
   </section>

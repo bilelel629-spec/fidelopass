@@ -2,112 +2,63 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PublicNav from '../components/marketing/PublicNav.astro';
 import PublicFooter from '../components/marketing/PublicFooter.astro';
-
-const RESELLER_SETUP_PRICE = 290;
-const RESELLER_MONTHLY_PRICE = 49.99;
-
-const profitabilityExamples = [
-  { commerces: 5 },
-  { commerces: 10 },
-  { commerces: 15 },
-];
-
-const formatEuro = (amount: number) => amount.toLocaleString('fr-FR', {
-  style: 'currency',
-  currency: 'EUR',
-  minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
-});
 ---
 
 <BaseLayout
   title="Devenir revendeur Fidelopass"
-  description="Revendez Fidelopass à vos clients en gardant votre marge. Idéal pour agences, commerciaux et consultants commerce."
+  description="Rejoignez le programme revendeur Fidelopass sur devis, selon votre profil, vos besoins et votre motivation à accompagner les commerçants."
 >
   <PublicNav />
 
-  <section class="bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_45%,#eef6ff_100%)] px-4 pb-20 pt-10 sm:px-6">
-    <div class="mx-auto max-w-7xl">
-      <div class="grid gap-10 lg:grid-cols-[1.08fr_0.92fr] lg:items-center">
-        <div>
-          <p class="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-sky-700/70">Programme partenaire</p>
-          <h1 class="mt-5 font-display text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-            Revendez Fidelopass à vos clients. Vous fixez vos prix. Vous gardez la marge.
-          </h1>
-          <p class="mt-5 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
-            Idéal pour agences digitales, commerciaux indépendants, consultants commerce et accompagnateurs terrain qui veulent proposer une solution fidélité Wallet sans porter toute la technique.
-          </p>
-          <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-            <a href="#white-label-plans" class="btn-primary px-7 py-3.5 text-center text-sm font-semibold">Choisir mon offre white label</a>
-            <a href="#rentabilite" class="btn-secondary px-7 py-3.5 text-center text-sm font-semibold">Voir le potentiel de marge</a>
-          </div>
+  <section class="bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_48%,#eef8ff_100%)] px-4 pb-20 pt-10 sm:px-6">
+    <div class="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.08fr_0.92fr] lg:items-center">
+      <div>
+        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-sky-700/70">Programme partenaire</p>
+        <h1 class="mt-5 font-display text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+          Devenez revendeur Fidelopass auprès des commerçants que vous accompagnez.
+        </h1>
+        <p class="mt-5 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
+          Le programme revendeur se construit sur devis, selon votre profil, vos besoins, votre zone et votre motivation. Vendre Fidelopass, c’est représenter une solution utile avec les mêmes valeurs: sérieux, simplicité et bonne image auprès des commerçants.
+        </p>
+        <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+          <a href="/contact" class="btn-primary px-7 py-3.5 text-center text-sm font-semibold">Nous contacter</a>
+          <a href="#fonctionnement" class="btn-secondary px-7 py-3.5 text-center text-sm font-semibold">Voir le fonctionnement</a>
         </div>
+      </div>
 
-        <div class="rounded-[2rem] border border-sky-100 bg-white p-6 shadow-[0_32px_80px_-42px_rgba(59,130,246,0.32)]">
-          <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700/70">Ce que vous obtenez</p>
-          <div class="mt-5 grid gap-3">
+      <div class="rounded-[2rem] border border-sky-100 bg-white p-6 shadow-[0_32px_80px_-42px_rgba(59,130,246,0.32)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700/70">Ce que nous cherchons</p>
+        <div class="mt-5 grid gap-3">
+          {[
+            ['Même exigence de qualité', 'Vous représentez Fidelopass avec sérieux auprès de commerçants qui vous font confiance.'],
+            ['Accompagnement terrain', 'Vous savez expliquer, installer et suivre une solution simple sans survendre.'],
+            ['Relation long terme', 'L’objectif est de créer une vraie valeur, pas seulement une vente ponctuelle.'],
+          ].map(([title, text]) => (
             <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p class="text-sm font-semibold text-slate-900">Dashboard revendeur</p>
-              <p class="mt-1 text-sm text-slate-600">Gérez plusieurs commerces depuis un seul espace et suivez leur activation.</p>
+              <p class="text-sm font-semibold text-slate-900">{title}</p>
+              <p class="mt-1 text-sm leading-relaxed text-slate-600">{text}</p>
             </div>
-            <div class="rounded-2xl border border-slate-200 bg-white p-4">
-              <p class="text-sm font-semibold text-slate-900">Interface white-label</p>
-              <p class="mt-1 text-sm text-slate-600">Vos clients ne voient pas Fidelopass : vous gardez la relation commerciale.</p>
-            </div>
-            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p class="text-sm font-semibold text-slate-900">Modèle simple</p>
-              <p class="mt-1 text-sm text-slate-600">Abonnement fixe: 10 commerces inclus en Starter, 25 commerces inclus en Pro, puis add-ons selon le volume.</p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>
   </section>
 
-  <section id="white-label-plans" class="bg-white px-4 py-16 sm:px-6">
+  <section id="fonctionnement" class="bg-white px-4 py-16 sm:px-6">
     <div class="mx-auto max-w-6xl">
       <div class="max-w-2xl">
-        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-sky-700/70">Offres white label</p>
-        <h2 class="mt-4 font-display text-3xl font-bold text-slate-900 sm:text-4xl">Deux niveaux pour structurer votre activité partenaire</h2>
-      </div>
-      <div class="mt-10 grid gap-5 md:grid-cols-2">
-        <article class="rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-6 shadow-[0_22px_58px_-42px_rgba(59,130,246,0.35)]">
-          <p class="text-sm font-semibold uppercase tracking-[0.2em] text-sky-700/70">White Label Starter</p>
-          <p class="mt-4 font-display text-4xl font-bold text-slate-950">199€<span class="text-base font-semibold text-slate-500">/mois</span></p>
-          <p class="mt-3 text-sm leading-relaxed text-slate-600">10 commerces inclus pour lancer votre offre revendeur avec votre marque.</p>
-          <a
-            href="/contact"
-            class="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-semibold text-white shadow-[0_18px_36px_-24px_rgba(15,23,42,0.8)] transition hover:-translate-y-0.5 hover:bg-slate-800"
-          >
-            Nous contacter
-          </a>
-        </article>
-        <article class="rounded-[2rem] border border-blue-200 bg-[linear-gradient(135deg,#172554_0%,#2563eb_100%)] p-6 text-white shadow-[0_28px_70px_-38px_rgba(37,99,235,0.65)]">
-          <p class="text-sm font-semibold uppercase tracking-[0.2em] text-sky-100/80">White Label Pro</p>
-          <p class="mt-4 font-display text-4xl font-bold">449€<span class="text-base font-semibold text-sky-100/75">/mois</span></p>
-          <p class="mt-3 text-sm leading-relaxed text-sky-50/85">25 commerces inclus pour les agences et partenaires qui veulent scaler plus vite.</p>
-          <a
-            href="/contact"
-            class="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-white px-5 py-3.5 text-sm font-semibold text-blue-700 shadow-[0_18px_36px_-24px_rgba(255,255,255,0.85)] transition hover:-translate-y-0.5 hover:bg-sky-50"
-          >
-            Nous contacter
-          </a>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <section class="bg-white px-4 py-20 sm:px-6">
-    <div class="mx-auto max-w-6xl">
-      <div class="max-w-2xl">
-        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-sky-700/70">Comment ça marche</p>
-        <h2 class="mt-4 font-display text-3xl font-bold text-slate-900 sm:text-4xl">Un modèle simple en 3 étapes</h2>
+        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-sky-700/70">Sur devis</p>
+        <h2 class="mt-4 font-display text-3xl font-bold text-slate-900 sm:text-4xl">Un cadre défini ensemble avant de démarrer</h2>
+        <p class="mt-4 text-base leading-relaxed text-slate-600">
+          Le programme s’adapte au profil du revendeur, à son réseau, à son niveau d’accompagnement et aux commerçants ciblés.
+        </p>
       </div>
 
       <div class="mt-10 grid gap-4 md:grid-cols-3">
         {[
-          ['1', 'Vous échangez avec nous pour définir le cadre revendeur', 'On valide ensemble le modèle, le volume et les conditions avant le lancement.'],
-          ['2', 'Vous créez les espaces de vos commerçants depuis votre tableau de bord', 'Vous pilotez l’installation, la carte, le scanner et la mise en ligne pour vos clients.'],
-          ['3', 'Vous facturez vos clients au prix que vous voulez', '100% de la marge commerciale est pour vous. Fidelopass reste votre moteur, pas votre concurrent.'],
+          ['1', 'Profil', 'On comprend votre activité, votre zone, vos clients et votre façon d’accompagner les commerçants.'],
+          ['2', 'Cadre', 'On définit ensemble les conditions, les besoins, le support et le niveau d’autonomie souhaité.'],
+          ['3', 'Lancement', 'Vous disposez d’un cadre clair pour présenter Fidelopass avec une image professionnelle.'],
         ].map(([step, title, text]) => (
           <div class="rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-6 shadow-[0_20px_50px_-40px_rgba(59,130,246,0.35)]">
             <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-600 text-sm font-bold text-white">{step}</div>
@@ -121,76 +72,27 @@ const formatEuro = (amount: number) => amount.toLocaleString('fr-FR', {
 
   <section class="bg-slate-50/70 px-4 py-20 sm:px-6">
     <div class="mx-auto max-w-6xl">
-      <div class="grid gap-10 lg:grid-cols-[1fr_1fr]">
-        <div>
-          <p class="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-sky-700/70">Ce que vous obtenez</p>
-          <h2 class="mt-4 font-display text-3xl font-bold text-slate-900">Un cadre clair pour développer votre offre</h2>
-          <div class="mt-8 grid gap-4">
-            {[
-              'Dashboard revendeur pour gérer tous vos commerces',
-              'Interface white-label simple : espace partenaire avec votre logo',
-              'Suivi de vos revenus et commerces actifs en temps réel',
-              '10 commerces inclus en Starter, 25 en Pro + add-ons disponibles',
-              'Support dédié Fidelopass',
-            ].map((item) => (
-              <div class="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-medium text-slate-700 shadow-sm">{item}</div>
-            ))}
-          </div>
-        </div>
-
-        <div id="rentabilite" class="rounded-[2rem] border border-sky-100 bg-white p-6 shadow-[0_28px_70px_-42px_rgba(59,130,246,0.28)]">
-          <p class="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-sky-700/70">Exemple de rentabilité</p>
-          <h2 class="mt-4 font-display text-3xl font-bold text-slate-900">Un modèle lisible pour vendre sans vous sous-estimer</h2>
-          <div class="mt-8 grid gap-3">
-            {profitabilityExamples.map((example) => (
-              <div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
-                <div>
-                  <p class="text-sm font-semibold text-slate-900">{example.commerces} commerces</p>
-                  <p class="mt-1 text-xs text-slate-500">
-                    Moyenne observée: 290€ de mise en place + 49,99€/mois par commerce
-                  </p>
-                </div>
-                <div class="text-right">
-                  <p class="font-mono text-2xl font-bold text-sky-700">{formatEuro(example.commerces * RESELLER_MONTHLY_PRICE)}/mois</p>
-                  <p class="mt-1 text-xs font-semibold text-slate-500">{formatEuro(example.commerces * RESELLER_SETUP_PRICE)} au setup</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div class="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
-            <p class="text-sm font-semibold text-slate-900">Votre abonnement : 199€/mois ou 449€/mois selon le volume</p>
-            <p class="mt-2 text-sm leading-relaxed text-slate-600">
-              Le modèle est simple : Starter inclut 10 commerces, Pro inclut 25 commerces. L’objectif est de vous garder une marge claire sur chaque commerce actif.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="bg-white px-4 py-20 sm:px-6">
-    <div class="mx-auto max-w-6xl">
       <div class="max-w-2xl">
-        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-sky-700/70">Pour qui ?</p>
-        <h2 class="mt-4 font-display text-3xl font-bold text-slate-900">Des profils qui ont déjà la confiance des commerçants</h2>
+        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-sky-700/70">Positionnement</p>
+        <h2 class="mt-4 font-display text-3xl font-bold text-slate-900 sm:text-4xl">Revendre Fidelopass, c’est aussi porter une image</h2>
       </div>
 
       <div class="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[
-          'Agences web et digitales',
-          'Commerciaux / apporteurs d’affaires',
-          'Consultants en commerce de proximité',
-          'Indépendants qui accompagnent des commerçants',
+          'Partager les mêmes valeurs que Fidelopass',
+          'Préserver une bonne image auprès des commerçants',
+          'Expliquer la valeur sans survendre',
+          'Accompagner le commerce après la mise en place',
         ].map((item) => (
-          <div class="rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-6 text-center shadow-[0_18px_44px_-36px_rgba(59,130,246,0.32)]">
-            <p class="text-sm font-semibold text-slate-900">{item}</p>
+          <div class="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_18px_44px_-36px_rgba(59,130,246,0.32)]">
+            <p class="text-sm font-semibold leading-relaxed text-slate-900">{item}</p>
           </div>
         ))}
       </div>
     </div>
   </section>
 
-  <section class="bg-slate-50/70 px-4 py-20 sm:px-6">
+  <section class="bg-white px-4 py-20 sm:px-6">
     <div class="mx-auto max-w-4xl">
       <div class="text-center">
         <p class="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-sky-700/70">FAQ</p>
@@ -199,10 +101,10 @@ const formatEuro = (amount: number) => amount.toLocaleString('fr-FR', {
 
       <div class="mt-10 space-y-4">
         {[
-          ['Mes clients sauront-ils que c’est Fidelopass ?', 'La première version white label repose sur votre espace partenaire avec votre logo et vos couleurs. Vos clients restent dans votre relation commerciale.'],
-          ['Puis-je utiliser mon propre logo ?', 'Oui. Votre logo et vos couleurs s’affichent dans l’espace partenaire /partner/dashboard. Le domaine personnalisé arrivera dans une étape suivante.'],
-          ['Y a-t-il un engagement ?', 'Le niveau exact d’engagement sera défini avec vous selon le modèle partenaire retenu.'],
-          ['Comment je facture mes clients ?', 'Librement, en direct. Vous choisissez votre prix de revente et vous gardez votre marge.'],
+          ['Pourquoi il n’y a pas de prix affiché ?', 'Parce que le programme dépend du profil, du volume, de la zone et du niveau d’accompagnement attendu. Le cadre se définit sur devis.'],
+          ['Est-ce une simple affiliation ?', 'Non. L’objectif est de construire une vraie relation partenaire, avec une qualité d’image et d’accompagnement cohérente avec Fidelopass.'],
+          ['Puis-je utiliser ma propre image de marque ?', 'Le sujet peut être étudié selon le cadre partenaire retenu. On valide ensemble ce qui protège le mieux votre image et celle de Fidelopass.'],
+          ['Comment démarrer ?', 'Contactez-nous avec votre profil, votre zone, le type de commerçants que vous accompagnez et vos motivations.'],
         ].map(([q, a]) => (
           <div class="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm">
             <p class="text-base font-semibold text-slate-900">{q}</p>
@@ -215,12 +117,12 @@ const formatEuro = (amount: number) => amount.toLocaleString('fr-FR', {
 
   <section class="bg-[linear-gradient(135deg,#0f172a_0%,#1d4ed8_100%)] px-4 py-20 sm:px-6">
     <div class="mx-auto max-w-3xl text-center">
-      <h2 class="font-display text-4xl font-bold text-white">Vous voulez revendre Fidelopass à vos clients ?</h2>
+      <h2 class="font-display text-4xl font-bold text-white">Vous voulez revendre Fidelopass ?</h2>
       <p class="mt-4 text-lg text-sky-100">
-        On prépare le cadre partenaire avec vous. Pas de self-service ici : on valide ensemble le modèle, le volume et le fonctionnement.
+        On étudie votre profil, votre approche terrain et votre façon d’accompagner les commerçants avant de définir le cadre.
       </p>
       <a href="/contact" class="mt-8 inline-flex items-center justify-center rounded-full bg-white px-8 py-4 text-sm font-semibold text-sky-700 shadow-[0_20px_45px_rgba(255,255,255,0.15)] transition hover:-translate-y-0.5 hover:bg-sky-50">
-        Devenir revendeur → Nous contacter
+        Nous contacter
       </a>
     </div>
   </section>

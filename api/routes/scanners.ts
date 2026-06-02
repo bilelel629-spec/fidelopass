@@ -128,10 +128,14 @@ function fromBase64url(value: string) {
 }
 
 function scannerSigningSecret() {
-  return process.env.SCANNER_INSTALL_SECRET
+  const secret = process.env.SCANNER_INSTALL_SECRET
     ?? process.env.SUPABASE_SERVICE_ROLE_KEY
     ?? process.env.JWT_SECRET
-    ?? 'fidelopass-local-scanner-secret';
+    ?? '';
+  if (!secret) {
+    throw new Error('SCANNER_INSTALL_SECRET, SUPABASE_SERVICE_ROLE_KEY ou JWT_SECRET est requis');
+  }
+  return secret;
 }
 
 function signScannerPayload(payloadPart: string) {

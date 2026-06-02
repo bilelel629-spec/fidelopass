@@ -13,6 +13,7 @@
     "api:start": "node --loader tsx/esm api/index.ts",
     "billing:backfill": "node scripts/backfill-stripe-billing.mjs",
     "billing:check-portal": "node scripts/check-stripe-portal.mjs",
+    "security:audit": "node scripts/security-audit.mjs",
     "typecheck": "astro check && tsc --noEmit"
   },
   "dependencies": {

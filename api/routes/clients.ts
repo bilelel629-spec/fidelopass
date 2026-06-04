@@ -40,6 +40,7 @@ clientsRoutes.get('/public/:id', async (c) => {
       nom,
       telephone,
       date_naissance,
+      wallet_code,
       carte_id,
       points_actuels,
       tampons_actuels,
@@ -66,6 +67,9 @@ clientsRoutes.get('/public/:id', async (c) => {
     data: {
       id: data.id,
       nom: data.nom,
+      telephone: data.telephone,
+      date_naissance: data.date_naissance,
+      wallet_code: data.wallet_code,
       points_actuels: data.points_actuels,
       tampons_actuels: data.tampons_actuels,
       recompenses_obtenues: data.recompenses_obtenues,

@@ -1,0 +1,462 @@
+---
+import '../../../styles/global.css';
+
+const { id } = Astro.params;
+const clientId = Astro.url.searchParams.get('client') ?? '';
+const apiBase = (
+  process.env.API_URL
+  || import.meta.env.PUBLIC_API_URL
+  || (import.meta.env.PROD ? 'https://api.fidelopass.com' : 'http://localhost:3001')
+).replace(/\/$/, '');
+const manifestHref = `/carte/${encodeURIComponent(id ?? '')}/web-manifest.json${clientId ? `?client=${encodeURIComponent(clientId)}` : ''}`;
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="api-config" content={apiBase} />
+    <link rel="manifest" href={manifestHref} />
+    <title>Carte web Fidelopass</title>
+  </head>
+  <body class="min-h-screen bg-[#f8fbff] text-slate-950 antialiased">
+    <main class="relative min-h-screen overflow-hidden px-4 pb-10 pt-[max(1.5rem,env(safe-area-inset-top))]">
+      <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_5%,rgba(56,189,248,0.22),transparent_32%),radial-gradient(circle_at_85%_12%,rgba(37,99,235,0.16),transparent_30%),linear-gradient(180deg,#f8fbff_0%,#ffffff_58%,#eff8ff_100%)]"></div>
+
+      <section class="relative mx-auto flex w-full max-w-md flex-col gap-5">
+        <header class="flex items-center justify-between gap-4">
+          <a
+            id="back-link"
+            href={`/carte/${id}`}
+            class="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/80 bg-white/85 text-slate-600 shadow-[0_14px_34px_-22px_rgba(15,23,42,0.8)] transition hover:-translate-y-0.5 hover:text-slate-950"
+            aria-label="Retour"
+          >
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 18l-6-6 6-6"></path>
+            </svg>
+          </a>
+          <div class="min-w-0 text-center">
+            <p class="text-[0.68rem] font-bold uppercase tracking-[0.26em] text-sky-600">Carte web</p>
+            <h1 id="page-title" class="truncate text-xl font-extrabold tracking-tight text-slate-950">Fidelopass</h1>
+          </div>
+          <div class="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-white bg-white shadow-[0_14px_34px_-22px_rgba(15,23,42,0.8)]">
+            <img src="/icons/icon-192.png" alt="" class="h-9 w-9 rounded-xl object-cover" />
+          </div>
+        </header>
+
+        <div id="loading" class="rounded-[2rem] border border-sky-100 bg-white/85 p-8 text-center shadow-[0_24px_70px_-44px_rgba(15,23,42,0.55)]">
+          <div class="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-2 border-sky-500 border-t-transparent"></div>
+          <p class="text-sm font-semibold text-slate-700">Chargement de votre carte...</p>
+        </div>
+
+        <div id="error-state" class="hidden rounded-[2rem] border border-amber-200 bg-amber-50/90 p-6 shadow-[0_24px_70px_-44px_rgba(15,23,42,0.55)]">
+          <p class="text-sm font-bold uppercase tracking-[0.16em] text-amber-700">Carte indisponible</p>
+          <h2 class="mt-2 text-2xl font-extrabold tracking-tight text-slate-950">Impossible d'afficher cette carte.</h2>
+          <p id="error-text" class="mt-3 text-sm leading-6 text-slate-600">Revenez sur la page d'ajout et recréez votre carte web.</p>
+          <a id="error-back-link" href={`/carte/${id}`} class="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-slate-950 px-5 py-4 text-sm font-bold text-white transition hover:bg-slate-800">
+            Revenir à l'ajout Wallet
+          </a>
+        </div>
+
+        <div id="web-card-content" class="hidden">
+          <section
+            id="wallet-card"
+            class="overflow-hidden rounded-[2rem] border border-white/50 shadow-[0_30px_90px_-52px_rgba(15,23,42,0.8)]"
+          >
+            <div id="strip-wrap" class="hidden h-28 w-full overflow-hidden">
+              <img id="strip-img" src="" alt="" class="h-full w-full object-cover" />
+            </div>
+
+            <div class="p-5">
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex min-w-0 items-center gap-3">
+                  <div id="logo-wrap" class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/30 bg-white/20">
+                    <img id="logo-img" src="" alt="" class="hidden h-full w-full object-cover" />
+                    <span id="logo-placeholder" class="text-2xl">✦</span>
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-[0.62rem] font-bold uppercase tracking-[0.24em] opacity-65">Carte fidelite</p>
+                    <h2 id="card-name" class="truncate text-2xl font-extrabold tracking-tight">Fidelopass</h2>
+                  </div>
+                </div>
+                <div class="rounded-full border border-white/20 bg-white/15 px-3 py-2 text-right backdrop-blur">
+                  <p id="progress-label" class="text-[0.56rem] font-bold uppercase tracking-[0.16em] opacity-65">Tampons</p>
+                  <p id="progress-value" class="font-mono text-lg font-extrabold">0/10</p>
+                </div>
+              </div>
+
+              <div id="stamp-panel" class="mt-5 rounded-3xl border border-white/15 bg-black/10 px-4 py-4">
+                <div id="stamps" class="grid justify-center gap-2"></div>
+              </div>
+
+              <div id="points-panel" class="mt-5 hidden rounded-3xl border border-white/15 bg-black/10 px-5 py-4">
+                <p class="text-[0.62rem] font-bold uppercase tracking-[0.18em] opacity-65">Progression points</p>
+                <div class="mt-3 h-3 overflow-hidden rounded-full bg-white/20">
+                  <div id="points-bar" class="h-full rounded-full bg-white" style="width:0%"></div>
+                </div>
+                <p id="points-text" class="mt-3 text-sm font-bold">0 point</p>
+              </div>
+
+              <div class="mt-4 rounded-3xl border border-white/15 bg-black/10 px-4 py-3">
+                <p class="text-[0.62rem] font-bold uppercase tracking-[0.18em] opacity-60">Recompense</p>
+                <p id="reward-text" class="mt-1 text-sm font-bold leading-5">Votre recompense</p>
+              </div>
+
+              <div class="mt-5 rounded-3xl bg-white p-4 text-slate-950 shadow-[0_22px_50px_-32px_rgba(15,23,42,0.9)]">
+                <p class="text-center text-[0.62rem] font-extrabold uppercase tracking-[0.28em] text-slate-400">Presentez ce code</p>
+                <div class="mt-3 flex justify-center">
+                  <img id="qr-img" src="" alt="Code client Fidelopass" class="h-48 w-48 rounded-2xl object-contain" />
+                </div>
+                <p id="wallet-code" class="mt-3 text-center font-mono text-lg font-extrabold tracking-[0.14em] text-slate-950">FID-...</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="mt-5 rounded-[2rem] border border-sky-100 bg-white/90 p-5 shadow-[0_24px_70px_-44px_rgba(15,23,42,0.55)]">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <p class="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-sky-600">Carte active</p>
+                <h2 id="client-name" class="mt-1 text-xl font-extrabold tracking-tight text-slate-950">Client</h2>
+                <p id="last-update" class="mt-1 text-xs font-medium text-slate-500">Mise a jour automatique.</p>
+              </div>
+              <button
+                id="refresh-btn"
+                type="button"
+                class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition hover:-translate-y-0.5 hover:text-slate-950"
+                aria-label="Rafraichir"
+              >
+                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 12a9 9 0 1 1-2.64-6.36"></path>
+                  <path d="M21 3v6h-6"></path>
+                </svg>
+              </button>
+            </div>
+
+            <div class="mt-4 grid grid-cols-2 gap-3">
+              <div class="rounded-2xl bg-slate-50 px-4 py-3">
+                <p class="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-slate-400">Recompenses</p>
+                <p id="reward-count" class="mt-1 text-2xl font-extrabold text-slate-950">0</p>
+              </div>
+              <div class="rounded-2xl bg-sky-50 px-4 py-3">
+                <p class="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-sky-500">Statut</p>
+                <p class="mt-1 text-sm font-extrabold text-slate-950">A jour</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="mt-5 rounded-[2rem] border border-indigo-100 bg-white/90 p-5 shadow-[0_24px_70px_-44px_rgba(15,23,42,0.55)]">
+            <p class="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-indigo-600">Garder la carte</p>
+            <h2 class="mt-1 text-xl font-extrabold tracking-tight text-slate-950">Ajoutez-la a votre ecran d'accueil.</h2>
+            <p class="mt-2 text-sm leading-6 text-slate-600">
+              Cette version web fonctionne sans Apple Wallet ni Google Wallet. Elle garde le meme code client et se met a jour quand vous revenez dessus.
+            </p>
+            <button
+              id="install-btn"
+              type="button"
+              class="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-4 text-sm font-extrabold text-white shadow-[0_18px_42px_-24px_rgba(37,99,235,0.9)] transition hover:-translate-y-0.5"
+            >
+              Ajouter a l'ecran d'accueil
+            </button>
+            <p id="install-help" class="hidden mt-3 rounded-2xl bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-600">
+              Sur iPhone, ouvrez le menu de partage puis choisissez "Sur l'ecran d'accueil". Sur Android, utilisez "Installer l'application" ou "Ajouter a l'ecran d'accueil".
+            </p>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script is:inline define:vars={{ cardId: id, initialClientId: clientId }}>
+      const API = document.querySelector('meta[name="api-config"]')?.content || 'https://api.fidelopass.com';
+      const apiUrl = (path) => `${API}${path}`;
+      const clientStorageKey = `fidelopass_client_${cardId}`;
+      let cardData = null;
+      let clientData = null;
+      let refreshTimer = null;
+      let deferredInstallPrompt = null;
+
+      const $ = (id) => document.getElementById(id);
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {
+          // L'installation PWA reste optionnelle.
+        });
+      }
+
+      function safeImageUrl(value) {
+        if (!value) return '';
+        try {
+          const url = new URL(String(value), window.location.origin);
+          if (!['http:', 'https:'].includes(url.protocol)) return '';
+          return url.href;
+        } catch {
+          return '';
+        }
+      }
+
+      function readStoredClientId() {
+        try {
+          const raw = localStorage.getItem(clientStorageKey);
+          const parsed = raw ? JSON.parse(raw) : null;
+          return parsed?.id || '';
+        } catch {
+          return '';
+        }
+      }
+
+      function rememberClient(client) {
+        try {
+          localStorage.setItem(clientStorageKey, JSON.stringify({
+            id: client.id,
+            nom: client.nom || '',
+            wallet_code: client.wallet_code || '',
+            telephone: client.telephone || '',
+            date_naissance: client.date_naissance || '',
+          }));
+        } catch {
+          // Local storage only improves convenience.
+        }
+      }
+
+      function setText(id, value) {
+        const el = $(id);
+        if (el) el.textContent = String(value ?? '');
+      }
+
+      function showError(message) {
+        $('loading')?.classList.add('hidden');
+        $('web-card-content')?.classList.add('hidden');
+        setText('error-text', message);
+        $('error-state')?.classList.remove('hidden');
+      }
+
+      function showContent() {
+        $('loading')?.classList.add('hidden');
+        $('error-state')?.classList.add('hidden');
+        $('web-card-content')?.classList.remove('hidden');
+      }
+
+      function renderStamps(current, total, accent, textColor, iconUrl, emoji, iconScale = 1) {
+        const container = $('stamps');
+        if (!container) return;
+        container.innerHTML = '';
+        const displayTotal = Math.min(Math.max(Number(total) || 10, 1), 12);
+        const columns = Math.min(displayTotal, 5);
+        container.style.gridTemplateColumns = `repeat(${columns}, 2.1rem)`;
+
+        for (let i = 0; i < displayTotal; i++) {
+          const dot = document.createElement('div');
+          dot.className = 'flex h-8 w-8 items-center justify-center overflow-hidden rounded-full';
+          if (i < Number(current || 0)) {
+            dot.style.background = accent;
+            if (emoji) {
+              dot.textContent = emoji;
+              dot.style.fontSize = '1rem';
+            } else if (iconUrl) {
+              const img = document.createElement('img');
+              img.src = safeImageUrl(iconUrl);
+              img.alt = '';
+              img.style.width = `${Math.max(14, Math.round(30 * Math.max(0.6, Math.min(1.5, Number(iconScale || 1)))))}px`;
+              img.style.height = img.style.width;
+              img.style.objectFit = 'contain';
+              dot.appendChild(img);
+            } else {
+              const check = document.createElement('span');
+              check.textContent = '✓';
+              check.style.color = textColor || '#ffffff';
+              check.style.fontWeight = '900';
+              dot.appendChild(check);
+            }
+          } else {
+            dot.style.border = '2px solid rgba(255,255,255,0.35)';
+            if (emoji) {
+              dot.textContent = emoji;
+              dot.style.opacity = '0.42';
+            }
+          }
+          container.appendChild(dot);
+        }
+      }
+
+      function rewardDescription(card) {
+        const rewards = Array.isArray(card?.rewards_config) ? card.rewards_config : [];
+        if (rewards.length) {
+          return rewards
+            .map((item) => `${item.seuil} ${card.type === 'points' ? 'pts' : 'tampon(s)'} : ${item.recompense}`)
+            .join(' • ');
+        }
+        return card?.recompense_description || 'Votre recompense Fidelopass';
+      }
+
+      async function renderQr(value) {
+        setText('wallet-code', value);
+        try {
+          const { toDataURL } = await import('qrcode');
+          const dataUrl = await toDataURL(value, { width: 480, margin: 1, errorCorrectionLevel: 'M' });
+          const img = $('qr-img');
+          if (img) img.src = dataUrl;
+        } catch {
+          const img = $('qr-img');
+          if (img) img.removeAttribute('src');
+        }
+      }
+
+      function applyCardDesign() {
+        const card = cardData?.carte;
+        const commerce = cardData?.commerce;
+        if (!card) return;
+
+        const bg = card.couleur_fond || '#0f172a';
+        const text = card.couleur_texte || '#ffffff';
+        const accent = card.couleur_accent || '#38bdf8';
+        const bg2 = card.couleur_fond_2 || bg;
+        const angle = Number(card.gradient_angle ?? 135);
+
+        const wallet = $('wallet-card');
+        if (wallet) {
+          wallet.style.background = `linear-gradient(${angle}deg, ${bg} 0%, ${bg2} 100%)`;
+          wallet.style.color = text;
+        }
+        document.documentElement.style.setProperty('--web-card-accent', accent);
+
+        setText('page-title', commerce?.nom || card.nom || 'Fidelopass');
+        setText('card-name', card.nom || commerce?.nom || 'Fidelopass');
+        setText('reward-text', rewardDescription(card));
+
+        const logoUrl = safeImageUrl(card.logo_url || commerce?.logo_url);
+        if (logoUrl) {
+          const logo = $('logo-img');
+          if (logo) {
+            logo.src = logoUrl;
+            logo.classList.remove('hidden');
+          }
+          $('logo-placeholder')?.classList.add('hidden');
+        }
+
+        const stripUrl = safeImageUrl(card.strip_url);
+        if (stripUrl) {
+          const strip = $('strip-img');
+          if (strip) {
+            strip.src = stripUrl;
+            strip.style.objectPosition = card.strip_position || 'center';
+          }
+          $('strip-wrap')?.classList.remove('hidden');
+        }
+      }
+
+      function renderProgress() {
+        const card = cardData?.carte;
+        const client = clientData;
+        if (!card || !client) return;
+
+        const accent = card.couleur_accent || '#38bdf8';
+        const text = card.couleur_texte || '#ffffff';
+        const type = card.type || 'tampons';
+
+        setText('client-name', client.nom || 'Votre carte');
+        setText('reward-count', client.recompenses_obtenues ?? 0);
+
+        if (type === 'points') {
+          const target = Number(card.points_recompense || 100);
+          const current = Number(client.points_actuels || 0);
+          const pct = Math.max(0, Math.min(100, target > 0 ? (current / target) * 100 : 0));
+          setText('progress-label', 'Points');
+          setText('progress-value', current);
+          setText('points-text', `${current} / ${target} points`);
+          const bar = $('points-bar');
+          if (bar) {
+            bar.style.width = `${pct}%`;
+            bar.style.background = accent;
+          }
+          $('stamp-panel')?.classList.add('hidden');
+          $('points-panel')?.classList.remove('hidden');
+        } else {
+          const total = Number(card.tampons_total || 10);
+          const current = Number(client.tampons_actuels || 0);
+          setText('progress-label', 'Tampons');
+          setText('progress-value', `${current}/${total}`);
+          $('stamp-panel')?.classList.remove('hidden');
+          $('points-panel')?.classList.add('hidden');
+          renderStamps(
+            current,
+            total,
+            accent,
+            text,
+            card.tampon_icon_url,
+            card.tampon_emoji,
+            Number(card.tampon_icon_scale || 1),
+          );
+        }
+      }
+
+      async function loadCardAndClient() {
+        const clientId = initialClientId || readStoredClientId();
+        if (!clientId) {
+          showError('Aucun client associe. Revenez sur la page d ajout pour creer votre carte web.');
+          return;
+        }
+
+        const [cardRes, clientRes] = await Promise.all([
+          fetch(apiUrl(`/api/cartes/${cardId}/public`)),
+          fetch(apiUrl(`/api/clients/public/${encodeURIComponent(clientId)}?carte_id=${encodeURIComponent(cardId)}`)),
+        ]);
+
+        if (!cardRes.ok) throw new Error('Carte introuvable.');
+        if (!clientRes.ok) throw new Error('Client introuvable.');
+
+        cardData = (await cardRes.json()).data;
+        clientData = (await clientRes.json()).data;
+        rememberClient(clientData);
+
+        applyCardDesign();
+        renderProgress();
+        await renderQr(clientData.wallet_code || clientData.id);
+        setText('last-update', `Mis a jour a ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`);
+        showContent();
+      }
+
+      async function refresh() {
+        const btn = $('refresh-btn');
+        if (btn) btn.disabled = true;
+        try {
+          await loadCardAndClient();
+        } catch (error) {
+          showError(error?.message || 'Impossible de mettre a jour cette carte.');
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      }
+
+      window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+      });
+
+      $('install-btn')?.addEventListener('click', async () => {
+        if (deferredInstallPrompt) {
+          deferredInstallPrompt.prompt();
+          await deferredInstallPrompt.userChoice.catch(() => null);
+          deferredInstallPrompt = null;
+          return;
+        }
+        $('install-help')?.classList.toggle('hidden');
+      });
+
+      $('refresh-btn')?.addEventListener('click', () => {
+        void refresh();
+      });
+
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) void refresh();
+      });
+
+      void refresh().then(() => {
+        if (refreshTimer) clearInterval(refreshTimer);
+        refreshTimer = setInterval(() => {
+          if (!document.hidden) void refresh();
+        }, 45000);
+      });
+    </script>
+  </body>
+</html>

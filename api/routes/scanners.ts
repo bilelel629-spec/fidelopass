@@ -11,6 +11,12 @@ import { updateGooglePassObject } from '../services/google-wallet';
 import { buildBillingStatusPayload, type BillingRecord } from '../services/billing';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
+import {
+  applyProgressIncrement,
+  applyRewardRedemption,
+  applyScoreReset,
+  getProgramType,
+} from '../services/loyalty-progress';
 
 export const scannersRoutes = new Hono<ApiEnv>();
 
@@ -685,40 +691,43 @@ scannersRoutes.post('/transactions', async (c) => {
   if (scopeError) return scopeError;
   const safeClient = client as ScanClient;
 
-  const progress = getProgress(safeClient);
-  const before = progress.current;
-  let nextPoints = safeClient.points_actuels ?? 0;
-  let nextTampons = safeClient.tampons_actuels ?? 0;
-  let nextRewards = safeClient.recompenses_obtenues ?? 0;
+  const currentProgress = getProgress(safeClient);
+  let progressResult = {
+    newPoints: safeClient.points_actuels ?? 0,
+    newTampons: safeClient.tampons_actuels ?? 0,
+    recompensesObtenues: safeClient.recompenses_obtenues ?? 0,
+    activeScoreBefore: currentProgress.current,
+    activeScoreAfter: currentProgress.current,
+    rewardsEarned: 0,
+  };
 
   switch (parsed.data.type) {
     case 'ajout_points':
-      nextPoints += parsed.data.valeur;
-      if (nextPoints >= progress.goal) {
-        nextRewards += Math.floor(nextPoints / progress.goal);
-        nextPoints = progress.goal;
+      if (getProgramType(safeClient.cartes) !== 'points') {
+        return c.json({ success: false, code: 'WRONG_PROGRAM_TYPE', error: 'Cette carte utilise des tampons, pas des points.' }, 400);
       }
+      progressResult = applyProgressIncrement(safeClient.cartes, safeClient, parsed.data.valeur);
       break;
     case 'ajout_tampon':
-      nextTampons += parsed.data.valeur;
-      if (nextTampons >= progress.goal) {
-        nextRewards += Math.floor(nextTampons / progress.goal);
-        nextTampons = progress.goal;
+      if (getProgramType(safeClient.cartes) !== 'tampons') {
+        return c.json({ success: false, code: 'WRONG_PROGRAM_TYPE', error: 'Cette carte utilise des points, pas des tampons.' }, 400);
       }
+      progressResult = applyProgressIncrement(safeClient.cartes, safeClient, parsed.data.valeur);
       break;
     case 'recompense':
-      if (nextRewards <= 0) {
+      if ((safeClient.recompenses_obtenues ?? 0) <= 0) {
         return c.json({ success: false, code: 'NO_REWARD_AVAILABLE', error: 'Le client n’a pas de récompense disponible.' }, 409);
       }
-      nextRewards = Math.max(0, nextRewards - parsed.data.valeur);
-      if (safeClient.cartes.type === 'tampons') nextTampons = 0;
-      else nextPoints = 0;
+      progressResult = applyRewardRedemption(safeClient.cartes, safeClient, parsed.data.valeur);
       break;
     case 'reset':
-      nextPoints = 0;
-      nextTampons = 0;
+      progressResult = applyScoreReset(safeClient.cartes, safeClient);
       break;
   }
+
+  const nextPoints = progressResult.newPoints;
+  const nextTampons = progressResult.newTampons;
+  const nextRewards = progressResult.recompensesObtenues;
 
   const updatedAt = new Date().toISOString();
   const updateQuery = scannerContext.db.from('clients').update({
@@ -745,8 +754,8 @@ scannersRoutes.post('/transactions', async (c) => {
     point_vente_id: scannerContext.scanner.point_vente_id,
     type: parsed.data.type,
     valeur: parsed.data.valeur,
-    points_avant: before,
-    points_apres: safeClient.cartes.type === 'points' ? nextPoints : nextTampons,
+    points_avant: progressResult.activeScoreBefore,
+    points_apres: progressResult.activeScoreAfter,
     note: 'Scan caisse mobile',
   }).select().single();
 

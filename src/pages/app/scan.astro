@@ -82,7 +82,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
     </div>
 
     <!-- Résultat scan -->
-    <div id="scan-result" class="hidden fixed inset-0 bg-navy-900/95 backdrop-blur-sm flex flex-col items-center justify-center px-6 z-50">
+    <div id="scan-result" class="hidden fixed inset-0 bg-navy-900/95 backdrop-blur-sm flex flex-col items-center justify-center px-6 z-50" role="dialog" aria-modal="true" aria-labelledby="result-nom" tabindex="-1">
       <div class="card w-full max-w-sm p-5 text-center">
         <h2 id="result-nom" class="mb-1 font-display text-xl font-bold text-slate-900">—</h2>
         <p id="result-solde" class="text-sm text-slate-600">—</p>
@@ -115,9 +115,9 @@ import AppLayout from '../../layouts/AppLayout.astro';
       </div>
     </div>
 
-    <div id="points-modal" class="hidden fixed inset-0 bg-navy-950/90 backdrop-blur-sm z-[60] flex items-center justify-center px-6">
+    <div id="points-modal" class="hidden fixed inset-0 bg-navy-950/90 backdrop-blur-sm z-[60] flex items-center justify-center px-6" role="dialog" aria-modal="true" aria-labelledby="points-modal-title" tabindex="-1">
       <div class="card w-full max-w-xs p-5">
-        <h2 class="font-display text-lg font-bold text-slate-900">Ajouter des points</h2>
+        <h2 id="points-modal-title" class="font-display text-lg font-bold text-slate-900">Ajouter des points</h2>
         <p class="mb-4 mt-1 text-sm text-slate-500">Entrez le nombre de points à créditer.</p>
         <input id="points-value" type="number" min="1" step="1" inputmode="numeric" class="input text-center text-xl font-mono" placeholder="10" />
         <div class="grid grid-cols-2 gap-3 mt-4">
@@ -235,6 +235,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
   const CAMERA_CACHE_KEY = 'fidelopass_scanner_camera_id';
   const API_TIMEOUT_MS = Number(import.meta.env.PUBLIC_API_FETCH_TIMEOUT_MS ?? 8000);
   const DECODE_INTERVAL_MS = 120;
+  const MAX_SCAN_CODE_LENGTH = 200;
   const MAX_QR_DECODE_WIDTH = 900;
   const MAX_BARCODE_DECODE_WIDTH = 1600;
   const BARCODE_SCAN_STRIPS = [
@@ -709,12 +710,18 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
   async function handleScan(decodedText: string) {
     if (scannerPaused) return;
+    const scanCode = decodedText.trim();
+    if (!scanCode || scanCode.length > MAX_SCAN_CODE_LENGTH) {
+      showToast('Code scanné trop long ou invalide.', 'error');
+      return;
+    }
+
     scannerPaused = true;
     setScannerStatus('Code détecté...');
     playBeep('scan');
 
     try {
-      const res = await authFetchWithTimeout(`/api/merchant/scan?code=${encodeURIComponent(decodedText.trim())}`);
+      const res = await authFetchWithTimeout(`/api/merchant/scan?code=${encodeURIComponent(scanCode)}`);
       if (!res.ok) throw new Error(await readApiError(res, 'Carte client introuvable.'));
 
       const payload = await res.json();
@@ -742,6 +749,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
       rewardBtn.classList.toggle('hidden', currentClientRecompenses <= 0);
 
       document.getElementById('scan-result')!.classList.remove('hidden');
+      focusScanResult();
 
       // Feedback haptique
       if (navigator.vibrate) navigator.vibrate(100);
@@ -760,7 +768,9 @@ import AppLayout from '../../layouts/AppLayout.astro';
   // Bouton +points
   document.getElementById('btn-points')!.addEventListener('click', async () => {
     if (!currentClientId) return;
-    document.getElementById('points-modal')!.classList.remove('hidden');
+    const modal = document.getElementById('points-modal')!;
+    modal.classList.remove('hidden');
+    modal.focus({ preventScroll: true });
     (document.getElementById('points-value') as HTMLInputElement).focus();
   });
 
@@ -852,13 +862,34 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
   function closeResult() {
     document.getElementById('scan-result')!.classList.add('hidden');
+    document.getElementById('points-modal')!.classList.add('hidden');
     currentClientId = null;
     currentClientRecompenses = 0;
     currentProgramType = 'tampons';
     resumeScanner();
+    startCameraBtn.focus({ preventScroll: true });
+  }
+
+  function focusScanResult() {
+    const result = document.getElementById('scan-result')!;
+    const firstAction = result.querySelector<HTMLButtonElement>('button:not(.hidden):not([disabled])');
+    (firstAction ?? result).focus({ preventScroll: true });
   }
 
   document.getElementById('btn-close')!.addEventListener('click', closeResult);
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    const pointsModal = document.getElementById('points-modal')!;
+    const scanResult = document.getElementById('scan-result')!;
+    if (!pointsModal.classList.contains('hidden')) {
+      pointsModal.classList.add('hidden');
+      focusScanResult();
+      return;
+    }
+    if (!scanResult.classList.contains('hidden')) {
+      closeResult();
+    }
+  });
   document.addEventListener('pointerdown', unlockAudio, { once: true });
   document.addEventListener('touchstart', unlockAudio, { once: true });
   cameraPermissionBtn.addEventListener('click', async () => {

@@ -26,6 +26,7 @@ import { merchantScanRoutes } from './routes/merchant-scan';
 import { geocodingRoutes } from './routes/geocoding';
 import { assistantCardRoutes } from './routes/assistant-card';
 import { createServiceClient } from '../src/lib/supabase';
+import { withCronLock } from './services/cron-lock';
 
 const app = new Hono<ApiEnv>();
 
@@ -87,7 +88,11 @@ if (walletRefreshEnabled && walletRefreshIntervalMs >= 30_000) {
     if (walletRefreshRunning) return;
     walletRefreshRunning = true;
     try {
-      const result = await refreshRecentlyChangedWallets(createServiceClient());
+      const db = createServiceClient();
+      const lockTtlSeconds = Math.max(60, Math.ceil((walletRefreshIntervalMs / 1000) * 2));
+      const lockResult = await withCronLock(db, 'wallet-refresh', lockTtlSeconds, () => refreshRecentlyChangedWallets(db));
+      if (!lockResult.acquired || !lockResult.value) return;
+      const result = lockResult.value;
       if (result.candidates > 0 || result.errors > 0) {
         console.log(
           `[wallet-refresh interval] candidats=${result.candidates}, google=${result.google_updated}, apple=${result.apple_pushed}, erreurs=${result.errors}`,

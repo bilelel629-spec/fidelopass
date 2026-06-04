@@ -17,6 +17,7 @@ import {
   LEGACY_PRICE_IDS,
   loadPriceIds,
 } from '../services/stripe-billing';
+import { sendWelcomeEmail } from '../services/welcome-email';
 
 export const checkoutRoutes = new Hono<ApiEnv>();
 
@@ -138,11 +139,13 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
 
   let commerce = existingCommerce;
   if (!commerce) {
+    const commerceName = 'Mon commerce';
     const { data: createdCommerce, error: createCommerceError } = await db
       .from('commerces')
       .insert({
         user_id: userId,
-        nom: 'Mon commerce',
+        nom: commerceName,
+        email: email ?? null,
         onboarding_completed: false,
         billing_status: 'unpaid',
       })
@@ -152,6 +155,12 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
       return c.json({ error: "Impossible d'initialiser le commerce avant le paiement." }, 500);
     }
     commerce = createdCommerce;
+    if (email) {
+      const welcomeResult = await sendWelcomeEmail({ toEmail: email, commerceName });
+      if (!welcomeResult.ok && !welcomeResult.skipped) {
+        console.warn('[checkout] welcome email failed for new commerce');
+      }
+    }
   }
 
   const stripe = getStripe();

@@ -5,12 +5,16 @@ import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { updateGooglePassObject } from '../services/google-wallet';
+import { applyProgressIncrement, applyRewardRedemption } from '../services/loyalty-progress';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 
 export const merchantScanRoutes = new Hono();
 
 merchantScanRoutes.use('*', authMiddleware);
 merchantScanRoutes.use('*', paidMiddleware);
+
+const MAX_SCAN_INPUT_LENGTH = 1000;
+const MAX_SCAN_CODE_LENGTH = 200;
 
 const CLIENT_SELECT = `
   *,
@@ -79,6 +83,8 @@ function normalizeScanCode(value: string | null | undefined): string {
 
 function extractScanCode(value: string | null | undefined): string {
   const raw = String(value ?? '').trim();
+  if (!raw || raw.length > MAX_SCAN_INPUT_LENGTH) return '';
+
   const uuidMatch = raw.match(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i);
   if (uuidMatch?.[0]) return uuidMatch[0];
 
@@ -97,6 +103,10 @@ function extractScanCode(value: string | null | undefined): string {
   }
 
   return normalizeScanCode(raw);
+}
+
+function isSafeScanCode(value: string): boolean {
+  return value.length > 0 && value.length <= MAX_SCAN_CODE_LENGTH;
 }
 
 function isUuid(value: string): boolean {
@@ -249,6 +259,9 @@ merchantScanRoutes.get('/scan', async (c) => {
   const code = extractScanCode(c.req.query('code'));
 
   if (!code) return c.json({ success: false, error: 'Scan vide, veuillez réessayer.' }, 400);
+  if (!isSafeScanCode(code)) {
+    return c.json({ success: false, error: 'Code scanné trop long ou invalide.' }, 400);
+  }
 
   if (code === 'FID-DEMO123') {
     return c.json({
@@ -303,24 +316,10 @@ async function handleAddPoint(c: Context) {
 
   const safeClient = client as ScanClient;
   const progress = getProgress(safeClient);
-  const before = progress.current;
-  let nextPoints = safeClient.points_actuels ?? 0;
-  let nextTampons = safeClient.tampons_actuels ?? 0;
-  let nextRewards = safeClient.recompenses_obtenues ?? 0;
-
-  if (safeClient.cartes.type === 'points') {
-    nextPoints += 1;
-    if (before < progress.goal && nextPoints >= progress.goal) {
-      nextRewards += 1;
-      nextPoints = progress.goal;
-    }
-  } else {
-    nextTampons += 1;
-    if (before < progress.goal && nextTampons >= progress.goal) {
-      nextRewards += 1;
-      nextTampons = progress.goal;
-    }
-  }
+  const progressResult = applyProgressIncrement(safeClient.cartes, safeClient, 1);
+  const nextPoints = progressResult.newPoints;
+  const nextTampons = progressResult.newTampons;
+  const nextRewards = progressResult.recompensesObtenues;
 
   const updatedAt = new Date().toISOString();
   const updateQuery = db.from('clients').update({
@@ -353,8 +352,8 @@ async function handleAddPoint(c: Context) {
     point_vente_id: pointVente.id,
     type: progress.addType,
     valeur: 1,
-    points_avant: before,
-    points_apres: safeClient.cartes.type === 'points' ? nextPoints : nextTampons,
+    points_avant: progressResult.activeScoreBefore,
+    points_apres: progressResult.activeScoreAfter,
     note: 'Scan caisse scannette',
   });
 
@@ -400,10 +399,10 @@ async function handleUseReward(c: Context) {
     }, 409);
   }
 
-  const progress = getProgress(safeClient);
-  const nextRewards = Math.max(0, (safeClient.recompenses_obtenues ?? 0) - 1);
-  const nextPoints = safeClient.cartes.type === 'points' ? 0 : safeClient.points_actuels;
-  const nextTampons = safeClient.cartes.type === 'tampons' ? 0 : safeClient.tampons_actuels;
+  const progressResult = applyRewardRedemption(safeClient.cartes, safeClient, 1);
+  const nextRewards = progressResult.recompensesObtenues;
+  const nextPoints = progressResult.newPoints;
+  const nextTampons = progressResult.newTampons;
   const updatedAt = new Date().toISOString();
 
   const updateQuery = db.from('clients').update({
@@ -436,8 +435,8 @@ async function handleUseReward(c: Context) {
     point_vente_id: pointVente.id,
     type: 'recompense',
     valeur: 1,
-    points_avant: progress.current,
-    points_apres: 0,
+    points_avant: progressResult.activeScoreBefore,
+    points_apres: progressResult.activeScoreAfter,
     note: 'Récompense utilisée via scan caisse scannette',
   });
 

@@ -185,7 +185,7 @@ const plans = [
                 class:list={[
                   'inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition-all',
                   plan.highlight
-                    ? 'bg-white text-indigo-700 shadow hover:bg-indigo-50'
+                    ? 'border-2 border-white bg-white text-indigo-700 shadow hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-indigo-600'
                     : 'btn-primary',
                 ]}
               >
@@ -425,16 +425,16 @@ const plans = [
 </style>
 
 <script>
-  const billingButtons = Array.from(document.querySelectorAll('[data-billing-mode]'));
+  const billingButtons = Array.from(document.querySelectorAll<HTMLElement>('[data-billing-mode]'));
 
-  function buttonClass(mode, activeMode) {
+  function buttonClass(mode: string | undefined, activeMode: string) {
     const base = 'rounded-xl px-5 py-2 text-sm font-semibold transition-all';
     return mode === activeMode
       ? `${base} bg-slate-950 text-white shadow-sm`
       : `${base} text-slate-500 hover:bg-slate-100`;
   }
 
-  function setMode(mode) {
+  function setMode(mode: string) {
     const isAnnual = mode === 'annual';
 
     billingButtons.forEach((button) => {
@@ -443,11 +443,11 @@ const plans = [
       button.setAttribute('aria-pressed', String(buttonMode === mode));
     });
 
-    document.querySelectorAll('.price-display').forEach((el) => {
+    document.querySelectorAll<HTMLElement>('.price-display').forEach((el) => {
       el.textContent = isAnnual ? (el.dataset.annual ?? '') : (el.dataset.monthly ?? '');
     });
 
-    document.querySelectorAll('.price-period').forEach((el) => {
+    document.querySelectorAll<HTMLElement>('.price-period').forEach((el) => {
       el.textContent = isAnnual ? (el.dataset.annual ?? '') : (el.dataset.monthly ?? '');
     });
 
@@ -463,7 +463,7 @@ const plans = [
       note.textContent = isAnnual ? '14 jours gratuits · Abonnement annuel' : '14 jours gratuits · Annuler à tout moment';
     });
 
-    document.querySelectorAll('[data-plan-cta]').forEach((link) => {
+    document.querySelectorAll<HTMLAnchorElement>('[data-plan-cta]').forEach((link) => {
       const plan = link.dataset.planCta ?? 'starter';
       const setup = link.dataset.setup === '1';
       const next = `/abonnement/choix?plan=${encodeURIComponent(plan)}&billing=${mode}${setup ? '&setup=1' : ''}`;
@@ -478,10 +478,10 @@ const plans = [
   });
   setMode('monthly');
 
-  const roiButtons = Array.from(document.querySelectorAll('[data-roi-plan]'));
-  const roiCards = document.getElementById('roi-cards');
-  const roiBasket = document.getElementById('roi-basket');
-  const roiReturn = document.getElementById('roi-return');
+  const roiButtons = Array.from(document.querySelectorAll<HTMLElement>('[data-roi-plan]'));
+  const roiCards = document.getElementById('roi-cards') as HTMLInputElement | null;
+  const roiBasket = document.getElementById('roi-basket') as HTMLInputElement | null;
+  const roiReturn = document.getElementById('roi-return') as HTMLInputElement | null;
   const roiCardsLabel = document.getElementById('roi-cards-label');
   const roiBasketLabel = document.getElementById('roi-basket-label');
   const roiReturnLabel = document.getElementById('roi-return-label');
@@ -497,7 +497,7 @@ const plans = [
   const roiRoiText = document.getElementById('roi-roi-text');
   let selectedRoiPlan = 'pro';
 
-  function euro(value) {
+  function euro(value: number) {
     return `${Math.round(value).toLocaleString('fr-FR')}€`;
   }
 
@@ -550,6 +550,7 @@ const plans = [
     const btn = item.querySelector('button');
     const answer = item.querySelector('.faq-answer');
     const icon = item.querySelector('.faq-icon');
+    if (!btn || !answer || !icon) return;
     btn.addEventListener('click', () => {
       const open = btn.getAttribute('aria-expanded') === 'true';
       btn.setAttribute('aria-expanded', open ? 'false' : 'true');

@@ -1060,6 +1060,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   import { authFetch } from '../../lib/api';
   import { clearAddressPayload, getAddressPayload, initAddressAutocomplete } from '../../lib/address-autocomplete';
   import { createClient } from '@supabase/supabase-js';
+  import { toDataURL } from 'qrcode';
 
   const supabase = createClient(import.meta.env.PUBLIC_SUPABASE_URL, import.meta.env.PUBLIC_SUPABASE_ANON_KEY);
   const API = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3001';
@@ -1179,19 +1180,35 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   function qrImageUrl(id: string, size = 768) {
-    return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(publicCardUrl(id))}&bgcolor=ffffff&color=111827&qzone=1`;
+    return toDataURL(publicCardUrl(id), {
+      width: size,
+      margin: 1,
+      errorCorrectionLevel: 'M',
+      color: {
+        dark: '#111827',
+        light: '#ffffff',
+      },
+    });
   }
 
   function scannerInstallUrl() {
     return `${PUBLIC_SITE_URL}/app/install`;
   }
 
-  function ensureQr(containerId: string, url: string, size = 150) {
+  async function ensureQr(containerId: string, url: string, size = 150) {
     const container = document.getElementById(containerId);
     if (!container) return;
     container.innerHTML = '';
     const image = document.createElement('img');
-    image.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=111827&qzone=1`;
+    image.src = await toDataURL(url, {
+      width: size,
+      margin: 1,
+      errorCorrectionLevel: 'M',
+      color: {
+        dark: '#111827',
+        light: '#ffffff',
+      },
+    });
     image.className = 'rounded-xl';
     image.width = size;
     image.height = size;
@@ -1201,14 +1218,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   function updateQrTools(id: string) {
     (document.getElementById('poster-link-essential') as HTMLAnchorElement).href = posterUrl(id, 'essential');
     (document.getElementById('poster-link-signature') as HTMLAnchorElement).href = posterUrl(id, 'signature');
-    ensureQr('qr-container', publicCardUrl(id));
+    void ensureQr('qr-container', publicCardUrl(id));
   }
 
   function updateScannerTools() {
     const installLink = document.getElementById('scanner-install-link') as HTMLAnchorElement | null;
     const installUrl = scannerInstallUrl();
     if (installLink) installLink.href = installUrl;
-    ensureQr('scanner-qr-container', installUrl);
+    void ensureQr('scanner-qr-container', installUrl);
   }
 
   function clearStepError(step: WizardStep) {
@@ -2917,7 +2934,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     button.disabled = true;
     button.textContent = 'Téléchargement...';
     try {
-      const response = await fetch(qrImageUrl(carteId, 1200));
+      const response = await fetch(await qrImageUrl(carteId, 1200));
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');

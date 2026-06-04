@@ -6,7 +6,7 @@ type RegistrationEmailInput = {
 };
 
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
-const DEFAULT_CONTACT_EMAIL = 'contact@fidelopass.com';
+const DEFAULT_CONTACT_EMAIL = 'contact@duo-agency.com';
 
 function htmlEscape(value: string) {
   return value

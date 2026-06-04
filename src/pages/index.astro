@@ -1348,6 +1348,7 @@ import PublicNav from '../components/marketing/PublicNav.astro';
     const btn = item.querySelector('button');
     const answer = item.querySelector('.faq-answer');
     const icon = item.querySelector('.faq-icon');
+    if (!btn || !answer || !icon) return;
     btn.addEventListener('click', () => {
       const open = btn.getAttribute('aria-expanded') === 'true';
       btn.setAttribute('aria-expanded', open ? 'false' : 'true');
@@ -1356,10 +1357,10 @@ import PublicNav from '../components/marketing/PublicNav.astro';
     });
   });
 
-  const homeRoiButtons = Array.from(document.querySelectorAll('[data-home-roi-plan]'));
-  const homeRoiCards = document.getElementById('home-roi-cards');
-  const homeRoiBasket = document.getElementById('home-roi-basket');
-  const homeRoiReturn = document.getElementById('home-roi-return');
+  const homeRoiButtons = Array.from(document.querySelectorAll<HTMLElement>('[data-home-roi-plan]'));
+  const homeRoiCards = document.getElementById('home-roi-cards') as HTMLInputElement | null;
+  const homeRoiBasket = document.getElementById('home-roi-basket') as HTMLInputElement | null;
+  const homeRoiReturn = document.getElementById('home-roi-return') as HTMLInputElement | null;
   const homeRoiCardsLabel = document.getElementById('home-roi-cards-label');
   const homeRoiBasketLabel = document.getElementById('home-roi-basket-label');
   const homeRoiReturnLabel = document.getElementById('home-roi-return-label');
@@ -1375,7 +1376,7 @@ import PublicNav from '../components/marketing/PublicNav.astro';
   const homeRoiRoiText = document.getElementById('home-roi-roi-text');
   let selectedHomeRoiPlan = 'pro';
 
-  function homeEuro(value) {
+  function homeEuro(value: number) {
     return `${Math.round(value).toLocaleString('fr-FR')}€`;
   }
 

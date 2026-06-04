@@ -58,10 +58,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             <p class="text-slate-400 text-sm dark:text-slate-400">Essai gratuit · 14 jours · Carte bancaire requise</p>
             <h2 class="font-display text-2xl font-bold text-slate-900 mt-0.5 dark:text-slate-100">Créer mon compte</h2>
           </div>
-          <div class="flex items-center gap-2">
-            <div id="progress-1" class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background:#4f46e5">1</div>
-            <div class="w-8 h-px bg-slate-200 dark:bg-slate-700"></div>
-            <div id="progress-2" class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-slate-400 border border-slate-200 dark:border-slate-700 dark:text-slate-300">2</div>
+          <div role="list" aria-label="Étapes d'inscription" class="flex items-center gap-2">
+            <div id="progress-1" role="listitem" aria-current="step" aria-label="Étape 1 sur 2 : Informations" class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background:#4f46e5">1</div>
+            <div class="w-8 h-px bg-slate-200 dark:bg-slate-700" aria-hidden="true"></div>
+            <div id="progress-2" role="listitem" aria-label="Étape 2 sur 2 : Vérification" class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-slate-400 border border-slate-200 dark:border-slate-700 dark:text-slate-300">2</div>
           </div>
         </div>
 
@@ -245,6 +245,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     const idle = 'background:transparent;color:#94a3b8;border:1px solid #e2e8f0';
     progress1.style.cssText = step >= 1 ? active : idle;
     progress2.style.cssText = step >= 2 ? active : idle;
+    progress1.setAttribute('aria-current', step === 1 ? 'step' : 'false');
+    progress2.setAttribute('aria-current', step === 2 ? 'step' : 'false');
   };
 
   const hideAll = () => [methodErrorMsg, errorMsg, verifyErrorMsg, verifySuccessMsg].forEach((el) => el.classList.add('hidden'));
@@ -347,6 +349,20 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     return null;
   }
 
+  async function bootstrapCommerce(accessToken: string) {
+    try {
+      await fetch(apiUrl('/api/commerces/bootstrap'), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+    } catch (error) {
+      console.warn('[register] bootstrap commerce ignoré:', error);
+    }
+  }
+
   async function redirectAfterAuth(
     sessionFromFlow: { access_token: string } | null = null,
   ) {
@@ -362,6 +378,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       }
 
       setSessionCookie(activeSession.access_token);
+      showProgress('Préparation de votre espace...');
+      await bootstrapCommerce(activeSession.access_token);
       showProgress('Compte prêt, redirection...');
 
       const target = await resolvePostAuthDestination(activeSession.access_token, getPreferredNext() ?? '/dashboard/carte');

@@ -8,6 +8,7 @@ import { pushApplePassUpdate } from '../services/apple-wallet';
 import { getPlanLimits } from './commerces';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
 import { withEffectiveCommerceLogo } from '../utils/commerce-logo';
+import { applyProgressIncrement } from '../services/loyalty-progress';
 
 export const cronRoutes = new Hono<ApiEnv>();
 const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
@@ -18,6 +19,7 @@ const DEFAULT_BIRTHDAY_PUSH_TITLE = 'Joyeux anniversaire 🎉';
 const DEFAULT_BIRTHDAY_PUSH_MESSAGE = 'Votre bonus anniversaire est disponible sur votre carte Fidelopass.';
 const WALLET_REFRESH_WINDOW_MINUTES = 3;
 const WALLET_REFRESH_LIMIT = 500;
+const CRON_EXTERNAL_CONCURRENCY = 8;
 
 type CronCarteRow = {
   id: string;
@@ -54,6 +56,7 @@ type CronClientRow = {
   id: string;
   nom: string | null;
   date_naissance: string | null;
+  point_vente_id?: string | null;
   fcm_token: string | null;
   push_enabled: boolean;
   google_pass_id: string | null;
@@ -61,6 +64,24 @@ type CronClientRow = {
   points_actuels: number;
   tampons_actuels: number;
   recompenses_obtenues: number;
+};
+
+type ReviewCarteRow = {
+  id: string;
+  nom: string;
+  google_maps_url: string | null;
+  point_vente_id: string | null;
+};
+
+type ReviewClientRow = {
+  id: string;
+  nom: string | null;
+  fcm_token: string | null;
+  push_enabled: boolean | null;
+  google_pass_id: string | null;
+  apple_pass_serial: string | null;
+  created_at: string | null;
+  carte_id: string;
 };
 
 type WalletRefreshClientRow = {
@@ -79,6 +100,22 @@ type WalletRefreshClientRow = {
     points_vente?: Record<string, unknown> | Record<string, unknown>[] | null;
   };
 };
+
+async function runLimited<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<void>,
+) {
+  if (items.length === 0) return;
+  const concurrency = Math.max(1, Math.min(limit, items.length));
+  await Promise.all(
+    Array.from({ length: concurrency }, async (_, workerIndex) => {
+      for (let index = workerIndex; index < items.length; index += concurrency) {
+        await worker(items[index]);
+      }
+    }),
+  );
+}
 
 function getParisDateParts(now: Date): { year: number; month: number; day: number; hour: number; minute: number; monthDay: string } {
   const formatter = new Intl.DateTimeFormat('en-GB', {
@@ -328,25 +365,7 @@ function computeBirthdayReward(
   client: Pick<CronClientRow, 'points_actuels' | 'tampons_actuels' | 'recompenses_obtenues'>,
   rewardValue: number,
 ) {
-  let newPoints = client.points_actuels;
-  let newTampons = client.tampons_actuels;
-  let recompensesObtenues = client.recompenses_obtenues;
-
-  if (carte.type === 'tampons') {
-    newTampons += rewardValue;
-    if (newTampons >= carte.tampons_total) {
-      recompensesObtenues += Math.floor(newTampons / carte.tampons_total);
-      newTampons = carte.tampons_total;
-    }
-  } else {
-    newPoints += rewardValue;
-    if (newPoints >= carte.points_recompense) {
-      recompensesObtenues += Math.floor(newPoints / carte.points_recompense);
-      newPoints = carte.points_recompense;
-    }
-  }
-
-  return { newPoints, newTampons, recompensesObtenues };
+  return applyProgressIncrement(carte, client, rewardValue);
 }
 
 async function sendScheduledReviewPushes(db: ReturnType<typeof createServiceClient>) {
@@ -378,23 +397,46 @@ async function sendScheduledReviewPushes(db: ReturnType<typeof createServiceClie
     if (!reviewAutoEnabled) continue;
     commercesProcessed++;
 
-    const { data: cartes } = await db
+    const { data: cartes, error: cartesError } = await db
       .from('cartes')
       .select('id, nom, google_maps_url, point_vente_id')
       .eq('commerce_id', commerce.id)
       .eq('actif', true)
       .order('created_at', { ascending: true });
 
-    for (const carte of cartes ?? []) {
-      const { data: clients } = await db
-        .from('clients')
-        .select('id, nom, fcm_token, push_enabled, google_pass_id, apple_pass_serial, created_at')
-        .eq('commerce_id', commerce.id)
-        .eq('carte_id', carte.id)
-        .gt('created_at', windowStart)
-        .lte('created_at', windowEnd);
+    if (cartesError) {
+      console.error('[cron review-auto] Erreur lecture cartes:', cartesError.message);
+      continue;
+    }
 
-      if (!clients?.length) continue;
+    const carteRows = (cartes ?? []).map((carte) => carte as ReviewCarteRow);
+    const carteIds = carteRows.map((carte) => carte.id);
+    if (carteIds.length === 0) continue;
+
+    const { data: clients, error: clientsError } = await db
+      .from('clients')
+      .select('id, nom, fcm_token, push_enabled, google_pass_id, apple_pass_serial, created_at, carte_id')
+      .eq('commerce_id', commerce.id)
+      .in('carte_id', carteIds)
+      .gt('created_at', windowStart)
+      .lte('created_at', windowEnd);
+
+    if (clientsError) {
+      console.error('[cron review-auto] Erreur lecture clients:', clientsError.message);
+      continue;
+    }
+
+    const clientsByCarteId = new Map<string, ReviewClientRow[]>();
+    for (const clientRaw of clients ?? []) {
+      const client = clientRaw as ReviewClientRow;
+      const list = clientsByCarteId.get(client.carte_id) ?? [];
+      list.push(client);
+      clientsByCarteId.set(client.carte_id, list);
+    }
+
+    for (const carte of carteRows) {
+      const clients = clientsByCarteId.get(carte.id) ?? [];
+      if (!clients.length) continue;
 
       const reviewUrl = carte.google_maps_url?.trim()
         ? carte.google_maps_url.trim()
@@ -449,7 +491,7 @@ async function sendScheduledReviewPushes(db: ReturnType<typeof createServiceClie
         webPushClients.slice(0, webSent).forEach((client) => deliveredClientIds.add(client.id));
       }
 
-      for (const client of googleWalletClients) {
+      await runLimited(googleWalletClients, CRON_EXTERNAL_CONCURRENCY, async (client) => {
         await sendGoogleWalletMessage(
           client.google_pass_id as string,
           messageTitle,
@@ -461,7 +503,7 @@ async function sendScheduledReviewPushes(db: ReturnType<typeof createServiceClie
             deliveredClientIds.add(client.id);
           })
           .catch((err) => console.error('[cron review-auto google-wallet]', err));
-      }
+      });
 
       if (appleWalletClients.length > 0) {
         const { data: registrations } = await db
@@ -565,27 +607,37 @@ async function sendScheduledBirthdayPushes(db: ReturnType<typeof createServiceCl
         continue;
       }
 
-      for (const carteRaw of (cartes ?? [])) {
-        const carte = carteRaw as unknown as CronCarteRow;
+      const carteRows = (cartes ?? []).map((carte) => carte as unknown as CronCarteRow);
+      const carteIds = carteRows.map((carte) => carte.id);
+      if (carteIds.length === 0) continue;
+
+      const { data: birthdayClients, error: birthdayClientsError } = await db
+        .from('clients')
+        .select('id, nom, date_naissance, point_vente_id, fcm_token, push_enabled, google_pass_id, apple_pass_serial, points_actuels, tampons_actuels, recompenses_obtenues, carte_id')
+        .eq('commerce_id', commerce.id)
+        .in('carte_id', carteIds)
+        .not('date_naissance', 'is', null);
+
+      if (birthdayClientsError) {
+        console.error('[cron birthday] Erreur lecture clients:', birthdayClientsError.message);
+        continue;
+      }
+
+      const clientsByCarteId = new Map<string, CronClientRow[]>();
+      for (const clientRaw of birthdayClients ?? []) {
+        const client = clientRaw as unknown as CronClientRow & { carte_id: string };
+        const list = clientsByCarteId.get(client.carte_id) ?? [];
+        list.push(client);
+        clientsByCarteId.set(client.carte_id, list);
+      }
+
+      for (const carte of carteRows) {
         const rewardValue = Math.max(1, Math.min(50, Number(carte.birthday_reward_value ?? 1)));
         const messageTitle = (carte.birthday_push_title ?? '').trim() || DEFAULT_BIRTHDAY_PUSH_TITLE;
         const messageBody = (carte.birthday_push_message ?? '').trim() || DEFAULT_BIRTHDAY_PUSH_MESSAGE;
 
-        const { data: clients, error: clientsError } = await db
-          .from('clients')
-          .select('id, nom, date_naissance, fcm_token, push_enabled, google_pass_id, apple_pass_serial, points_actuels, tampons_actuels, recompenses_obtenues')
-          .eq('commerce_id', commerce.id)
-          .eq('point_vente_id', carte.point_vente_id)
-          .eq('carte_id', carte.id)
-          .not('date_naissance', 'is', null);
-
-        if (clientsError) {
-          console.error('[cron birthday] Erreur lecture clients:', clientsError.message);
-          continue;
-        }
-
-        const eligibleToday = (clients ?? [])
-          .map((client) => client as unknown as CronClientRow)
+        const eligibleToday = (clientsByCarteId.get(carte.id) ?? [])
+          .filter((client) => client.point_vente_id === carte.point_vente_id)
           .filter((client) => monthDayFromBirthDate(client.date_naissance) === parisDate.monthDay);
 
         if (eligibleToday.length === 0) continue;
@@ -736,7 +788,7 @@ async function sendScheduledBirthdayPushes(db: ReturnType<typeof createServiceCl
         }
 
         const googleWalletClients = rewardedClients.filter((client) => Boolean(client.google_pass_id));
-        for (const client of googleWalletClients) {
+        await runLimited(googleWalletClients, CRON_EXTERNAL_CONCURRENCY, async (client) => {
           await updateGooglePassObject(
             client.google_pass_id as string,
             carteForWallet,
@@ -759,7 +811,7 @@ async function sendScheduledBirthdayPushes(db: ReturnType<typeof createServiceCl
               deliveredClientIds.add(client.id);
             })
             .catch((err: unknown) => console.error('[cron birthday google-wallet]', err));
-        }
+        });
 
         const appleWalletClients = rewardedClients.filter((client) => Boolean(client.apple_pass_serial));
         if (appleWalletClients.length > 0) {

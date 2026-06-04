@@ -8,6 +8,12 @@ import { updateGooglePassObject } from '../services/google-wallet';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { sendPushNotification } from '../services/push';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
+import {
+  applyProgressIncrement,
+  applyRewardRedemption,
+  applyScoreReset,
+  getProgramType,
+} from '../services/loyalty-progress';
 
 export const transactionsRoutes = new Hono<ApiEnv>();
 
@@ -87,38 +93,42 @@ transactionsRoutes.post('/', async (c) => {
   const avantPoints = client.points_actuels;
   const avantTampons = client.tampons_actuels;
 
-  let newPoints = avantPoints;
-  let newTampons = avantTampons;
-  let recompensesObtenues = client.recompenses_obtenues;
+  let progressResult = {
+    newPoints: avantPoints,
+    newTampons: avantTampons,
+    recompensesObtenues: client.recompenses_obtenues,
+    activeScoreBefore: carte.type === 'points' ? avantPoints : avantTampons,
+    activeScoreAfter: carte.type === 'points' ? avantPoints : avantTampons,
+    rewardsEarned: 0,
+  };
 
   switch (parsed.data.type) {
     case 'ajout_points':
-      newPoints += parsed.data.valeur;
-      if (newPoints >= carte.points_recompense) {
-        recompensesObtenues += Math.floor(newPoints / carte.points_recompense);
-        // Plafonne au seuil — le reset se fait quand le commerçant attribue la récompense
-        newPoints = carte.points_recompense;
+      if (getProgramType(carte) !== 'points') {
+        return c.json({ error: 'Cette carte utilise des tampons, pas des points' }, 400);
       }
+      progressResult = applyProgressIncrement(carte, client, parsed.data.valeur);
       break;
     case 'ajout_tampon':
-      newTampons += parsed.data.valeur;
-      if (newTampons >= carte.tampons_total) {
-        recompensesObtenues += Math.floor(newTampons / carte.tampons_total);
-        // Plafonne au seuil — le reset se fait quand le commerçant attribue la récompense
-        newTampons = carte.tampons_total;
+      if (getProgramType(carte) !== 'tampons') {
+        return c.json({ error: 'Cette carte utilise des points, pas des tampons' }, 400);
       }
+      progressResult = applyProgressIncrement(carte, client, parsed.data.valeur);
       break;
     case 'recompense':
-      // Reset du score + décrémentation de la récompense quand le commerçant l'attribue
-      recompensesObtenues = Math.max(0, recompensesObtenues - parsed.data.valeur);
-      if (carte.type === 'tampons') newTampons = 0;
-      else newPoints = 0;
+      if ((client.recompenses_obtenues ?? 0) <= 0) {
+        return c.json({ error: 'Le client n’a pas de récompense disponible.' }, 409);
+      }
+      progressResult = applyRewardRedemption(carte, client, parsed.data.valeur);
       break;
     case 'reset':
-      newPoints = 0;
-      newTampons = 0;
+      progressResult = applyScoreReset(carte, client);
       break;
   }
+
+  const newPoints = progressResult.newPoints;
+  const newTampons = progressResult.newTampons;
+  const recompensesObtenues = progressResult.recompensesObtenues;
 
   // Mise à jour client + création transaction en parallèle
   const [updateResult, transactionResult] = await Promise.all([
@@ -136,8 +146,8 @@ transactionsRoutes.post('/', async (c) => {
       point_vente_id: pointVente.id,
       type: parsed.data.type,
       valeur: parsed.data.valeur,
-      points_avant: carte.type === 'points' ? avantPoints : avantTampons,
-      points_apres: carte.type === 'points' ? newPoints : newTampons,
+      points_avant: progressResult.activeScoreBefore,
+      points_apres: progressResult.activeScoreAfter,
       note: parsed.data.note ?? null,
     }).select().single(),
   ]);

@@ -1,10 +1,7 @@
 import type { Context, Next } from 'hono';
 import type { ApiEnv } from '../types';
 
-const builtInAdminEmails = ['bilelel@live.fr', 'bilelel629@gmail.com', 'bilel@pulse-agency.fr'];
-
 const adminEmails = Array.from(new Set([
-  ...builtInAdminEmails,
   ...(process.env.ADMIN_EMAILS ?? '')
   .split(',')
   .map((e) => e.trim().toLowerCase())

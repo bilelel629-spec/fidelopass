@@ -72,6 +72,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
       <p id="scan-feedback" class="mt-5 hidden rounded-2xl border px-4 py-3 text-sm font-semibold"></p>
 
+      <div id="scan-placeholder" class="mt-10 flex flex-col items-center gap-3 text-slate-400">
+        <div class="flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-4xl">📷</div>
+        <p class="text-sm font-medium">Scannez le QR client ou entrez un code FID-XXXXX</p>
+      </div>
+
       <div id="client-card" class="mt-6 hidden rounded-[1.7rem] border border-slate-200 bg-gradient-to-br from-white to-sky-50/50 p-5 shadow-[0_20px_55px_-42px_rgba(37,99,235,0.45)]">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -182,6 +187,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const feedback = document.getElementById('scan-feedback')!;
   const statusPill = document.getElementById('scan-status-pill')!;
   const clientCard = document.getElementById('client-card')!;
+  const scanPlaceholder = document.getElementById('scan-placeholder');
   const historyList = document.getElementById('history-list')!;
   const addPointBtn = document.getElementById('add-point-btn') as HTMLButtonElement;
   const useRewardBtn = document.getElementById('use-reward-btn') as HTMLButtonElement;
@@ -311,6 +317,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     addPointBtn.disabled = Boolean(payload.demo);
     useRewardBtn.disabled = Boolean(payload.demo) || !payload.can_use_reward;
     clientCard.classList.remove('hidden');
+    scanPlaceholder?.classList.add('hidden');
     newScanTop?.classList.remove('hidden');
     renderHistory(payload.history);
   }

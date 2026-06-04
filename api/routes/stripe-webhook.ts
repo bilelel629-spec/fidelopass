@@ -11,6 +11,8 @@ import {
   resolvePlanFromPriceId,
   resolvePriceSlot,
 } from '../services/stripe-billing';
+import { sendActivationEmail } from '../services/activation-email';
+import { sendBillingLifecycleEmail } from '../services/billing-lifecycle-email';
 
 export const stripeWebhookRoutes = new Hono<ApiEnv>();
 
@@ -38,6 +40,42 @@ async function getCommerceIdFromEmail(email: string | null): Promise<string | nu
   if (!user) return null;
   const { data: commerce } = await db.from('commerces').select('id').eq('user_id', user.id).maybeSingle();
   return commerce?.id ?? null;
+}
+
+async function getCommerceBillingContact(
+  db: ReturnType<typeof createServiceClient>,
+  commerceId: string,
+  fallbackEmail?: string | null,
+) {
+  const { data } = await db
+    .from('commerces')
+    .select('nom, email, plan, plan_override')
+    .eq('id', commerceId)
+    .maybeSingle();
+
+  return {
+    commerceName: data?.nom ?? 'votre commerce',
+    toEmail: data?.email ?? fallbackEmail ?? null,
+    plan: data?.plan_override ?? data?.plan ?? null,
+  };
+}
+
+function formatStripeAmount(amount: number | null | undefined, currency: string | null | undefined): string | null {
+  if (typeof amount !== 'number') return null;
+  const currencyCode = String(currency ?? 'eur').toUpperCase();
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: currencyCode,
+  }).format(amount / 100);
+}
+
+function formatStripeDate(timestamp: number | null | undefined): string | null {
+  if (!timestamp) return null;
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(timestamp * 1000));
 }
 
 /** POST /api/stripe-webhook */
@@ -145,6 +183,16 @@ stripeWebhookRoutes.post('/', async (c) => {
 
           await db.from('commerces').update(planUpdate).eq('id', commerceId);
           console.log('[stripe-webhook] → plan =', matchedPlan);
+
+          const contact = await getCommerceBillingContact(db, commerceId, session.customer_details?.email ?? null);
+          if (contact.toEmail) {
+            await sendActivationEmail({
+              toEmail: contact.toEmail,
+              commerceName: contact.commerceName,
+              plan: matchedPlan,
+              billingStatus: String(planUpdate.billing_status) === 'trialing' ? 'trialing' : 'active',
+            });
+          }
         } else if (priceMatchesSlot(firstPriceId, 'scanner', priceIds)) {
           console.log('[stripe-webhook] → scanner add-on ignored: scanners are unlimited');
         } else if (priceMatchesSlot(firstPriceId, 'sms_100', priceIds)) {
@@ -216,6 +264,15 @@ stripeWebhookRoutes.post('/', async (c) => {
           billing_cancel_at_period_end: false,
           billing_access_ends_at: null,
         }).eq('id', commerceId);
+        const contact = await getCommerceBillingContact(db, commerceId);
+        if (contact.toEmail) {
+          await sendBillingLifecycleEmail({
+            toEmail: contact.toEmail,
+            commerceName: contact.commerceName,
+            kind: 'subscription_canceled',
+            plan: contact.plan,
+          });
+        }
         console.log('[stripe-webhook] subscription deleted → billing_status = canceled | commerce:', commerceId);
         break;
       }
@@ -245,6 +302,20 @@ stripeWebhookRoutes.post('/', async (c) => {
           } else {
             console.log('[stripe-webhook] invoice.payment_succeeded | commerce:', commerceId, '| statut:', comm?.billing_status);
           }
+          if (invoice.billing_reason !== 'subscription_create') {
+            const contact = await getCommerceBillingContact(db, commerceId, invoice.customer_email ?? null);
+            if (contact.toEmail) {
+              const invoiceAny = invoice as Stripe.Invoice & { next_payment_attempt?: number | null };
+              await sendBillingLifecycleEmail({
+                toEmail: contact.toEmail,
+                commerceName: contact.commerceName,
+                kind: 'payment_succeeded',
+                plan: contact.plan,
+                amountLabel: formatStripeAmount(invoice.amount_paid, invoice.currency),
+                nextBillingDate: formatStripeDate(invoiceAny.next_payment_attempt),
+              });
+            }
+          }
         }
         break;
       }
@@ -271,6 +342,16 @@ stripeWebhookRoutes.post('/', async (c) => {
         if (!commerceId) break;
 
         await db.from('commerces').update({ billing_status: 'past_due' }).eq('id', commerceId);
+        const contact = await getCommerceBillingContact(db, commerceId, invoice.customer_email ?? null);
+        if (contact.toEmail) {
+          await sendBillingLifecycleEmail({
+            toEmail: contact.toEmail,
+            commerceName: contact.commerceName,
+            kind: 'payment_failed',
+            plan: contact.plan,
+            amountLabel: formatStripeAmount(invoice.amount_due, invoice.currency),
+          });
+        }
         console.log('[stripe-webhook] invoice.payment_failed → billing_status = past_due | commerce:', commerceId);
         break;
       }

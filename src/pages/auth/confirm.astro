@@ -15,6 +15,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         <p id="confirm-message" class="text-slate-300 mt-4 leading-relaxed">
           Validation en cours...
         </p>
+        <div id="confirm-spinner" class="mt-6 flex justify-center">
+          <div class="h-8 w-8 animate-spin rounded-full border-4 border-sky-800 border-t-sky-400"></div>
+        </div>
         <div id="confirm-error" class="hidden mt-6 text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"></div>
         <a
           id="confirm-login-link"
@@ -38,8 +41,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   );
 
   const message = document.getElementById('confirm-message') as HTMLParagraphElement;
+  const spinner = document.getElementById('confirm-spinner') as HTMLDivElement;
   const errorBox = document.getElementById('confirm-error') as HTMLDivElement;
   const loginLink = document.getElementById('confirm-login-link') as HTMLAnchorElement;
+  function hideSpinner() { spinner?.classList.add('hidden'); }
   const redirectTarget = safeRedirectPath(new URLSearchParams(window.location.search).get('redirect'));
   loginLink.href = `/login?redirect=${encodeURIComponent(redirectTarget)}`;
 
@@ -48,12 +53,29 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     return `${API}${path}`;
   }
 
+  async function bootstrapCommerce(accessToken: string) {
+    try {
+      await fetch(apiUrl('/api/commerces/bootstrap'), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+    } catch (error) {
+      console.warn('[auth/confirm] bootstrap commerce ignoré:', error);
+    }
+  }
+
   async function redirectAfterAuth() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       window.location.href = `/login?redirect=${encodeURIComponent(redirectTarget)}`;
       return;
     }
+
+    message.textContent = 'Préparation de votre espace...';
+    await bootstrapCommerce(session.access_token);
 
     const check = await fetch(apiUrl('/api/commerces/me'), {
       headers: {
@@ -72,6 +94,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     const type = (rawType === 'signup' ? 'email' : rawType) as 'email' | 'recovery' | 'invite' | 'email_change';
 
     if (!tokenHash) {
+      hideSpinner();
       message.textContent = 'Lien incomplet. Demandez un nouvel email de confirmation.';
       loginLink.classList.remove('hidden');
       return;
@@ -83,6 +106,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     });
 
     if (error) {
+      hideSpinner();
       message.textContent = 'Impossible de confirmer votre compte.';
       errorBox.textContent = error.message ?? 'Le lien de confirmation est invalide ou expiré.';
       errorBox.classList.remove('hidden');
@@ -90,6 +114,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       return;
     }
 
+    hideSpinner();
     message.textContent = 'Compte confirmé. Redirection...';
     await redirectAfterAuth();
   }
@@ -98,6 +123,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   // Ce cas couvre les callbacks OAuth (Apple, Google) qui redirigent ici.
   const { data: { session: oauthSession } } = await supabase.auth.getSession();
   if (oauthSession) {
+    hideSpinner();
     message.textContent = 'Connexion réussie. Redirection...';
     await redirectAfterAuth();
   } else {

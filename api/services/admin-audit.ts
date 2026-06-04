@@ -30,7 +30,8 @@ export async function appendAdminAuditLog(input: AdminAuditInput) {
 
 export async function listAdminAuditLogs(limit = 20) {
   const db = createServiceClient();
-  const safeLimit = Math.max(1, Math.min(limit, 100));
+  const requestedLimit = Number.isFinite(limit) ? limit : 20;
+  const safeLimit = Math.max(1, Math.min(Math.floor(requestedLimit), 100));
   const { data, error } = await db
     .from('admin_audit_logs')
     .select('id, admin_user_id, admin_email, action, target_type, target_id, payload, created_at')

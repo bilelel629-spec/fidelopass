@@ -7,6 +7,7 @@ import { paidMiddleware } from '../middleware/paid';
 import { getPlanLimits } from './commerces';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { upsertLoyaltyClass, updateGooglePassObject } from '../services/google-wallet';
+import { sendCardCreatedEmail } from '../services/card-created-email';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
 import { withEffectiveCommerceLogo } from '../utils/commerce-logo';
@@ -179,10 +180,16 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
     db,
     userId,
     requestedPointVenteId,
-    'id, plan',
+    'id, nom, email, plan, plan_override',
   );
 
   if (!commerce || !pointVente) return c.json({ error: 'Créez d\'abord votre point de vente' }, 400);
+  const planLimits = getPlanLimits(getEffectivePlanRaw(commerce));
+  const { data: existingCarte } = await db
+    .from('cartes')
+    .select('id')
+    .eq('point_vente_id', pointVente.id)
+    .maybeSingle();
 
   const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
 
@@ -237,15 +244,18 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   if (parsed.data.vip_tiers !== undefined) programFields.vip_tiers = parsed.data.vip_tiers;
   if (parsed.data.strip_layout !== undefined) programFields.strip_layout = parsed.data.strip_layout;
   if (parsed.data.branding_powered_by_enabled !== undefined) {
-    const planLimits = getPlanLimits(getEffectivePlanRaw(commerce));
     programFields.branding_powered_by_enabled = planLimits.avisGoogle
       ? parsed.data.branding_powered_by_enabled
       : true;
   }
-  if (parsed.data.review_reward_enabled !== undefined) programFields.review_reward_enabled = parsed.data.review_reward_enabled;
+  if (parsed.data.review_reward_enabled !== undefined || !planLimits.avisGoogle) {
+    programFields.review_reward_enabled = planLimits.avisGoogle ? parsed.data.review_reward_enabled : false;
+  }
   if (parsed.data.review_reward_value !== undefined) programFields.review_reward_value = parsed.data.review_reward_value;
   if (parsed.data.google_maps_url !== undefined) programFields.google_maps_url = parsed.data.google_maps_url;
-  if (parsed.data.birthday_auto_enabled !== undefined) programFields.birthday_auto_enabled = parsed.data.birthday_auto_enabled;
+  if (parsed.data.birthday_auto_enabled !== undefined || !planLimits.anniversaire) {
+    programFields.birthday_auto_enabled = planLimits.anniversaire ? parsed.data.birthday_auto_enabled : false;
+  }
   if (parsed.data.birthday_reward_value !== undefined) programFields.birthday_reward_value = parsed.data.birthday_reward_value;
   if (parsed.data.birthday_push_title !== undefined) programFields.birthday_push_title = parsed.data.birthday_push_title;
   if (parsed.data.birthday_push_message !== undefined) programFields.birthday_push_message = parsed.data.birthday_push_message;
@@ -298,6 +308,15 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
     return c.json({ error: result.error.message }, 500);
   }
 
+  const commerceEmail = typeof commerce.email === 'string' ? commerce.email : null;
+  if (!existingCarte && commerceEmail) {
+    sendCardCreatedEmail({
+      toEmail: commerceEmail,
+      commerceName: typeof commerce.nom === 'string' ? commerce.nom : parsed.data.nom,
+      cardName: result.data.nom ?? parsed.data.nom,
+    }).catch((err: unknown) => console.error('[cartes POST card-created-email]', err));
+  }
+
   return c.json({ data: result.data }, 201);
 });
 
@@ -318,10 +337,11 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
     db,
     userId,
     requestedPointVenteId,
-    'id, plan',
+    'id, plan, plan_override',
   );
 
   if (!commerce || !pointVente) return c.json({ error: 'Point de vente introuvable' }, 404);
+  const planLimits = getPlanLimits(getEffectivePlanRaw(commerce));
 
   const {
     logo_url, strip_url, strip_position, tampon_icon_url, barcode_type, label_client, push_icon_bg_color,
@@ -365,13 +385,16 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   if (vip_tiers !== undefined) programFields.vip_tiers = vip_tiers;
   if (strip_layout !== undefined) programFields.strip_layout = strip_layout;
   if (branding_powered_by_enabled !== undefined) {
-    const planLimits = getPlanLimits(getEffectivePlanRaw(commerce));
     programFields.branding_powered_by_enabled = planLimits.avisGoogle ? branding_powered_by_enabled : true;
   }
-  if (parsed.data.review_reward_enabled !== undefined) programFields.review_reward_enabled = parsed.data.review_reward_enabled;
+  if (parsed.data.review_reward_enabled !== undefined || !planLimits.avisGoogle) {
+    programFields.review_reward_enabled = planLimits.avisGoogle ? parsed.data.review_reward_enabled : false;
+  }
   if (parsed.data.review_reward_value !== undefined) programFields.review_reward_value = parsed.data.review_reward_value;
   if (parsed.data.google_maps_url !== undefined) programFields.google_maps_url = parsed.data.google_maps_url;
-  if (birthday_auto_enabled !== undefined) programFields.birthday_auto_enabled = birthday_auto_enabled;
+  if (birthday_auto_enabled !== undefined || !planLimits.anniversaire) {
+    programFields.birthday_auto_enabled = planLimits.anniversaire ? birthday_auto_enabled : false;
+  }
   if (birthday_reward_value !== undefined) programFields.birthday_reward_value = birthday_reward_value;
   if (birthday_push_title !== undefined) programFields.birthday_push_title = birthday_push_title;
   if (birthday_push_message !== undefined) programFields.birthday_push_message = birthday_push_message;
@@ -478,7 +501,9 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
     const { data: clients, error: clientsError } = await db
       .from('clients')
       .select('id, nom, points_actuels, tampons_actuels, recompenses_obtenues, google_pass_id, apple_pass_serial')
-      .eq('carte_id', carteId);
+      .eq('carte_id', carteId)
+      .or('google_pass_id.not.is.null,apple_pass_serial.not.is.null')
+      .range(0, 999);
 
     if (clientsError) {
       console.error('[cartes PATCH wallet clients]', clientsError);

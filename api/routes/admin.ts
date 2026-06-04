@@ -36,6 +36,8 @@ const commercePartnerSchema = z.object({
   white_label_enabled: z.boolean().optional(),
 });
 
+const uuidParamSchema = z.string().uuid();
+
 const partnerUserSchema = z.object({
   user_id: z.string().uuid().optional(),
   email: z.string().trim().email().optional(),
@@ -57,13 +59,18 @@ function whiteLabelPlanDefaults(plan: string) {
 
 async function findAdminUserIdByEmail(db: ReturnType<typeof createServiceClient>, email: string): Promise<string | null> {
   const normalized = email.trim().toLowerCase();
-  const { data, error } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  if (error) {
-    console.warn('[admin] auth user lookup failed:', error.message);
-    return null;
+  const perPage = 1000;
+  for (let page = 1; page <= 20; page += 1) {
+    const { data, error } = await db.auth.admin.listUsers({ page, perPage });
+    if (error) {
+      console.warn('[admin] auth user lookup failed:', error.message);
+      return null;
+    }
+    const user = data.users.find((candidate) => candidate.email?.toLowerCase() === normalized);
+    if (user?.id) return user.id;
+    if (data.users.length < perPage) break;
   }
-  const user = data.users.find((candidate) => candidate.email?.toLowerCase() === normalized);
-  return user?.id ?? null;
+  return null;
 }
 
 adminRoutes.get('/audit-logs', async (c) => {
@@ -74,10 +81,27 @@ adminRoutes.get('/audit-logs', async (c) => {
 
 /** GET /api/admin/commerces — Liste tous les commerces */
 adminRoutes.get('/commerces', async (c) => {
-const db = createServiceClient();
+  const db = createServiceClient();
   const { data, error } = await db
     .from('commerces')
-    .select('*, cartes(id, nom, updated_at), clients(id)')
+    .select(`
+      id,
+      user_id,
+      nom,
+      email,
+      telephone,
+      actif,
+      plan,
+      plan_override,
+      billing_status,
+      stripe_customer_id,
+      stripe_subscription_id,
+      onboarding_completed,
+      created_at,
+      updated_at,
+      cartes(id, nom, updated_at),
+      clients(id)
+    `)
     .order('created_at', { ascending: false });
 
   if (error) return c.json({ error: 'Erreur lors de la récupération' }, 500);
@@ -225,6 +249,9 @@ adminRoutes.post('/partners', async (c) => {
 /** PATCH /api/admin/partners/:id — Mise à jour partenaire white label */
 adminRoutes.patch('/partners/:id', async (c) => {
   const partnerId = c.req.param('id');
+  if (!uuidParamSchema.safeParse(partnerId).success) {
+    return c.json({ error: 'Identifiant partenaire invalide.' }, 400);
+  }
   const body = await c.req.json().catch(() => null);
   const parsed = whiteLabelPartnerPatchSchema.safeParse(body);
   if (!parsed.success) {
@@ -268,6 +295,9 @@ adminRoutes.patch('/partners/:id', async (c) => {
 /** POST /api/admin/partners/:id/users — Rattache un utilisateur Supabase à un partenaire */
 adminRoutes.post('/partners/:id/users', async (c) => {
   const partnerId = c.req.param('id');
+  if (!uuidParamSchema.safeParse(partnerId).success) {
+    return c.json({ error: 'Identifiant partenaire invalide.' }, 400);
+  }
   const body = await c.req.json().catch(() => null);
   const parsed = partnerUserSchema.safeParse(body);
   if (!parsed.success) {
@@ -846,7 +876,7 @@ adminRoutes.post('/commerces/:id/card-assistance/proposal', async (c) => {
     ...(input.submit_for_validation ? { submitted_at: nowIso } : {}),
   };
 
-  const result = openProposal?.id
+  let result = openProposal?.id
     ? await db.from('admin_card_proposals').update(baseProposal).eq('id', openProposal.id).select('*').single()
     : await db.from('admin_card_proposals').insert({
       ...baseProposal,
@@ -854,6 +884,27 @@ adminRoutes.post('/commerces/:id/card-assistance/proposal', async (c) => {
       created_by_admin_email: adminUser?.email ?? null,
       created_at: nowIso,
     }).select('*').single();
+
+  if (result.error?.code === '23505') {
+    const { data: concurrentProposal } = await db
+      .from('admin_card_proposals')
+      .select('id')
+      .eq('commerce_id', commerceId)
+      .eq('point_vente_id', input.point_vente_id)
+      .in('status', ['draft_admin', 'pending_merchant'])
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (concurrentProposal?.id) {
+      result = await db
+        .from('admin_card_proposals')
+        .update(baseProposal)
+        .eq('id', concurrentProposal.id)
+        .select('*')
+        .single();
+    }
+  }
 
   if (result.error) return c.json({ error: result.error.message }, 500);
 

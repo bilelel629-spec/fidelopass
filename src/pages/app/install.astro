@@ -101,10 +101,23 @@ import AppLayout from '../../layouts/AppLayout.astro';
 </AppLayout>
 
 <script>
+  import { toDataURL } from 'qrcode';
+
   const scannerInstallQr = document.getElementById('scanner-install-qr') as HTMLImageElement | null;
 
   const installUrl = `${window.location.origin}/app/install`;
   if (scannerInstallQr) {
-    scannerInstallQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=420x420&data=${encodeURIComponent(installUrl)}&bgcolor=ffffff&color=111827&qzone=1`;
+    toDataURL(installUrl, {
+      width: 420,
+      margin: 1,
+      errorCorrectionLevel: 'M',
+      color: { dark: '#111827', light: '#ffffff' },
+    })
+      .then((url) => {
+        scannerInstallQr.src = url;
+      })
+      .catch(() => {
+        scannerInstallQr.alt = 'QR code temporairement indisponible. Ouvrez fidelopass.com/app/install sur le téléphone.';
+      });
   }
 </script>

@@ -8,6 +8,7 @@ import { paidMiddleware } from '../middleware/paid';
 import { getPlanLimits } from './commerces';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { updateGooglePassObject } from '../services/google-wallet';
+import { applyProgressIncrement } from '../services/loyalty-progress';
 import { scheduleSMS, personnaliserMessage } from '../../src/lib/brevo-sms';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
@@ -29,6 +30,8 @@ clientsRoutes.get('/public/:id', async (c) => {
   const clientId = c.req.param('id') ?? '';
   const carteId = c.req.query('carte_id');
   const db = createServiceClient();
+
+  if (!carteId) return c.json({ error: 'carte_id requis' }, 400);
 
   const { data, error } = await db
     .from('clients')
@@ -54,7 +57,7 @@ clientsRoutes.get('/public/:id', async (c) => {
     .single();
 
   if (error || !data) return c.json({ error: 'Client introuvable' }, 404);
-  if (carteId && data.carte_id !== carteId) return c.json({ error: 'Client introuvable' }, 404);
+  if (data.carte_id !== carteId) return c.json({ error: 'Client introuvable' }, 404);
 
   const carte = Array.isArray(data.cartes) ? data.cartes[0] : data.cartes;
   if (!carte?.actif) return c.json({ error: 'Carte introuvable' }, 404);
@@ -452,7 +455,30 @@ clientsRoutes.post('/:id/claim-review', async (c) => {
 
   const db = createServiceClient();
 
-  // Anti-double-claim
+  const { data: client } = await db
+    .from('clients')
+    .select('id, nom, commerce_id, point_vente_id, carte_id, points_actuels, tampons_actuels, recompenses_obtenues, google_pass_id, apple_pass_serial')
+    .eq('id', clientId)
+    .eq('carte_id', parsed.data.carte_id)
+    .single();
+
+  if (!client) return c.json({ error: 'Client introuvable' }, 404);
+
+  const { data: carte } = await db
+    .from('cartes')
+    .select('id, commerce_id, type, tampons_total, points_recompense, recompense_description, review_reward_enabled, review_reward_value, couleur_fond, logo_url, strip_url, barcode_type, label_client, commerces(nom, logo_url, plan, plan_override)')
+    .eq('id', parsed.data.carte_id)
+    .eq('commerce_id', client.commerce_id)
+    .eq('actif', true)
+    .single();
+
+  if (!carte) return c.json({ error: 'Carte introuvable' }, 404);
+  if (!carte.review_reward_enabled) return c.json({ error: 'Récompense avis non activée' }, 403);
+  const commerceRef = Array.isArray(carte.commerces) ? carte.commerces[0] : carte.commerces;
+  if (!getPlanLimits(getEffectivePlanRaw(commerceRef)).avisGoogle) {
+    return c.json({ error: 'Fonctionnalité réservée aux plans Pro et Business' }, 403);
+  }
+
   const { data: existing } = await db
     .from('review_rewards')
     .select('id')
@@ -462,43 +488,88 @@ clientsRoutes.post('/:id/claim-review', async (c) => {
 
   if (existing) return c.json({ error: 'Récompense déjà réclamée' }, 409);
 
-  const { data: client } = await db
-    .from('clients')
-    .select('id, nom, commerce_id, points_actuels, tampons_actuels')
-    .eq('id', clientId)
-    .single();
-
-  if (!client) return c.json({ error: 'Client introuvable' }, 404);
-
-  const { data: carte } = await db
-    .from('cartes')
-    .select('id, type, review_reward_enabled, review_reward_value')
-    .eq('id', parsed.data.carte_id)
-    .eq('actif', true)
-    .single();
-
-  if (!carte) return c.json({ error: 'Carte introuvable' }, 404);
-  if (!carte.review_reward_enabled) return c.json({ error: 'Récompense avis non activée' }, 403);
-
   // Insérer la réclamation
-  await db.from('review_rewards').insert({
+  const claimResult = await db.from('review_rewards').insert({
     client_id: clientId,
     carte_id: parsed.data.carte_id,
     commerce_id: client.commerce_id,
   });
 
-  // Créditer le client
-  const rewardValue = carte.review_reward_value ?? 1;
-  const isPoints = carte.type === 'points';
-  const currentScore = isPoints ? (client.points_actuels ?? 0) : (client.tampons_actuels ?? 0);
-  const newScore = currentScore + rewardValue;
+  if (claimResult.error) {
+    if (claimResult.error.code === '23505') {
+      return c.json({ error: 'Récompense déjà réclamée' }, 409);
+    }
+    return c.json({ error: 'Erreur lors de la réclamation' }, 500);
+  }
 
-  await db.from('clients').update({
-    ...(isPoints ? { points_actuels: newScore } : { tampons_actuels: newScore }),
+  const rewardValue = carte.review_reward_value ?? 1;
+  const progress = applyProgressIncrement(carte, client, rewardValue);
+
+  const updateResult = await db.from('clients').update({
+    points_actuels: progress.newPoints,
+    tampons_actuels: progress.newTampons,
+    recompenses_obtenues: progress.recompensesObtenues,
     updated_at: new Date().toISOString(),
   }).eq('id', clientId);
 
-  return c.json({ ok: true, reward_value: rewardValue, type: carte.type });
+  if (updateResult.error) {
+    await db.from('review_rewards').delete().eq('client_id', clientId).eq('carte_id', parsed.data.carte_id);
+    return c.json({ error: 'Erreur lors du crédit de la récompense' }, 500);
+  }
+
+  await db.from('transactions').insert({
+    client_id: clientId,
+    commerce_id: client.commerce_id,
+    point_vente_id: client.point_vente_id,
+    type: carte.type === 'tampons' ? 'ajout_tampon' : 'ajout_points',
+    valeur: rewardValue,
+    points_avant: progress.activeScoreBefore,
+    points_apres: progress.activeScoreAfter,
+    note: 'Récompense avis Google',
+  });
+
+  const updatedClient = {
+    ...client,
+    points_actuels: progress.newPoints,
+    tampons_actuels: progress.newTampons,
+    recompenses_obtenues: progress.recompensesObtenues,
+  };
+
+  if (client.google_pass_id) {
+    updateGooglePassObject(
+      client.google_pass_id,
+      carte as unknown as Parameters<typeof updateGooglePassObject>[1],
+      updatedClient,
+    ).catch((err) => console.error('[clients claim-review google]', err));
+  }
+
+  if (client.apple_pass_serial) {
+    void (async () => {
+      const { data } = await db.from('apple_pass_registrations')
+        .select('push_token, pass_type_identifier')
+        .eq('client_id', clientId);
+      const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
+      const uniqueRegistrations = Array.from(
+        new Map((data ?? []).map((registration) => [registration.push_token, registration])).values(),
+      );
+      await Promise.allSettled(
+        uniqueRegistrations.map((registration) =>
+          pushApplePassUpdate(registration.push_token, passTypeId || registration.pass_type_identifier),
+        ),
+      );
+    })().catch((err: unknown) => console.error('[clients claim-review apple]', err));
+  }
+
+  return c.json({
+    ok: true,
+    reward_value: rewardValue,
+    type: carte.type,
+    client: {
+      points_actuels: progress.newPoints,
+      tampons_actuels: progress.newTampons,
+      recompenses_obtenues: progress.recompensesObtenues,
+    },
+  });
 });
 
 /** PATCH /api/clients/:id/fcm — Met à jour le token FCM */

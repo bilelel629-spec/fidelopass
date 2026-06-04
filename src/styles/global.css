@@ -310,6 +310,7 @@
   }
   .btn-primary:active { transform: scale(0.98); }
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px rgb(255 255 255), 0 0 0 5px rgb(99 102 241); }
 
   .btn-secondary {
     display: inline-flex;
@@ -325,6 +326,7 @@
     transition: all 0.25s ease;
     text-decoration: none;
   }
+  .btn-secondary:focus-visible { outline: none; box-shadow: 0 0 0 3px rgb(255 255 255), 0 0 0 5px rgb(148 163 184); }
   .btn-secondary:hover {
     background: #f8fafc;
     border-color: rgb(148 163 184 / 0.4);

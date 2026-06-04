@@ -44,8 +44,9 @@ export async function signOut() {
 
 /** Vérifie si l'utilisateur est super admin (par email) */
 export function isSuperAdmin(email: string | undefined): boolean {
-  const builtInAdmins = ['bilelel@live.fr', 'bilelel629@gmail.com', 'bilel@pulse-agency.fr'];
-  const adminEmails = Array.from(new Set([...builtInAdmins, ...(import.meta.env.ADMIN_EMAILS ?? process.env.ADMIN_EMAILS ?? '')
+  const builtInAdmins = ['bilelel@live.fr', 'bilelel629@gmail.com'];
+  const configuredAdmins = String(import.meta.env.PUBLIC_ADMIN_EMAILS ?? import.meta.env.ADMIN_EMAILS ?? '');
+  const adminEmails = Array.from(new Set([...builtInAdmins, ...configuredAdmins
     .split(',')
     .map((e: string) => e.trim())
     .filter(Boolean)]));

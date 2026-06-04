@@ -37,10 +37,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
       <div class="mt-8 flex justify-center">
         <div class="inline-flex items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
-          <button id="toggle-monthly" type="button" class="px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm">
+          <button id="toggle-monthly" type="button" aria-pressed="true" class="px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm ring-2 ring-indigo-200">
             Mensuel
           </button>
-          <button id="toggle-annual" type="button" class="px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500">
+          <button id="toggle-annual" type="button" aria-pressed="false" class="px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500">
             Annuel
             <span class="ml-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 font-semibold">-15%</span>
           </button>
@@ -294,10 +294,12 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     const isAnnual = mode === 'annual';
     monthlyBtn.className = isAnnual
       ? 'px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500'
-      : 'px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm';
+      : 'px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm ring-2 ring-indigo-200';
     annualBtn.className = isAnnual
-      ? 'px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm'
+      ? 'px-5 py-2 rounded-xl text-sm font-semibold transition-all bg-white text-slate-900 shadow-sm ring-2 ring-indigo-200'
       : 'px-5 py-2 rounded-xl text-sm font-medium transition-all text-slate-500';
+    monthlyBtn.setAttribute('aria-pressed', String(!isAnnual));
+    annualBtn.setAttribute('aria-pressed', String(isAnnual));
 
     const suffixKey = !isAnnual
       ? 'monthly'

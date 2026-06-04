@@ -8,6 +8,7 @@ import { geocodeAddress } from '../services/geocoding';
 import { syncWalletForPointVente } from '../services/wallet-sync';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
+import { getWelcomeEmailSender, sendWelcomeEmail } from '../services/welcome-email';
 
 export const commercesRoutes = new Hono<ApiEnv>();
 
@@ -150,6 +151,71 @@ function stripAddressDetails<T extends Record<string, unknown>>(payload: T): T {
   delete cloned.pays;
   return cloned;
 }
+
+/** POST /api/commerces/bootstrap — Initialise l'espace commerçant après inscription */
+commercesRoutes.post('/bootstrap', async (c) => {
+  const userId = c.get('userId') as string;
+  const db = createServiceClient();
+
+  const { data: existing, error: existingError } = await db
+    .from('commerces')
+    .select('id, nom, email, onboarding_completed, billing_status')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (existingError) {
+    console.error('[commerces bootstrap] existing lookup error:', existingError.message);
+    return c.json({ error: "Impossible d'initialiser l'espace commerçant." }, 500);
+  }
+
+  if (existing) {
+    return c.json({
+      data: {
+        commerce: existing,
+        created: false,
+        welcome_email: { ok: false, skipped: true, reason: 'existing_commerce' },
+        sender: getWelcomeEmailSender(),
+      },
+    });
+  }
+
+  const { data: { user }, error: userError } = await db.auth.admin.getUserById(userId);
+  if (userError) {
+    console.error('[commerces bootstrap] auth user error:', userError.message);
+  }
+
+  const email = user?.email ?? null;
+  const commerceName = 'Mon commerce';
+  const { data: commerce, error: createError } = await db
+    .from('commerces')
+    .insert({
+      user_id: userId,
+      nom: commerceName,
+      email,
+      onboarding_completed: false,
+      billing_status: 'unpaid',
+    })
+    .select('id, nom, email, onboarding_completed, billing_status')
+    .single();
+
+  if (createError || !commerce) {
+    console.error('[commerces bootstrap] create error:', createError?.message);
+    return c.json({ error: "Impossible de créer l'espace commerçant." }, 500);
+  }
+
+  const welcomeEmail = email
+    ? await sendWelcomeEmail({ toEmail: email, commerceName })
+    : { ok: false, skipped: true, reason: 'missing_email' as const };
+
+  return c.json({
+    data: {
+      commerce,
+      created: true,
+      welcome_email: welcomeEmail,
+      sender: getWelcomeEmailSender(),
+    },
+  }, 201);
+});
 
 /** GET /api/commerces/me — Récupère le commerce de l'utilisateur connecté */
 commercesRoutes.get('/me', async (c) => {
@@ -414,7 +480,7 @@ commercesRoutes.post('/me/wallet-sync', async (c) => {
     db,
     userId,
     requestedPointVenteId,
-    'id, plan',
+    'id, plan, plan_override',
   );
 
   if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
@@ -440,7 +506,7 @@ commercesRoutes.get('/points-vente', async (c) => {
     db,
     userId,
     requestedPointVenteId,
-    'id, plan',
+    'id, plan, plan_override',
   );
 
   if (!commerce) return c.json({ data: [], selected_point_vente_id: null });
@@ -476,7 +542,7 @@ commercesRoutes.post('/points-vente', async (c) => {
     db,
     userId,
     null,
-    'id, plan',
+    'id, plan, plan_override',
   );
 
   if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
@@ -544,7 +610,7 @@ commercesRoutes.patch('/points-vente/:id', async (c) => {
   }
 
   const db = createServiceClient();
-  const { commerce } = await resolveCommerceAndPointVente(db, userId, null, 'id, plan');
+  const { commerce } = await resolveCommerceAndPointVente(db, userId, null, 'id, plan, plan_override');
   if (!commerce) return c.json({ error: 'Commerce introuvable' }, 404);
 
   const { data: existingPoint } = await db
@@ -598,7 +664,14 @@ commercesRoutes.patch('/points-vente/:id', async (c) => {
     error = retry.error;
   }
 
-  if (error) return c.json({ error: 'Erreur lors de la mise à jour du point de vente.' }, 500);
+  if (error) {
+    if (error.code === '23505') {
+      return c.json({
+        error: 'Un autre point de vente est déjà principal. Rechargez la page puis réessayez.',
+      }, 409);
+    }
+    return c.json({ error: 'Erreur lors de la mise à jour du point de vente.' }, 500);
+  }
   void syncWalletForPointVente(data.id)
     .then((stats) => {
       if (stats.cartes > 0) {

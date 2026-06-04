@@ -40,24 +40,24 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   <div class="mb-5 grid grid-cols-2 gap-3 sm:mb-6 sm:gap-4 lg:grid-cols-4" data-tour="dashboard-stats">
     <div class="stat-card">
-      <span class="text-slate-500 text-xs uppercase tracking-wide">Clients totaux</span>
-      <span id="stat-clients" class="font-mono text-3xl font-bold text-slate-900">—</span>
-      <span class="text-slate-500 text-xs">Base active</span>
+      <span class="text-[0.65rem] sm:text-xs text-slate-500 uppercase tracking-wide">Clients totaux</span>
+      <span id="stat-clients" class="font-mono text-2xl sm:text-3xl font-bold text-slate-900"><span class="inline-block h-8 w-16 animate-pulse rounded-lg bg-slate-200"></span></span>
+      <span class="hidden sm:block text-slate-500 text-xs">Base active</span>
     </div>
     <div class="stat-card">
-      <span class="text-slate-500 text-xs uppercase tracking-wide">Scans aujourd’hui</span>
-      <span id="stat-scans" class="font-mono text-3xl font-bold text-slate-900">—</span>
-      <span class="text-slate-500 text-xs">Transactions</span>
+      <span class="text-[0.65rem] sm:text-xs text-slate-500 uppercase tracking-wide">Scans aujourd’hui</span>
+      <span id="stat-scans" class="font-mono text-2xl sm:text-3xl font-bold text-slate-900"><span class="inline-block h-8 w-12 animate-pulse rounded-lg bg-slate-200"></span></span>
+      <span class="hidden sm:block text-slate-500 text-xs">Transactions</span>
     </div>
     <div class="stat-card">
-      <span class="text-slate-500 text-xs uppercase tracking-wide">Récompenses offertes</span>
-      <span id="stat-recompenses" class="font-mono text-3xl font-bold text-slate-900">—</span>
-      <span class="text-slate-500 text-xs">Total</span>
+      <span class="text-[0.65rem] sm:text-xs text-slate-500 uppercase tracking-wide">Récompenses offertes</span>
+      <span id="stat-recompenses" class="font-mono text-2xl sm:text-3xl font-bold text-slate-900"><span class="inline-block h-8 w-12 animate-pulse rounded-lg bg-slate-200"></span></span>
+      <span class="hidden sm:block text-slate-500 text-xs">Total</span>
     </div>
     <div class="stat-card">
-      <span class="text-slate-500 text-xs uppercase tracking-wide">Notifications envoyées</span>
-      <span id="stat-push" class="font-mono text-3xl font-bold text-slate-900">—</span>
-      <span class="text-slate-500 text-xs">Campagnes push</span>
+      <span class="text-[0.65rem] sm:text-xs text-slate-500 uppercase tracking-wide">Notifications envoyées</span>
+      <span id="stat-push" class="font-mono text-2xl sm:text-3xl font-bold text-slate-900"><span class="inline-block h-8 w-12 animate-pulse rounded-lg bg-slate-200"></span></span>
+      <span class="hidden sm:block text-slate-500 text-xs">Campagnes push</span>
     </div>
   </div>
 
@@ -422,6 +422,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   import { authFetch } from '../../lib/api';
   import { supabase } from '../../lib/supabase';
   import { isProPlan, planLabel } from '../../lib/dashboard-config';
+  import { toDataURL } from 'qrcode';
 
   function escapeHtml(value: unknown) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -461,7 +462,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   function qrImageUrl(url: string, size = 320) {
-    return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=111827&qzone=1`;
+    return toDataURL(url, {
+      width: size,
+      margin: 1,
+      errorCorrectionLevel: 'M',
+      color: {
+        dark: '#111827',
+        light: '#ffffff',
+      },
+    });
   }
 
   async function loadStats() {
@@ -510,7 +519,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const maxRaw = Math.max(...rows.map((d: { visits: number }) => d.visits), 0);
       const zeroLift = maxRaw > 0 ? Math.max(maxRaw * 0.14, 0.22) : 0;
       const visualValues = rows.map((d: { visits: number }, index: number) => {
-        if (total === 0) return 0.42 + Math.sin(index * 0.92) * 0.06;
+        if (total === 0) return 0.16;
         return d.visits > 0 ? d.visits : zeroLift;
       });
       const minVisual = Math.min(...visualValues);
@@ -536,6 +545,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           if (rows.length <= 7 || index % 3 === 0) labelIndexes.add(index);
         });
       }
+      const labelY = baseline + (isMobileChart ? 38 : 36);
       const labels = points.map((point: { date: string; x: number }, index: number) => {
         if (!labelIndexes.has(index)) return '';
         const label = formatChartDate(point.date);
@@ -544,7 +554,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           : isMobileChart && index === rows.length - 1
             ? 'end'
             : 'middle';
-        return `<text x="${point.x.toFixed(1)}" y="280" text-anchor="${anchor}" class="chart-axis-label">${escapeHtml(label)}</text>`;
+        return `<text x="${point.x.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="${anchor}" class="chart-axis-label">${escapeHtml(label)}</text>`;
       }).join('');
       const gridLines = [0.25, 0.5, 0.75].map((ratio) => {
         const y = paddingTop + chartHeight * ratio;
@@ -556,12 +566,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const minBarHeight = total > 0 ? 12 : 16;
       const bars = points.map((point: { visits: number; x: number }, index: number) => {
         const ratio = maxRaw > 0 ? point.visits / maxRaw : 0;
-        const emptyWave = 0.56 + Math.sin(index * 0.72) * 0.18;
         const barHeight = total > 0
           ? point.visits > 0
             ? Math.max(minBarHeight, ratio * maxBarHeight)
             : 6
-          : Math.max(10, emptyWave * 20);
+          : 8;
         const x = point.x - barWidth / 2;
         const y = baseline - barHeight;
         const radius = Math.min(barWidth / 2, 10);
@@ -778,7 +787,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const qrImg = document.getElementById('dashboard-wallet-qr-img') as HTMLImageElement | null;
       const qrLink = document.getElementById('dashboard-wallet-qr-link') as HTMLAnchorElement | null;
       const posterLink = document.getElementById('dashboard-wallet-poster-link') as HTMLAnchorElement | null;
-      if (qrImg) qrImg.src = qrImageUrl(cardUrl);
+      if (qrImg) qrImg.src = await qrImageUrl(cardUrl);
       if (qrLink) qrLink.href = cardUrl;
       if (posterLink) posterLink.href = posterUrl;
       if (qrStatus) qrStatus.textContent = 'Prêt à être scanné par vos clients.';

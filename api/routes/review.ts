@@ -4,6 +4,9 @@ import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { updateGooglePassObject } from '../services/google-wallet';
+import { applyProgressIncrement } from '../services/loyalty-progress';
+import { getPlanLimits } from './commerces';
+import { getEffectivePlanRaw } from '../utils/effective-plan';
 
 export const reviewRoutes = new Hono<ApiEnv>();
 
@@ -22,13 +25,17 @@ reviewRoutes.get('/:carteId/info', async (c) => {
 
   const { data: carte } = await db
     .from('cartes')
-    .select('id, nom, type, review_reward_enabled, review_reward_value, google_maps_url, commerces(nom, logo_url)')
+    .select('id, nom, type, review_reward_enabled, review_reward_value, google_maps_url, commerces(nom, logo_url, plan, plan_override)')
     .eq('id', carteId)
     .eq('actif', true)
     .single();
 
   if (!carte) return c.json({ error: 'Carte introuvable' }, 404);
   if (!carte.review_reward_enabled) return c.json({ error: 'Fonctionnalité non activée' }, 403);
+  const commerceRef = Array.isArray(carte.commerces) ? carte.commerces[0] : carte.commerces;
+  if (!getPlanLimits(getEffectivePlanRaw(commerceRef)).avisGoogle) {
+    return c.json({ error: 'Fonctionnalité réservée aux plans Pro et Business' }, 403);
+  }
 
   // Vérifie que le client appartient bien à cette carte
   const { data: client } = await db
@@ -55,8 +62,8 @@ reviewRoutes.get('/:carteId/info', async (c) => {
         type: carte.type,
         review_reward_value: carte.review_reward_value,
         google_maps_url: carte.google_maps_url,
-        commerce_nom: (carte.commerces as unknown as { nom: string; logo_url: string | null } | null)?.nom ?? '',
-        commerce_logo: (carte.commerces as unknown as { nom: string; logo_url: string | null } | null)?.logo_url ?? null,
+        commerce_nom: commerceRef?.nom ?? '',
+        commerce_logo: commerceRef?.logo_url ?? null,
       },
       already_claimed: !!existing,
       claimed_at: existing?.claimed_at ?? null,
@@ -78,13 +85,17 @@ reviewRoutes.post('/:carteId/claim', async (c) => {
   // Vérifie la carte
   const { data: carte } = await db
     .from('cartes')
-    .select('id, type, tampons_total, points_recompense, recompense_description, review_reward_enabled, review_reward_value, couleur_fond, logo_url, strip_url, barcode_type, label_client, commerces(nom, logo_url)')
+    .select('id, type, tampons_total, points_recompense, recompense_description, review_reward_enabled, review_reward_value, couleur_fond, logo_url, strip_url, barcode_type, label_client, commerces(nom, logo_url, plan, plan_override)')
     .eq('id', carteId)
     .eq('actif', true)
     .single();
 
   if (!carte) return c.json({ error: 'Carte introuvable' }, 404);
   if (!carte.review_reward_enabled) return c.json({ error: 'Fonctionnalité non activée' }, 403);
+  const commerceRef = Array.isArray(carte.commerces) ? carte.commerces[0] : carte.commerces;
+  if (!getPlanLimits(getEffectivePlanRaw(commerceRef)).avisGoogle) {
+    return c.json({ error: 'Fonctionnalité réservée aux plans Pro et Business' }, 403);
+  }
 
   // Vérifie que le client appartient bien à cette carte
   const { data: client } = await db
@@ -106,53 +117,50 @@ reviewRoutes.post('/:carteId/claim', async (c) => {
 
   if (existing) return c.json({ error: 'Récompense déjà réclamée pour cette carte' }, 409);
 
-  // Calcul du nouveau solde
   const rewardValue = carte.review_reward_value ?? 1;
-  let newPoints = client.points_actuels;
-  let newTampons = client.tampons_actuels;
-  let recompensesObtenues = client.recompenses_obtenues;
+  const progress = applyProgressIncrement(carte, client, rewardValue);
+  const newPoints = progress.newPoints;
+  const newTampons = progress.newTampons;
+  const recompensesObtenues = progress.recompensesObtenues;
 
-  if (carte.type === 'tampons') {
-    newTampons += rewardValue;
-    if (newTampons >= carte.tampons_total) {
-      recompensesObtenues += Math.floor(newTampons / carte.tampons_total);
-      newTampons = newTampons % carte.tampons_total;
-    }
-  } else {
-    newPoints += rewardValue;
-    if (newPoints >= carte.points_recompense) {
-      recompensesObtenues += Math.floor(newPoints / carte.points_recompense);
-      newPoints = newPoints % carte.points_recompense;
-    }
-  }
-
-  // Enregistrement en parallèle : récompense + mise à jour client + transaction
-  const [claimResult, , transactionResult] = await Promise.all([
-    db.from('review_rewards').insert({ client_id, carte_id: carteId }),
-    db.from('clients').update({
-      points_actuels: newPoints,
-      tampons_actuels: newTampons,
-      recompenses_obtenues: recompensesObtenues,
-      updated_at: new Date().toISOString(),
-    }).eq('id', client_id),
-    db.from('transactions').insert({
-      client_id,
-      commerce_id: client.commerce_id,
-      point_vente_id: client.point_vente_id,
-      type: carte.type === 'tampons' ? 'ajout_tampon' : 'ajout_points',
-      valeur: rewardValue,
-      points_avant: carte.type === 'tampons' ? client.tampons_actuels : client.points_actuels,
-      points_apres: carte.type === 'tampons' ? newTampons : newPoints,
-      note: 'Récompense avis Google',
-    }).select().single(),
-  ]);
-
+  const claimResult = await db.from('review_rewards').insert({
+    client_id,
+    carte_id: carteId,
+    commerce_id: client.commerce_id,
+  });
   if (claimResult.error) {
     // Contrainte UNIQUE déclenchée en concurrence
     if (claimResult.error.code === '23505') {
       return c.json({ error: 'Récompense déjà réclamée pour cette carte' }, 409);
     }
     return c.json({ error: 'Erreur lors de l\'enregistrement' }, 500);
+  }
+
+  const updateResult = await db.from('clients').update({
+    points_actuels: newPoints,
+    tampons_actuels: newTampons,
+    recompenses_obtenues: recompensesObtenues,
+    updated_at: new Date().toISOString(),
+  }).eq('id', client_id);
+
+  if (updateResult.error) {
+    await db.from('review_rewards').delete().eq('client_id', client_id).eq('carte_id', carteId);
+    return c.json({ error: 'Erreur lors du crédit de la récompense' }, 500);
+  }
+
+  const transactionResult = await db.from('transactions').insert({
+    client_id,
+    commerce_id: client.commerce_id,
+    point_vente_id: client.point_vente_id,
+    type: carte.type === 'tampons' ? 'ajout_tampon' : 'ajout_points',
+    valeur: rewardValue,
+    points_avant: progress.activeScoreBefore,
+    points_apres: progress.activeScoreAfter,
+    note: 'Récompense avis Google',
+  }).select().single();
+
+  if (transactionResult.error) {
+    console.error('[review claim transaction]', transactionResult.error);
   }
 
   // Mise à jour Wallets (fire-and-forget)

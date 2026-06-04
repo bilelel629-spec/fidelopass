@@ -75,7 +75,7 @@ dashboardRoutes.get('/plan', async (c) => {
     db,
     userId,
     requestedPointVenteId,
-    'id, plan',
+    'id, plan, plan_override',
   );
 
   if (!commerce) return c.json({ data: { plan: 'starter', limits: getPlanLimits('starter'), clientsCount: 0 } });

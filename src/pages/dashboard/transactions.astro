@@ -9,6 +9,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     <p class="dashboard-subtitle">Historique de tous les scans et ajouts de points.</p>
   </div>
 
+  <div class="mb-4 flex flex-wrap gap-2">
+    <button data-filter="all" class="filter-btn rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white">Tous</button>
+    <button data-filter="ajout_points" class="filter-btn rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">Points</button>
+    <button data-filter="ajout_tampon" class="filter-btn rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">Tampons</button>
+    <button data-filter="recompense" class="filter-btn rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">Récompenses</button>
+  </div>
+
   <div class="card dashboard-panel overflow-x-auto">
     <div id="transactions-list">
       <p class="text-slate-500 text-sm p-6">Chargement...</p>
@@ -84,7 +91,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               const pointsAvant = t.points_avant === null || t.points_avant === undefined ? '—' : String(toFiniteNumber(t.points_avant));
               const pointsApres = t.points_apres === null || t.points_apres === undefined ? '—' : String(toFiniteNumber(t.points_apres));
               return `
-                <tr class="border-b border-slate-200 last:border-0 hover:bg-sky-50 transition-colors">
+                <tr class="border-b border-slate-200 last:border-0 hover:bg-sky-50 transition-colors" data-type="${escapeHtml(type)}">
                   <td class="px-6 py-4">
                     <span class="badge ${typeBadge[type] ?? 'badge-info'}">${escapeHtml(typeLabel[type] ?? type)}</span>
                   </td>
@@ -137,4 +144,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   loadTransactions();
+
+  document.querySelectorAll<HTMLButtonElement>('.filter-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const filter = btn.dataset.filter ?? 'all';
+      document.querySelectorAll<HTMLButtonElement>('.filter-btn').forEach((b) => {
+        b.className = b === btn
+          ? 'filter-btn rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white'
+          : 'filter-btn rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors';
+      });
+      document.querySelectorAll<HTMLTableRowElement>('tr[data-type]').forEach((row) => {
+        row.style.display = filter === 'all' || row.dataset.type === filter ? '' : 'none';
+      });
+    });
+  });
 </script>

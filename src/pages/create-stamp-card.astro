@@ -4,12 +4,12 @@ import PublicNav from '../components/marketing/PublicNav.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
 const sectors = [
-  'Cafés et coffee shops',
-  'Boulangeries et snacks',
-  'Salons de coiffure / barber',
-  'Esthétique et bien-être',
-  'Petits commerces de quartier',
-  'Restauration rapide',
+  { label: 'Cafés et coffee shops', icon: '☕' },
+  { label: 'Boulangeries et snacks', icon: '🥐' },
+  { label: 'Salons de coiffure / barber', icon: '✂️' },
+  { label: 'Esthétique et bien-être', icon: '💆' },
+  { label: 'Petits commerces de quartier', icon: '🏪' },
+  { label: 'Restauration rapide', icon: '🍔' },
 ];
 
 const reasons = [
@@ -95,8 +95,9 @@ const workflow = [
           <p class="text-xs uppercase tracking-[0.22em] text-slate-400 font-semibold">Commerces concernés</p>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
             {sectors.map((sector) => (
-              <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                {sector}
+              <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                <span class="text-base">{sector.icon}</span>
+                <span>{sector.label}</span>
               </div>
             ))}
           </div>
@@ -126,17 +127,17 @@ const workflow = [
         <h2 class="font-display text-3xl font-bold text-slate-900 mt-3">
           Un flux opérationnel en 4 étapes
         </h2>
-        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-          {workflow.map((item) => (
-            <article class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
-              <p class="w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">
+        <ol class="relative mt-6 border-l-2 border-slate-200 pl-6 space-y-6 sm:border-l-0 sm:pl-0 sm:grid sm:grid-cols-4 sm:gap-4">
+          {workflow.map((item, idx) => (
+            <li class="relative sm:rounded-xl sm:border sm:border-slate-200 sm:bg-slate-50 sm:px-4 sm:py-4">
+              <span class="absolute -left-[1.2rem] flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white sm:static sm:mb-3">
                 {item.step}
-              </p>
-              <p class="text-sm font-semibold text-slate-900 mt-3">{item.title}</p>
-              <p class="text-sm text-slate-500 mt-2 leading-relaxed">{item.text}</p>
-            </article>
+              </span>
+              <p class="text-sm font-semibold text-slate-900 mt-2 sm:mt-3">{item.title}</p>
+              <p class="text-sm text-slate-500 mt-1 leading-relaxed">{item.text}</p>
+            </li>
           ))}
-        </div>
+        </ol>
       </section>
 
       <section class="mt-16 rounded-[2rem] bg-[linear-gradient(135deg,#0f172a_0%,#312e81_62%,#0284c7_100%)] px-6 py-8 sm:px-8 sm:py-10">

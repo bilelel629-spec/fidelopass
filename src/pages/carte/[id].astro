@@ -225,7 +225,15 @@ const firebasePushConfig = {
   const FIREBASE_MESSAGING_MODULE_URL = 'https://www.gstatic.com/firebasejs/12.11.0/firebase-messaging.js';
   function isValidVapidPublicKey(value) {
     const key = String(value || '').trim();
-    return /^[A-Za-z0-9_-]{80,120}$/.test(key);
+    if (!/^[A-Za-z0-9_-]{80,120}$/.test(key)) return false;
+    try {
+      const padding = '='.repeat((4 - (key.length % 4)) % 4);
+      const raw = atob((key + padding).replace(/-/g, '+').replace(/_/g, '/'));
+      const bytes = Uint8Array.from(raw, (char) => char.charCodeAt(0));
+      return bytes.length === 65 && bytes[0] === 4;
+    } catch {
+      return false;
+    }
   }
   function friendlyPushError(error) {
     const message = String(error?.message || error || '');

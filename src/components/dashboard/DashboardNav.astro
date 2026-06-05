@@ -118,6 +118,17 @@ const navToneClasses = {
   </nav>
 
   <div class="px-4 pb-4 space-y-2 border-t border-sky-100/90 pt-4">
+    <a
+      id="dashboard-admin-link"
+      href="/admin"
+      class="hidden items-center justify-between rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-800 transition hover:border-indigo-300 hover:bg-indigo-100"
+    >
+      <span>Dashboard admin</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+        <path d="M12 3 4 7v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V7z"></path>
+        <path d="M9 12l2 2 4-4"></path>
+      </svg>
+    </a>
     <a href="/app/install" class="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-600 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800">
       <span>Installer un téléphone</span>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
@@ -237,6 +248,14 @@ const navToneClasses = {
     </div>
 
     <div class="mt-4 grid gap-2 border-t border-slate-100 pt-4">
+      <a
+        id="dashboard-admin-link-mobile"
+        href="/admin"
+        class="hidden items-center justify-between rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-800"
+      >
+        Dashboard admin
+        <span aria-hidden="true">→</span>
+      </a>
       <a href="/app/install" class="flex items-center justify-between rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-800">
         Installer un téléphone
         <span aria-hidden="true">→</span>
@@ -250,6 +269,7 @@ const navToneClasses = {
 
 <script>
   import { ACTIVE_POINT_VENTE_STORAGE_KEY, authFetch } from '../../lib/api';
+  import { isSuperAdmin } from '../../lib/auth';
   import { planBadgeClass, planLabel } from '../../lib/dashboard-config';
   import { createClient } from '@supabase/supabase-js';
 
@@ -264,6 +284,7 @@ const navToneClasses = {
   const pointVenteUsages = Array.from(document.querySelectorAll<HTMLElement>('#dashboard-point-vente-usage, #dashboard-point-vente-usage-mobile'));
   const mobileMoreSheet = document.getElementById('mobile-more-sheet');
   const mobileMoreBtn = document.getElementById('mobile-more-btn');
+  const adminLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('#dashboard-admin-link, #dashboard-admin-link-mobile'));
   const scannerLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href="/app/scan"]'));
   const scannerOpenOverlay = document.getElementById('scanner-open-overlay');
   let scannerPrefetchStarted = false;
@@ -418,6 +439,16 @@ const navToneClasses = {
     }
   }
 
+  async function revealAdminLinksIfAllowed() {
+    if (!adminLinks.length) return;
+    const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+    if (!isSuperAdmin(user?.email)) return;
+    for (const link of adminLinks) {
+      link.classList.remove('hidden');
+      link.classList.add('flex');
+    }
+  }
+
   for (const pointVenteSelect of pointVenteSelects) {
     pointVenteSelect.addEventListener('change', (event) => {
       const nextPointVenteId = (event.target as HTMLSelectElement).value || null;
@@ -441,6 +472,7 @@ const navToneClasses = {
 
   await loadPointVenteSelector();
   await loadPlanBadge();
+  await revealAdminLinksIfAllowed();
 
   async function logout() {
     await supabase.auth.signOut();

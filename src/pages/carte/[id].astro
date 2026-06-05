@@ -223,12 +223,26 @@ const firebasePushConfig = {
   );
   const FIREBASE_APP_MODULE_URL = 'https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js';
   const FIREBASE_MESSAGING_MODULE_URL = 'https://www.gstatic.com/firebasejs/12.11.0/firebase-messaging.js';
+  function isValidVapidPublicKey(value) {
+    const key = String(value || '').trim();
+    return /^[A-Za-z0-9_-]{80,120}$/.test(key);
+  }
+  function friendlyPushError(error) {
+    const message = String(error?.message || error || '');
+    if (/applicationServerKey|P-256|vapid/i.test(message)) {
+      return 'Les notifications ne sont pas encore configurées correctement pour ce site.';
+    }
+    if (/permission|denied|bloqu/i.test(message)) {
+      return 'Les notifications sont bloquées dans les réglages du navigateur.';
+    }
+    return message || 'Impossible d’activer les notifications pour le moment.';
+  }
   const isPushConfigured = Boolean(
     pushConfig?.apiKey
     && pushConfig?.projectId
     && pushConfig?.messagingSenderId
     && pushConfig?.appId
-    && pushConfig?.vapidKey
+    && isValidVapidPublicKey(pushConfig?.vapidKey)
   );
 
   // ── Checkbox consentement ────────────────────────────────────────
@@ -925,6 +939,7 @@ const firebasePushConfig = {
       latestPushStatus = 'error';
       refreshPushUi();
       console.warn('[push registration]', error);
+      if (showFeedback) showError(friendlyPushError(error));
       return { status: 'error', error };
     }
   }

@@ -31,7 +31,10 @@ dashboardRoutes.get('/stats', async (c) => {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  const [clientsRes, scansRes, recompensesRes, pushRes, notificationsRes] = await Promise.all([
+  const webCardSince = new Date();
+  webCardSince.setDate(webCardSince.getDate() - 30);
+
+  const [clientsRes, scansRes, recompensesRes, pushRes, notificationsRes, webCardOpensRes] = await Promise.all([
     db.from('clients').select('id', { count: 'exact', head: true })
       .eq('commerce_id', commerce.id)
       .eq('point_vente_id', pointVente.id),
@@ -50,6 +53,11 @@ dashboardRoutes.get('/stats', async (c) => {
     db.from('notifications').select('id', { count: 'exact', head: true })
       .eq('commerce_id', commerce.id)
       .eq('point_vente_id', pointVente.id),
+    db.from('web_card_events').select('id', { count: 'exact', head: true })
+      .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id)
+      .eq('event_type', 'opened')
+      .gte('opened_at', webCardSince.toISOString()),
   ]);
 
   const totalRecompenses = (recompensesRes.data ?? []).reduce(
@@ -62,6 +70,7 @@ dashboardRoutes.get('/stats', async (c) => {
     totalRecompenses,
     clientsPushActifs: pushRes.count ?? 0,
     notificationsEnvoyees: notificationsRes.count ?? 0,
+    webCardOpens30d: webCardOpensRes.error ? 0 : (webCardOpensRes.count ?? 0),
   });
 });
 

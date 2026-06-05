@@ -179,6 +179,7 @@ const manifestHref = `/carte/${encodeURIComponent(id ?? '')}/web-manifest.json${
       let clientData = null;
       let refreshTimer = null;
       let deferredInstallPrompt = null;
+      let webOpenTrackingStarted = false;
 
       const $ = (id) => document.getElementById(id);
       const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent || '');
@@ -371,6 +372,27 @@ const manifestHref = `/carte/${encodeURIComponent(id ?? '')}/web-manifest.json${
         }
       }
 
+      function trackWebCardOpened() {
+        if (!clientData?.id || webOpenTrackingStarted) return;
+        webOpenTrackingStarted = true;
+        const sessionKey = `fidelopass_web_card_open_${cardId}_${clientData.id}`;
+        try {
+          if (sessionStorage.getItem(sessionKey) === '1') return;
+          sessionStorage.setItem(sessionKey, '1');
+        } catch {
+          // La metrique reste non bloquante.
+        }
+
+        fetch(apiUrl(`/api/clients/public/${encodeURIComponent(clientData.id)}/web-open`), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ carte_id: cardId }),
+          keepalive: true,
+        }).catch(() => {
+          // La carte doit rester consultable meme si la metrique echoue.
+        });
+      }
+
       function applyCardDesign() {
         const card = cardData?.carte;
         const commerce = cardData?.commerce;
@@ -483,6 +505,7 @@ const manifestHref = `/carte/${encodeURIComponent(id ?? '')}/web-manifest.json${
         renderQr(clientData.wallet_code || clientData.id);
         setText('last-update', `Mis a jour a ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`);
         showContent();
+        trackWebCardOpened();
       }
 
       async function refresh() {

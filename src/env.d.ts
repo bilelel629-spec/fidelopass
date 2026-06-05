@@ -14,8 +14,23 @@ declare module 'qrcode' {
     },
   ): Promise<string>;
 
+  export function toString(
+    text: string,
+    options?: {
+      type?: 'svg' | 'utf8' | 'terminal';
+      width?: number;
+      margin?: number;
+      color?: {
+        dark?: string;
+        light?: string;
+      };
+      errorCorrectionLevel?: 'L' | 'M' | 'Q' | 'H';
+    },
+  ): Promise<string>;
+
   const QRCode: {
     toDataURL: typeof toDataURL;
+    toString: typeof toString;
   };
   export default QRCode;
 }
@@ -37,6 +52,7 @@ interface ImportMeta {
 
 interface Window {
   webkitAudioContext?: typeof AudioContext;
+  showToast?: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 declare module 'canvas-confetti';

@@ -84,6 +84,57 @@ clientsRoutes.get('/public/:id', async (c) => {
   });
 });
 
+/** POST /api/clients/public/:id/web-open — Trace une ouverture de carte web */
+clientsRoutes.post('/public/:id/web-open', async (c) => {
+  const clientId = c.req.param('id') ?? '';
+  const body = await c.req.json().catch(() => null);
+  const parsed = z.object({ carte_id: z.string().uuid() }).safeParse(body);
+
+  if (!parsed.success) {
+    return c.json({ ok: false, recorded: false, error: 'carte_id requis' }, 400);
+  }
+
+  const db = createServiceClient();
+  const { data, error } = await db
+    .from('clients')
+    .select(`
+      id,
+      carte_id,
+      commerce_id,
+      point_vente_id,
+      cartes(id, actif)
+    `)
+    .eq('id', clientId)
+    .maybeSingle();
+
+  if (error || !data) return c.json({ ok: false, recorded: false, error: 'Client introuvable' }, 404);
+  if (data.carte_id !== parsed.data.carte_id) return c.json({ ok: false, recorded: false, error: 'Client introuvable' }, 404);
+
+  const carte = Array.isArray(data.cartes) ? data.cartes[0] : data.cartes;
+  if (!carte?.actif) return c.json({ ok: false, recorded: false, error: 'Carte introuvable' }, 404);
+
+  const userAgent = (c.req.header('user-agent') ?? '').slice(0, 500) || null;
+  const referrer = (c.req.header('referer') ?? c.req.header('referrer') ?? '').slice(0, 500) || null;
+  const insertResult = await db
+    .from('web_card_events')
+    .insert({
+      client_id: data.id,
+      carte_id: data.carte_id,
+      commerce_id: data.commerce_id,
+      point_vente_id: data.point_vente_id,
+      event_type: 'opened',
+      user_agent: userAgent,
+      referrer,
+    });
+
+  if (insertResult.error) {
+    console.warn('[web-card open metric]', insertResult.error.message);
+    return c.json({ ok: true, recorded: false });
+  }
+
+  return c.json({ ok: true, recorded: true });
+});
+
 /** GET /api/clients/:id — Récupère un client (utilisé par le scanner) */
 clientsRoutes.get('/:id', authMiddleware, paidMiddleware, async (c) => {
   const clientId = c.req.param('id') ?? '';

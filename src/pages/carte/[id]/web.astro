@@ -289,16 +289,14 @@ const manifestHref = `/carte/${encodeURIComponent(id ?? '')}/web-manifest.json${
         return card?.recompense_description || 'Votre recompense Fidelopass';
       }
 
-      async function renderQr(value) {
+      function renderQr(value) {
         setText('wallet-code', value);
-        try {
-          const { toDataURL } = await import('qrcode');
-          const dataUrl = await toDataURL(value, { width: 480, margin: 1, errorCorrectionLevel: 'M' });
-          const img = $('qr-img');
-          if (img) img.src = dataUrl;
-        } catch {
-          const img = $('qr-img');
-          if (img) img.removeAttribute('src');
+        const img = $('qr-img');
+        if (!img) return;
+        img.src = `/code/qr.svg?data=${encodeURIComponent(value)}&size=480`;
+        img.onerror = () => {
+          img.removeAttribute('src');
+          img.alt = `Code client Fidelopass ${value}`;
         }
       }
 
@@ -411,7 +409,7 @@ const manifestHref = `/carte/${encodeURIComponent(id ?? '')}/web-manifest.json${
 
         applyCardDesign();
         renderProgress();
-        await renderQr(clientData.wallet_code || clientData.id);
+        renderQr(clientData.wallet_code || clientData.id);
         setText('last-update', `Mis a jour a ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`);
         showContent();
       }

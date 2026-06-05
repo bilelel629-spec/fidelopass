@@ -229,6 +229,8 @@ const firebasePushConfig = {
       const pushConfig = Object.fromEntries(
         Object.entries(firebasePushConfig ?? {}).map(([key, value]) => [key, String(value ?? '').trim()])
       );
+      const FIREBASE_APP_MODULE_URL = 'https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js';
+      const FIREBASE_MESSAGING_MODULE_URL = 'https://www.gstatic.com/firebasejs/12.11.0/firebase-messaging.js';
       const isPushConfigured = Boolean(
         pushConfig.apiKey
         && pushConfig.projectId
@@ -457,8 +459,8 @@ const firebasePushConfig = {
         }
 
         const [{ initializeApp, getApps }, { getMessaging, getToken }] = await Promise.all([
-          import('firebase/app'),
-          import('firebase/messaging'),
+          import(FIREBASE_APP_MODULE_URL),
+          import(FIREBASE_MESSAGING_MODULE_URL),
         ]);
 
         const app = getApps().find((existing) => existing.name === 'fidelopass-web-card')

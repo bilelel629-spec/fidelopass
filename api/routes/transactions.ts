@@ -16,6 +16,7 @@ import {
 } from '../services/loyalty-progress';
 
 export const transactionsRoutes = new Hono<ApiEnv>();
+const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
 
 transactionsRoutes.use('*', authMiddleware);
 transactionsRoutes.use('*', paidMiddleware);
@@ -62,6 +63,23 @@ async function disableInvalidClientWebPushSubscriptions(
       enabled: false,
       last_error_at: new Date().toISOString(),
       last_error: 'invalid-subscription',
+      updated_at: new Date().toISOString(),
+    })
+    .in('endpoint', endpoints)
+    .eq('commerce_id', commerceId);
+}
+
+async function markSuccessfulClientWebPushSubscriptions(
+  db: ReturnType<typeof createServiceClient>,
+  endpoints: string[],
+  commerceId: string,
+) {
+  if (endpoints.length === 0) return;
+  await db
+    .from('web_push_subscriptions')
+    .update({
+      last_success_at: new Date().toISOString(),
+      last_error: null,
       updated_at: new Date().toISOString(),
     })
     .in('endpoint', endpoints)
@@ -203,14 +221,19 @@ transactionsRoutes.post('/', async (c) => {
   const webPushTargets = await loadClientWebPushTargets(db, parsed.data.client_id);
   if (webPushTargets.length > 0) {
     const carteTyped = carte as { recompense_description?: string; commerces?: { nom?: string } };
+    const clickUrl = `${PUBLIC_SITE_URL}/carte/${carte.id}/web?client=${parsed.data.client_id}`;
     if (rewardJustEarned) {
       const desc = carteTyped.recompense_description ?? 'votre récompense';
       sendPushNotification(
         webPushTargets,
         '🎉 Récompense disponible !',
         `Félicitations ! Vous pouvez maintenant bénéficier de votre récompense : ${desc}. Montrez votre carte au commerce.`,
+        clickUrl,
       )
-        .then((result) => disableInvalidClientWebPushSubscriptions(db, result.invalidTokens, commerce.id))
+        .then(async (result) => {
+          await markSuccessfulClientWebPushSubscriptions(db, result.successfulTokens, commerce.id);
+          await disableInvalidClientWebPushSubscriptions(db, result.invalidTokens, commerce.id);
+        })
         .catch((err) => console.error('[push reward earned]', err));
     } else if (rewardJustUsed) {
       const carteNom = (carte as { nom?: string | null }).nom ?? carteTyped.commerces?.nom ?? 'votre carte';
@@ -218,8 +241,12 @@ transactionsRoutes.post('/', async (c) => {
         webPushTargets,
         '✅ Récompense attribuée !',
         `Votre récompense a été attribuée sur ${carteNom}. Merci de votre fidélité.`,
+        clickUrl,
       )
-        .then((result) => disableInvalidClientWebPushSubscriptions(db, result.invalidTokens, commerce.id))
+        .then(async (result) => {
+          await markSuccessfulClientWebPushSubscriptions(db, result.successfulTokens, commerce.id);
+          await disableInvalidClientWebPushSubscriptions(db, result.invalidTokens, commerce.id);
+        })
         .catch((err) => console.error('[push reward used]', err));
     }
   }

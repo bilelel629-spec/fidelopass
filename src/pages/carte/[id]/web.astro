@@ -9,6 +9,7 @@ const apiBase = (
   || (import.meta.env.PROD ? 'https://api.fidelopass.com' : 'http://localhost:3001')
 ).replace(/\/$/, '');
 const manifestHref = `/carte/${encodeURIComponent(id ?? '')}/web-manifest.json${clientId ? `?client=${encodeURIComponent(clientId)}` : ''}`;
+const iconHref = `/carte/${encodeURIComponent(id ?? '')}/web-icon.png${clientId ? `?client=${encodeURIComponent(clientId)}` : ''}`;
 const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
 ---
 
@@ -19,7 +20,11 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#2563eb" />
     <meta name="api-config" content={apiBase} />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta id="apple-web-app-title" name="apple-mobile-web-app-title" content="Carte web" />
     <link rel="manifest" href={manifestHref} />
+    <link rel="apple-touch-icon" href={iconHref} />
+    <link rel="icon" href={iconHref} />
     <title>Carte web Fidelopass</title>
     <style>
       #wallet-card,
@@ -118,7 +123,7 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
             <h1 id="page-title" class="truncate text-xl font-extrabold tracking-tight text-slate-950">Fidelopass</h1>
           </div>
           <div class="web-card-header-icon flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-white bg-white shadow-[0_14px_34px_-22px_rgba(15,23,42,0.8)]">
-            <img src="/icons/icon-192.png" alt="" class="h-9 w-9 rounded-xl object-cover" />
+            <img id="header-commerce-icon" src={iconHref} alt="" class="h-9 w-9 rounded-xl object-cover" />
           </div>
         </header>
 
@@ -684,12 +689,18 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
         }
         document.documentElement.style.setProperty('--web-card-accent', accent);
 
-        setText('page-title', commerce?.nom || card.nom || 'Fidelopass');
+        const appName = commerce?.nom || card.nom || 'Fidelopass';
+        document.title = appName;
+        const appleTitle = document.getElementById('apple-web-app-title');
+        if (appleTitle instanceof HTMLMetaElement) appleTitle.content = appName;
+        setText('page-title', appName);
         setText('card-name', card.nom || commerce?.nom || 'Fidelopass');
         setText('reward-text', rewardDescription(card));
 
         const logoUrl = safeImageUrl(card.logo_url || commerce?.logo_url);
         if (logoUrl) {
+          const headerIcon = $('header-commerce-icon');
+          if (headerIcon instanceof HTMLImageElement) headerIcon.src = logoUrl;
           const logo = $('logo-img');
           if (logo) {
             logo.src = logoUrl;

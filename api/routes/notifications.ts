@@ -5,7 +5,7 @@ import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
 import { getPlanLimits, normalizePlan } from './commerces';
-import { sendPushNotification, sendPersonalizedPushNotifications } from '../services/push';
+import { sendPersonalizedPushNotifications } from '../services/push';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { sendGoogleWalletMessage } from '../services/google-wallet';
 import { sendSMS, personnaliserMessage } from '../../src/lib/brevo-sms';
@@ -41,16 +41,18 @@ type BirthdaySettingsRow = {
 
 type WebPushSubscriptionRow = {
   client_id: string;
+  carte_id: string;
   endpoint: string;
   p256dh: string;
   auth: string;
 };
 
-function webPushTargets(rows: WebPushSubscriptionRow[]) {
+function webPushTargets(rows: WebPushSubscriptionRow[], clickUrlForRow: (row: WebPushSubscriptionRow) => string) {
   return rows.map((row) => ({
     endpoint: row.endpoint,
     p256dh: row.p256dh,
     auth: row.auth,
+    clickUrl: clickUrlForRow(row),
   }));
 }
 
@@ -66,6 +68,23 @@ async function disableInvalidWebPushSubscriptions(
       enabled: false,
       last_error_at: new Date().toISOString(),
       last_error: 'invalid-subscription',
+      updated_at: new Date().toISOString(),
+    })
+    .in('endpoint', endpoints)
+    .eq('commerce_id', commerceId);
+}
+
+async function markSuccessfulWebPushSubscriptions(
+  db: ReturnType<typeof createServiceClient>,
+  endpoints: string[],
+  commerceId: string,
+) {
+  if (endpoints.length === 0) return;
+  await db
+    .from('web_push_subscriptions')
+    .update({
+      last_success_at: new Date().toISOString(),
+      last_error: null,
       updated_at: new Date().toISOString(),
     })
     .in('endpoint', endpoints)
@@ -661,7 +680,7 @@ notificationsRoutes.post('/', rateLimit(5, 60_000), async (c) => {
       .order('created_at', { ascending: false }),
     db
       .from('web_push_subscriptions')
-      .select('client_id, endpoint, p256dh, auth')
+      .select('client_id, carte_id, endpoint, p256dh, auth')
       .eq('commerce_id', commerce.id)
       .eq('point_vente_id', pointVente.id)
       .eq('enabled', true),
@@ -669,7 +688,10 @@ notificationsRoutes.post('/', rateLimit(5, 60_000), async (c) => {
 
   const activeWebSubscriptions = (webSubscriptions ?? []) as WebPushSubscriptionRow[];
   const webPushClientIds = new Set(activeWebSubscriptions.map((subscription) => subscription.client_id));
-  const webPushRecipients = webPushTargets(activeWebSubscriptions);
+  const webPushRecipients = webPushTargets(
+    activeWebSubscriptions,
+    (subscription) => `${PUBLIC_SITE_URL_NOTIF}/carte/${subscription.carte_id}/web?client=${subscription.client_id}`,
+  );
 
   const googleWalletClients = (clients ?? []).filter((client) => !!client.google_pass_id && !webPushClientIds.has(client.id));
   const appleWalletClients = (clients ?? []).filter((client) => !!client.apple_pass_serial);
@@ -718,7 +740,7 @@ notificationsRoutes.post('/', rateLimit(5, 60_000), async (c) => {
 
   if (webPushRecipients.length > 0) {
     try {
-      const pushResult = await sendPushNotification(webPushRecipients, parsed.data.titre, parsed.data.message, '/', notifIconUrl);
+      const pushResult = await sendPersonalizedPushNotifications(webPushRecipients, parsed.data.titre, parsed.data.message, notifIconUrl);
       nbDelivreesWeb = pushResult.successCount;
       successfulEndpoints = pushResult.successfulTokens;
       invalidTokens = pushResult.invalidTokens;
@@ -765,6 +787,9 @@ notificationsRoutes.post('/', rateLimit(5, 60_000), async (c) => {
 
   if (invalidTokens.length > 0) {
     await disableInvalidWebPushSubscriptions(db, invalidTokens, commerce.id);
+  }
+  if (successfulEndpoints.length > 0) {
+    await markSuccessfulWebPushSubscriptions(db, successfulEndpoints, commerce.id);
   }
 
   const nbDestinataires = targetedClientIds.size;

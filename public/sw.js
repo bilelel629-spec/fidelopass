@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fidelopass-v12';
+const CACHE_NAME = 'fidelopass-v13';
 const APP_SHELL = [
   '/app',
   '/app/scan',

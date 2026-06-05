@@ -148,20 +148,24 @@ const manifestHref = `/carte/${encodeURIComponent(id ?? '')}/web-manifest.json${
 
           <section class="mt-5 rounded-[2rem] border border-indigo-100 bg-white/90 p-5 shadow-[0_24px_70px_-44px_rgba(15,23,42,0.55)]">
             <p class="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-indigo-600">Garder la carte</p>
-            <h2 class="mt-1 text-xl font-extrabold tracking-tight text-slate-950">Ajoutez-la a votre ecran d'accueil.</h2>
+            <h2 class="mt-1 text-xl font-extrabold tracking-tight text-slate-950">Installez votre carte web.</h2>
             <p class="mt-2 text-sm leading-6 text-slate-600">
-              Cette version web fonctionne sans Apple Wallet ni Google Wallet. Elle garde le meme code client et se met a jour quand vous revenez dessus.
+              Retrouvez-la comme une application, sans Apple Wallet ni Google Wallet.
             </p>
             <button
               id="install-btn"
               type="button"
               class="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-4 text-sm font-extrabold text-white shadow-[0_18px_42px_-24px_rgba(37,99,235,0.9)] transition hover:-translate-y-0.5"
             >
-              Ajouter a l'ecran d'accueil
+              Installer ma carte web
             </button>
-            <p id="install-help" class="hidden mt-3 rounded-2xl bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-600">
-              Sur iPhone, ouvrez le menu de partage puis choisissez "Sur l'ecran d'accueil". Sur Android, utilisez "Installer l'application" ou "Ajouter a l'ecran d'accueil".
+            <p id="install-status" class="mt-3 text-center text-xs font-semibold text-slate-500">
+              Ouverture directe si votre navigateur le permet.
             </p>
+            <div id="install-help" class="hidden mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-xs leading-5 text-slate-600">
+              <p id="install-help-title" class="font-extrabold text-slate-950">Installation rapide</p>
+              <ol id="install-help-steps" class="mt-2 space-y-2"></ol>
+            </div>
           </section>
         </div>
       </section>
@@ -177,6 +181,12 @@ const manifestHref = `/carte/${encodeURIComponent(id ?? '')}/web-manifest.json${
       let deferredInstallPrompt = null;
 
       const $ = (id) => document.getElementById(id);
+      const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent || '');
+      const iosNavigator = window.navigator;
+      const isStandalone = () => (
+        window.matchMedia?.('(display-mode: standalone)').matches
+        || iosNavigator.standalone === true
+      );
 
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js').catch(() => {
@@ -235,6 +245,67 @@ const manifestHref = `/carte/${encodeURIComponent(id ?? '')}/web-manifest.json${
         $('loading')?.classList.add('hidden');
         $('error-state')?.classList.add('hidden');
         $('web-card-content')?.classList.remove('hidden');
+        refreshInstallUi();
+      }
+
+      function setInstallHelp(title, steps) {
+        setText('install-help-title', title);
+        const list = $('install-help-steps');
+        if (!list) return;
+        list.innerHTML = '';
+        steps.forEach((step, index) => {
+          const item = document.createElement('li');
+          item.className = 'flex gap-2 rounded-xl bg-white px-3 py-2 font-semibold text-slate-700';
+          const badge = document.createElement('span');
+          badge.className = 'flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[0.62rem] font-extrabold text-white';
+          badge.textContent = String(index + 1);
+          const text = document.createElement('span');
+          text.textContent = step;
+          item.appendChild(badge);
+          item.appendChild(text);
+          list.appendChild(item);
+        });
+      }
+
+      function refreshInstallUi() {
+        const button = $('install-btn');
+        const status = $('install-status');
+        if (!button) return;
+
+        if (isStandalone()) {
+          button.textContent = 'Carte deja installee';
+          button.disabled = true;
+          button.classList.add('opacity-70');
+          if (status) status.textContent = 'Votre carte est disponible depuis votre ecran d accueil.';
+          $('install-help')?.classList.add('hidden');
+          return;
+        }
+
+        button.disabled = false;
+        button.classList.remove('opacity-70');
+        button.textContent = 'Installer ma carte web';
+
+        if (status) {
+          status.textContent = deferredInstallPrompt
+            ? 'Touchez le bouton pour ajouter la carte comme une application.'
+            : isIos
+              ? 'Sur iPhone, le bouton affiche les 3 gestes a faire.'
+              : 'Si l installation directe ne s ouvre pas, suivez les instructions.';
+        }
+
+        if (isIos) {
+          setInstallHelp('Sur iPhone', [
+            'Touchez le bouton Partager de Safari.',
+            'Choisissez "Sur l ecran d accueil".',
+            'Validez avec "Ajouter".',
+          ]);
+        } else {
+          setInstallHelp('Installation manuelle', [
+            'Ouvrez le menu du navigateur.',
+            'Choisissez "Installer" ou "Ajouter a l ecran d accueil".',
+            'Validez pour garder la carte sur votre telephone.',
+          ]);
+        }
       }
 
       function renderStamps(current, total, accent, textColor, iconUrl, emoji, iconScale = 1) {
@@ -429,13 +500,21 @@ const manifestHref = `/carte/${encodeURIComponent(id ?? '')}/web-manifest.json${
       window.addEventListener('beforeinstallprompt', (event) => {
         event.preventDefault();
         deferredInstallPrompt = event;
+        refreshInstallUi();
       });
 
       $('install-btn')?.addEventListener('click', async () => {
+        refreshInstallUi();
         if (deferredInstallPrompt) {
           deferredInstallPrompt.prompt();
-          await deferredInstallPrompt.userChoice.catch(() => null);
+          const choice = await deferredInstallPrompt.userChoice.catch(() => null);
           deferredInstallPrompt = null;
+          if (choice?.outcome === 'accepted') {
+            setText('install-status', 'Installation lancee. Votre carte sera disponible sur l ecran d accueil.');
+            $('install-help')?.classList.add('hidden');
+          } else {
+            $('install-help')?.classList.remove('hidden');
+          }
           return;
         }
         $('install-help')?.classList.toggle('hidden');

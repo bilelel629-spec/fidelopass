@@ -11,6 +11,13 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
 
 <BaseLayout title="Ajouter à mon Wallet — Fidelopass">
   <meta id="api-config" data-url={apiBase} />
+  <style>
+    #wallet-card,
+    #wallet-card p,
+    #wallet-card h2 {
+      color: inherit;
+    }
+  </style>
   <div class="min-h-screen flex flex-col items-center justify-center px-4 py-12">
 
     <div id="loading" class="text-center">
@@ -551,6 +558,19 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
     scheduleLoadFallback();
   }
 
+  function cardFontFamily(card) {
+    const family = String(card?.police || 'system');
+    const map = {
+      system: 'var(--font-display), var(--font-sans), system-ui, sans-serif',
+      inter: 'Inter, var(--font-sans), system-ui, sans-serif',
+      playfair: 'Georgia, "Times New Roman", serif',
+      bebas: 'Impact, "Arial Narrow", var(--font-display), sans-serif',
+      nunito: 'Nunito, var(--font-sans), system-ui, sans-serif',
+      mono: 'var(--font-mono), "SFMono-Regular", Consolas, monospace',
+    };
+    return map[family] || map.system;
+  }
+
   async function loadCarte() {
     if (loadInFlight) return;
     loadInFlight = true;
@@ -568,6 +588,8 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
       const card = document.getElementById('wallet-card');
       card.style.background = data.carte.couleur_fond;
       card.style.color = data.carte.couleur_texte;
+      card.style.fontFamily = cardFontFamily(data.carte);
+      card.style.fontWeight = data.carte.police_gras ? '800' : '';
 
       // Textes
       document.getElementById('carte-nom').textContent = data.carte.nom;

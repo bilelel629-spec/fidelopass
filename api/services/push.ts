@@ -28,7 +28,7 @@ function getVapidConfig() {
     subject = `mailto:contact@${new URL(process.env.PUBLIC_SITE_URL).hostname}`;
   }
   if (!subject) {
-    subject = 'mailto:contact@fidelopass.com';
+    subject = 'mailto:contact@duo-agency.com';
   }
 
   return { publicKey, privateKey, subject };

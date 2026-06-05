@@ -318,6 +318,12 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
         const raw = atob((key + padding).replace(/-/g, '+').replace(/_/g, '/'));
         return Uint8Array.from(raw, (char) => char.charCodeAt(0));
       }
+      function equalBytes(a, b) {
+        if (!a || !b || a.byteLength !== b.byteLength) return false;
+        const left = new Uint8Array(a);
+        const right = new Uint8Array(b);
+        return left.every((value, index) => value === right[index]);
+      }
       function friendlyPushError(error) {
         const message = String(error?.message || error || '');
         if (/applicationServerKey|P-256|vapid/i.test(message)) {
@@ -545,7 +551,7 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
         return map[family] || map.system;
       }
 
-      async function registerWebPushToken() {
+      async function registerWebPushToken({ silent = false } = {}) {
         if (!clientData?.id) throw new Error('Carte client introuvable.');
         if (!isPushConfigured) throw new Error('Configuration Web Push manquante.');
         if (!supportsPushApi) throw new Error('Navigateur incompatible.');
@@ -565,10 +571,24 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
         }
 
         const registration = await navigator.serviceWorker.register('/sw.js');
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(pushConfig.vapidKey),
-        });
+        const applicationServerKey = urlBase64ToUint8Array(pushConfig.vapidKey);
+        const existingSubscription = await registration.pushManager.getSubscription();
+        let subscription = existingSubscription;
+
+        if (existingSubscription) {
+          const existingKey = existingSubscription.options?.applicationServerKey;
+          if (existingKey && !equalBytes(existingKey, applicationServerKey)) {
+            await existingSubscription.unsubscribe();
+            subscription = null;
+          }
+        }
+
+        if (!subscription) {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey,
+          });
+        }
 
         const res = await fetch(apiUrl(`/api/clients/${encodeURIComponent(clientData.id)}/web-push`), {
           method: 'PATCH',
@@ -582,7 +602,7 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
         }
 
         clientData.push_enabled = true;
-        return { status: 'success' };
+        return { status: silent ? 'refreshed' : 'success' };
       }
 
       function renderStamps(current, total, accent, textColor, iconUrl, emoji, iconScale = 1) {
@@ -790,6 +810,16 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
         setText('last-update', `Mis a jour a ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`);
         showContent();
         trackWebCardOpened();
+        if (
+          isPushConfigured
+          && supportsPushApi
+          && Notification.permission === 'granted'
+          && (!isIos || isStandalone())
+        ) {
+          registerWebPushToken({ silent: true }).catch((error) => {
+            console.warn('[web-card push refresh]', error);
+          });
+        }
       }
 
       async function refresh() {

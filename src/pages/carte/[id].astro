@@ -883,7 +883,7 @@ const firebasePushConfig = {
     await fetch(apiUrl(`/api/clients/${clientId}/fcm`), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fcm_token: token }),
+      body: JSON.stringify({ fcm_token: token, carte_id: carteId }),
     });
 
     return { status: 'success', token };

@@ -41,6 +41,7 @@ clientsRoutes.get('/public/:id', async (c) => {
       telephone,
       date_naissance,
       wallet_code,
+      push_enabled,
       carte_id,
       points_actuels,
       tampons_actuels,
@@ -70,6 +71,7 @@ clientsRoutes.get('/public/:id', async (c) => {
       telephone: data.telephone,
       date_naissance: data.date_naissance,
       wallet_code: data.wallet_code,
+      push_enabled: Boolean(data.push_enabled),
       points_actuels: data.points_actuels,
       tampons_actuels: data.tampons_actuels,
       recompenses_obtenues: data.recompenses_obtenues,
@@ -632,17 +634,37 @@ clientsRoutes.patch('/:id/fcm', async (c) => {
   const clientId = c.req.param('id') ?? '';
   const body = await c.req.json().catch(() => null);
 
-  const schema = z.object({ fcm_token: z.string() });
+  const schema = z.object({
+    fcm_token: z.string().min(20).max(4096),
+    carte_id: z.string().uuid().optional(),
+  });
   const parsed = schema.safeParse(body);
   if (!parsed.success) return c.json({ error: 'Token FCM invalide' }, 400);
 
   const db = createServiceClient();
-  const { error } = await db
+
+  if (parsed.data.carte_id) {
+    const { data: client, error: clientError } = await db
+      .from('clients')
+      .select('id, carte_id')
+      .eq('id', clientId)
+      .maybeSingle();
+
+    if (clientError) return c.json({ error: 'Erreur lors de la vérification du client' }, 500);
+    if (!client || client.carte_id !== parsed.data.carte_id) {
+      return c.json({ error: 'Client introuvable pour cette carte' }, 404);
+    }
+  }
+
+  const { data: updatedClient, error } = await db
     .from('clients')
     .update({ fcm_token: parsed.data.fcm_token, push_enabled: true })
-    .eq('id', clientId);
+    .eq('id', clientId)
+    .select('id')
+    .maybeSingle();
 
   if (error) return c.json({ error: 'Erreur lors de la mise à jour' }, 500);
+  if (!updatedClient) return c.json({ error: 'Client introuvable' }, 404);
 
   return c.json({ ok: true });
 });

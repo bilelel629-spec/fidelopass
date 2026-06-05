@@ -9,6 +9,14 @@ const apiBase = (
   || (import.meta.env.PROD ? 'https://api.fidelopass.com' : 'http://localhost:3001')
 ).replace(/\/$/, '');
 const manifestHref = `/carte/${encodeURIComponent(id ?? '')}/web-manifest.json${clientId ? `?client=${encodeURIComponent(clientId)}` : ''}`;
+const firebasePushConfig = {
+  apiKey: import.meta.env.PUBLIC_FIREBASE_API_KEY ?? '',
+  authDomain: import.meta.env.PUBLIC_FIREBASE_AUTH_DOMAIN ?? '',
+  projectId: import.meta.env.PUBLIC_FIREBASE_PROJECT_ID ?? '',
+  messagingSenderId: import.meta.env.PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? '',
+  appId: import.meta.env.PUBLIC_FIREBASE_APP_ID ?? '',
+  vapidKey: import.meta.env.PUBLIC_FIREBASE_VAPID_KEY ?? '',
+};
 ---
 
 <!doctype html>
@@ -167,11 +175,40 @@ const manifestHref = `/carte/${encodeURIComponent(id ?? '')}/web-manifest.json${
               <ol id="install-help-steps" class="mt-2 space-y-2"></ol>
             </div>
           </section>
+
+          <section
+            id="push-card"
+            class="mt-5 rounded-[2rem] border border-cyan-100 bg-white/90 p-5 shadow-[0_24px_70px_-44px_rgba(15,23,42,0.55)]"
+          >
+            <div class="flex items-start gap-3">
+              <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-700">
+                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 7h18s-3 0-3-7"></path>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+              </div>
+              <div class="min-w-0">
+                <p class="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-cyan-600">Notifications</p>
+                <h2 class="mt-1 text-xl font-extrabold tracking-tight text-slate-950">Recevoir les offres du commerce.</h2>
+                <p id="push-status" class="mt-2 text-sm leading-6 text-slate-600">
+                  Activez les notifications pour recevoir les offres et rappels liés à votre carte web.
+                </p>
+              </div>
+            </div>
+            <button
+              id="push-btn"
+              type="button"
+              class="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-slate-950 px-5 py-4 text-sm font-extrabold text-white shadow-[0_18px_42px_-24px_rgba(15,23,42,0.7)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Activer les notifications
+            </button>
+            <p id="push-note" class="mt-3 text-center text-xs font-semibold text-slate-500"></p>
+          </section>
         </div>
       </section>
     </main>
 
-    <script is:inline define:vars={{ cardId: id, initialClientId: clientId }}>
+    <script is:inline define:vars={{ cardId: id, initialClientId: clientId, firebasePushConfig }}>
       const API = document.querySelector('meta[name="api-config"]')?.content || 'https://api.fidelopass.com';
       const apiUrl = (path) => `${API}${path}`;
       const clientStorageKey = `fidelopass_client_${cardId}`;
@@ -180,6 +217,7 @@ const manifestHref = `/carte/${encodeURIComponent(id ?? '')}/web-manifest.json${
       let refreshTimer = null;
       let deferredInstallPrompt = null;
       let webOpenTrackingStarted = false;
+      let pushActivationRunning = false;
 
       const $ = (id) => document.getElementById(id);
       const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent || '');
@@ -188,6 +226,17 @@ const manifestHref = `/carte/${encodeURIComponent(id ?? '')}/web-manifest.json${
         window.matchMedia?.('(display-mode: standalone)').matches
         || iosNavigator.standalone === true
       );
+      const pushConfig = Object.fromEntries(
+        Object.entries(firebasePushConfig ?? {}).map(([key, value]) => [key, String(value ?? '').trim()])
+      );
+      const isPushConfigured = Boolean(
+        pushConfig.apiKey
+        && pushConfig.projectId
+        && pushConfig.messagingSenderId
+        && pushConfig.appId
+        && pushConfig.vapidKey
+      );
+      const supportsPushApi = 'Notification' in window && 'serviceWorker' in navigator;
 
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js').catch(() => {
@@ -247,6 +296,7 @@ const manifestHref = `/carte/${encodeURIComponent(id ?? '')}/web-manifest.json${
         $('error-state')?.classList.add('hidden');
         $('web-card-content')?.classList.remove('hidden');
         refreshInstallUi();
+        refreshPushUi();
       }
 
       function setInstallHelp(title, steps) {
@@ -307,6 +357,141 @@ const manifestHref = `/carte/${encodeURIComponent(id ?? '')}/web-manifest.json${
             'Validez pour garder la carte sur votre telephone.',
           ]);
         }
+      }
+
+      function setPushUi({ status, buttonLabel, disabled = false, note = '' }) {
+        setText('push-status', status);
+        const button = $('push-btn');
+        if (button) {
+          button.textContent = buttonLabel;
+          button.disabled = disabled;
+        }
+        setText('push-note', note);
+      }
+
+      function refreshPushUi() {
+        const button = $('push-btn');
+        if (!button) return;
+
+        if (!clientData?.id) {
+          setPushUi({
+            status: 'Votre carte doit d’abord être chargée pour activer les notifications.',
+            buttonLabel: 'Chargement de la carte',
+            disabled: true,
+          });
+          return;
+        }
+
+        if (!isPushConfigured) {
+          setPushUi({
+            status: 'Les notifications web ne sont pas encore configurées pour ce site.',
+            buttonLabel: 'Notifications indisponibles',
+            disabled: true,
+            note: 'La carte reste utilisable sans notification.',
+          });
+          return;
+        }
+
+        if (!supportsPushApi) {
+          setPushUi({
+            status: 'Ce navigateur ne permet pas les notifications web pour cette carte.',
+            buttonLabel: 'Navigateur non compatible',
+            disabled: true,
+          });
+          return;
+        }
+
+        if (isIos && !isStandalone()) {
+          setPushUi({
+            status: 'Sur iPhone, installez d’abord la carte sur l’écran d’accueil, puis ouvrez-la depuis son icône pour activer les notifications.',
+            buttonLabel: 'Installer la carte d’abord',
+            disabled: false,
+            note: 'Touchez ce bouton pour afficher les étapes d’installation.',
+          });
+          return;
+        }
+
+        if (Notification.permission === 'denied') {
+          setPushUi({
+            status: 'Les notifications sont bloquées dans les réglages du navigateur.',
+            buttonLabel: 'Autorisation bloquée',
+            disabled: true,
+            note: 'Autorisez les notifications pour fidelopass.com puis revenez sur cette carte.',
+          });
+          return;
+        }
+
+        if (Notification.permission === 'granted' && clientData.push_enabled) {
+          setPushUi({
+            status: 'Notifications activées. Vous recevrez les offres et rappels de ce commerce.',
+            buttonLabel: 'Notifications activées',
+            disabled: true,
+          });
+          return;
+        }
+
+        setPushUi({
+          status: 'Activez les notifications pour recevoir les offres et rappels liés à votre carte web.',
+          buttonLabel: pushActivationRunning ? 'Activation...' : 'Activer les notifications',
+          disabled: pushActivationRunning,
+        });
+      }
+
+      async function registerWebPushToken() {
+        if (!clientData?.id) throw new Error('Carte client introuvable.');
+        if (!isPushConfigured) throw new Error('Configuration Firebase manquante.');
+        if (!supportsPushApi) throw new Error('Navigateur incompatible.');
+
+        if (isIos && !isStandalone()) {
+          $('install-help')?.classList.remove('hidden');
+          $('install-help')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return { status: 'install-required' };
+        }
+
+        const permission = Notification.permission === 'granted'
+          ? 'granted'
+          : await Notification.requestPermission();
+
+        if (permission !== 'granted') {
+          return { status: permission === 'denied' ? 'denied' : 'dismissed' };
+        }
+
+        const [{ initializeApp, getApps }, { getMessaging, getToken }] = await Promise.all([
+          import('firebase/app'),
+          import('firebase/messaging'),
+        ]);
+
+        const app = getApps().find((existing) => existing.name === 'fidelopass-web-card')
+          ?? initializeApp({
+            apiKey: pushConfig.apiKey,
+            authDomain: pushConfig.authDomain,
+            projectId: pushConfig.projectId,
+            messagingSenderId: pushConfig.messagingSenderId,
+            appId: pushConfig.appId,
+          }, 'fidelopass-web-card');
+
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        const token = await getToken(getMessaging(app), {
+          vapidKey: pushConfig.vapidKey,
+          serviceWorkerRegistration: registration,
+        });
+
+        if (!token) return { status: 'dismissed' };
+
+        const res = await fetch(apiUrl(`/api/clients/${encodeURIComponent(clientData.id)}/fcm`), {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fcm_token: token, carte_id: cardId }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          throw new Error(data?.error || 'Impossible d’activer les notifications.');
+        }
+
+        clientData.push_enabled = true;
+        clientData.fcm_token = token;
+        return { status: 'success' };
       }
 
       function renderStamps(current, total, accent, textColor, iconUrl, emoji, iconScale = 1) {
@@ -541,6 +726,52 @@ const manifestHref = `/carte/${encodeURIComponent(id ?? '')}/web-manifest.json${
           return;
         }
         $('install-help')?.classList.toggle('hidden');
+      });
+
+      $('push-btn')?.addEventListener('click', async () => {
+        if (isIos && !isStandalone()) {
+          refreshInstallUi();
+          $('install-help')?.classList.remove('hidden');
+          $('install-help')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
+        }
+
+        if (pushActivationRunning) return;
+        pushActivationRunning = true;
+        refreshPushUi();
+        try {
+          const result = await registerWebPushToken();
+          if (result.status === 'success') {
+            setPushUi({
+              status: 'Notifications activées. Vous recevrez les offres et rappels de ce commerce.',
+              buttonLabel: 'Notifications activées',
+              disabled: true,
+            });
+          } else if (result.status === 'denied') {
+            setPushUi({
+              status: 'Les notifications sont bloquées dans les réglages du navigateur.',
+              buttonLabel: 'Autorisation bloquée',
+              disabled: true,
+              note: 'Autorisez les notifications pour fidelopass.com puis revenez sur cette carte.',
+            });
+          } else if (result.status === 'install-required') {
+            refreshPushUi();
+          } else {
+            setPushUi({
+              status: 'Activation annulée. Vous pouvez réessayer quand vous voulez.',
+              buttonLabel: 'Réessayer',
+            });
+          }
+        } catch (error) {
+          console.warn('[web-card push]', error);
+          setPushUi({
+            status: error?.message || 'Impossible d’activer les notifications pour le moment.',
+            buttonLabel: 'Réessayer',
+            note: 'La carte reste utilisable même sans notifications web.',
+          });
+        } finally {
+          pushActivationRunning = false;
+        }
       });
 
       $('refresh-btn')?.addEventListener('click', () => {

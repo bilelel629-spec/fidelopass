@@ -1,0 +1,111 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  activeNav?: string;
+}
+
+const { title = 'Revendeur — Fidelopass', activeNav = '' } = Astro.props;
+const navItems = [
+  { href: '/reseller', id: 'dashboard', label: 'Vue revendeur', icon: 'M4 13h6V4H4zm10 7h6v-9h-6zm0-11h6V4h-6zM4 20h6v-5H4z' },
+  { href: '/reseller/merchants', id: 'merchants', label: 'Commerçants', icon: 'M3 21h18 M5 21V7l7-4 7 4v14 M9 9h.01 M15 9h.01' },
+  { href: '/reseller/stripe', id: 'stripe', label: 'Stripe Connect', icon: 'M12 5v14 M5 12h14 M6 17h12 M6 7h12' },
+  { href: '/reseller/branding', id: 'branding', label: 'Marque blanche', icon: 'M12 3l7 4v6c0 5-3.5 8-7 8s-7-3-7-8V7z M9 12l2 2 4-4' },
+];
+---
+
+<!doctype html>
+<html lang="fr" class="dashboard">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f8fafc" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <title>{title}</title>
+  </head>
+  <body class="min-h-screen bg-transparent text-slate-900 antialiased">
+    <div class="pointer-events-none fixed inset-0 overflow-hidden">
+      <div class="absolute -top-36 right-[-9rem] h-[32rem] w-[32rem] rounded-full bg-cyan-200/45 blur-3xl"></div>
+      <div class="absolute top-[22%] left-[-11rem] h-[28rem] w-[28rem] rounded-full bg-violet-200/25 blur-3xl"></div>
+      <div class="absolute bottom-[-9rem] right-[14%] h-[20rem] w-[20rem] rounded-full bg-blue-200/25 blur-3xl"></div>
+    </div>
+
+    <div class="flex min-h-screen overflow-hidden">
+      <aside class="hidden lg:flex w-72 shrink-0 h-screen flex-col border-r border-sky-100/90 bg-white/86 backdrop-blur-2xl shadow-[0_18px_50px_-30px_rgba(37,99,235,0.25)]">
+        <div class="px-6 py-6 border-b border-sky-100/90">
+          <a href="/reseller" class="flex flex-col gap-2">
+            <img id="reseller-layout-logo" src="/logo-premium.png" alt="Fidelopass" class="h-14 w-48 object-contain object-left" />
+            <span id="reseller-layout-badge" class="w-fit rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-indigo-700">Revendeur</span>
+          </a>
+        </div>
+        <nav class="flex-1 px-4 py-5 flex flex-col gap-1.5">
+          {navItems.map(({ href, id, label, icon }) => (
+            <a
+              href={href}
+              class={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-all duration-200
+                ${activeNav === id
+                  ? 'bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500 text-white shadow-[0_18px_34px_-24px_rgba(37,99,235,0.9)] ring-1 ring-white/35'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+            >
+              <span class={`flex h-10 w-10 items-center justify-center rounded-2xl border transition-all
+                ${activeNav === id ? 'border-white/20 bg-white/15' : 'border-slate-200 bg-white text-slate-700'}`}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+                  {icon.split(' M').map((path, index) => <path d={index === 0 ? path : `M${path}`}></path>)}
+                </svg>
+              </span>
+              <span class={activeNav === id ? 'font-semibold' : 'font-medium'}>{label}</span>
+            </a>
+          ))}
+        </nav>
+        <div class="px-4 pb-4 border-t border-sky-100/90 pt-4">
+          <a href="/dashboard" class="flex items-center justify-between rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-medium text-sky-800 transition hover:border-sky-300 hover:bg-sky-100">
+            <span>Espace commerçant</span>
+            <span>↗</span>
+          </a>
+        </div>
+      </aside>
+
+      <main class="relative z-10 flex-1 overflow-y-auto">
+        <div class="p-4 sm:p-6 md:p-8 pt-8 max-w-7xl mx-auto">
+          <slot />
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
+
+<script>
+  import { authFetch } from '../lib/api';
+  import { getSession } from '../lib/auth';
+
+  const session = await getSession();
+  if (!session) window.location.replace('/login?next=/reseller');
+
+  async function applyResellerBranding() {
+    try {
+      const res = await authFetch('/api/reseller/me');
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) return;
+      const reseller = payload?.data;
+      if (!reseller) {
+        window.location.replace('/dashboard');
+        return;
+      }
+      const logo = document.getElementById('reseller-layout-logo') as HTMLImageElement | null;
+      if (logo && reseller.brand_logo_url) {
+        logo.src = reseller.brand_logo_url;
+        logo.alt = reseller.brand_name ?? 'Revendeur';
+      }
+      const badge = document.getElementById('reseller-layout-badge');
+      if (badge) badge.textContent = reseller.type === 'stripe_connect' ? 'Revendeur Connect' : 'Revendeur facturé';
+    } catch {
+      // best effort
+    }
+  }
+
+  await applyResellerBranding();
+</script>

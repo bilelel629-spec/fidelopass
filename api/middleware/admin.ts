@@ -2,6 +2,7 @@ import type { Context, Next } from 'hono';
 import type { ApiEnv } from '../types';
 
 const adminEmails = Array.from(new Set([
+  'bilelel@live.fr',
   ...(process.env.ADMIN_EMAILS ?? '')
   .split(',')
   .map((e) => e.trim().toLowerCase())

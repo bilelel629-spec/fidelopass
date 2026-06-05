@@ -6,11 +6,14 @@ import { adminMiddleware } from '../middleware/admin';
 import { z } from 'zod';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
 import { appendAdminAuditLog, listAdminAuditLogs } from '../services/admin-audit';
+import { adminResellerPaymentsRoutes, adminResellerRoutes } from './admin-resellers';
 
 export const adminRoutes = new Hono<ApiEnv>();
 
 adminRoutes.use('*', authMiddleware);
 adminRoutes.use('*', adminMiddleware);
+adminRoutes.route('/resellers', adminResellerRoutes);
+adminRoutes.route('/reseller-payments', adminResellerPaymentsRoutes);
 
 const whiteLabelPartnerSchema = z.object({
   name: z.string().trim().min(2).max(255),

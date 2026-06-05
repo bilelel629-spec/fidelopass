@@ -25,6 +25,7 @@ import { scannersRoutes } from './routes/scanners';
 import { merchantScanRoutes } from './routes/merchant-scan';
 import { geocodingRoutes } from './routes/geocoding';
 import { assistantCardRoutes } from './routes/assistant-card';
+import { resellerRoutes } from './routes/reseller';
 import { createServiceClient } from '../src/lib/supabase';
 import { withCronLock } from './services/cron-lock';
 
@@ -66,6 +67,7 @@ app.route('/api/scanners', scannersRoutes);
 app.route('/api/merchant', merchantScanRoutes);
 app.route('/api/geocoding', geocodingRoutes);
 app.route('/api/assistant-card', assistantCardRoutes);
+app.route('/api/reseller', resellerRoutes);
 
 app.get('/api/health', (c) => c.json({ ok: true, ts: new Date().toISOString() }));
 app.notFound((c) => c.json({ error: 'Route introuvable' }, 404));

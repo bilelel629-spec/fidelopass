@@ -1,0 +1,106 @@
+---
+import ResellerLayout from '../../layouts/ResellerLayout.astro';
+---
+
+<ResellerLayout title="Marque blanche revendeur — Fidelopass" activeNav="branding">
+  <section class="space-y-8">
+    <div>
+      <p class="text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-sky-700/75">Marque blanche légère</p>
+      <h1 class="mt-2 font-display text-4xl font-bold tracking-tight text-slate-950">Votre image revendeur</h1>
+      <p class="mt-3 max-w-2xl text-base leading-7 text-slate-600">
+        Personnalisez le nom commercial, les couleurs, le logo et l’email support affichés sur votre espace.
+      </p>
+    </div>
+
+    <form id="branding-form" class="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+      <section class="rounded-[1.7rem] border border-sky-100 bg-white/90 p-6 shadow-[0_22px_52px_-38px_rgba(37,99,235,0.45)]">
+        <div class="grid gap-4">
+          <label class="space-y-2">
+            <span class="text-sm font-semibold text-slate-700">Nom commercial</span>
+            <input id="brand-name" name="brand_name" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100" />
+          </label>
+          <label class="space-y-2">
+            <span class="text-sm font-semibold text-slate-700">Logo URL</span>
+            <input id="brand-logo" name="brand_logo_url" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100" placeholder="https://..." />
+          </label>
+          <label class="space-y-2">
+            <span class="text-sm font-semibold text-slate-700">Email support</span>
+            <input id="support-email" name="support_email" type="email" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100" />
+          </label>
+          <div class="grid gap-4 md:grid-cols-2">
+            <label class="space-y-2">
+              <span class="text-sm font-semibold text-slate-700">Couleur principale</span>
+              <input id="primary-color" name="primary_color" type="color" class="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2" />
+            </label>
+            <label class="space-y-2">
+              <span class="text-sm font-semibold text-slate-700">Couleur secondaire</span>
+              <input id="secondary-color" name="secondary_color" type="color" class="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2" />
+            </label>
+          </div>
+        </div>
+        <button class="mt-6 w-full rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-500 px-5 py-4 text-sm font-bold text-white shadow-[0_20px_36px_-24px_rgba(37,99,235,0.8)] transition hover:-translate-y-0.5">
+          Enregistrer la marque
+        </button>
+        <p id="branding-feedback" class="mt-4 text-sm text-slate-500"></p>
+      </section>
+
+      <aside class="rounded-[1.7rem] border border-indigo-100 bg-white/90 p-6 shadow-[0_22px_52px_-38px_rgba(37,99,235,0.45)]">
+        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">Aperçu</p>
+        <div id="branding-preview" class="mt-5 overflow-hidden rounded-[1.6rem] border border-white/40 p-6 text-white shadow-[0_24px_60px_-38px_rgba(37,99,235,0.75)]">
+          <img id="preview-logo" src="/logo-premium.png" alt="" class="h-14 w-44 rounded-xl object-contain object-left" />
+          <h2 id="preview-name" class="mt-10 font-display text-3xl font-bold">Fidelopass Revendeur</h2>
+          <p class="mt-3 text-sm leading-6 text-white/75">Votre support, vos couleurs, votre relation commerçant. Fidelopass reste le moteur technique.</p>
+          <p id="preview-email" class="mt-6 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold"></p>
+        </div>
+      </aside>
+    </form>
+  </section>
+</ResellerLayout>
+
+<script>
+  import { authFetch } from '../../lib/api';
+
+  function setPreview() {
+    const primary = (document.getElementById('primary-color') as HTMLInputElement).value || '#2563eb';
+    const secondary = (document.getElementById('secondary-color') as HTMLInputElement).value || '#4f46e5';
+    const logo = (document.getElementById('brand-logo') as HTMLInputElement).value.trim();
+    const name = (document.getElementById('brand-name') as HTMLInputElement).value.trim() || 'Fidelopass Revendeur';
+    const email = (document.getElementById('support-email') as HTMLInputElement).value.trim();
+    (document.getElementById('branding-preview') as HTMLElement).style.background = `linear-gradient(135deg, ${primary}, ${secondary})`;
+    (document.getElementById('preview-name') as HTMLElement).textContent = name;
+    (document.getElementById('preview-email') as HTMLElement).textContent = email || 'Email support à compléter';
+    if (logo) (document.getElementById('preview-logo') as HTMLImageElement).src = logo;
+  }
+
+  async function loadBranding() {
+    const res = await authFetch('/api/reseller/branding');
+    const payload = await res.json().catch(() => null);
+    const data = payload?.data ?? {};
+    (document.getElementById('brand-name') as HTMLInputElement).value = data.brand_name ?? '';
+    (document.getElementById('brand-logo') as HTMLInputElement).value = data.brand_logo_url ?? '';
+    (document.getElementById('support-email') as HTMLInputElement).value = data.support_email ?? '';
+    (document.getElementById('primary-color') as HTMLInputElement).value = data.primary_color ?? '#2563eb';
+    (document.getElementById('secondary-color') as HTMLInputElement).value = data.secondary_color ?? '#4f46e5';
+    setPreview();
+  }
+
+  for (const id of ['brand-name', 'brand-logo', 'support-email', 'primary-color', 'secondary-color']) {
+    document.getElementById(id)?.addEventListener('input', setPreview);
+  }
+
+  document.getElementById('branding-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const payload = {
+      brand_name: (document.getElementById('brand-name') as HTMLInputElement).value,
+      brand_logo_url: (document.getElementById('brand-logo') as HTMLInputElement).value || null,
+      support_email: (document.getElementById('support-email') as HTMLInputElement).value || null,
+      primary_color: (document.getElementById('primary-color') as HTMLInputElement).value,
+      secondary_color: (document.getElementById('secondary-color') as HTMLInputElement).value,
+    };
+    const res = await authFetch('/api/reseller/branding', { method: 'PATCH', body: JSON.stringify(payload) });
+    const result = await res.json().catch(() => null);
+    document.getElementById('branding-feedback')!.textContent = res.ok ? 'Marque enregistrée.' : result?.error ?? 'Enregistrement impossible.';
+  });
+
+  await loadBranding();
+</script>

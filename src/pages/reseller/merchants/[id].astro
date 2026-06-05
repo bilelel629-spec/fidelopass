@@ -1,0 +1,208 @@
+---
+import ResellerLayout from '../../../layouts/ResellerLayout.astro';
+const { id } = Astro.params;
+---
+
+<ResellerLayout title="Détail commerçant revendeur — Fidelopass" activeNav="merchants">
+  <section class="space-y-8" data-merchant-id={id}>
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <p class="text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-sky-700/75">Commerçant revendeur</p>
+        <h1 id="merchant-title" class="mt-2 font-display text-4xl font-bold tracking-tight text-slate-950">Chargement...</h1>
+        <p id="merchant-subtitle" class="mt-3 max-w-2xl text-base leading-7 text-slate-600"></p>
+      </div>
+      <a href="/reseller/merchants" class="inline-flex w-fit items-center rounded-2xl border border-sky-200 bg-white px-5 py-3 text-sm font-semibold text-sky-800 shadow-[0_16px_32px_-28px_rgba(37,99,235,0.55)] transition hover:-translate-y-0.5 hover:border-sky-300">
+        Retour liste
+      </a>
+    </div>
+
+    <div id="detail-feedback" class="hidden rounded-[1.3rem] border px-5 py-4 text-sm"></div>
+
+    <div class="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
+      <section class="rounded-[1.7rem] border border-sky-100 bg-white/90 p-6 shadow-[0_22px_52px_-38px_rgba(37,99,235,0.45)]">
+        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">Abonnement</p>
+        <div class="mt-5 grid gap-3 text-sm">
+          <div class="flex justify-between rounded-2xl bg-slate-50 px-4 py-3"><span>Plan</span><strong id="info-plan">-</strong></div>
+          <div class="flex justify-between rounded-2xl bg-slate-50 px-4 py-3"><span>Prix payé</span><strong id="info-price">-</strong></div>
+          <div class="flex justify-between rounded-2xl bg-slate-50 px-4 py-3"><span>Part Fidelopass</span><strong id="info-fee">-</strong></div>
+          <div class="flex justify-between rounded-2xl bg-emerald-50 px-4 py-3 text-emerald-800"><span>Marge revendeur</span><strong id="info-margin">-</strong></div>
+          <div class="flex justify-between rounded-2xl bg-slate-50 px-4 py-3"><span>Paiement</span><strong id="info-payment">-</strong></div>
+          <div class="flex justify-between rounded-2xl bg-slate-50 px-4 py-3"><span>Statut</span><strong id="info-status">-</strong></div>
+        </div>
+        <div class="mt-6 grid gap-3">
+          <button id="checkout-button" class="rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-500 px-5 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5">Envoyer le lien de paiement Stripe</button>
+          <button id="manual-button" class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-bold text-emerald-800 transition hover:-translate-y-0.5">Activer en manuel</button>
+          <button id="suspend-button" class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-bold text-amber-800 transition hover:-translate-y-0.5">Suspendre</button>
+          <button id="cancel-button" class="rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-bold text-red-700 transition hover:-translate-y-0.5">Annuler</button>
+          <button id="delete-button" class="rounded-2xl border border-red-200 bg-white px-5 py-3 text-sm font-bold text-red-700 transition hover:-translate-y-0.5">Supprimer le dossier</button>
+        </div>
+      </section>
+
+      <section class="rounded-[1.7rem] border border-sky-100 bg-white/90 p-6 shadow-[0_22px_52px_-38px_rgba(37,99,235,0.45)]">
+        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">Changer plan ou prix</p>
+        <form id="change-form" class="mt-5 grid gap-4 md:grid-cols-2">
+          <label class="space-y-2">
+            <span class="text-sm font-semibold text-slate-700">Plan</span>
+            <select id="plan-input" name="plan" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+              <option value="starter">Starter</option>
+              <option value="pro">Pro</option>
+              <option value="premium">Premium</option>
+            </select>
+          </label>
+          <label class="space-y-2">
+            <span class="text-sm font-semibold text-slate-700">Prix mensuel</span>
+            <input id="price-input" name="price_euros" type="number" min="0" step="1" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100" />
+          </label>
+          <button class="md:col-span-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5">Enregistrer le changement</button>
+        </form>
+        <div class="mt-7">
+          <p class="font-display text-xl font-bold text-slate-950">Historique</p>
+          <div id="transaction-list" class="mt-4 space-y-2"></div>
+        </div>
+      </section>
+    </div>
+  </section>
+</ResellerLayout>
+
+<script>
+  import { authFetch } from '../../../lib/api';
+
+  const root = document.querySelector('[data-merchant-id]') as HTMLElement;
+  const merchantId = root.dataset.merchantId;
+  let merchant: any = null;
+  const settings = new Map<string, any>();
+
+  const formatMoney = (cents: unknown, currency = 'eur') => new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: String(currency || 'eur').toUpperCase(),
+    maximumFractionDigits: 0,
+  }).format(Number(cents ?? 0) / 100);
+
+  function escapeHtml(value: unknown) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function showFeedback(message: string, ok = false) {
+    const el = document.getElementById('detail-feedback')!;
+    el.className = `rounded-[1.3rem] border px-5 py-4 text-sm ${ok ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-700'}`;
+    el.textContent = message;
+  }
+
+  function render() {
+    if (!merchant) return;
+    document.getElementById('merchant-title')!.textContent = merchant.merchant_name ?? merchant.commerce?.nom ?? 'Commerce';
+    document.getElementById('merchant-subtitle')!.textContent = merchant.merchant_email ?? '';
+    document.getElementById('info-plan')!.textContent = merchant.plan;
+    document.getElementById('info-price')!.textContent = formatMoney(merchant.reseller_price_cents, merchant.currency);
+    document.getElementById('info-fee')!.textContent = formatMoney(merchant.platform_fee_cents, merchant.currency);
+    document.getElementById('info-margin')!.textContent = formatMoney(merchant.reseller_margin_cents, merchant.currency);
+    document.getElementById('info-payment')!.textContent = merchant.payment_mode;
+    document.getElementById('info-status')!.textContent = merchant.subscription_status;
+    (document.getElementById('plan-input') as HTMLSelectElement).value = merchant.plan;
+    (document.getElementById('price-input') as HTMLInputElement).value = String(Math.round(Number(merchant.reseller_price_cents ?? 0) / 100));
+    (document.getElementById('checkout-button') as HTMLButtonElement).disabled = merchant.payment_mode !== 'stripe_connect';
+    (document.getElementById('manual-button') as HTMLButtonElement).disabled = merchant.payment_mode === 'stripe_connect';
+  }
+
+  function renderTransactions(transactions: any[]) {
+    const container = document.getElementById('transaction-list')!;
+    if (!transactions.length) {
+      container.innerHTML = '<div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">Aucun historique pour le moment.</div>';
+      return;
+    }
+    container.innerHTML = transactions.map((tx) => `
+      <div class="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm">
+        <div class="flex justify-between gap-3">
+          <span class="font-semibold text-slate-900">${escapeHtml(tx.type)}</span>
+          <span>${formatMoney(tx.amount_cents, tx.currency)}</span>
+        </div>
+        <p class="mt-1 text-xs text-slate-500">${escapeHtml(new Date(tx.created_at).toLocaleString('fr-FR'))}</p>
+      </div>
+    `).join('');
+  }
+
+  async function loadDetail() {
+    const res = await authFetch(`/api/reseller/merchants/${merchantId}`);
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) {
+      showFeedback(payload?.error ?? 'Impossible de charger le commerçant.');
+      return;
+    }
+    merchant = payload.data;
+    for (const setting of payload.settings ?? []) settings.set(setting.plan, setting);
+    render();
+    renderTransactions(payload.transactions ?? []);
+  }
+
+  document.getElementById('checkout-button')?.addEventListener('click', async () => {
+    const res = await authFetch(`/api/reseller/merchants/${merchantId}/checkout`, { method: 'POST', body: JSON.stringify({}) });
+    const payload = await res.json().catch(() => null);
+    if (res.ok && payload?.url) window.location.href = payload.url;
+    else showFeedback(payload?.error ?? 'Impossible de créer le lien Stripe.');
+  });
+
+  document.getElementById('manual-button')?.addEventListener('click', async () => {
+    const res = await authFetch(`/api/reseller/merchants/${merchantId}/manual-activate`, { method: 'POST', body: JSON.stringify({}) });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) showFeedback(payload?.error ?? 'Activation impossible.');
+    else {
+      showFeedback('Commerçant activé.', true);
+      await loadDetail();
+    }
+  });
+
+  document.getElementById('suspend-button')?.addEventListener('click', async () => {
+    const res = await authFetch(`/api/reseller/merchants/${merchantId}/cancel`, { method: 'POST', body: JSON.stringify({ suspend: true }) });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) showFeedback(payload?.error ?? 'Suspension impossible.');
+    else {
+      showFeedback('Commerçant suspendu.', true);
+      await loadDetail();
+    }
+  });
+
+  document.getElementById('cancel-button')?.addEventListener('click', async () => {
+    if (!confirm('Annuler ce commerçant ?')) return;
+    const res = await authFetch(`/api/reseller/merchants/${merchantId}/cancel`, { method: 'POST', body: JSON.stringify({ suspend: false }) });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) showFeedback(payload?.error ?? 'Annulation impossible.');
+    else {
+      showFeedback('Commerçant annulé.', true);
+      await loadDetail();
+    }
+  });
+
+  document.getElementById('delete-button')?.addEventListener('click', async () => {
+    if (!confirm('Supprimer ce dossier commerçant ? Cette action fonctionne uniquement si aucun abonnement actif ou Stripe n’est attaché.')) return;
+    const res = await authFetch(`/api/reseller/merchants/${merchantId}`, { method: 'DELETE' });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) {
+      showFeedback(payload?.error ?? 'Suppression impossible.');
+      return;
+    }
+    window.location.href = '/reseller/merchants';
+  });
+
+  document.getElementById('change-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const plan = (document.getElementById('plan-input') as HTMLSelectElement).value;
+    const price = Math.round(Number((document.getElementById('price-input') as HTMLInputElement).value || 0) * 100);
+    const res = await authFetch(`/api/reseller/merchants/${merchantId}/change-plan`, {
+      method: 'POST',
+      body: JSON.stringify({ plan, price_cents: price }),
+    });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) showFeedback(payload?.error ?? 'Changement impossible.');
+    else {
+      showFeedback('Plan mis à jour.', true);
+      await loadDetail();
+    }
+  });
+
+  await loadDetail();
+</script>

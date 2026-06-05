@@ -1,0 +1,198 @@
+---
+import ResellerLayout from '../../../layouts/ResellerLayout.astro';
+---
+
+<ResellerLayout title="Nouveau commerçant revendeur — Fidelopass" activeNav="merchants">
+  <section class="space-y-8">
+    <div>
+      <p class="text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-sky-700/75">Nouveau client</p>
+      <h1 class="mt-2 font-display text-4xl font-bold tracking-tight text-slate-950">Créer un commerçant</h1>
+      <p class="mt-3 max-w-2xl text-base leading-7 text-slate-600">
+        Choisissez le plan, le prix final et le mode de paiement. Les minimums sont vérifiés côté serveur.
+      </p>
+    </div>
+
+    <form id="merchant-form" class="grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
+      <section class="rounded-[1.7rem] border border-sky-100 bg-white/90 p-6 shadow-[0_22px_52px_-38px_rgba(37,99,235,0.45)]">
+        <div class="grid gap-4 md:grid-cols-2">
+          <label class="space-y-2 md:col-span-2">
+            <span class="text-sm font-semibold text-slate-700">Nom du commerce</span>
+            <input name="commerce_name" required class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100" placeholder="Dreams Donuts Annemasse" />
+          </label>
+          <label class="space-y-2">
+            <span class="text-sm font-semibold text-slate-700">Email</span>
+            <input name="email" required type="email" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100" placeholder="client@email.com" />
+          </label>
+          <label class="space-y-2">
+            <span class="text-sm font-semibold text-slate-700">Téléphone</span>
+            <input name="phone" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100" placeholder="+33..." />
+          </label>
+          <label class="space-y-2">
+            <span class="text-sm font-semibold text-slate-700">Pays</span>
+            <input name="country" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100" placeholder="France" />
+          </label>
+          <label class="space-y-2">
+            <span class="text-sm font-semibold text-slate-700">Plan</span>
+            <select name="plan" id="plan-input" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+              <option value="starter">Starter</option>
+              <option value="pro">Pro</option>
+              <option value="premium">Premium</option>
+            </select>
+          </label>
+          <label class="space-y-2">
+            <span class="text-sm font-semibold text-slate-700">Prix mensuel choisi</span>
+            <input name="price_euros" id="price-input" required type="number" min="0" step="1" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100" />
+          </label>
+          <label class="space-y-2">
+            <span class="text-sm font-semibold text-slate-700">Mode de paiement</span>
+            <select name="payment_mode" id="payment-mode-input" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+              <option value="manual">Manuel</option>
+              <option value="bank_transfer">Virement</option>
+              <option value="cash">Espèces</option>
+              <option value="stripe_connect">Stripe Checkout</option>
+            </select>
+          </label>
+          <label class="space-y-2">
+            <span class="text-sm font-semibold text-slate-700">Création</span>
+            <select name="creation_mode" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+              <option value="invite">Envoyer une invitation</option>
+              <option value="direct">Créer directement le compte</option>
+            </select>
+          </label>
+        </div>
+        <label class="mt-5 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
+          <input id="activate-now-input" type="checkbox" class="h-4 w-4 rounded border-slate-300" />
+          Activer immédiatement si paiement manuel, espèces ou virement
+        </label>
+        <button id="submit-button" class="mt-6 w-full rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-500 px-5 py-4 text-sm font-bold text-white shadow-[0_20px_36px_-24px_rgba(37,99,235,0.8)] transition hover:-translate-y-0.5">
+          Créer le commerçant
+        </button>
+        <p id="form-feedback" class="mt-4 text-sm text-slate-500"></p>
+      </section>
+
+      <aside class="rounded-[1.7rem] border border-indigo-100 bg-gradient-to-br from-slate-950 via-indigo-950 to-blue-900 p-7 text-white shadow-[0_24px_60px_-38px_rgba(15,23,42,0.75)]">
+        <p class="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-white/60">Résumé financier</p>
+        <h2 class="mt-3 font-display text-3xl font-bold">Votre marge</h2>
+        <div class="mt-6 space-y-3">
+          <div class="rounded-2xl bg-white/10 p-4">
+            <p class="text-xs uppercase tracking-[0.18em] text-white/55">Prix payé par le commerçant</p>
+            <p id="summary-price" class="mt-2 text-3xl font-bold">-</p>
+          </div>
+          <div class="rounded-2xl bg-white/10 p-4">
+            <p class="text-xs uppercase tracking-[0.18em] text-white/55">Part Fidelopass</p>
+            <p id="summary-platform" class="mt-2 text-2xl font-bold">-</p>
+          </div>
+          <div class="rounded-2xl bg-white p-4 text-slate-950">
+            <p class="text-xs uppercase tracking-[0.18em] text-slate-500">Marge revendeur estimée</p>
+            <p id="summary-margin" class="mt-2 text-3xl font-bold text-emerald-600">-</p>
+          </div>
+        </div>
+        <p id="summary-warning" class="mt-5 rounded-2xl bg-amber-400/15 px-4 py-3 text-sm text-amber-100"></p>
+      </aside>
+    </form>
+  </section>
+</ResellerLayout>
+
+<script>
+  import { authFetch } from '../../../lib/api';
+
+  const settings = new Map<string, any>();
+  let resellerType = 'invoiced';
+  let currency = 'eur';
+
+  const formatMoney = (cents: unknown, curr = currency) => new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: String(curr || 'eur').toUpperCase(),
+    maximumFractionDigits: 0,
+  }).format(Number(cents ?? 0) / 100);
+
+  function currentPlan() {
+    return (document.getElementById('plan-input') as HTMLSelectElement).value;
+  }
+
+  function currentPriceCents() {
+    return Math.round(Number((document.getElementById('price-input') as HTMLInputElement).value || 0) * 100);
+  }
+
+  function updatePaymentModes() {
+    const select = document.getElementById('payment-mode-input') as HTMLSelectElement;
+    const stripeOption = Array.from(select.options).find((option) => option.value === 'stripe_connect');
+    if (stripeOption) stripeOption.disabled = resellerType !== 'stripe_connect';
+    if (resellerType !== 'stripe_connect' && select.value === 'stripe_connect') select.value = 'manual';
+  }
+
+  function updateSummary() {
+    const planSetting = settings.get(currentPlan());
+    if (!planSetting) return;
+    const price = currentPriceCents();
+    const fee = Number(planSetting.platform_fee_cents ?? 0);
+    const min = Number(planSetting.min_price_cents ?? 0);
+    document.getElementById('summary-price')!.textContent = formatMoney(price, planSetting.currency);
+    document.getElementById('summary-platform')!.textContent = formatMoney(fee, planSetting.currency);
+    document.getElementById('summary-margin')!.textContent = formatMoney(Math.max(0, price - fee), planSetting.currency);
+    const warning = document.getElementById('summary-warning')!;
+    warning.textContent = price < min
+      ? `Prix inférieur au minimum autorisé (${formatMoney(min, planSetting.currency)}).`
+      : `Minimum ${formatMoney(min, planSetting.currency)}. Le prix final reste visible uniquement côté commerçant.`;
+  }
+
+  async function loadSettings() {
+    const res = await authFetch('/api/reseller/me');
+    const payload = await res.json().catch(() => null);
+    const reseller = payload?.data;
+    resellerType = reseller?.type ?? 'invoiced';
+    currency = reseller?.currency ?? 'eur';
+    for (const setting of payload?.settings ?? []) settings.set(setting.plan, setting);
+    const starter = settings.get('starter');
+    if (starter) (document.getElementById('price-input') as HTMLInputElement).value = String(Math.round(starter.min_price_cents / 100));
+    updatePaymentModes();
+    updateSummary();
+  }
+
+  document.getElementById('plan-input')?.addEventListener('change', () => {
+    const setting = settings.get(currentPlan());
+    if (setting) (document.getElementById('price-input') as HTMLInputElement).value = String(Math.round(setting.min_price_cents / 100));
+    updateSummary();
+  });
+  document.getElementById('price-input')?.addEventListener('input', updateSummary);
+  document.getElementById('payment-mode-input')?.addEventListener('change', updateSummary);
+
+  document.getElementById('merchant-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget as HTMLFormElement;
+    const button = document.getElementById('submit-button') as HTMLButtonElement;
+    const feedback = document.getElementById('form-feedback')!;
+    const formData = new FormData(form);
+    button.disabled = true;
+    feedback.textContent = 'Création en cours...';
+    const payload = {
+      commerce_name: String(formData.get('commerce_name') ?? ''),
+      email: String(formData.get('email') ?? ''),
+      phone: String(formData.get('phone') ?? ''),
+      country: String(formData.get('country') ?? ''),
+      plan: String(formData.get('plan') ?? 'starter'),
+      price_cents: currentPriceCents(),
+      payment_mode: String(formData.get('payment_mode') ?? 'manual'),
+      creation_mode: String(formData.get('creation_mode') ?? 'invite'),
+      activate_now: (document.getElementById('activate-now-input') as HTMLInputElement).checked,
+    };
+    const res = await authFetch('/api/reseller/merchants', { method: 'POST', body: JSON.stringify(payload) });
+    const result = await res.json().catch(() => null);
+    if (!res.ok) {
+      feedback.textContent = result?.error ?? 'Création impossible.';
+      button.disabled = false;
+      return;
+    }
+    if (payload.payment_mode === 'stripe_connect') {
+      const checkoutRes = await authFetch(`/api/reseller/merchants/${result.data.id}/checkout`, { method: 'POST', body: JSON.stringify({}) });
+      const checkout = await checkoutRes.json().catch(() => null);
+      if (checkoutRes.ok && checkout?.url) {
+        window.location.href = checkout.url;
+        return;
+      }
+    }
+    window.location.href = `/reseller/merchants/${result.data.id}`;
+  });
+
+  await loadSettings();
+</script>

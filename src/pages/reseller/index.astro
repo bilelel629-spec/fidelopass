@@ -1,0 +1,172 @@
+---
+import ResellerLayout from '../../layouts/ResellerLayout.astro';
+---
+
+<ResellerLayout title="Dashboard revendeur — Fidelopass" activeNav="dashboard">
+  <section class="space-y-8">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <p class="text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-sky-700/75">Programme revendeur</p>
+        <h1 id="reseller-title" class="mt-2 font-display text-4xl font-bold tracking-tight text-slate-950">Dashboard revendeur</h1>
+        <p id="reseller-subtitle" class="mt-3 max-w-2xl text-base leading-7 text-slate-600">
+          Suivez vos commerçants, vos marges, la part Fidelopass et les paiements.
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <a href="/reseller/merchants/new" class="inline-flex w-fit items-center rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_36px_-24px_rgba(37,99,235,0.8)] transition hover:-translate-y-0.5">
+          Ajouter un commerçant
+        </a>
+        <a href="/reseller/branding" class="inline-flex w-fit items-center rounded-2xl border border-sky-200 bg-white px-5 py-3 text-sm font-semibold text-sky-800 shadow-[0_16px_32px_-28px_rgba(37,99,235,0.55)] transition hover:-translate-y-0.5 hover:border-sky-300">
+          Marque blanche
+        </a>
+      </div>
+    </div>
+
+    <div id="reseller-status-alert" class="hidden rounded-[1.3rem] border px-5 py-4 text-sm"></div>
+
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <article class="rounded-[1.4rem] border border-sky-100 bg-white/88 p-5 shadow-[0_18px_42px_-34px_rgba(37,99,235,0.42)]">
+        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Clients actifs</p>
+        <p id="metric-active" class="mt-3 text-3xl font-bold text-slate-950">-</p>
+        <p class="mt-1 text-sm text-slate-500">Commerçants opérationnels.</p>
+      </article>
+      <article class="rounded-[1.4rem] border border-sky-100 bg-white/88 p-5 shadow-[0_18px_42px_-34px_rgba(37,99,235,0.42)]">
+        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Clients suspendus</p>
+        <p id="metric-suspended" class="mt-3 text-3xl font-bold text-slate-950">-</p>
+        <p class="mt-1 text-sm text-slate-500">À relancer ou régulariser.</p>
+      </article>
+      <article class="rounded-[1.4rem] border border-sky-100 bg-white/88 p-5 shadow-[0_18px_42px_-34px_rgba(37,99,235,0.42)]">
+        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Marge revendeur</p>
+        <p id="metric-margin" class="mt-3 text-3xl font-bold text-slate-950">-</p>
+        <p id="metric-margin-year" class="mt-1 text-sm text-slate-500">Projection annuelle.</p>
+      </article>
+      <article class="rounded-[1.4rem] border border-sky-100 bg-white/88 p-5 shadow-[0_18px_42px_-34px_rgba(37,99,235,0.42)]">
+        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Part Fidelopass</p>
+        <p id="metric-platform" class="mt-3 text-3xl font-bold text-slate-950">-</p>
+        <p class="mt-1 text-sm text-slate-500">Due mensuellement.</p>
+      </article>
+    </div>
+
+    <div class="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
+      <section class="rounded-[1.6rem] border border-sky-100 bg-white/88 p-5 shadow-[0_22px_52px_-38px_rgba(37,99,235,0.45)]">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <h2 class="font-display text-xl font-bold text-slate-950">Derniers clients</h2>
+            <p class="mt-1 text-sm text-slate-500">Les derniers commerçants rattachés à votre compte revendeur.</p>
+          </div>
+          <a href="/reseller/merchants" class="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-800">Voir tout</a>
+        </div>
+        <div id="reseller-recent-merchants" class="mt-5 space-y-2"></div>
+      </section>
+
+      <section class="rounded-[1.6rem] border border-indigo-100 bg-gradient-to-br from-indigo-600 to-blue-600 p-6 text-white shadow-[0_24px_60px_-38px_rgba(37,99,235,0.75)]">
+        <p class="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-white/70">Paiements</p>
+        <h2 class="mt-3 font-display text-2xl font-bold">Historique financier</h2>
+        <p class="mt-3 text-sm leading-6 text-white/78">
+          Les paiements Stripe, remboursements et factures manuelles apparaissent ici.
+        </p>
+        <div id="reseller-transactions" class="mt-5 space-y-2 text-sm"></div>
+      </section>
+    </div>
+  </section>
+</ResellerLayout>
+
+<script>
+  import { authFetch } from '../../lib/api';
+
+  const formatMoney = (cents: unknown, currency = 'eur') => new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: String(currency || 'eur').toUpperCase(),
+    maximumFractionDigits: 0,
+  }).format(Number(cents ?? 0) / 100);
+
+  function escapeHtml(value: unknown) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function renderAlert(reseller: any) {
+    const alert = document.getElementById('reseller-status-alert');
+    if (!alert) return;
+    if (reseller.status === 'approved') {
+      alert.className = 'hidden';
+      return;
+    }
+    alert.className = 'rounded-[1.3rem] border px-5 py-4 text-sm border-amber-200 bg-amber-50 text-amber-800';
+    alert.textContent = reseller.status === 'pending'
+      ? 'Votre dossier revendeur est en attente d’approbation manuelle par Fidelopass.'
+      : 'Votre compte revendeur est suspendu. Les actions sont temporairement bloquées.';
+  }
+
+  function renderMerchants(merchants: any[]) {
+    const container = document.getElementById('reseller-recent-merchants');
+    if (!container) return;
+    if (!merchants.length) {
+      container.innerHTML = '<div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">Aucun commerçant pour le moment.</div>';
+      return;
+    }
+    container.innerHTML = merchants.map((merchant) => `
+      <a href="/reseller/merchants/${merchant.id}" class="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white px-4 py-3 transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-lg">
+        <div>
+          <p class="font-semibold text-slate-900">${escapeHtml(merchant.merchant_name ?? merchant.commerce?.nom ?? 'Commerce')}</p>
+          <p class="text-xs text-slate-500">${escapeHtml(merchant.merchant_email ?? '')}</p>
+        </div>
+        <div class="text-right">
+          <p class="text-sm font-semibold text-slate-900">${formatMoney(merchant.reseller_price_cents, merchant.currency)}/mois</p>
+          <p class="text-xs text-slate-500">${escapeHtml(merchant.subscription_status ?? 'pending')}</p>
+        </div>
+      </a>
+    `).join('');
+  }
+
+  function renderTransactions(transactions: any[], currency: string) {
+    const container = document.getElementById('reseller-transactions');
+    if (!container) return;
+    if (!transactions.length) {
+      container.innerHTML = '<div class="rounded-2xl bg-white/12 px-4 py-4 text-white/75">Aucun mouvement financier enregistré.</div>';
+      return;
+    }
+    container.innerHTML = transactions.slice(0, 6).map((tx) => `
+      <div class="rounded-2xl bg-white/12 px-4 py-3">
+        <div class="flex items-center justify-between gap-3">
+          <span class="font-semibold">${escapeHtml(tx.type)}</span>
+          <span>${formatMoney(tx.amount_cents, tx.currency ?? currency)}</span>
+        </div>
+        <p class="mt-1 text-xs text-white/60">Part Fidelopass: ${formatMoney(tx.platform_fee_cents, tx.currency ?? currency)}</p>
+      </div>
+    `).join('');
+  }
+
+  async function loadDashboard() {
+    const res = await authFetch('/api/reseller/dashboard');
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) {
+      const alert = document.getElementById('reseller-status-alert');
+      if (alert) {
+        alert.className = 'rounded-[1.3rem] border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800';
+        alert.textContent = payload?.error ?? 'Impossible de charger le dashboard revendeur.';
+      }
+      return;
+    }
+    const reseller = payload.reseller;
+    const metrics = payload.metrics ?? {};
+    renderAlert(reseller);
+    document.getElementById('reseller-title')!.textContent = reseller.brand_name ?? 'Dashboard revendeur';
+    document.getElementById('reseller-subtitle')!.textContent = reseller.type === 'stripe_connect'
+      ? 'Mode Stripe Connect: encaissement en ligne et split automatique.'
+      : 'Mode facturé: vous encaissez vos clients et Fidelopass vous facture sa part.';
+    document.getElementById('metric-active')!.textContent = String(metrics.active_clients ?? 0);
+    document.getElementById('metric-suspended')!.textContent = String(metrics.suspended_clients ?? 0);
+    document.getElementById('metric-margin')!.textContent = formatMoney(metrics.monthly_reseller_revenue_cents, metrics.currency);
+    document.getElementById('metric-margin-year')!.textContent = `${formatMoney(metrics.annual_reseller_revenue_cents, metrics.currency)} / an estimé`;
+    document.getElementById('metric-platform')!.textContent = formatMoney(metrics.monthly_platform_fee_cents, metrics.currency);
+    renderMerchants(payload.merchants ?? []);
+    renderTransactions(payload.transactions ?? [], metrics.currency ?? 'eur');
+  }
+
+  await loadDashboard();
+</script>

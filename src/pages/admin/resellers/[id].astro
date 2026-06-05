@@ -1,0 +1,385 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+
+const { id } = Astro.params;
+---
+
+<AdminLayout title="Détail revendeur — Admin Fidelopass" activeNav="resellers">
+  <section class="space-y-8" data-reseller-id={id}>
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div>
+        <a href="/admin/resellers" class="inline-flex items-center rounded-full border border-sky-100 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-sky-700 shadow-sm">
+          ← Revendeurs
+        </a>
+        <p class="mt-5 text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-red-600/75">Administration</p>
+        <h1 id="reseller-title" class="mt-2 font-display text-4xl font-bold tracking-tight text-slate-950">Revendeur</h1>
+        <p id="reseller-subtitle" class="mt-3 max-w-2xl text-base leading-7 text-slate-600">
+          Chargement du dossier revendeur...
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button data-admin-action="approve" class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">Approuver</button>
+        <button data-admin-action="reactivate" class="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-800">Réactiver</button>
+        <button data-admin-action="suspend" class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">Suspendre</button>
+        <button data-admin-action="suspend-clients" class="rounded-2xl border border-red-300 bg-red-100 px-4 py-3 text-sm font-semibold text-red-800">Suspendre + clients</button>
+      </div>
+    </div>
+
+    <div id="feedback" class="hidden rounded-2xl border border-sky-100 bg-white px-4 py-3 text-sm font-semibold text-slate-700"></div>
+
+    <div class="grid gap-5 lg:grid-cols-4">
+      <article class="rounded-[1.5rem] border border-sky-100 bg-white/90 p-5 shadow-[0_18px_44px_-34px_rgba(37,99,235,0.45)]">
+        <p class="text-[0.65rem] font-bold uppercase tracking-[0.22em] text-slate-400">Commerçants actifs</p>
+        <p id="metric-active" class="mt-3 text-3xl font-black text-slate-950">-</p>
+      </article>
+      <article class="rounded-[1.5rem] border border-sky-100 bg-white/90 p-5 shadow-[0_18px_44px_-34px_rgba(37,99,235,0.45)]">
+        <p class="text-[0.65rem] font-bold uppercase tracking-[0.22em] text-slate-400">CA mensuel</p>
+        <p id="metric-revenue" class="mt-3 text-3xl font-black text-slate-950">-</p>
+      </article>
+      <article class="rounded-[1.5rem] border border-sky-100 bg-white/90 p-5 shadow-[0_18px_44px_-34px_rgba(37,99,235,0.45)]">
+        <p class="text-[0.65rem] font-bold uppercase tracking-[0.22em] text-slate-400">Part Fidelopass</p>
+        <p id="metric-platform" class="mt-3 text-3xl font-black text-slate-950">-</p>
+      </article>
+      <article class="rounded-[1.5rem] border border-sky-100 bg-white/90 p-5 shadow-[0_18px_44px_-34px_rgba(37,99,235,0.45)]">
+        <p class="text-[0.65rem] font-bold uppercase tracking-[0.22em] text-slate-400">Marge revendeur</p>
+        <p id="metric-margin" class="mt-3 text-3xl font-black text-slate-950">-</p>
+      </article>
+    </div>
+
+    <div class="grid gap-6 xl:grid-cols-[1fr_1.2fr]">
+      <form id="reseller-form" class="rounded-[1.7rem] border border-sky-100 bg-white/90 p-6 shadow-[0_22px_52px_-38px_rgba(37,99,235,0.45)]">
+        <p class="text-[0.7rem] font-bold uppercase tracking-[0.24em] text-blue-600">Dossier revendeur</p>
+        <h2 class="mt-2 text-2xl font-black text-slate-950">Informations</h2>
+        <div class="mt-5 grid gap-4 md:grid-cols-2">
+          <label class="space-y-2">
+            <span class="text-sm font-semibold text-slate-700">Nom commercial</span>
+            <input name="brand_name" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
+          </label>
+          <label class="space-y-2">
+            <span class="text-sm font-semibold text-slate-700">Type</span>
+            <select name="type" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <option value="stripe_connect">Stripe Connect</option>
+              <option value="invoiced">Facturé</option>
+            </select>
+          </label>
+          <label class="space-y-2">
+            <span class="text-sm font-semibold text-slate-700">Statut</span>
+            <select name="status" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <option value="pending">En attente</option>
+              <option value="approved">Approuvé</option>
+              <option value="suspended">Suspendu</option>
+            </select>
+          </label>
+          <label class="space-y-2">
+            <span class="text-sm font-semibold text-slate-700">Pays</span>
+            <input name="country" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" placeholder="FR, DZ..." />
+          </label>
+          <label class="space-y-2">
+            <span class="text-sm font-semibold text-slate-700">Devise</span>
+            <input name="currency" maxlength="3" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
+          </label>
+          <label class="space-y-2">
+            <span class="text-sm font-semibold text-slate-700">Email support</span>
+            <input name="support_email" type="email" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
+          </label>
+          <label class="space-y-2 md:col-span-2">
+            <span class="text-sm font-semibold text-slate-700">Logo marque blanche</span>
+            <input name="brand_logo_url" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" placeholder="https://..." />
+          </label>
+          <label class="space-y-2">
+            <span class="text-sm font-semibold text-slate-700">Couleur principale</span>
+            <input name="primary_color" type="color" class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2" />
+          </label>
+          <label class="space-y-2">
+            <span class="text-sm font-semibold text-slate-700">Couleur secondaire</span>
+            <input name="secondary_color" type="color" class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2" />
+          </label>
+        </div>
+        <button class="mt-5 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-bold text-white">Enregistrer</button>
+      </form>
+
+      <form id="settings-form" class="rounded-[1.7rem] border border-sky-100 bg-white/90 p-6 shadow-[0_22px_52px_-38px_rgba(37,99,235,0.45)]">
+        <p class="text-[0.7rem] font-bold uppercase tracking-[0.24em] text-blue-600">Paramètres plans</p>
+        <h2 class="mt-2 text-2xl font-black text-slate-950">Prix minimums et part Fidelopass</h2>
+        <p class="mt-2 text-sm leading-6 text-slate-500">
+          Les anciens commerçants gardent leur prix enregistré. Ces réglages ne s’appliquent qu’aux prochains contrats ou aux changements de plan.
+        </p>
+        <div id="settings-list" class="mt-5 grid gap-4"></div>
+        <button class="mt-5 rounded-2xl bg-gradient-to-r from-blue-600 to-violet-500 px-5 py-3 text-sm font-bold text-white">Mettre à jour les plans</button>
+      </form>
+    </div>
+
+    <section class="rounded-[1.7rem] border border-sky-100 bg-white/90 p-6 shadow-[0_22px_52px_-38px_rgba(37,99,235,0.45)]">
+      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p class="text-[0.7rem] font-bold uppercase tracking-[0.24em] text-blue-600">Commerçants liés</p>
+          <h2 class="mt-2 text-2xl font-black text-slate-950">Abonnements revendeur</h2>
+        </div>
+        <button id="generate-invoice" class="hidden rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+          Générer facture mensuelle
+        </button>
+      </div>
+      <div class="mt-5 overflow-x-auto">
+        <table class="min-w-full text-left text-sm">
+          <thead class="text-[0.68rem] uppercase tracking-[0.2em] text-slate-500">
+            <tr>
+              <th class="px-4 py-3">Commerce</th>
+              <th class="px-4 py-3">Plan</th>
+              <th class="px-4 py-3">Prix</th>
+              <th class="px-4 py-3">Part Fidelopass</th>
+              <th class="px-4 py-3">Marge</th>
+              <th class="px-4 py-3">Paiement</th>
+              <th class="px-4 py-3">Statut</th>
+            </tr>
+          </thead>
+          <tbody id="merchant-rows" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="grid gap-6 xl:grid-cols-2">
+      <section class="rounded-[1.7rem] border border-sky-100 bg-white/90 p-6 shadow-[0_22px_52px_-38px_rgba(37,99,235,0.45)]">
+        <p class="text-[0.7rem] font-bold uppercase tracking-[0.24em] text-blue-600">Transactions</p>
+        <h2 class="mt-2 text-2xl font-black text-slate-950">Historique financier</h2>
+        <div id="transaction-list" class="mt-5 space-y-3"></div>
+      </section>
+      <section class="rounded-[1.7rem] border border-sky-100 bg-white/90 p-6 shadow-[0_22px_52px_-38px_rgba(37,99,235,0.45)]">
+        <p class="text-[0.7rem] font-bold uppercase tracking-[0.24em] text-blue-600">Factures</p>
+        <h2 class="mt-2 text-2xl font-black text-slate-950">Revendeurs facturés</h2>
+        <div id="invoice-list" class="mt-5 space-y-3"></div>
+      </section>
+    </div>
+  </section>
+</AdminLayout>
+
+<script>
+  import { authFetch } from '../../../lib/api';
+
+  const root = document.querySelector('[data-reseller-id]') as HTMLElement;
+  const resellerId = root.dataset.resellerId!;
+  let currentData: any = null;
+
+  const planLabels: Record<string, string> = {
+    starter: 'Starter',
+    pro: 'Pro',
+    premium: 'Premium',
+  };
+
+  function escapeHtml(value: unknown) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function money(cents: unknown, currency = 'eur') {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: String(currency || 'eur').toUpperCase(),
+      maximumFractionDigits: 0,
+    }).format(Number(cents ?? 0) / 100);
+  }
+
+  function showFeedback(message: string, danger = false) {
+    const feedback = document.getElementById('feedback')!;
+    feedback.classList.remove('hidden', 'border-red-200', 'bg-red-50', 'text-red-700', 'border-sky-100', 'bg-white', 'text-slate-700');
+    feedback.classList.add(danger ? 'border-red-200' : 'border-sky-100', danger ? 'bg-red-50' : 'bg-white', danger ? 'text-red-700' : 'text-slate-700');
+    feedback.textContent = message;
+  }
+
+  async function post(path: string, body: Record<string, unknown> = {}) {
+    const res = await authFetch(path, { method: 'POST', body: JSON.stringify(body) });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(payload?.error ?? 'Action impossible.');
+    return payload;
+  }
+
+  async function loadDetail() {
+    const res = await authFetch(`/api/admin/resellers/${resellerId}`);
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) {
+      showFeedback(payload?.error ?? 'Impossible de charger le revendeur.', true);
+      return;
+    }
+    currentData = payload;
+    render(payload);
+  }
+
+  function render(payload: any) {
+    const reseller = payload.data;
+    const metrics = reseller.metrics ?? {};
+    document.getElementById('reseller-title')!.textContent = reseller.brand_name ?? 'Revendeur';
+    document.getElementById('reseller-subtitle')!.textContent = `${reseller.type === 'stripe_connect' ? 'Stripe Connect' : 'Facturé'} · ${reseller.status} · ${reseller.country ?? 'Pays non renseigné'}`;
+    document.getElementById('metric-active')!.textContent = String(metrics.active_merchants_count ?? 0);
+    document.getElementById('metric-revenue')!.textContent = money(metrics.total_revenue_cents, reseller.currency);
+    document.getElementById('metric-platform')!.textContent = money(metrics.platform_revenue_cents, reseller.currency);
+    document.getElementById('metric-margin')!.textContent = money(metrics.reseller_revenue_cents, reseller.currency);
+
+    const resellerForm = document.getElementById('reseller-form') as HTMLFormElement;
+    for (const [key, value] of Object.entries(reseller)) {
+      const field = resellerForm.elements.namedItem(key) as HTMLInputElement | HTMLSelectElement | null;
+      if (field) field.value = String(value ?? '');
+    }
+
+    const settings = Array.isArray(reseller.reseller_plan_settings) ? reseller.reseller_plan_settings : [];
+    document.getElementById('settings-list')!.innerHTML = ['starter', 'pro', 'premium'].map((plan) => {
+      const setting = settings.find((row: any) => row.plan === plan) ?? {};
+      return `
+        <article class="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 md:grid-cols-[1fr_1fr_1fr]">
+          <input type="hidden" name="${plan}_plan" value="${plan}" />
+          <div>
+            <p class="text-sm font-black text-slate-950">${planLabels[plan]}</p>
+            <p class="text-xs text-slate-500">Plan revendeur</p>
+          </div>
+          <label class="space-y-1">
+            <span class="text-xs font-semibold text-slate-600">Prix minimum</span>
+            <input name="${plan}_min" type="number" min="0" step="1" value="${Math.round(Number(setting.min_price_cents ?? 0) / 100)}" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2" />
+          </label>
+          <label class="space-y-1">
+            <span class="text-xs font-semibold text-slate-600">Part Fidelopass</span>
+            <input name="${plan}_fee" type="number" min="0" step="1" value="${Math.round(Number(setting.platform_fee_cents ?? 0) / 100)}" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2" />
+          </label>
+        </article>
+      `;
+    }).join('');
+
+    const merchants = Array.isArray(reseller.reseller_merchants) ? reseller.reseller_merchants : [];
+    document.getElementById('merchant-rows')!.innerHTML = merchants.length ? merchants.map((merchant: any) => `
+      <tr>
+        <td class="px-4 py-4">
+          <p class="font-semibold text-slate-950">${escapeHtml(merchant.merchant_name ?? merchant.commerces?.nom ?? '-')}</p>
+          <p class="text-xs text-slate-500">${escapeHtml(merchant.merchant_email ?? merchant.commerces?.email ?? '')}</p>
+        </td>
+        <td class="px-4 py-4">${escapeHtml(planLabels[merchant.plan] ?? merchant.plan)}</td>
+        <td class="px-4 py-4">${money(merchant.reseller_price_cents, merchant.currency)}</td>
+        <td class="px-4 py-4">${money(merchant.platform_fee_cents, merchant.currency)}</td>
+        <td class="px-4 py-4">${money(merchant.reseller_margin_cents, merchant.currency)}</td>
+        <td class="px-4 py-4">${escapeHtml(merchant.payment_mode)}</td>
+        <td class="px-4 py-4">${escapeHtml(merchant.subscription_status)}</td>
+      </tr>
+    `).join('') : '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Aucun commerçant lié.</td></tr>';
+
+    const generateButton = document.getElementById('generate-invoice')!;
+    generateButton.classList.toggle('hidden', reseller.type !== 'invoiced');
+
+    document.getElementById('transaction-list')!.innerHTML = (payload.transactions ?? []).length
+      ? payload.transactions.map((tx: any) => `
+        <div class="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+          <div>
+            <p class="font-semibold text-slate-950">${escapeHtml(tx.type)}</p>
+            <p class="text-xs text-slate-500">${escapeHtml(new Date(tx.created_at).toLocaleString('fr-FR'))}</p>
+          </div>
+          <p class="font-black text-slate-950">${money(tx.amount_cents, tx.currency)}</p>
+        </div>
+      `).join('')
+      : '<p class="text-sm text-slate-500">Aucune transaction.</p>';
+
+    document.getElementById('invoice-list')!.innerHTML = (payload.invoices ?? []).length
+      ? payload.invoices.map((invoice: any) => `
+        <div class="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+          <div class="flex items-center justify-between gap-3">
+            <p class="font-semibold text-slate-950">${escapeHtml(invoice.period_start)} → ${escapeHtml(invoice.period_end)}</p>
+            <p class="font-black text-slate-950">${money(invoice.total_platform_fee_cents, invoice.currency)}</p>
+          </div>
+          <p class="mt-1 text-xs text-slate-500">${escapeHtml(invoice.total_merchants)} commerçant(s) · ${escapeHtml(invoice.status)}</p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            ${['sent', 'paid', 'overdue', 'cancelled'].map((status) => `
+              <button
+                type="button"
+                data-invoice-id="${escapeHtml(invoice.id)}"
+                data-invoice-status="${status}"
+                class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-slate-600 transition hover:-translate-y-0.5 hover:border-sky-200 hover:text-sky-700"
+              >
+                ${status === 'sent' ? 'Envoyée' : status === 'paid' ? 'Payée' : status === 'overdue' ? 'Retard' : 'Annuler'}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `).join('')
+      : '<p class="text-sm text-slate-500">Aucune facture.</p>';
+
+    document.querySelectorAll('[data-invoice-id][data-invoice-status]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const btn = button as HTMLButtonElement;
+        try {
+          await post(`/api/admin/resellers/${resellerId}/invoices/${btn.dataset.invoiceId}/status`, {
+            status: btn.dataset.invoiceStatus,
+          });
+          showFeedback('Statut de facture mis à jour.');
+          await loadDetail();
+        } catch (error) {
+          showFeedback(error instanceof Error ? error.message : 'Action facture impossible.', true);
+        }
+      });
+    });
+  }
+
+  document.querySelectorAll('[data-admin-action]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const action = (button as HTMLButtonElement).dataset.adminAction!;
+      if (action === 'suspend-clients' && !confirm('Suspendre ce revendeur et tous ses commerçants liés ?')) return;
+      try {
+        const endpoint = action === 'suspend-clients' ? 'suspend' : action;
+        const body = action === 'suspend-clients'
+          ? { suspend_merchants: true }
+          : action === 'suspend'
+            ? { suspend_merchants: false }
+            : {};
+        await post(`/api/admin/resellers/${resellerId}/${endpoint}`, body);
+        showFeedback('Action effectuée.');
+        await loadDetail();
+      } catch (error) {
+        showFeedback(error instanceof Error ? error.message : 'Action impossible.', true);
+      }
+    });
+  });
+
+  document.getElementById('reseller-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const payload = Object.fromEntries(new FormData(event.currentTarget as HTMLFormElement).entries());
+    for (const key of Object.keys(payload)) {
+      if (typeof payload[key] === 'string' && payload[key].trim() === '') delete payload[key];
+    }
+    try {
+      const res = await authFetch(`/api/admin/resellers/${resellerId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      const result = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(result?.error ?? 'Modification impossible.');
+      showFeedback('Revendeur mis à jour.');
+      await loadDetail();
+    } catch (error) {
+      showFeedback(error instanceof Error ? error.message : 'Modification impossible.', true);
+    }
+  });
+
+  document.getElementById('settings-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget as HTMLFormElement);
+    const settings = ['starter', 'pro', 'premium'].map((plan) => ({
+      plan,
+      min_price_cents: Math.round(Number(form.get(`${plan}_min`) ?? 0) * 100),
+      platform_fee_cents: Math.round(Number(form.get(`${plan}_fee`) ?? 0) * 100),
+      currency: currentData?.data?.currency ?? 'eur',
+    }));
+    try {
+      await post(`/api/admin/resellers/${resellerId}/settings`, { settings });
+      showFeedback('Paramètres de plans mis à jour.');
+      await loadDetail();
+    } catch (error) {
+      showFeedback(error instanceof Error ? error.message : 'Mise à jour impossible.', true);
+    }
+  });
+
+  document.getElementById('generate-invoice')?.addEventListener('click', async () => {
+    try {
+      await post(`/api/admin/resellers/${resellerId}/generate-invoice`, {});
+      showFeedback('Facture mensuelle générée.');
+      await loadDetail();
+    } catch (error) {
+      showFeedback(error instanceof Error ? error.message : 'Facture impossible.', true);
+    }
+  });
+
+  await loadDetail();
+</script>

@@ -30,7 +30,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </p>
       </div>
       <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-        <a href="/app/scan" class="rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-3 text-center text-sm font-semibold text-white shadow-[0_16px_34px_-22px_rgba(37,99,235,0.9)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_42px_-24px_rgba(37,99,235,0.95)] sm:py-2.5">Scanner mobile</a>
+        <a href="/app/scan" class="rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-3 text-center text-sm font-semibold text-white shadow-[0_16px_34px_-22px_rgba(37,99,235,0.9)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_42px_-24px_rgba(37,99,235,0.95)] sm:py-2.5 lg:hidden">Scanner mobile</a>
+        <a href="/app/install" class="hidden rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-3 text-center text-sm font-semibold text-white shadow-[0_16px_34px_-22px_rgba(37,99,235,0.9)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_42px_-24px_rgba(37,99,235,0.95)] sm:py-2.5 lg:inline-flex lg:items-center lg:justify-center">Scanner mobile</a>
         <a id="dashboard-client-qr-btn" href="/dashboard/carte" class="premium-button rounded-2xl border border-sky-200 bg-white px-4 py-3 text-center text-sm font-semibold text-sky-700 transition sm:py-2.5">QR client</a>
         <a href="/dashboard/scan" class="rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 px-4 py-3 text-center text-sm font-semibold text-white shadow-[0_16px_34px_-22px_rgba(16,185,129,0.9)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_42px_-24px_rgba(16,185,129,0.95)] sm:py-2.5">Mode scannette</a>
         <a href="/dashboard/notifications" class="premium-button rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 transition sm:py-2.5">Notification</a>

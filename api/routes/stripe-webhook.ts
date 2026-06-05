@@ -13,6 +13,7 @@ import {
 } from '../services/stripe-billing';
 import { sendActivationEmail } from '../services/activation-email';
 import { sendBillingLifecycleEmail } from '../services/billing-lifecycle-email';
+import { resellerPlanToCommercePlan, type ResellerPlan } from '../services/reseller';
 
 export const stripeWebhookRoutes = new Hono<ApiEnv>();
 
@@ -78,6 +79,168 @@ function formatStripeDate(timestamp: number | null | undefined): string | null {
   }).format(new Date(timestamp * 1000));
 }
 
+function isResellerSubscriptionMetadata(metadata: Stripe.Metadata | null | undefined) {
+  return metadata?.kind === 'reseller_merchant_subscription'
+    && Boolean(metadata.reseller_id)
+    && Boolean(metadata.reseller_merchant_id);
+}
+
+function centsFromMetadata(value: unknown) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.round(number) : 0;
+}
+
+function normalizeResellerSubscriptionStatus(status: string | null | undefined) {
+  const normalized = String(status ?? 'incomplete').toLowerCase();
+  if (['trialing', 'active', 'past_due', 'canceled', 'cancelled', 'unpaid', 'incomplete'].includes(normalized)) {
+    return normalized === 'canceled' ? 'cancelled' : normalized;
+  }
+  return 'incomplete';
+}
+
+async function updateResellerSubscriptionFromMetadata(
+  db: ReturnType<typeof createServiceClient>,
+  metadata: Stripe.Metadata,
+  updates: Record<string, unknown>,
+) {
+  const resellerMerchantId = metadata.reseller_merchant_id;
+  const merchantId = metadata.merchant_id;
+  const plan = metadata.plan as ResellerPlan;
+  const status = String(updates.subscription_status ?? 'active');
+  const now = new Date().toISOString();
+
+  await db.from('reseller_merchants').update({
+    ...updates,
+    updated_at: now,
+  }).eq('id', resellerMerchantId);
+
+  if (merchantId && ['starter', 'pro', 'premium'].includes(plan)) {
+    const commerceUpdates: Record<string, unknown> = {
+      plan: resellerPlanToCommercePlan(plan),
+      billing_status: status === 'cancelled' ? 'canceled' : status,
+      reseller_id: metadata.reseller_id,
+      reseller_merchant_id: resellerMerchantId,
+      reseller_payment_mode: 'stripe_connect',
+      reseller_price_cents: centsFromMetadata(metadata.reseller_price_cents),
+      reseller_platform_fee_cents: centsFromMetadata(metadata.platform_fee_cents),
+      actif: !['cancelled', 'past_due', 'unpaid'].includes(status),
+      updated_at: now,
+    };
+    if (typeof updates.stripe_customer_id === 'string') {
+      commerceUpdates.stripe_customer_id = updates.stripe_customer_id;
+    }
+    if (typeof updates.stripe_subscription_id === 'string') {
+      commerceUpdates.stripe_subscription_id = updates.stripe_subscription_id;
+    }
+    await db.from('commerces').update(commerceUpdates).eq('id', merchantId);
+  }
+}
+
+async function handleResellerCheckoutCompleted(
+  db: ReturnType<typeof createServiceClient>,
+  session: Stripe.Checkout.Session,
+) {
+  const metadata = session.metadata;
+  if (!metadata || !isResellerSubscriptionMetadata(metadata)) return false;
+  await updateResellerSubscriptionFromMetadata(db, metadata, {
+    stripe_customer_id: typeof session.customer === 'string' ? session.customer : null,
+    stripe_subscription_id: typeof session.subscription === 'string' ? session.subscription : null,
+    stripe_checkout_session_id: session.id,
+    subscription_status: session.subscription ? 'active' : 'incomplete',
+    started_at: new Date().toISOString(),
+    cancelled_at: null,
+  });
+  return true;
+}
+
+async function handleResellerSubscriptionEvent(
+  db: ReturnType<typeof createServiceClient>,
+  sub: Stripe.Subscription,
+) {
+  if (!isResellerSubscriptionMetadata(sub.metadata)) return false;
+  const status = normalizeResellerSubscriptionStatus(sub.status);
+  await updateResellerSubscriptionFromMetadata(db, sub.metadata, {
+    stripe_customer_id: typeof sub.customer === 'string' ? sub.customer : sub.customer?.id ?? null,
+    stripe_subscription_id: sub.id,
+    subscription_status: status,
+    cancelled_at: status === 'cancelled' ? new Date().toISOString() : null,
+  });
+  return true;
+}
+
+async function loadResellerSubscriptionFromInvoice(stripe: Stripe, invoice: Stripe.Invoice) {
+  const invoiceAny = invoice as Stripe.Invoice & { subscription?: string | Stripe.Subscription | null };
+  const subId = typeof invoiceAny.subscription === 'string' ? invoiceAny.subscription : invoiceAny.subscription?.id;
+  if (!subId) return null;
+  return stripe.subscriptions.retrieve(subId).catch(() => null);
+}
+
+async function handleResellerInvoiceSucceeded(
+  db: ReturnType<typeof createServiceClient>,
+  stripe: Stripe,
+  event: Stripe.Event,
+  invoice: Stripe.Invoice,
+) {
+  const subscription = await loadResellerSubscriptionFromInvoice(stripe, invoice);
+  if (!subscription || !isResellerSubscriptionMetadata(subscription.metadata)) return false;
+  const metadata = subscription.metadata;
+  await handleResellerSubscriptionEvent(db, subscription);
+  const amountPaid = centsFromMetadata(invoice.amount_paid);
+  const platformFee = centsFromMetadata(metadata.platform_fee_cents);
+  await db.from('reseller_transactions').upsert({
+    reseller_id: metadata.reseller_id,
+    merchant_id: metadata.merchant_id || null,
+    reseller_merchant_id: metadata.reseller_merchant_id,
+    type: 'subscription_paid',
+    amount_cents: amountPaid,
+    platform_fee_cents: platformFee,
+    reseller_amount_cents: Math.max(0, amountPaid - platformFee),
+    currency: String(invoice.currency ?? metadata.currency ?? 'eur').toLowerCase(),
+    stripe_event_id: event.id,
+    stripe_payment_intent_id: typeof (invoice as any).payment_intent === 'string' ? (invoice as any).payment_intent : null,
+    stripe_charge_id: typeof (invoice as any).charge === 'string' ? (invoice as any).charge : null,
+    stripe_invoice_id: invoice.id,
+    metadata: {
+      subscription_id: subscription.id,
+      billing_reason: invoice.billing_reason,
+    },
+  }, { onConflict: 'stripe_event_id', ignoreDuplicates: true });
+  return true;
+}
+
+async function handleResellerInvoiceFailed(
+  db: ReturnType<typeof createServiceClient>,
+  stripe: Stripe,
+  event: Stripe.Event,
+  invoice: Stripe.Invoice,
+) {
+  const subscription = await loadResellerSubscriptionFromInvoice(stripe, invoice);
+  if (!subscription || !isResellerSubscriptionMetadata(subscription.metadata)) return false;
+  const metadata = subscription.metadata;
+  await updateResellerSubscriptionFromMetadata(db, metadata, {
+    stripe_customer_id: typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id ?? null,
+    stripe_subscription_id: subscription.id,
+    subscription_status: 'past_due',
+  });
+  await db.from('reseller_transactions').upsert({
+    reseller_id: metadata.reseller_id,
+    merchant_id: metadata.merchant_id || null,
+    reseller_merchant_id: metadata.reseller_merchant_id,
+    type: 'failed_payment',
+    amount_cents: centsFromMetadata(invoice.amount_due),
+    platform_fee_cents: centsFromMetadata(metadata.platform_fee_cents),
+    reseller_amount_cents: 0,
+    currency: String(invoice.currency ?? metadata.currency ?? 'eur').toLowerCase(),
+    stripe_event_id: event.id,
+    stripe_invoice_id: invoice.id,
+    metadata: {
+      subscription_id: subscription.id,
+      attempt_count: invoice.attempt_count,
+    },
+  }, { onConflict: 'stripe_event_id', ignoreDuplicates: true });
+  return true;
+}
+
 /** POST /api/stripe-webhook */
 stripeWebhookRoutes.post('/', async (c) => {
   const stripe = getStripe();
@@ -122,6 +285,11 @@ stripeWebhookRoutes.post('/', async (c) => {
 
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
+        if (await handleResellerCheckoutCompleted(db, session)) {
+          console.log('[stripe-webhook] reseller checkout completed | session:', session.id);
+          break;
+        }
+
         const commerceId = await getCommerceIdFromMetadata(session.metadata)
           ?? await getCommerceIdFromEmail(session.customer_details?.email ?? null);
 
@@ -239,6 +407,11 @@ stripeWebhookRoutes.post('/', async (c) => {
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const sub = event.data.object as Stripe.Subscription;
+        if (await handleResellerSubscriptionEvent(db, sub)) {
+          console.log('[stripe-webhook] reseller subscription sync | subscription:', sub.id);
+          break;
+        }
+
         const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer?.id ?? null;
         const commerceId = await getCommerceIdFromMetadata(sub.metadata)
           ?? await getCommerceIdFromStripeCustomer(db, customerId);
@@ -252,6 +425,11 @@ stripeWebhookRoutes.post('/', async (c) => {
 
       case 'customer.subscription.deleted': {
         const sub = event.data.object as Stripe.Subscription;
+        if (await handleResellerSubscriptionEvent(db, sub)) {
+          console.log('[stripe-webhook] reseller subscription deleted | subscription:', sub.id);
+          break;
+        }
+
         const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer?.id ?? null;
         const commerceId = await getCommerceIdFromMetadata(sub.metadata)
           ?? await getCommerceIdFromStripeCustomer(db, customerId);
@@ -279,6 +457,11 @@ stripeWebhookRoutes.post('/', async (c) => {
 
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
+        if (await handleResellerInvoiceSucceeded(db, stripe, event, invoice)) {
+          console.log('[stripe-webhook] reseller invoice paid | invoice:', invoice.id);
+          break;
+        }
+
         const customerId = typeof invoice.customer === 'string' ? invoice.customer : (invoice.customer as Stripe.Customer | null)?.id ?? null;
         let commerceId: string | null = await getCommerceIdFromStripeCustomer(db, customerId);
 
@@ -322,6 +505,11 @@ stripeWebhookRoutes.post('/', async (c) => {
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
+        if (await handleResellerInvoiceFailed(db, stripe, event, invoice)) {
+          console.log('[stripe-webhook] reseller invoice failed | invoice:', invoice.id);
+          break;
+        }
+
         const customerId = typeof invoice.customer === 'string' ? invoice.customer : (invoice.customer as Stripe.Customer | null)?.id ?? null;
         let commerceId: string | null = await getCommerceIdFromStripeCustomer(db, customerId);
 
@@ -353,6 +541,54 @@ stripeWebhookRoutes.post('/', async (c) => {
           });
         }
         console.log('[stripe-webhook] invoice.payment_failed → billing_status = past_due | commerce:', commerceId);
+        break;
+      }
+
+      case 'account.updated': {
+        const account = event.data.object as Stripe.Account;
+        const resellerId = account.metadata?.reseller_id ?? null;
+        const query = db.from('resellers').update({
+          stripe_onboarding_completed: Boolean(account.details_submitted) && (account.requirements?.currently_due ?? []).length === 0,
+          stripe_charges_enabled: Boolean(account.charges_enabled),
+          stripe_payouts_enabled: Boolean(account.payouts_enabled),
+          updated_at: new Date().toISOString(),
+        });
+        const { error } = resellerId
+          ? await query.eq('id', resellerId)
+          : await query.eq('stripe_connect_account_id', account.id);
+        if (error) console.warn('[stripe-webhook] reseller account sync failed:', error.message);
+        break;
+      }
+
+      case 'charge.refunded': {
+        const charge = event.data.object as Stripe.Charge;
+        const paymentIntentId = typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id ?? null;
+        const { data: tx } = await db
+          .from('reseller_transactions')
+          .select('*')
+          .or(`stripe_charge_id.eq.${charge.id}${paymentIntentId ? `,stripe_payment_intent_id.eq.${paymentIntentId}` : ''}`)
+          .eq('type', 'subscription_paid')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (tx) {
+          const refundedAmount = centsFromMetadata(charge.amount_refunded || charge.amount);
+          const ratio = tx.amount_cents > 0 ? Math.min(1, refundedAmount / tx.amount_cents) : 1;
+          await db.from('reseller_transactions').upsert({
+            reseller_id: tx.reseller_id,
+            merchant_id: tx.merchant_id,
+            reseller_merchant_id: tx.reseller_merchant_id,
+            type: 'refund',
+            amount_cents: -refundedAmount,
+            platform_fee_cents: -Math.round(centsFromMetadata(tx.platform_fee_cents) * ratio),
+            reseller_amount_cents: -Math.round(centsFromMetadata(tx.reseller_amount_cents) * ratio),
+            currency: tx.currency,
+            stripe_event_id: event.id,
+            stripe_payment_intent_id: paymentIntentId,
+            stripe_charge_id: charge.id,
+            metadata: { original_transaction_id: tx.id, refund_count: charge.refunds?.data?.length ?? null },
+          }, { onConflict: 'stripe_event_id', ignoreDuplicates: true });
+        }
         break;
       }
 

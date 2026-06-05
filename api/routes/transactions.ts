@@ -27,6 +27,47 @@ const transactionSchema = z.object({
   note: z.string().max(255).nullable().optional(),
 });
 
+type WebPushSubscriptionRow = {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+};
+
+async function loadClientWebPushTargets(
+  db: ReturnType<typeof createServiceClient>,
+  clientId: string,
+) {
+  const { data } = await db
+    .from('web_push_subscriptions')
+    .select('endpoint, p256dh, auth')
+    .eq('client_id', clientId)
+    .eq('enabled', true);
+
+  return ((data ?? []) as WebPushSubscriptionRow[]).map((subscription) => ({
+    endpoint: subscription.endpoint,
+    p256dh: subscription.p256dh,
+    auth: subscription.auth,
+  }));
+}
+
+async function disableInvalidClientWebPushSubscriptions(
+  db: ReturnType<typeof createServiceClient>,
+  endpoints: string[],
+  commerceId: string,
+) {
+  if (endpoints.length === 0) return;
+  await db
+    .from('web_push_subscriptions')
+    .update({
+      enabled: false,
+      last_error_at: new Date().toISOString(),
+      last_error: 'invalid-subscription',
+      updated_at: new Date().toISOString(),
+    })
+    .in('endpoint', endpoints)
+    .eq('commerce_id', commerceId);
+}
+
 /** GET /api/transactions — Liste les transactions du commerce */
 transactionsRoutes.get('/', async (c) => {
   const userId = c.get('userId') as string;
@@ -159,25 +200,27 @@ transactionsRoutes.post('/', async (c) => {
   // Push notification client (fire-and-forget)
   const rewardJustEarned = recompensesObtenues > client.recompenses_obtenues;
   const rewardJustUsed = parsed.data.type === 'recompense';
-  const clientFcmToken = (client as { fcm_token?: string | null }).fcm_token;
-  const clientPushEnabled = (client as { push_enabled?: boolean }).push_enabled;
-
-  if (clientPushEnabled && clientFcmToken) {
+  const webPushTargets = await loadClientWebPushTargets(db, parsed.data.client_id);
+  if (webPushTargets.length > 0) {
     const carteTyped = carte as { recompense_description?: string; commerces?: { nom?: string } };
     if (rewardJustEarned) {
       const desc = carteTyped.recompense_description ?? 'votre récompense';
       sendPushNotification(
-        [clientFcmToken],
+        webPushTargets,
         '🎉 Récompense disponible !',
         `Félicitations ! Vous pouvez maintenant bénéficier de votre récompense : ${desc}. Montrez votre carte au commerce.`,
-      ).catch((err) => console.error('[push reward earned]', err));
+      )
+        .then((result) => disableInvalidClientWebPushSubscriptions(db, result.invalidTokens, commerce.id))
+        .catch((err) => console.error('[push reward earned]', err));
     } else if (rewardJustUsed) {
       const carteNom = (carte as { nom?: string | null }).nom ?? carteTyped.commerces?.nom ?? 'votre carte';
       sendPushNotification(
-        [clientFcmToken],
+        webPushTargets,
         '✅ Récompense attribuée !',
         `Votre récompense a été attribuée sur ${carteNom}. Merci de votre fidélité.`,
-      ).catch((err) => console.error('[push reward used]', err));
+      )
+        .then((result) => disableInvalidClientWebPushSubscriptions(db, result.invalidTokens, commerce.id))
+        .catch((err) => console.error('[push reward used]', err));
     }
   }
 

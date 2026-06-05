@@ -57,8 +57,6 @@ type CronClientRow = {
   nom: string | null;
   date_naissance: string | null;
   point_vente_id?: string | null;
-  fcm_token: string | null;
-  push_enabled: boolean;
   google_pass_id: string | null;
   apple_pass_serial: string | null;
   points_actuels: number;
@@ -76,12 +74,17 @@ type ReviewCarteRow = {
 type ReviewClientRow = {
   id: string;
   nom: string | null;
-  fcm_token: string | null;
-  push_enabled: boolean | null;
   google_pass_id: string | null;
   apple_pass_serial: string | null;
   created_at: string | null;
   carte_id: string;
+};
+
+type WebPushSubscriptionRow = {
+  client_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
 };
 
 type WalletRefreshClientRow = {
@@ -100,6 +103,33 @@ type WalletRefreshClientRow = {
     points_vente?: Record<string, unknown> | Record<string, unknown>[] | null;
   };
 };
+
+function webPushTargetsForClientIds(rows: WebPushSubscriptionRow[], clientIds: Set<string>, clickUrl: string) {
+  return rows
+    .filter((row) => clientIds.has(row.client_id))
+    .map((row) => ({
+      endpoint: row.endpoint,
+      p256dh: row.p256dh,
+      auth: row.auth,
+      clickUrl,
+    }));
+}
+
+async function disableInvalidWebPushSubscriptions(
+  db: ReturnType<typeof createServiceClient>,
+  endpoints: string[],
+) {
+  if (endpoints.length === 0) return;
+  await db
+    .from('web_push_subscriptions')
+    .update({
+      enabled: false,
+      last_error_at: new Date().toISOString(),
+      last_error: 'invalid-subscription',
+      updated_at: new Date().toISOString(),
+    })
+    .in('endpoint', endpoints);
+}
 
 async function runLimited<T>(
   items: T[],
@@ -415,7 +445,7 @@ async function sendScheduledReviewPushes(db: ReturnType<typeof createServiceClie
 
     const { data: clients, error: clientsError } = await db
       .from('clients')
-      .select('id, nom, fcm_token, push_enabled, google_pass_id, apple_pass_serial, created_at, carte_id')
+      .select('id, nom, google_pass_id, apple_pass_serial, created_at, carte_id')
       .eq('commerce_id', commerce.id)
       .in('carte_id', carteIds)
       .gt('created_at', windowStart)
@@ -425,6 +455,18 @@ async function sendScheduledReviewPushes(db: ReturnType<typeof createServiceClie
       console.error('[cron review-auto] Erreur lecture clients:', clientsError.message);
       continue;
     }
+
+    const { data: webSubscriptions, error: webSubscriptionsError } = await db
+      .from('web_push_subscriptions')
+      .select('client_id, endpoint, p256dh, auth')
+      .eq('commerce_id', commerce.id)
+      .in('carte_id', carteIds)
+      .eq('enabled', true);
+
+    if (webSubscriptionsError) {
+      console.error('[cron review-auto] Erreur lecture web push:', webSubscriptionsError.message);
+    }
+    const activeWebSubscriptions = (webSubscriptions ?? []) as WebPushSubscriptionRow[];
 
     const clientsByCarteId = new Map<string, ReviewClientRow[]>();
     for (const clientRaw of clients ?? []) {
@@ -445,12 +487,17 @@ async function sendScheduledReviewPushes(db: ReturnType<typeof createServiceClie
       const messageTitle = `Votre avis compte pour ${carte.nom}`;
       const messageBody = `Merci d'avoir ajouté votre carte ${carte.nom}. Donnez-nous votre avis Google en 30 secondes.`;
 
-      const webPushClients = clients.filter((client) => client.push_enabled && client.fcm_token);
-      const googleWalletClients = clients.filter((client) => Boolean(client.google_pass_id));
+      const clientIds = new Set(clients.map((client) => client.id));
+      const webRecipients = webPushTargetsForClientIds(activeWebSubscriptions, clientIds, reviewUrl);
+      const webPushClientIds = new Set(webRecipients.map((recipient) => {
+        const subscription = activeWebSubscriptions.find((row) => row.endpoint === recipient.endpoint);
+        return subscription?.client_id ?? '';
+      }).filter(Boolean));
+      const googleWalletClients = clients.filter((client) => Boolean(client.google_pass_id) && !webPushClientIds.has(client.id));
       const appleWalletClients = clients.filter((client) => Boolean(client.apple_pass_serial));
 
       const targetClientIds = new Set<string>([
-        ...webPushClients.map((c) => c.id),
+        ...webPushClientIds,
         ...googleWalletClients.map((c) => c.id),
         ...appleWalletClients.map((c) => c.id),
       ]);
@@ -474,21 +521,22 @@ async function sendScheduledReviewPushes(db: ReturnType<typeof createServiceClie
 
       const deliveredClientIds = new Set<string>();
 
-      if (webPushClients.length > 0) {
-        const webRecipients = webPushClients.map((client) => ({
-          token: client.fcm_token as string,
-          clickUrl: reviewUrl,
-        }));
-
+      if (webRecipients.length > 0) {
         const webSent = await sendPersonalizedPushNotifications(webRecipients, messageTitle, messageBody)
-          .then((result) => result.successCount)
+          .then(async (result) => {
+            await disableInvalidWebPushSubscriptions(db, result.invalidTokens);
+            const successEndpoints = new Set(result.successfulTokens);
+            activeWebSubscriptions
+              .filter((row) => successEndpoints.has(row.endpoint))
+              .forEach((row) => deliveredClientIds.add(row.client_id));
+            return result.successCount;
+          })
           .catch((err) => {
             console.error('[cron review-auto webpush]', err);
             return 0;
           });
 
         pushesSent += webSent;
-        webPushClients.slice(0, webSent).forEach((client) => deliveredClientIds.add(client.id));
       }
 
       await runLimited(googleWalletClients, CRON_EXTERNAL_CONCURRENCY, async (client) => {
@@ -613,7 +661,7 @@ async function sendScheduledBirthdayPushes(db: ReturnType<typeof createServiceCl
 
       const { data: birthdayClients, error: birthdayClientsError } = await db
         .from('clients')
-        .select('id, nom, date_naissance, point_vente_id, fcm_token, push_enabled, google_pass_id, apple_pass_serial, points_actuels, tampons_actuels, recompenses_obtenues, carte_id')
+        .select('id, nom, date_naissance, point_vente_id, google_pass_id, apple_pass_serial, points_actuels, tampons_actuels, recompenses_obtenues, carte_id')
         .eq('commerce_id', commerce.id)
         .in('carte_id', carteIds)
         .not('date_naissance', 'is', null);
@@ -771,20 +819,42 @@ async function sendScheduledBirthdayPushes(db: ReturnType<typeof createServiceCl
           },
         } as Parameters<typeof updateGooglePassObject>[1];
 
-        const webPushClients = rewardedClients.filter((client) => client.push_enabled && client.fcm_token);
-        if (webPushClients.length > 0) {
-          const recipients = webPushClients.map((client) => ({
-            token: client.fcm_token as string,
-            clickUrl,
-          }));
-          const sent = await sendPersonalizedPushNotifications(recipients, messageTitle, messageBody)
-            .then((result) => result.successCount)
+        const rewardedClientIds = new Set(rewardedClients.map((client) => client.id));
+        const { data: webSubscriptions, error: webSubscriptionsError } = await db
+          .from('web_push_subscriptions')
+          .select('client_id, endpoint, p256dh, auth')
+          .eq('commerce_id', commerce.id)
+          .eq('carte_id', carte.id)
+          .eq('point_vente_id', carte.point_vente_id)
+          .eq('enabled', true);
+
+        if (webSubscriptionsError) {
+          console.error('[cron birthday webpush subscriptions]', webSubscriptionsError.message);
+        }
+
+        const webRecipients = webPushTargetsForClientIds(
+          ((webSubscriptions ?? []) as WebPushSubscriptionRow[]),
+          rewardedClientIds,
+          clickUrl,
+        );
+
+        if (webRecipients.length > 0) {
+          const sent = await sendPersonalizedPushNotifications(webRecipients, messageTitle, messageBody)
+            .then(async (result) => {
+              await disableInvalidWebPushSubscriptions(db, result.invalidTokens);
+              const successfulEndpoints = new Set(result.successfulTokens);
+              for (const subscription of (webSubscriptions ?? []) as WebPushSubscriptionRow[]) {
+                if (successfulEndpoints.has(subscription.endpoint)) {
+                  deliveredClientIds.add(subscription.client_id);
+                }
+              }
+              return result.successCount;
+            })
             .catch((err: unknown) => {
               console.error('[cron birthday webpush]', err);
               return 0;
             });
           pushesSent += sent;
-          webPushClients.slice(0, sent).forEach((client) => deliveredClientIds.add(client.id));
         }
 
         const googleWalletClients = rewardedClients.filter((client) => Boolean(client.google_pass_id));

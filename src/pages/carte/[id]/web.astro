@@ -9,14 +9,7 @@ const apiBase = (
   || (import.meta.env.PROD ? 'https://api.fidelopass.com' : 'http://localhost:3001')
 ).replace(/\/$/, '');
 const manifestHref = `/carte/${encodeURIComponent(id ?? '')}/web-manifest.json${clientId ? `?client=${encodeURIComponent(clientId)}` : ''}`;
-const firebasePushConfig = {
-  apiKey: import.meta.env.PUBLIC_FIREBASE_API_KEY ?? '',
-  authDomain: import.meta.env.PUBLIC_FIREBASE_AUTH_DOMAIN ?? '',
-  projectId: import.meta.env.PUBLIC_FIREBASE_PROJECT_ID ?? '',
-  messagingSenderId: import.meta.env.PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? '',
-  appId: import.meta.env.PUBLIC_FIREBASE_APP_ID ?? '',
-  vapidKey: import.meta.env.PUBLIC_FIREBASE_VAPID_KEY ?? '',
-};
+const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
 ---
 
 <!doctype html>
@@ -208,7 +201,7 @@ const firebasePushConfig = {
       </section>
     </main>
 
-    <script is:inline define:vars={{ cardId: id, initialClientId: clientId, firebasePushConfig }}>
+    <script is:inline define:vars={{ cardId: id, initialClientId: clientId, pushVapidKey }}>
       const API = document.querySelector('meta[name="api-config"]')?.content || 'https://api.fidelopass.com';
       const apiUrl = (path) => `${API}${path}`;
       const clientStorageKey = `fidelopass_client_${cardId}`;
@@ -226,11 +219,7 @@ const firebasePushConfig = {
         window.matchMedia?.('(display-mode: standalone)').matches
         || iosNavigator.standalone === true
       );
-      const pushConfig = Object.fromEntries(
-        Object.entries(firebasePushConfig ?? {}).map(([key, value]) => [key, String(value ?? '').trim()])
-      );
-      const FIREBASE_APP_MODULE_URL = 'https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js';
-      const FIREBASE_MESSAGING_MODULE_URL = 'https://www.gstatic.com/firebasejs/12.11.0/firebase-messaging.js';
+      const pushConfig = { vapidKey: String(pushVapidKey ?? '').trim() };
       function isValidVapidPublicKey(value) {
         const key = String(value || '').trim();
         if (!/^[A-Za-z0-9_-]{80,120}$/.test(key)) return false;
@@ -243,6 +232,12 @@ const firebasePushConfig = {
           return false;
         }
       }
+      function urlBase64ToUint8Array(value) {
+        const key = String(value || '').trim();
+        const padding = '='.repeat((4 - (key.length % 4)) % 4);
+        const raw = atob((key + padding).replace(/-/g, '+').replace(/_/g, '/'));
+        return Uint8Array.from(raw, (char) => char.charCodeAt(0));
+      }
       function friendlyPushError(error) {
         const message = String(error?.message || error || '');
         if (/applicationServerKey|P-256|vapid/i.test(message)) {
@@ -254,11 +249,7 @@ const firebasePushConfig = {
         return message || 'Impossible d’activer les notifications pour le moment.';
       }
       const isPushConfigured = Boolean(
-        pushConfig.apiKey
-        && pushConfig.projectId
-        && pushConfig.messagingSenderId
-        && pushConfig.appId
-        && isValidVapidPublicKey(pushConfig.vapidKey)
+        isValidVapidPublicKey(pushConfig.vapidKey)
       );
       const supportsPushApi = 'Notification' in window && 'serviceWorker' in navigator;
 
@@ -463,7 +454,7 @@ const firebasePushConfig = {
 
       async function registerWebPushToken() {
         if (!clientData?.id) throw new Error('Carte client introuvable.');
-        if (!isPushConfigured) throw new Error('Configuration Firebase manquante.');
+        if (!isPushConfigured) throw new Error('Configuration Web Push manquante.');
         if (!supportsPushApi) throw new Error('Navigateur incompatible.');
 
         if (isIos && !isStandalone()) {
@@ -480,32 +471,16 @@ const firebasePushConfig = {
           return { status: permission === 'denied' ? 'denied' : 'dismissed' };
         }
 
-        const [{ initializeApp, getApps }, { getMessaging, getToken }] = await Promise.all([
-          import(FIREBASE_APP_MODULE_URL),
-          import(FIREBASE_MESSAGING_MODULE_URL),
-        ]);
-
-        const app = getApps().find((existing) => existing.name === 'fidelopass-web-card')
-          ?? initializeApp({
-            apiKey: pushConfig.apiKey,
-            authDomain: pushConfig.authDomain,
-            projectId: pushConfig.projectId,
-            messagingSenderId: pushConfig.messagingSenderId,
-            appId: pushConfig.appId,
-          }, 'fidelopass-web-card');
-
         const registration = await navigator.serviceWorker.register('/sw.js');
-        const token = await getToken(getMessaging(app), {
-          vapidKey: pushConfig.vapidKey,
-          serviceWorkerRegistration: registration,
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(pushConfig.vapidKey),
         });
 
-        if (!token) return { status: 'dismissed' };
-
-        const res = await fetch(apiUrl(`/api/clients/${encodeURIComponent(clientData.id)}/fcm`), {
+        const res = await fetch(apiUrl(`/api/clients/${encodeURIComponent(clientData.id)}/web-push`), {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fcm_token: token, carte_id: cardId }),
+          body: JSON.stringify({ subscription: subscription.toJSON(), carte_id: cardId }),
         });
 
         if (!res.ok) {
@@ -514,7 +489,6 @@ const firebasePushConfig = {
         }
 
         clientData.push_enabled = true;
-        clientData.fcm_token = token;
         return { status: 'success' };
       }
 

@@ -73,9 +73,8 @@ self.addEventListener('fetch', (event) => {
 });
 
 // ── Push notifications ────────────────────────────────────────────────────────
-// FCM envoie des messages "data-only" (sans clé notification) pour que le push
-// event soit TOUJOURS déclenché par le service worker. Si notification était
-// présente, FCM pouvait l'afficher lui-même et bypasser ce handler → intermittent.
+// Web Push natif : le backend envoie un JSON simple, puis le service worker
+// construit toujours la notification pour garder un rendu stable.
 self.addEventListener('push', (event) => {
   let title = 'Fidelopass';
   let body = 'Nouvelle notification';
@@ -85,7 +84,7 @@ self.addEventListener('push', (event) => {
   try {
     if (event.data) {
       const raw = event.data.json();
-      // Les données FCM sont dans raw.data (message data-only)
+      // Compatibilité : l'ancien payload data-only utilisait raw.data.
       const d = raw.data ?? raw;
       title = d.title ?? title;
       body = d.body ?? body;

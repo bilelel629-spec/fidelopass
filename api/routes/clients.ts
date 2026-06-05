@@ -629,42 +629,74 @@ clientsRoutes.post('/:id/claim-review', async (c) => {
   });
 });
 
-/** PATCH /api/clients/:id/fcm — Met à jour le token FCM */
-clientsRoutes.patch('/:id/fcm', async (c) => {
+const webPushSubscriptionSchema = z.object({
+  endpoint: z.string().url().max(2048),
+  keys: z.object({
+    p256dh: z.string().min(20).max(512),
+    auth: z.string().min(8).max(256),
+  }),
+});
+
+async function saveWebPushSubscription(c: any) {
   const clientId = c.req.param('id') ?? '';
   const body = await c.req.json().catch(() => null);
 
   const schema = z.object({
-    fcm_token: z.string().min(20).max(4096),
+    subscription: webPushSubscriptionSchema,
     carte_id: z.string().uuid().optional(),
   });
   const parsed = schema.safeParse(body);
-  if (!parsed.success) return c.json({ error: 'Token FCM invalide' }, 400);
+  if (!parsed.success) return c.json({ error: 'Abonnement push invalide' }, 400);
 
   const db = createServiceClient();
 
-  if (parsed.data.carte_id) {
-    const { data: client, error: clientError } = await db
-      .from('clients')
-      .select('id, carte_id')
-      .eq('id', clientId)
-      .maybeSingle();
+  const { data: client, error: clientError } = await db
+    .from('clients')
+    .select('id, carte_id, commerce_id, point_vente_id')
+    .eq('id', clientId)
+    .maybeSingle();
 
-    if (clientError) return c.json({ error: 'Erreur lors de la vérification du client' }, 500);
-    if (!client || client.carte_id !== parsed.data.carte_id) {
-      return c.json({ error: 'Client introuvable pour cette carte' }, 404);
-    }
+  if (clientError) return c.json({ error: 'Erreur lors de la vérification du client' }, 500);
+  if (!client || (parsed.data.carte_id && client.carte_id !== parsed.data.carte_id)) {
+    return c.json({ error: 'Client introuvable pour cette carte' }, 404);
   }
 
-  const { data: updatedClient, error } = await db
+  const userAgent = (c.req.header('user-agent') ?? '').slice(0, 500) || null;
+  const { endpoint, keys } = parsed.data.subscription;
+
+  const { error: subscriptionError } = await db
+    .from('web_push_subscriptions')
+    .upsert({
+      client_id: client.id,
+      carte_id: client.carte_id,
+      commerce_id: client.commerce_id,
+      point_vente_id: client.point_vente_id,
+      endpoint,
+      p256dh: keys.p256dh,
+      auth: keys.auth,
+      user_agent: userAgent,
+      enabled: true,
+      last_error: null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'endpoint' });
+
+  if (subscriptionError) {
+    console.error('[web-push subscription]', subscriptionError);
+    return c.json({ error: 'Erreur lors de l’enregistrement des notifications' }, 500);
+  }
+
+  const { data: updatedClient, error: updateError } = await db
     .from('clients')
-    .update({ fcm_token: parsed.data.fcm_token, push_enabled: true })
+    .update({ fcm_token: null, push_enabled: true })
     .eq('id', clientId)
     .select('id')
     .maybeSingle();
 
-  if (error) return c.json({ error: 'Erreur lors de la mise à jour' }, 500);
+  if (updateError) return c.json({ error: 'Erreur lors de la mise à jour' }, 500);
   if (!updatedClient) return c.json({ error: 'Client introuvable' }, 404);
 
   return c.json({ ok: true });
-});
+}
+
+/** PATCH /api/clients/:id/web-push — Enregistre l'abonnement Web Push natif */
+clientsRoutes.patch('/:id/web-push', saveWebPushSubscription);

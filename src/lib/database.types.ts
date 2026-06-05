@@ -155,6 +155,36 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['clients']['Insert']>;
         Relationships: [];
       };
+      web_push_subscriptions: {
+        Row: {
+          id: string;
+          client_id: string;
+          carte_id: string;
+          commerce_id: string;
+          point_vente_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          user_agent: string | null;
+          enabled: boolean;
+          last_success_at: string | null;
+          last_error_at: string | null;
+          last_error: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['web_push_subscriptions']['Row'], 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          enabled?: boolean;
+          last_success_at?: string | null;
+          last_error_at?: string | null;
+          last_error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['web_push_subscriptions']['Insert']>;
+        Relationships: [];
+      };
       transactions: {
         Row: {
           id: string;

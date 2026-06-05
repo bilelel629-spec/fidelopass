@@ -39,6 +39,39 @@ type BirthdaySettingsRow = {
   birthday_push_message?: string | null;
 };
 
+type WebPushSubscriptionRow = {
+  client_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+};
+
+function webPushTargets(rows: WebPushSubscriptionRow[]) {
+  return rows.map((row) => ({
+    endpoint: row.endpoint,
+    p256dh: row.p256dh,
+    auth: row.auth,
+  }));
+}
+
+async function disableInvalidWebPushSubscriptions(
+  db: ReturnType<typeof createServiceClient>,
+  endpoints: string[],
+  commerceId: string,
+) {
+  if (endpoints.length === 0) return;
+  await db
+    .from('web_push_subscriptions')
+    .update({
+      enabled: false,
+      last_error_at: new Date().toISOString(),
+      last_error: 'invalid-subscription',
+      updated_at: new Date().toISOString(),
+    })
+    .in('endpoint', endpoints)
+    .eq('commerce_id', commerceId);
+}
+
 type AppleWalletClient = {
   id: string;
   apple_pass_serial?: string | null;
@@ -526,12 +559,11 @@ notificationsRoutes.get('/summary', async (c) => {
 
   const [{ count: webPushReady }, { data: clients }] = await Promise.all([
     db
-      .from('clients')
+      .from('web_push_subscriptions')
       .select('id', { count: 'exact', head: true })
       .eq('commerce_id', commerce.id)
       .eq('point_vente_id', pointVente.id)
-      .eq('push_enabled', true)
-      .not('fcm_token', 'is', null),
+      .eq('enabled', true),
     db
       .from('clients')
       .select('id, apple_pass_serial, google_pass_id')
@@ -609,7 +641,7 @@ notificationsRoutes.post('/', rateLimit(5, 60_000), async (c) => {
     }
   }
 
-  // Logo de la carte active pour l'icône FCM
+  // Logo de la carte active pour l'icône Web Push.
   const { data: carteActive } = await db
     .from('cartes')
     .select('logo_url')
@@ -619,22 +651,27 @@ notificationsRoutes.post('/', rateLimit(5, 60_000), async (c) => {
     .maybeSingle();
   const notifIconUrl = (carteActive as { logo_url?: string | null } | null)?.logo_url ?? undefined;
 
-  // Récupère les clients joignables par web push ou Wallet
-  const { data: clients } = await db
-    .from('clients')
-    .select('id, fcm_token, push_enabled, google_pass_id, apple_pass_serial')
-    .eq('commerce_id', commerce.id)
-    .eq('point_vente_id', pointVente.id)
-    .order('created_at', { ascending: false });
+  // Récupère les clients joignables par web push natif ou Wallet.
+  const [{ data: clients }, { data: webSubscriptions }] = await Promise.all([
+    db
+      .from('clients')
+      .select('id, google_pass_id, apple_pass_serial')
+      .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id)
+      .order('created_at', { ascending: false }),
+    db
+      .from('web_push_subscriptions')
+      .select('client_id, endpoint, p256dh, auth')
+      .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id)
+      .eq('enabled', true),
+  ]);
 
-  const webPushClients = (clients ?? [])
-    .filter((client) => client.push_enabled && client.fcm_token);
+  const activeWebSubscriptions = (webSubscriptions ?? []) as WebPushSubscriptionRow[];
+  const webPushClientIds = new Set(activeWebSubscriptions.map((subscription) => subscription.client_id));
+  const webPushRecipients = webPushTargets(activeWebSubscriptions);
 
-  const tokens = webPushClients
-    .map((client) => client.fcm_token)
-    .filter((t): t is string => !!t);
-
-  const googleWalletClients = (clients ?? []).filter((client) => !!client.google_pass_id && !client.fcm_token);
+  const googleWalletClients = (clients ?? []).filter((client) => !!client.google_pass_id && !webPushClientIds.has(client.id));
   const appleWalletClients = (clients ?? []).filter((client) => !!client.apple_pass_serial);
   let appleIconPreRefreshSent = 0;
 
@@ -650,7 +687,7 @@ notificationsRoutes.post('/', rateLimit(5, 60_000), async (c) => {
   }
 
   const targetedClientIds = new Set<string>([
-    ...webPushClients.map((client) => client.id),
+    ...activeWebSubscriptions.map((subscription) => subscription.client_id),
     ...googleWalletClients.map((client) => client.id),
     ...appleWalletClients.map((client) => client.id),
   ]);
@@ -675,15 +712,15 @@ notificationsRoutes.post('/', rateLimit(5, 60_000), async (c) => {
   }
 
   let nbDelivreesWeb = 0;
-  let successfulTokens: string[] = [];
+  let successfulEndpoints: string[] = [];
   let invalidTokens: string[] = [];
   const walletDeliveredClientIds = new Set<string>();
 
-  if (tokens.length > 0) {
+  if (webPushRecipients.length > 0) {
     try {
-      const pushResult = await sendPushNotification(tokens, parsed.data.titre, parsed.data.message, '/', notifIconUrl);
+      const pushResult = await sendPushNotification(webPushRecipients, parsed.data.titre, parsed.data.message, '/', notifIconUrl);
       nbDelivreesWeb = pushResult.successCount;
-      successfulTokens = pushResult.successfulTokens;
+      successfulEndpoints = pushResult.successfulTokens;
       invalidTokens = pushResult.invalidTokens;
     } catch (err) {
       console.error('[notifications push]', err);
@@ -718,19 +755,16 @@ notificationsRoutes.post('/', rateLimit(5, 60_000), async (c) => {
   }
 
   const deliveredClientIds = new Set<string>();
-  if (successfulTokens.length > 0) {
-    const deliveredTokenSet = new Set(successfulTokens);
-    webPushClients
-      .filter((client) => deliveredTokenSet.has(client.fcm_token!))
-      .forEach((client) => deliveredClientIds.add(client.id));
+  if (successfulEndpoints.length > 0) {
+    const deliveredEndpointSet = new Set(successfulEndpoints);
+    activeWebSubscriptions
+      .filter((subscription) => deliveredEndpointSet.has(subscription.endpoint))
+      .forEach((subscription) => deliveredClientIds.add(subscription.client_id));
   }
   walletDeliveredClientIds.forEach((id) => deliveredClientIds.add(id));
 
   if (invalidTokens.length > 0) {
-    await db.from('clients')
-      .update({ fcm_token: null, push_enabled: false })
-      .in('fcm_token', invalidTokens)
-      .eq('commerce_id', commerce.id);
+    await disableInvalidWebPushSubscriptions(db, invalidTokens, commerce.id);
   }
 
   const nbDestinataires = targetedClientIds.size;
@@ -809,11 +843,19 @@ notificationsRoutes.post('/review-campaign', async (c) => {
 
   const claimedIds = new Set((alreadyClaimed ?? []).map((r) => r.client_id));
 
-  const { data: clients } = await db
-    .from('clients')
-    .select('id, nom, telephone, fcm_token, push_enabled, google_pass_id, apple_pass_serial')
-    .eq('commerce_id', commerce.id)
-    .eq('point_vente_id', pointVente.id);
+  const [{ data: clients }, { data: webSubscriptions }] = await Promise.all([
+    db
+      .from('clients')
+      .select('id, nom, telephone, google_pass_id, apple_pass_serial')
+      .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id),
+    db
+      .from('web_push_subscriptions')
+      .select('client_id, endpoint, p256dh, auth')
+      .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id)
+      .eq('enabled', true),
+  ]);
 
   const eligibles = (clients ?? []).filter((cl) => !claimedIds.has(cl.id));
 
@@ -824,13 +866,16 @@ notificationsRoutes.post('/review-campaign', async (c) => {
   }
 
   // Canaux disponibles
-  const fcmEligibles = eligibles.filter((cl) => cl.push_enabled && cl.fcm_token);
-  const googleEligibles = eligibles.filter((cl) => !!cl.google_pass_id && !cl.fcm_token);
+  const eligibleIds = new Set(eligibles.map((client) => client.id));
+  const activeWebSubscriptions = ((webSubscriptions ?? []) as WebPushSubscriptionRow[])
+    .filter((subscription) => eligibleIds.has(subscription.client_id));
+  const webPushClientIds = new Set(activeWebSubscriptions.map((subscription) => subscription.client_id));
+  const googleEligibles = eligibles.filter((cl) => !!cl.google_pass_id && !webPushClientIds.has(cl.id));
   const appleEligibles = eligibles.filter((cl) => !!cl.apple_pass_serial);
 
-  console.log('[review-campaign] canaux — FCM:', fcmEligibles.length, '| Google Wallet:', googleEligibles.length, '| Apple Wallet:', appleEligibles.length);
+  console.log('[review-campaign] canaux — Web Push:', activeWebSubscriptions.length, '| Google Wallet:', googleEligibles.length, '| Apple Wallet:', appleEligibles.length);
 
-  if (fcmEligibles.length === 0 && googleEligibles.length === 0 && appleEligibles.length === 0) {
+  if (activeWebSubscriptions.length === 0 && googleEligibles.length === 0 && appleEligibles.length === 0) {
     return c.json({
       message: `${eligibles.length} client(s) éligible(s) mais aucun n'a de canal de notification actif (pas de token push, pas de Wallet).`,
       nb_envoyes: 0,
@@ -868,24 +913,23 @@ notificationsRoutes.post('/review-campaign', async (c) => {
   });
   console.log('[review-campaign] notification insérée dans la table pour que Apple Wallet la détecte au fetch du pass');
 
-  // 1. Web push (FCM) — lien personnalisé par client
-  if (fcmEligibles.length > 0) {
-    const fcmRecipients = fcmEligibles.map((cl) => ({
-      token: cl.fcm_token as string,
-      clickUrl: `${PUBLIC_SITE_URL}/review/${carte.id}?client_id=${cl.id}`,
+  // 1. Web push natif — lien personnalisé par client
+  if (activeWebSubscriptions.length > 0) {
+    const webRecipients = activeWebSubscriptions.map((subscription) => ({
+      endpoint: subscription.endpoint,
+      p256dh: subscription.p256dh,
+      auth: subscription.auth,
+      clickUrl: `${PUBLIC_SITE_URL}/review/${carte.id}?client_id=${subscription.client_id}`,
     }));
     const reviewIconUrl = (carte as { logo_url?: string | null }).logo_url ?? undefined;
-    const pushResult = await sendPersonalizedPushNotifications(fcmRecipients, titre, message, reviewIconUrl).catch((err) => {
-      console.error('[review-campaign fcm]', err);
+    const pushResult = await sendPersonalizedPushNotifications(webRecipients, titre, message, reviewIconUrl).catch((err) => {
+      console.error('[review-campaign web-push]', err);
       return { successCount: 0, successfulTokens: [] as string[], invalidTokens: [] as string[] };
     });
-    console.log('[review-campaign] FCM envoyés:', pushResult.successCount, '/', fcmEligibles.length);
+    console.log('[review-campaign] Web Push envoyés:', pushResult.successCount, '/', activeWebSubscriptions.length);
     nbEnvoyes += pushResult.successCount;
     if (pushResult.invalidTokens.length > 0) {
-      await db.from('clients')
-        .update({ fcm_token: null, push_enabled: false })
-        .in('fcm_token', pushResult.invalidTokens)
-        .eq('commerce_id', commerce.id);
+      await disableInvalidWebPushSubscriptions(db, pushResult.invalidTokens, commerce.id);
     }
   }
 
@@ -958,7 +1002,7 @@ notificationsRoutes.post('/review-campaign', async (c) => {
     nb_deja_reclame: claimedIds.size,
     nb_sms: nbSmsEnvoyes,
     detail: {
-      fcm: fcmEligibles.length,
+      web_push: activeWebSubscriptions.length,
       google_wallet: googleEligibles.length,
       apple_wallet: appleEligibles.length,
       sms: nbSmsEnvoyes,

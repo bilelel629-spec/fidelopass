@@ -46,10 +46,10 @@ dashboardRoutes.get('/stats', async (c) => {
     db.from('clients').select('recompenses_obtenues')
       .eq('commerce_id', commerce.id)
       .eq('point_vente_id', pointVente.id),
-    db.from('clients').select('id', { count: 'exact', head: true })
+    db.from('web_push_subscriptions').select('id', { count: 'exact', head: true })
       .eq('commerce_id', commerce.id)
       .eq('point_vente_id', pointVente.id)
-      .eq('push_enabled', true),
+      .eq('enabled', true),
     db.from('notifications').select('id', { count: 'exact', head: true })
       .eq('commerce_id', commerce.id)
       .eq('point_vente_id', pointVente.id),

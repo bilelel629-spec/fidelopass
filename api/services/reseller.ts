@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { randomBytes } from 'node:crypto';
 import { createServiceClient } from '../../src/lib/supabase';
+import { getPublicSiteUrl } from '../utils/public-site-url';
 
 export type ResellerType = 'stripe_connect' | 'invoiced';
 export type ResellerStatus = 'pending' | 'approved' | 'suspended';
@@ -226,6 +227,37 @@ export async function createOrInviteMerchantUser(
     throw new Error(error?.message ?? 'Impossible de créer le compte commerçant.');
   }
   return { userId: data.user.id, created: true };
+}
+
+export async function createOrInviteResellerUser(
+  db: ReturnType<typeof createServiceClient>,
+  email: string,
+  brandName: string,
+) {
+  const existingUserId = await findUserIdByEmail(db, email);
+  if (existingUserId) return { userId: existingUserId, created: false, invited: false };
+
+  const redirectTo = `${getPublicSiteUrl()}/reseller`;
+  const { data: inviteData, error: inviteError } = await db.auth.admin.inviteUserByEmail(email, {
+    redirectTo,
+    data: { brand_name: brandName, source: 'admin_reseller_invitation' },
+  });
+  if (!inviteError && inviteData.user?.id) {
+    return { userId: inviteData.user.id, created: true, invited: true };
+  }
+
+  console.warn('[reseller] invite reseller user failed, fallback createUser:', inviteError?.message);
+  const generatedPassword = `${randomBytes(18).toString('base64url')}aA1!`;
+  const { data, error } = await db.auth.admin.createUser({
+    email,
+    password: generatedPassword,
+    email_confirm: false,
+    user_metadata: { brand_name: brandName, source: 'admin_reseller' },
+  });
+  if (error || !data.user?.id) {
+    throw new Error(error?.message ?? 'Impossible de créer le compte revendeur.');
+  }
+  return { userId: data.user.id, created: true, invited: false };
 }
 
 export async function ensureMerchantCommerce(

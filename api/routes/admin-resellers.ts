@@ -4,8 +4,9 @@ import type { ApiEnv } from '../types';
 import { createServiceClient } from '../../src/lib/supabase';
 import { getStripe } from '../services/stripe-billing';
 import {
+  createOrInviteResellerUser,
   ensureDefaultResellerPlanSettings,
-  findUserIdByEmail,
+  getResellerByUserId,
   normalizeCurrency,
   normalizeHexColor,
   normalizeResellerPlan,
@@ -127,32 +128,76 @@ adminResellerRoutes.post('/', async (c) => {
   if (!parsed.success) return c.json({ error: 'Données revendeur invalides.' }, 400);
 
   const db = createServiceClient();
-  const userId = await findUserIdByEmail(db, parsed.data.email);
-  if (!userId) {
-    return c.json({ error: 'Utilisateur introuvable. Créez d’abord le compte Supabase/Auth du revendeur.' }, 404);
+  const currency = normalizeCurrency(parsed.data.currency, 'eur');
+  const brandName = parsed.data.brand_name ?? 'Fidelopass Revendeur';
+
+  let account: Awaited<ReturnType<typeof createOrInviteResellerUser>>;
+  try {
+    account = await createOrInviteResellerUser(db, parsed.data.email, brandName);
+  } catch (error) {
+    return c.json({ error: (error as Error).message || 'Impossible de préparer le compte revendeur.' }, 500);
   }
 
-  const currency = normalizeCurrency(parsed.data.currency, 'eur');
+  const existing = await getResellerByUserId(db, account.userId);
+  if (existing?.id) {
+    if (!existing.support_email) {
+      await db
+        .from('resellers')
+        .update({ support_email: parsed.data.support_email ?? parsed.data.email, updated_at: new Date().toISOString() })
+        .eq('id', existing.id);
+    }
+    await ensureDefaultResellerPlanSettings(db, existing.id, existing.currency ?? currency);
+    const reseller = await loadReseller(db, existing.id);
+    return c.json({
+      data: summarizeReseller(reseller),
+      already_exists: true,
+      account_created: account.created,
+      invited: account.invited,
+      message: 'Ce revendeur existe déjà. Il a été chargé dans la liste.',
+    });
+  }
+
   const { data, error } = await db.from('resellers').insert({
-    user_id: userId,
+    user_id: account.userId,
     type: parsed.data.type,
     status: parsed.data.status,
     country: parsed.data.country ?? null,
     currency,
-    brand_name: parsed.data.brand_name ?? 'Fidelopass Revendeur',
+    brand_name: brandName,
     brand_logo_url: parsed.data.brand_logo_url ?? null,
     primary_color: normalizeHexColor(parsed.data.primary_color, '#2563eb'),
     secondary_color: normalizeHexColor(parsed.data.secondary_color, '#4f46e5'),
-    support_email: parsed.data.support_email ?? null,
+    support_email: parsed.data.support_email ?? parsed.data.email,
   }).select('*').single();
 
   if (error || !data) {
+    if (error?.code === '23505') {
+      const resellerByUser = await getResellerByUserId(db, account.userId);
+      if (resellerByUser?.id) {
+        await ensureDefaultResellerPlanSettings(db, resellerByUser.id, resellerByUser.currency ?? currency);
+        const reseller = await loadReseller(db, resellerByUser.id);
+        return c.json({
+          data: summarizeReseller(reseller),
+          already_exists: true,
+          account_created: account.created,
+          invited: account.invited,
+          message: 'Ce revendeur existe déjà. Il a été chargé dans la liste.',
+        });
+      }
+    }
     return c.json({ error: error?.message ?? 'Impossible de créer le revendeur.' }, 400);
   }
 
   await ensureDefaultResellerPlanSettings(db, data.id, currency);
   const reseller = await loadReseller(db, data.id);
-  return c.json({ data: summarizeReseller(reseller) }, 201);
+  return c.json({
+    data: summarizeReseller(reseller),
+    account_created: account.created,
+    invited: account.invited,
+    message: account.invited
+      ? 'Revendeur créé. Une invitation de connexion a été envoyée.'
+      : 'Revendeur créé.',
+  }, 201);
 });
 
 adminResellerRoutes.get('/:id', async (c) => {

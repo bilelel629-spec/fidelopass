@@ -24,6 +24,9 @@ export type ResellerRecord = {
   primary_color: string;
   secondary_color: string;
   support_email: string | null;
+  public_slug?: string | null;
+  public_link_enabled?: boolean;
+  public_signup_enabled?: boolean;
 };
 
 export type ResellerPlanSetting = {
@@ -43,6 +46,17 @@ export type ResellerPricing = {
   currency: string;
 };
 
+export type ResellerPublicPlanPrice = {
+  id: string;
+  reseller_id: string;
+  plan: ResellerPlan;
+  public_price_cents: number;
+  platform_fee_cents: number;
+  reseller_margin_cents: number;
+  currency: string;
+  is_enabled: boolean;
+};
+
 const PLAN_LABELS: Record<ResellerPlan, string> = {
   starter: 'Starter',
   pro: 'Pro',
@@ -54,6 +68,23 @@ const DEFAULT_PLAN_SETTINGS: Record<ResellerPlan, { min_price_cents: number; pla
   pro: { min_price_cents: 6900, platform_fee_cents: 2400 },
   premium: { min_price_cents: 19900, platform_fee_cents: 4900 },
 };
+
+export const RESERVED_RESELLER_SLUGS = new Set([
+  'admin',
+  'api',
+  'login',
+  'signup',
+  'dashboard',
+  'reseller',
+  'checkout',
+  'pricing',
+  'fidelopass',
+  'app',
+  'carte',
+  'contact',
+  'help',
+  'support',
+]);
 
 export function normalizeResellerPlan(value: unknown): ResellerPlan | null {
   const normalized = String(value ?? '').trim().toLowerCase().replaceAll('_', '-');
@@ -86,6 +117,24 @@ export function normalizeHexColor(value: unknown, fallback: string) {
   return /^#[0-9A-Fa-f]{6}$/.test(normalized) ? normalized : fallback;
 }
 
+export function normalizePublicSlug(value: unknown) {
+  const slug = String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-');
+  if (slug.length < 3 || slug.length > 60) return null;
+  if (RESERVED_RESELLER_SLUGS.has(slug)) return null;
+  return slug;
+}
+
+export function publicResellerUrl(slug: string) {
+  return `${getPublicSiteUrl()}/r/${slug}`;
+}
+
 export function calculateResellerPricing(
   plan: ResellerPlan,
   chosenPriceCents: number,
@@ -108,6 +157,21 @@ export function calculateResellerPricing(
     platform_fee_cents: platformFee,
     reseller_margin_cents: price - platformFee,
     currency: normalizeCurrency(setting.currency),
+  };
+}
+
+export function calculatePublicResellerPricing(
+  plan: ResellerPlan,
+  publicPriceCents: number,
+  setting: Pick<ResellerPlanSetting, 'min_price_cents' | 'platform_fee_cents' | 'currency'>,
+): Omit<ResellerPublicPlanPrice, 'id' | 'reseller_id' | 'is_enabled'> {
+  const pricing = calculateResellerPricing(plan, publicPriceCents, setting);
+  return {
+    plan,
+    public_price_cents: pricing.reseller_price_cents,
+    platform_fee_cents: pricing.platform_fee_cents,
+    reseller_margin_cents: pricing.reseller_margin_cents,
+    currency: pricing.currency,
   };
 }
 

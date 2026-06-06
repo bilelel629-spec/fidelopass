@@ -8,6 +8,7 @@ import { resellerMiddleware, type ResellerContext } from '../middleware/reseller
 import { createServiceClient } from '../../src/lib/supabase';
 import { getStripe } from '../services/stripe-billing';
 import {
+  calculatePublicResellerPricing,
   calculateResellerPricing,
   createOrInviteMerchantUser,
   createResellerStripePrice,
@@ -17,8 +18,10 @@ import {
   getResellerPlanSettings,
   normalizeCurrency,
   normalizeHexColor,
+  normalizePublicSlug,
   normalizeResellerPlan,
   normalizeStripeCountryCode,
+  publicResellerUrl,
   resellerPlanToCommercePlan,
   stripeApplicationFeePercent,
 } from '../services/reseller';
@@ -55,6 +58,23 @@ const brandingSchema = z.object({
   support_email: z.string().trim().email().nullable().optional(),
 });
 
+const linkToggleSchema = z.object({
+  public_link_enabled: z.boolean().optional(),
+  public_signup_enabled: z.boolean().optional(),
+});
+
+const linkSlugSchema = z.object({
+  slug: z.string().trim().min(1).max(80),
+});
+
+const linkPricesSchema = z.object({
+  prices: z.array(z.object({
+    plan: resellerPlanSchema,
+    public_price_cents: z.number().int().min(0),
+    is_enabled: z.boolean().optional().default(true),
+  })).min(1).max(3),
+});
+
 const cancelSchema = z.object({
   suspend: z.boolean().optional().default(false),
 });
@@ -87,6 +107,45 @@ async function loadOwnedResellerMerchant(
     .maybeSingle();
   if (error) throw error;
   return data ? normalizeMerchant(data) : null;
+}
+
+async function loadResellerLinkStats(db: ReturnType<typeof createServiceClient>, resellerId: string, currency = 'eur') {
+  const [eventsRes, referralsRes] = await Promise.all([
+    db.from('reseller_link_events').select('event_type').eq('reseller_id', resellerId),
+    db.from('reseller_referrals').select('status, reseller_margin_cents, public_price_cents, currency').eq('reseller_id', resellerId),
+  ]);
+
+  const events = eventsRes.data ?? [];
+  const referrals = referralsRes.data ?? [];
+  const countEvent = (type: string) => events.filter((event: any) => event.event_type === type).length;
+  const paidStatuses = new Set(['paid', 'active']);
+  const paidReferrals = referrals.filter((referral: any) => paidStatuses.has(String(referral.status)));
+  const views = countEvent('view');
+  const planClicks = countEvent('plan_click');
+  const signupStarted = countEvent('signup_started');
+  const checkoutCompleted = countEvent('checkout_completed') || paidReferrals.length;
+  const monthlyRevenue = paidReferrals.reduce((sum: number, referral: any) => sum + Number(referral.reseller_margin_cents ?? 0), 0);
+
+  return {
+    views,
+    plan_clicks: planClicks,
+    signup_started: signupStarted,
+    checkout_completed: checkoutCompleted,
+    conversion_rate: views > 0 ? checkoutCompleted / views : 0,
+    generated_clients: paidReferrals.length,
+    monthly_reseller_revenue_cents: monthlyRevenue,
+    currency,
+  };
+}
+
+async function loadPublicPlanPrices(db: ReturnType<typeof createServiceClient>, resellerId: string) {
+  const { data, error } = await db
+    .from('reseller_public_plan_prices')
+    .select('*')
+    .eq('reseller_id', resellerId)
+    .order('plan');
+  if (error) throw error;
+  return data ?? [];
 }
 
 function hasActiveSubscription(merchant: any) {
@@ -148,6 +207,7 @@ resellerRoutes.get('/dashboard', async (c) => {
   const suspended = merchants.filter((merchant: any) => ['suspended', 'past_due', 'cancelled', 'canceled'].includes(String(merchant.subscription_status).toLowerCase()));
   const monthlyResellerRevenue = active.reduce((sum: number, merchant: any) => sum + Number(merchant.reseller_margin_cents ?? 0), 0);
   const monthlyPlatformFee = active.reduce((sum: number, merchant: any) => sum + Number(merchant.platform_fee_cents ?? 0), 0);
+  const linkStats = await loadResellerLinkStats(db, reseller.id, reseller.currency);
 
   return c.json({
     reseller,
@@ -163,7 +223,115 @@ resellerRoutes.get('/dashboard', async (c) => {
     merchants: merchants.slice(0, 8),
     transactions: transactionsRes.data ?? [],
     invoices: invoicesRes.data ?? [],
+    link: {
+      public_slug: reseller.public_slug ?? null,
+      public_url: reseller.public_slug ? publicResellerUrl(reseller.public_slug) : null,
+      public_link_enabled: Boolean(reseller.public_link_enabled),
+      public_signup_enabled: reseller.public_signup_enabled !== false,
+      stats: linkStats,
+    },
   });
+});
+
+resellerRoutes.get('/link', async (c) => {
+  const { reseller } = getResellerContext(c);
+  const db = createServiceClient();
+  try {
+    const [settings, prices, stats] = await Promise.all([
+      getResellerPlanSettings(db, reseller.id),
+      loadPublicPlanPrices(db, reseller.id),
+      loadResellerLinkStats(db, reseller.id, reseller.currency),
+    ]);
+    return c.json({
+      reseller,
+      public_url: reseller.public_slug ? publicResellerUrl(reseller.public_slug) : null,
+      settings: Array.from(settings.values()),
+      prices,
+      stats,
+    });
+  } catch (error) {
+    return c.json({ error: 'Impossible de charger le lien revendeur.' }, 500);
+  }
+});
+
+resellerRoutes.post('/link/update-slug', async (c) => {
+  const { reseller } = getResellerContext(c);
+  const body = await c.req.json().catch(() => null);
+  const parsed = linkSlugSchema.safeParse(body);
+  if (!parsed.success) return c.json({ error: 'Slug invalide.' }, 400);
+
+  const slug = normalizePublicSlug(parsed.data.slug);
+  if (!slug) {
+    return c.json({ error: 'Choisissez un slug de 3 à 60 caractères, sans espace ni mot réservé.' }, 400);
+  }
+
+  const db = createServiceClient();
+  const { data: existing, error: existingError } = await db
+    .from('resellers')
+    .select('id')
+    .eq('public_slug', slug)
+    .neq('id', reseller.id)
+    .maybeSingle();
+  if (existingError) return c.json({ error: 'Impossible de vérifier ce slug.' }, 500);
+  if (existing?.id) return c.json({ error: 'Ce lien revendeur est déjà utilisé.' }, 409);
+
+  const { data, error } = await db
+    .from('resellers')
+    .update({ public_slug: slug, updated_at: new Date().toISOString() })
+    .eq('id', reseller.id)
+    .select('*')
+    .single();
+  if (error) return c.json({ error: 'Impossible de sauvegarder ce slug.' }, 500);
+  return c.json({ data, public_url: publicResellerUrl(slug) });
+});
+
+resellerRoutes.post('/link/toggle', async (c) => {
+  const { reseller } = getResellerContext(c);
+  const body = await c.req.json().catch(() => null);
+  const parsed = linkToggleSchema.safeParse(body);
+  if (!parsed.success) return c.json({ error: 'Paramètres invalides.' }, 400);
+
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (typeof parsed.data.public_link_enabled === 'boolean') updates.public_link_enabled = parsed.data.public_link_enabled;
+  if (typeof parsed.data.public_signup_enabled === 'boolean') updates.public_signup_enabled = parsed.data.public_signup_enabled;
+
+  const db = createServiceClient();
+  const { data, error } = await db.from('resellers').update(updates).eq('id', reseller.id).select('*').single();
+  if (error) return c.json({ error: 'Impossible de modifier le statut du lien.' }, 500);
+  return c.json({ data });
+});
+
+resellerRoutes.post('/link/prices', async (c) => {
+  const { reseller } = getResellerContext(c);
+  const body = await c.req.json().catch(() => null);
+  const parsed = linkPricesSchema.safeParse(body);
+  if (!parsed.success) return c.json({ error: 'Prix publics invalides.' }, 400);
+
+  const db = createServiceClient();
+  const settings = await getResellerPlanSettings(db, reseller.id);
+  let rows: Array<Record<string, unknown>>;
+  try {
+    rows = parsed.data.prices.map((price) => {
+      const setting = settings.get(price.plan);
+      if (!setting) throw new Error('Paramètres du plan introuvables.');
+      const computed = calculatePublicResellerPricing(price.plan, price.public_price_cents, setting);
+      return {
+        reseller_id: reseller.id,
+        ...computed,
+        is_enabled: price.is_enabled !== false,
+        updated_at: new Date().toISOString(),
+      };
+    });
+  } catch (error) {
+    return c.json({ error: (error as Error).message || 'Prix publics invalides.' }, 400);
+  }
+
+  const { data, error } = await db
+    .from('reseller_public_plan_prices')
+    .upsert(rows, { onConflict: 'reseller_id,plan' })
+    .select('*');
+  if (error) return c.json({ error: 'Impossible de sauvegarder les prix publics.' }, 500);
+  return c.json({ data });
 });
 
 resellerRoutes.get('/branding', async (c) => {
@@ -315,6 +483,7 @@ resellerRoutes.post('/merchants', async (c) => {
         reseller_margin_cents: pricing.reseller_margin_cents,
         currency: normalizeCurrency(pricing.currency, reseller.currency),
         payment_mode: parsed.data.payment_mode,
+        source: 'manual_add',
         subscription_status: subscriptionStatus,
         started_at: shouldActivateNow ? new Date().toISOString() : null,
       })

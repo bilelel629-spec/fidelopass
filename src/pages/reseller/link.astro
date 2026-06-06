@@ -1,0 +1,264 @@
+---
+import ResellerLayout from '../../layouts/ResellerLayout.astro';
+---
+
+<ResellerLayout title="Lien revendeur — Fidelopass" activeNav="link">
+  <section class="space-y-8">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <p class="text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-sky-700/75">Acquisition automatique</p>
+        <h1 class="mt-2 font-display text-4xl font-bold tracking-tight text-slate-950">Lien revendeur</h1>
+        <p class="mt-3 max-w-3xl text-base leading-7 text-slate-600">
+          Partagez ce lien avec vos clients. Tous les commerçants qui s’abonnent via ce lien seront automatiquement rattachés à vous.
+        </p>
+      </div>
+      <a id="public-preview-link" href="#" target="_blank" rel="noreferrer" class="hidden rounded-2xl border border-sky-200 bg-white px-5 py-3 text-sm font-semibold text-sky-800 shadow-[0_16px_32px_-28px_rgba(37,99,235,0.55)] transition hover:-translate-y-0.5">
+        Voir la page publique
+      </a>
+    </div>
+
+    <div id="link-feedback" class="hidden rounded-[1.3rem] border px-5 py-4 text-sm"></div>
+
+    <div class="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
+      <section class="rounded-[1.7rem] border border-sky-100 bg-white/90 p-6 shadow-[0_22px_52px_-38px_rgba(37,99,235,0.45)]">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Votre URL</p>
+            <h2 class="mt-2 font-display text-2xl font-bold text-slate-950">Lien public</h2>
+          </div>
+          <span id="link-status-badge" class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Inactif</span>
+        </div>
+
+        <label class="mt-6 block space-y-2">
+          <span class="text-sm font-semibold text-slate-700">Slug public</span>
+          <div class="flex flex-col gap-3 sm:flex-row">
+            <input id="slug-input" class="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100" placeholder="agence-lyon" />
+            <button id="save-slug-button" class="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800">Enregistrer</button>
+          </div>
+        </label>
+
+        <div class="mt-5 rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
+          <p id="public-url" class="break-all text-sm font-semibold text-sky-900">Aucun lien configuré.</p>
+          <button id="copy-link-button" class="mt-3 rounded-xl border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-sky-800 transition hover:border-sky-300" type="button">
+            Copier le lien
+          </button>
+        </div>
+
+        <div class="mt-5 grid gap-3 sm:grid-cols-2">
+          <label class="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+            <span>
+              <span class="block text-sm font-semibold text-slate-900">Lien actif</span>
+              <span class="block text-xs text-slate-500">La page `/r/slug` est accessible.</span>
+            </span>
+            <input id="toggle-link" type="checkbox" class="h-5 w-5 rounded border-slate-300" />
+          </label>
+          <label class="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+            <span>
+              <span class="block text-sm font-semibold text-slate-900">Inscriptions</span>
+              <span class="block text-xs text-slate-500">Autoriser les nouveaux clients.</span>
+            </span>
+            <input id="toggle-signup" type="checkbox" class="h-5 w-5 rounded border-slate-300" />
+          </label>
+        </div>
+      </section>
+
+      <section class="rounded-[1.7rem] border border-indigo-100 bg-gradient-to-br from-slate-950 via-indigo-950 to-blue-900 p-6 text-white shadow-[0_24px_60px_-38px_rgba(15,23,42,0.75)]">
+        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-white/55">Statistiques du lien</p>
+        <div class="mt-5 grid gap-3 sm:grid-cols-3">
+          <article class="rounded-2xl bg-white/10 p-4">
+            <p class="text-xs uppercase tracking-[0.18em] text-white/55">Vues</p>
+            <p id="stat-views" class="mt-2 text-3xl font-bold">0</p>
+          </article>
+          <article class="rounded-2xl bg-white/10 p-4">
+            <p class="text-xs uppercase tracking-[0.18em] text-white/55">Clics plans</p>
+            <p id="stat-clicks" class="mt-2 text-3xl font-bold">0</p>
+          </article>
+          <article class="rounded-2xl bg-white/10 p-4">
+            <p class="text-xs uppercase tracking-[0.18em] text-white/55">Conversions</p>
+            <p id="stat-paid" class="mt-2 text-3xl font-bold">0</p>
+          </article>
+        </div>
+        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+          <article class="rounded-2xl bg-white p-4 text-slate-950">
+            <p class="text-xs uppercase tracking-[0.18em] text-slate-500">Taux de conversion</p>
+            <p id="stat-conversion" class="mt-2 text-3xl font-bold text-emerald-600">0%</p>
+          </article>
+          <article class="rounded-2xl bg-white p-4 text-slate-950">
+            <p class="text-xs uppercase tracking-[0.18em] text-slate-500">Revenu mensuel généré</p>
+            <p id="stat-revenue" class="mt-2 text-3xl font-bold text-emerald-600">0€</p>
+          </article>
+        </div>
+      </section>
+    </div>
+
+    <section class="rounded-[1.7rem] border border-sky-100 bg-white/90 p-6 shadow-[0_22px_52px_-38px_rgba(37,99,235,0.45)]">
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-blue-700">Tarifs publics</p>
+          <h2 class="mt-2 font-display text-2xl font-bold text-slate-950">Prix visibles par vos clients</h2>
+          <p class="mt-2 text-sm text-slate-500">Le commerçant voit seulement le prix final. Votre marge et la part Fidelopass restent privées.</p>
+        </div>
+        <button id="save-prices-button" class="rounded-2xl bg-gradient-to-r from-blue-600 to-violet-500 px-5 py-3 text-sm font-bold text-white shadow-[0_18px_34px_-24px_rgba(37,99,235,0.9)]">
+          Enregistrer les prix
+        </button>
+      </div>
+
+      <div id="prices-grid" class="mt-6 grid gap-4 lg:grid-cols-3"></div>
+    </section>
+  </section>
+</ResellerLayout>
+
+<script>
+  import { authFetch } from '../../lib/api';
+
+  const planLabels: Record<string, string> = { starter: 'Starter', pro: 'Pro', premium: 'Premium' };
+  let currentPayload: any = null;
+
+  const formatMoney = (cents: unknown, currency = 'eur') => new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: String(currency || 'eur').toUpperCase(),
+    maximumFractionDigits: 0,
+  }).format(Number(cents ?? 0) / 100);
+
+  function setFeedback(message: string, kind: 'ok' | 'error' = 'ok') {
+    const feedback = document.getElementById('link-feedback');
+    if (!feedback) return;
+    feedback.className = kind === 'ok'
+      ? 'rounded-[1.3rem] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-800'
+      : 'rounded-[1.3rem] border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700';
+    feedback.textContent = message;
+  }
+
+  function planPrice(plan: string) {
+    return (currentPayload?.prices ?? []).find((price: any) => price.plan === plan);
+  }
+
+  function planSetting(plan: string) {
+    return (currentPayload?.settings ?? []).find((setting: any) => setting.plan === plan);
+  }
+
+  function renderPrices() {
+    const grid = document.getElementById('prices-grid');
+    if (!grid) return;
+    const plans = ['starter', 'pro', 'premium'];
+    grid.innerHTML = plans.map((plan) => {
+      const setting = planSetting(plan);
+      const price = planPrice(plan);
+      const currency = price?.currency ?? setting?.currency ?? currentPayload?.reseller?.currency ?? 'eur';
+      const publicPrice = Number(price?.public_price_cents ?? setting?.min_price_cents ?? 0);
+      const fee = Number(price?.platform_fee_cents ?? setting?.platform_fee_cents ?? 0);
+      const enabled = price?.is_enabled !== false;
+      return `
+        <article class="rounded-[1.35rem] border border-slate-200 bg-white p-5">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-slate-500">${planLabels[plan]}</p>
+              <h3 class="mt-2 text-2xl font-bold text-slate-950">${formatMoney(publicPrice, currency)}/mois</h3>
+            </div>
+            <label class="flex items-center gap-2 text-xs font-semibold text-slate-500">
+              <input data-plan-enabled="${plan}" type="checkbox" ${enabled ? 'checked' : ''} class="h-4 w-4 rounded border-slate-300" />
+              Actif
+            </label>
+          </div>
+          <label class="mt-5 block space-y-2">
+            <span class="text-sm font-semibold text-slate-700">Prix public mensuel</span>
+            <input data-plan-price="${plan}" type="number" min="0" step="1" value="${Math.round(publicPrice / 100)}" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100" />
+          </label>
+          <div class="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+            <p>Minimum: <strong>${formatMoney(setting?.min_price_cents, currency)}</strong></p>
+            <p>Part Fidelopass: <strong>${formatMoney(fee, currency)}</strong></p>
+            <p>Marge estimée: <strong class="text-emerald-600">${formatMoney(Math.max(0, publicPrice - fee), currency)}</strong></p>
+          </div>
+        </article>
+      `;
+    }).join('');
+  }
+
+  function render(payload: any) {
+    currentPayload = payload;
+    const reseller = payload.reseller ?? {};
+    const publicUrl = payload.public_url;
+    (document.getElementById('slug-input') as HTMLInputElement).value = reseller.public_slug ?? '';
+    (document.getElementById('toggle-link') as HTMLInputElement).checked = Boolean(reseller.public_link_enabled);
+    (document.getElementById('toggle-signup') as HTMLInputElement).checked = reseller.public_signup_enabled !== false;
+    document.getElementById('public-url')!.textContent = publicUrl ?? 'Aucun lien configuré.';
+    const preview = document.getElementById('public-preview-link') as HTMLAnchorElement;
+    if (publicUrl) {
+      preview.href = publicUrl;
+      preview.classList.remove('hidden');
+    } else {
+      preview.classList.add('hidden');
+    }
+    const badge = document.getElementById('link-status-badge')!;
+    badge.textContent = reseller.public_link_enabled ? 'Actif' : 'Inactif';
+    badge.className = reseller.public_link_enabled
+      ? 'rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-emerald-700'
+      : 'rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-slate-500';
+
+    const stats = payload.stats ?? {};
+    document.getElementById('stat-views')!.textContent = String(stats.views ?? 0);
+    document.getElementById('stat-clicks')!.textContent = String(stats.plan_clicks ?? 0);
+    document.getElementById('stat-paid')!.textContent = String(stats.checkout_completed ?? 0);
+    document.getElementById('stat-conversion')!.textContent = `${Math.round(Number(stats.conversion_rate ?? 0) * 100)}%`;
+    document.getElementById('stat-revenue')!.textContent = formatMoney(stats.monthly_reseller_revenue_cents, stats.currency ?? reseller.currency);
+    renderPrices();
+  }
+
+  async function loadLink() {
+    const res = await authFetch('/api/reseller/link');
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) {
+      setFeedback(payload?.error ?? 'Impossible de charger le lien.', 'error');
+      return;
+    }
+    render(payload);
+  }
+
+  document.getElementById('save-slug-button')?.addEventListener('click', async () => {
+    const slug = (document.getElementById('slug-input') as HTMLInputElement).value;
+    const res = await authFetch('/api/reseller/link/update-slug', { method: 'POST', body: JSON.stringify({ slug }) });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) return setFeedback(payload?.error ?? 'Slug impossible à sauvegarder.', 'error');
+    setFeedback('Lien revendeur sauvegardé.');
+    await loadLink();
+  });
+
+  document.getElementById('copy-link-button')?.addEventListener('click', async () => {
+    const url = currentPayload?.public_url;
+    if (!url) return setFeedback('Créez d’abord un slug public.', 'error');
+    await navigator.clipboard?.writeText(url);
+    setFeedback('Lien copié.');
+  });
+
+  async function saveToggle() {
+    const res = await authFetch('/api/reseller/link/toggle', {
+      method: 'POST',
+      body: JSON.stringify({
+        public_link_enabled: (document.getElementById('toggle-link') as HTMLInputElement).checked,
+        public_signup_enabled: (document.getElementById('toggle-signup') as HTMLInputElement).checked,
+      }),
+    });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) return setFeedback(payload?.error ?? 'Modification impossible.', 'error');
+    setFeedback('Statut du lien mis à jour.');
+    await loadLink();
+  }
+
+  document.getElementById('toggle-link')?.addEventListener('change', saveToggle);
+  document.getElementById('toggle-signup')?.addEventListener('change', saveToggle);
+
+  document.getElementById('save-prices-button')?.addEventListener('click', async () => {
+    const prices = ['starter', 'pro', 'premium'].map((plan) => ({
+      plan,
+      public_price_cents: Math.round(Number((document.querySelector(`[data-plan-price="${plan}"]`) as HTMLInputElement)?.value || 0) * 100),
+      is_enabled: Boolean((document.querySelector(`[data-plan-enabled="${plan}"]`) as HTMLInputElement)?.checked),
+    }));
+    const res = await authFetch('/api/reseller/link/prices', { method: 'POST', body: JSON.stringify({ prices }) });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) return setFeedback(payload?.error ?? 'Prix impossibles à sauvegarder.', 'error');
+    setFeedback('Prix publics mis à jour.');
+    await loadLink();
+  });
+
+  await loadLink();
+</script>

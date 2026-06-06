@@ -1,0 +1,389 @@
+import { Hono } from 'hono';
+import { z } from 'zod';
+import type { ApiEnv } from '../types';
+import { createServiceClient } from '../../src/lib/supabase';
+import { getStripe } from '../services/stripe-billing';
+import {
+  createOrInviteMerchantUser,
+  createResellerStripePrice,
+  ensureMerchantCommerce,
+  getResellerPlanSetting,
+  normalizeCurrency,
+  normalizePublicSlug,
+  normalizeResellerPlan,
+  publicResellerUrl,
+  resellerPlanLabel,
+  stripeApplicationFeePercent,
+  type ResellerPlan,
+  type ResellerRecord,
+} from '../services/reseller';
+
+export const publicResellerRoutes = new Hono<ApiEnv>();
+
+const planSchema = z.preprocess(
+  (value) => normalizeResellerPlan(value),
+  z.enum(['starter', 'pro', 'premium']),
+);
+
+const publicSignupSchema = z.object({
+  commerce_name: z.string().trim().min(2).max(255),
+  email: z.string().trim().email(),
+  phone: z.string().trim().max(50).nullable().optional(),
+  country: z.string().trim().max(80).nullable().optional(),
+  plan: planSchema,
+});
+
+function siteUrl() {
+  return (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
+}
+
+function unavailableMessage() {
+  return 'Cette offre revendeur n’est plus disponible.';
+}
+
+async function loadPublicReseller(db: ReturnType<typeof createServiceClient>, rawSlug: string) {
+  const slug = normalizePublicSlug(rawSlug);
+  if (!slug) return null;
+  const { data, error } = await db
+    .from('resellers')
+    .select('*')
+    .eq('public_slug', slug)
+    .maybeSingle();
+  if (error) throw error;
+  return data as ResellerRecord | null;
+}
+
+async function loadEnabledPublicPrices(db: ReturnType<typeof createServiceClient>, resellerId: string) {
+  const { data, error } = await db
+    .from('reseller_public_plan_prices')
+    .select('*')
+    .eq('reseller_id', resellerId)
+    .eq('is_enabled', true)
+    .order('public_price_cents');
+  if (error) throw error;
+  return data ?? [];
+}
+
+async function logLinkEvent(
+  db: ReturnType<typeof createServiceClient>,
+  resellerId: string,
+  eventType: 'view' | 'plan_click' | 'signup_started' | 'checkout_started' | 'checkout_completed',
+  plan?: ResellerPlan | null,
+  metadata: Record<string, unknown> = {},
+) {
+  await db.from('reseller_link_events').insert({
+    reseller_id: resellerId,
+    event_type: eventType,
+    plan: plan ?? null,
+    metadata,
+  }).then(({ error }) => {
+    if (error) console.warn('[public-reseller] link event failed:', error.message);
+  });
+}
+
+async function loadPublicPlanOrThrow(
+  db: ReturnType<typeof createServiceClient>,
+  resellerId: string,
+  plan: ResellerPlan,
+) {
+  const { data, error } = await db
+    .from('reseller_public_plan_prices')
+    .select('*')
+    .eq('reseller_id', resellerId)
+    .eq('plan', plan)
+    .eq('is_enabled', true)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error('Cette offre n’est pas active.');
+
+  const setting = await getResellerPlanSetting(db, resellerId, plan);
+  const publicPrice = Number(data.public_price_cents);
+  const platformFee = Number(data.platform_fee_cents);
+  if (publicPrice < Number(setting.min_price_cents) || platformFee < Number(setting.platform_fee_cents) || platformFee > publicPrice) {
+    throw new Error('Cette offre doit être vérifiée par le revendeur avant inscription.');
+  }
+  return data;
+}
+
+function publicResellerPayload(reseller: ResellerRecord, prices: any[]) {
+  return {
+    brand_name: reseller.brand_name,
+    brand_logo_url: reseller.brand_logo_url,
+    primary_color: reseller.primary_color,
+    secondary_color: reseller.secondary_color,
+    support_email: reseller.support_email,
+    public_slug: reseller.public_slug,
+    public_url: reseller.public_slug ? publicResellerUrl(reseller.public_slug) : null,
+    type: reseller.type,
+    signup_enabled: reseller.public_signup_enabled !== false,
+    plans: prices.map((price) => ({
+      plan: price.plan,
+      label: resellerPlanLabel(price.plan),
+      public_price_cents: price.public_price_cents,
+      currency: price.currency,
+    })),
+  };
+}
+
+publicResellerRoutes.get('/:slug', async (c) => {
+  const db = createServiceClient();
+  try {
+    const reseller = await loadPublicReseller(db, c.req.param('slug'));
+    if (!reseller || reseller.status !== 'approved' || !reseller.public_link_enabled) {
+      return c.json({ available: false, message: unavailableMessage() }, 404);
+    }
+    const prices = await loadEnabledPublicPrices(db, reseller.id);
+    await logLinkEvent(db, reseller.id, 'view', null, {
+      user_agent: c.req.header('user-agent') ?? null,
+    });
+    return c.json({ available: true, data: publicResellerPayload(reseller, prices) });
+  } catch (error) {
+    return c.json({ available: false, message: unavailableMessage() }, 500);
+  }
+});
+
+publicResellerRoutes.post('/:slug/track', async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const plan = normalizeResellerPlan(body?.plan);
+  const eventType = String(body?.event_type ?? '');
+  if (!['plan_click'].includes(eventType) || !plan) return c.json({ ok: false }, 400);
+
+  const db = createServiceClient();
+  const reseller = await loadPublicReseller(db, c.req.param('slug'));
+  if (!reseller || reseller.status !== 'approved' || !reseller.public_link_enabled) return c.json({ ok: false }, 404);
+  await logLinkEvent(db, reseller.id, 'plan_click', plan);
+  return c.json({ ok: true });
+});
+
+publicResellerRoutes.post('/:slug/start-signup', async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const parsed = publicSignupSchema.safeParse(body);
+  if (!parsed.success) return c.json({ error: 'Informations invalides.' }, 400);
+
+  const db = createServiceClient();
+  try {
+    const reseller = await loadPublicReseller(db, c.req.param('slug'));
+    if (!reseller || reseller.status !== 'approved' || !reseller.public_link_enabled || reseller.public_signup_enabled === false) {
+      return c.json({ error: unavailableMessage() }, 403);
+    }
+    const publicPrice = await loadPublicPlanOrThrow(db, reseller.id, parsed.data.plan);
+    const { data, error } = await db.from('reseller_referrals').insert({
+      reseller_id: reseller.id,
+      merchant_name: parsed.data.commerce_name,
+      merchant_email: parsed.data.email,
+      plan: parsed.data.plan,
+      public_price_cents: publicPrice.public_price_cents,
+      platform_fee_cents: publicPrice.platform_fee_cents,
+      reseller_margin_cents: publicPrice.reseller_margin_cents,
+      currency: normalizeCurrency(publicPrice.currency, reseller.currency),
+      status: 'pending',
+      source: 'public_link',
+    }).select('*').single();
+    if (error) throw error;
+    await logLinkEvent(db, reseller.id, 'signup_started', parsed.data.plan);
+    return c.json({ data });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Impossible de démarrer cette inscription.';
+    return c.json({ error: message }, 400);
+  }
+});
+
+publicResellerRoutes.post('/:slug/checkout', async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const parsed = publicSignupSchema.safeParse(body);
+  if (!parsed.success) return c.json({ error: 'Informations invalides.' }, 400);
+
+  const db = createServiceClient();
+  try {
+    const reseller = await loadPublicReseller(db, c.req.param('slug'));
+    if (!reseller || reseller.status !== 'approved' || !reseller.public_link_enabled || reseller.public_signup_enabled === false) {
+      return c.json({ error: unavailableMessage() }, 403);
+    }
+    if (reseller.type !== 'stripe_connect') {
+      return c.json({ error: 'Ce revendeur utilise une inscription manuelle.' }, 400);
+    }
+    if (!reseller.stripe_connect_account_id || !reseller.stripe_charges_enabled) {
+      return c.json({ error: 'Le paiement en ligne de cette offre n’est pas encore disponible.' }, 403);
+    }
+
+    const publicPrice = await loadPublicPlanOrThrow(db, reseller.id, parsed.data.plan);
+    const currency = normalizeCurrency(publicPrice.currency, reseller.currency);
+    const { data: referral, error: referralError } = await db.from('reseller_referrals').insert({
+      reseller_id: reseller.id,
+      merchant_name: parsed.data.commerce_name,
+      merchant_email: parsed.data.email,
+      plan: parsed.data.plan,
+      public_price_cents: publicPrice.public_price_cents,
+      platform_fee_cents: publicPrice.platform_fee_cents,
+      reseller_margin_cents: publicPrice.reseller_margin_cents,
+      currency,
+      status: 'checkout_started',
+      source: 'public_link',
+    }).select('*').single();
+    if (referralError || !referral) throw new Error(referralError?.message ?? 'Inscription impossible.');
+
+    const { data: resellerMerchant, error: merchantError } = await db
+      .from('reseller_merchants')
+      .insert({
+        reseller_id: reseller.id,
+        merchant_name: parsed.data.commerce_name,
+        merchant_email: parsed.data.email,
+        merchant_phone: parsed.data.phone ?? null,
+        country: parsed.data.country ?? reseller.country ?? null,
+        plan: parsed.data.plan,
+        reseller_price_cents: publicPrice.public_price_cents,
+        platform_fee_cents: publicPrice.platform_fee_cents,
+        reseller_margin_cents: publicPrice.reseller_margin_cents,
+        currency,
+        payment_mode: 'stripe_connect',
+        subscription_status: 'incomplete',
+        source: 'public_link',
+      })
+      .select('*')
+      .single();
+    if (merchantError || !resellerMerchant) throw new Error(merchantError?.message ?? 'Rattachement impossible.');
+
+    const account = await createOrInviteMerchantUser(db, parsed.data.email, parsed.data.commerce_name, 'invite');
+    const commerceId = await ensureMerchantCommerce(db, {
+      ownerUserId: account.userId,
+      commerceName: parsed.data.commerce_name,
+      email: parsed.data.email,
+      phone: parsed.data.phone ?? null,
+      country: parsed.data.country ?? reseller.country ?? null,
+      resellerId: reseller.id,
+      resellerMerchantId: resellerMerchant.id,
+      plan: parsed.data.plan,
+      billingStatus: 'unpaid',
+      paymentMode: 'stripe_connect',
+      resellerPriceCents: publicPrice.public_price_cents,
+      platformFeeCents: publicPrice.platform_fee_cents,
+    });
+
+    const stripe = getStripe();
+    const customer = await stripe.customers.create({
+      email: parsed.data.email,
+      name: parsed.data.commerce_name,
+      metadata: {
+        reseller_id: reseller.id,
+        reseller_merchant_id: resellerMerchant.id,
+        merchant_id: commerceId,
+        referral_id: referral.id,
+        source: 'public_link',
+      },
+    });
+    const price = await createResellerStripePrice(stripe, {
+      plan: parsed.data.plan,
+      amountCents: publicPrice.public_price_cents,
+      currency,
+      resellerId: reseller.id,
+      merchantId: commerceId,
+    });
+    const metadata = {
+      kind: 'reseller_merchant_subscription',
+      reseller_id: reseller.id,
+      reseller_merchant_id: resellerMerchant.id,
+      merchant_id: commerceId,
+      referral_id: referral.id,
+      plan: parsed.data.plan,
+      source: 'public_link',
+      reseller_price_cents: String(publicPrice.public_price_cents),
+      platform_fee_cents: String(publicPrice.platform_fee_cents),
+      reseller_margin_cents: String(publicPrice.reseller_margin_cents),
+      currency,
+    };
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      customer: customer.id,
+      line_items: [{ price: price.id, quantity: 1 }],
+      success_url: `${siteUrl()}/login?reseller=success`,
+      cancel_url: `${siteUrl()}/r/${reseller.public_slug}?cancelled=1`,
+      locale: 'fr',
+      metadata,
+      subscription_data: {
+        application_fee_percent: stripeApplicationFeePercent(publicPrice.platform_fee_cents, publicPrice.public_price_cents),
+        transfer_data: { destination: reseller.stripe_connect_account_id },
+        metadata,
+      },
+    });
+
+    await Promise.all([
+      db.from('reseller_merchants').update({
+        merchant_id: commerceId,
+        stripe_customer_id: customer.id,
+        stripe_checkout_session_id: session.id,
+        updated_at: new Date().toISOString(),
+      }).eq('id', resellerMerchant.id),
+      db.from('reseller_referrals').update({
+        reseller_merchant_id: resellerMerchant.id,
+        merchant_id: commerceId,
+        checkout_session_id: session.id,
+        updated_at: new Date().toISOString(),
+      }).eq('id', referral.id),
+      logLinkEvent(db, reseller.id, 'checkout_started', parsed.data.plan, { referral_id: referral.id }),
+    ]);
+
+    return c.json({ url: session.url });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Impossible de créer le paiement.';
+    return c.json({ error: message }, 400);
+  }
+});
+
+publicResellerRoutes.post('/:slug/manual-request', async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const parsed = publicSignupSchema.safeParse(body);
+  if (!parsed.success) return c.json({ error: 'Informations invalides.' }, 400);
+
+  const db = createServiceClient();
+  try {
+    const reseller = await loadPublicReseller(db, c.req.param('slug'));
+    if (!reseller || reseller.status !== 'approved' || !reseller.public_link_enabled || reseller.public_signup_enabled === false) {
+      return c.json({ error: unavailableMessage() }, 403);
+    }
+    if (reseller.type !== 'invoiced') {
+      return c.json({ error: 'Ce revendeur utilise le paiement en ligne.' }, 400);
+    }
+    const publicPrice = await loadPublicPlanOrThrow(db, reseller.id, parsed.data.plan);
+    const currency = normalizeCurrency(publicPrice.currency, reseller.currency);
+    const { data: resellerMerchant, error: merchantError } = await db
+      .from('reseller_merchants')
+      .insert({
+        reseller_id: reseller.id,
+        merchant_name: parsed.data.commerce_name,
+        merchant_email: parsed.data.email,
+        merchant_phone: parsed.data.phone ?? null,
+        country: parsed.data.country ?? reseller.country ?? null,
+        plan: parsed.data.plan,
+        reseller_price_cents: publicPrice.public_price_cents,
+        platform_fee_cents: publicPrice.platform_fee_cents,
+        reseller_margin_cents: publicPrice.reseller_margin_cents,
+        currency,
+        payment_mode: 'manual',
+        subscription_status: 'pending',
+        source: 'public_link',
+      })
+      .select('*')
+      .single();
+    if (merchantError || !resellerMerchant) throw new Error(merchantError?.message ?? 'Demande impossible.');
+
+    const { data: referral, error: referralError } = await db.from('reseller_referrals').insert({
+      reseller_id: reseller.id,
+      reseller_merchant_id: resellerMerchant.id,
+      merchant_name: parsed.data.commerce_name,
+      merchant_email: parsed.data.email,
+      plan: parsed.data.plan,
+      public_price_cents: publicPrice.public_price_cents,
+      platform_fee_cents: publicPrice.platform_fee_cents,
+      reseller_margin_cents: publicPrice.reseller_margin_cents,
+      currency,
+      status: 'pending',
+      source: 'public_link',
+    }).select('*').single();
+    if (referralError) throw new Error(referralError.message);
+    await logLinkEvent(db, reseller.id, 'signup_started', parsed.data.plan, { referral_id: referral?.id ?? null });
+    return c.json({ ok: true, data: referral });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Impossible d’envoyer la demande.';
+    return c.json({ error: message }, 400);
+  }
+});

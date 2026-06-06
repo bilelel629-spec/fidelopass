@@ -109,6 +109,55 @@ const { id } = Astro.params;
       </form>
     </div>
 
+    <section class="rounded-[1.7rem] border border-indigo-100 bg-white/90 p-6 shadow-[0_22px_52px_-38px_rgba(79,70,229,0.4)]">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p class="text-[0.7rem] font-bold uppercase tracking-[0.24em] text-indigo-600">Lien public</p>
+          <h2 class="mt-2 text-2xl font-black text-slate-950">Lien revendeur automatique</h2>
+          <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+            Les commerçants qui s’inscrivent via ce lien seront rattachés automatiquement au revendeur.
+          </p>
+        </div>
+        <a id="admin-public-link-open" href="#" target="_blank" rel="noreferrer" class="hidden rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-800">
+          Ouvrir le lien
+        </a>
+      </div>
+      <form id="admin-link-form" class="mt-5 grid gap-4 lg:grid-cols-[1fr_auto_auto_auto] lg:items-end">
+        <label class="space-y-2">
+          <span class="text-sm font-semibold text-slate-700">Slug public</span>
+          <input name="public_slug" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" placeholder="agence-lyon" />
+        </label>
+        <label class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+          <input name="public_link_enabled" type="checkbox" class="h-4 w-4 rounded border-slate-300" />
+          Lien actif
+        </label>
+        <label class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+          <input name="public_signup_enabled" type="checkbox" class="h-4 w-4 rounded border-slate-300" />
+          Inscription active
+        </label>
+        <button class="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-bold text-white">Sauvegarder</button>
+      </form>
+      <div class="mt-5 grid gap-4 lg:grid-cols-4">
+        <article class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+          <p class="text-[0.62rem] font-bold uppercase tracking-[0.2em] text-slate-400">URL</p>
+          <p id="admin-public-url" class="mt-2 break-all text-sm font-semibold text-slate-700">-</p>
+        </article>
+        <article class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+          <p class="text-[0.62rem] font-bold uppercase tracking-[0.2em] text-slate-400">Vues</p>
+          <p id="admin-link-views" class="mt-2 text-2xl font-black text-slate-950">-</p>
+        </article>
+        <article class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+          <p class="text-[0.62rem] font-bold uppercase tracking-[0.2em] text-slate-400">Conversions</p>
+          <p id="admin-link-conversions" class="mt-2 text-2xl font-black text-slate-950">-</p>
+        </article>
+        <article class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+          <p class="text-[0.62rem] font-bold uppercase tracking-[0.2em] text-slate-400">Revenu lien</p>
+          <p id="admin-link-revenue" class="mt-2 text-2xl font-black text-slate-950">-</p>
+        </article>
+      </div>
+      <div id="admin-public-prices" class="mt-5 grid gap-3 lg:grid-cols-3"></div>
+    </section>
+
     <section class="rounded-[1.7rem] border border-sky-100 bg-white/90 p-6 shadow-[0_22px_52px_-38px_rgba(37,99,235,0.45)]">
       <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
@@ -222,6 +271,29 @@ const { id } = Astro.params;
       const field = resellerForm.elements.namedItem(key) as HTMLInputElement | HTMLSelectElement | null;
       if (field) field.value = String(value ?? '');
     }
+
+    const linkForm = document.getElementById('admin-link-form') as HTMLFormElement;
+    (linkForm.elements.namedItem('public_slug') as HTMLInputElement).value = reseller.public_slug ?? '';
+    (linkForm.elements.namedItem('public_link_enabled') as HTMLInputElement).checked = Boolean(reseller.public_link_enabled);
+    (linkForm.elements.namedItem('public_signup_enabled') as HTMLInputElement).checked = reseller.public_signup_enabled !== false;
+    const publicUrl = reseller.public_url || (reseller.public_slug ? `${window.location.origin}/r/${reseller.public_slug}` : '');
+    document.getElementById('admin-public-url')!.textContent = publicUrl || 'Aucun lien configuré.';
+    const publicOpen = document.getElementById('admin-public-link-open') as HTMLAnchorElement;
+    publicOpen.classList.toggle('hidden', !publicUrl);
+    if (publicUrl) publicOpen.href = publicUrl;
+    const linkStats = payload.link_stats ?? {};
+    document.getElementById('admin-link-views')!.textContent = String(linkStats.views ?? 0);
+    document.getElementById('admin-link-conversions')!.textContent = String(linkStats.checkout_completed ?? 0);
+    document.getElementById('admin-link-revenue')!.textContent = money(linkStats.monthly_reseller_revenue_cents ?? 0, linkStats.currency ?? reseller.currency);
+    const publicPrices = Array.isArray(reseller.reseller_public_plan_prices) ? reseller.reseller_public_plan_prices : [];
+    document.getElementById('admin-public-prices')!.innerHTML = publicPrices.length ? publicPrices.map((price: any) => `
+      <article class="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
+        <p class="text-[0.62rem] font-bold uppercase tracking-[0.2em] text-indigo-600">${escapeHtml(planLabels[price.plan] ?? price.plan)}</p>
+        <p class="mt-2 text-2xl font-black text-slate-950">${money(price.public_price_cents, price.currency)}</p>
+        <p class="mt-1 text-xs text-slate-500">Part: ${money(price.platform_fee_cents, price.currency)} · Marge: ${money(price.reseller_margin_cents, price.currency)}</p>
+        <p class="mt-2 text-xs font-semibold ${price.is_enabled ? 'text-emerald-700' : 'text-slate-400'}">${price.is_enabled ? 'Actif' : 'Désactivé'}</p>
+      </article>
+    `).join('') : '<p class="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-500 lg:col-span-3">Aucun prix public configuré.</p>';
 
     const settings = Array.isArray(reseller.reseller_plan_settings) ? reseller.reseller_plan_settings : [];
     document.getElementById('settings-list')!.innerHTML = ['starter', 'pro', 'premium'].map((plan) => {
@@ -350,6 +422,25 @@ const { id } = Astro.params;
       await loadDetail();
     } catch (error) {
       showFeedback(error instanceof Error ? error.message : 'Modification impossible.', true);
+    }
+  });
+
+  document.getElementById('admin-link-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget as HTMLFormElement;
+    const payload = {
+      public_slug: String((form.elements.namedItem('public_slug') as HTMLInputElement).value || '').trim() || null,
+      public_link_enabled: (form.elements.namedItem('public_link_enabled') as HTMLInputElement).checked,
+      public_signup_enabled: (form.elements.namedItem('public_signup_enabled') as HTMLInputElement).checked,
+    };
+    try {
+      const res = await authFetch(`/api/admin/resellers/${resellerId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      const result = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(result?.error ?? 'Modification du lien impossible.');
+      showFeedback('Lien public mis à jour.');
+      await loadDetail();
+    } catch (error) {
+      showFeedback(error instanceof Error ? error.message : 'Modification du lien impossible.', true);
     }
   });
 

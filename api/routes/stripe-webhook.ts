@@ -150,6 +150,28 @@ async function handleResellerCheckoutCompleted(
     started_at: new Date().toISOString(),
     cancelled_at: null,
   });
+  if (metadata.referral_id) {
+    await Promise.all([
+      db.from('reseller_referrals').update({
+        reseller_merchant_id: metadata.reseller_merchant_id,
+        merchant_id: metadata.merchant_id || null,
+        checkout_session_id: session.id,
+        status: session.subscription ? 'active' : 'paid',
+        updated_at: new Date().toISOString(),
+      }).eq('id', metadata.referral_id).eq('reseller_id', metadata.reseller_id),
+      db.from('reseller_link_events').insert({
+        reseller_id: metadata.reseller_id,
+        event_type: 'checkout_completed',
+        plan: metadata.plan ?? null,
+        metadata: {
+          referral_id: metadata.referral_id,
+          reseller_merchant_id: metadata.reseller_merchant_id,
+          merchant_id: metadata.merchant_id ?? null,
+          checkout_session_id: session.id,
+        },
+      }),
+    ]);
+  }
   return true;
 }
 
@@ -165,6 +187,12 @@ async function handleResellerSubscriptionEvent(
     subscription_status: status,
     cancelled_at: status === 'cancelled' ? new Date().toISOString() : null,
   });
+  if (sub.metadata.referral_id && status === 'active') {
+    await db.from('reseller_referrals').update({
+      status: 'active',
+      updated_at: new Date().toISOString(),
+    }).eq('id', sub.metadata.referral_id).eq('reseller_id', sub.metadata.reseller_id);
+  }
   return true;
 }
 

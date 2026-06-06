@@ -16,6 +16,9 @@ import ResellerLayout from '../../layouts/ResellerLayout.astro';
         <a href="/reseller/merchants/new" class="inline-flex w-fit items-center rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_36px_-24px_rgba(37,99,235,0.8)] transition hover:-translate-y-0.5">
           Ajouter un commerçant
         </a>
+        <a href="/reseller/link" class="inline-flex w-fit items-center rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-3 text-sm font-semibold text-indigo-800 shadow-[0_16px_32px_-28px_rgba(79,70,229,0.55)] transition hover:-translate-y-0.5 hover:border-indigo-300">
+          Lien revendeur
+        </a>
         <a href="/reseller/branding" class="inline-flex w-fit items-center rounded-2xl border border-sky-200 bg-white px-5 py-3 text-sm font-semibold text-sky-800 shadow-[0_16px_32px_-28px_rgba(37,99,235,0.55)] transition hover:-translate-y-0.5 hover:border-sky-300">
           Marque blanche
         </a>
@@ -68,6 +71,41 @@ import ResellerLayout from '../../layouts/ResellerLayout.astro';
         <div id="reseller-transactions" class="mt-5 space-y-2 text-sm"></div>
       </section>
     </div>
+
+    <section class="rounded-[1.6rem] border border-violet-100 bg-white/90 p-6 shadow-[0_22px_52px_-38px_rgba(79,70,229,0.45)]">
+      <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-violet-700">Lien revendeur</p>
+          <h2 class="mt-2 font-display text-2xl font-bold text-slate-950">Inscription automatique</h2>
+          <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+            Partagez votre lien public: les commerçants qui s’abonnent dessus sont rattachés automatiquement à votre compte.
+          </p>
+          <p id="dashboard-public-link" class="mt-3 break-all rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">Aucun lien configuré.</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <button id="dashboard-copy-link" type="button" class="rounded-2xl border border-violet-200 bg-violet-50 px-5 py-3 text-sm font-semibold text-violet-800">
+            Copier
+          </button>
+          <a href="/reseller/link" class="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800">
+            Configurer
+          </a>
+        </div>
+      </div>
+      <div class="mt-5 grid gap-3 sm:grid-cols-3">
+        <div class="rounded-2xl bg-slate-50 p-4">
+          <p class="text-xs uppercase tracking-[0.18em] text-slate-500">Statut</p>
+          <p id="dashboard-link-status" class="mt-2 text-xl font-bold text-slate-950">-</p>
+        </div>
+        <div class="rounded-2xl bg-slate-50 p-4">
+          <p class="text-xs uppercase tracking-[0.18em] text-slate-500">Clients générés</p>
+          <p id="dashboard-link-clients" class="mt-2 text-xl font-bold text-slate-950">0</p>
+        </div>
+        <div class="rounded-2xl bg-slate-50 p-4">
+          <p class="text-xs uppercase tracking-[0.18em] text-slate-500">Revenu lien</p>
+          <p id="dashboard-link-revenue" class="mt-2 text-xl font-bold text-emerald-600">0€</p>
+        </div>
+      </div>
+    </section>
   </section>
 </ResellerLayout>
 
@@ -141,6 +179,21 @@ import ResellerLayout from '../../layouts/ResellerLayout.astro';
     `).join('');
   }
 
+  function renderPublicLink(link: any, currency: string) {
+    const publicUrl = link?.public_url;
+    document.getElementById('dashboard-public-link')!.textContent = publicUrl ?? 'Aucun lien configuré.';
+    document.getElementById('dashboard-link-status')!.textContent = link?.public_link_enabled ? 'Actif' : 'Inactif';
+    document.getElementById('dashboard-link-clients')!.textContent = String(link?.stats?.generated_clients ?? 0);
+    document.getElementById('dashboard-link-revenue')!.textContent = formatMoney(link?.stats?.monthly_reseller_revenue_cents ?? 0, link?.stats?.currency ?? currency);
+    const copyButton = document.getElementById('dashboard-copy-link');
+    copyButton?.addEventListener('click', async () => {
+      if (!publicUrl) return;
+      await navigator.clipboard?.writeText(publicUrl);
+      copyButton.textContent = 'Copié';
+      setTimeout(() => { copyButton.textContent = 'Copier'; }, 1400);
+    });
+  }
+
   async function loadDashboard() {
     const res = await authFetch('/api/reseller/dashboard');
     const payload = await res.json().catch(() => null);
@@ -166,6 +219,7 @@ import ResellerLayout from '../../layouts/ResellerLayout.astro';
     document.getElementById('metric-platform')!.textContent = formatMoney(metrics.monthly_platform_fee_cents, metrics.currency);
     renderMerchants(payload.merchants ?? []);
     renderTransactions(payload.transactions ?? [], metrics.currency ?? 'eur');
+    renderPublicLink(payload.link, metrics.currency ?? 'eur');
   }
 
   await loadDashboard();

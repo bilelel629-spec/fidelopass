@@ -9,6 +9,8 @@ import {
   getResellerByUserId,
   normalizeCurrency,
   normalizeHexColor,
+  normalizePublicSlug,
+  publicResellerUrl,
   normalizeResellerPlan,
   type ResellerPlan,
 } from '../services/reseller';
@@ -34,7 +36,11 @@ const resellerCreateSchema = z.object({
   support_email: z.string().trim().email().nullable().optional(),
 });
 
-const resellerPatchSchema = resellerCreateSchema.omit({ email: true }).partial();
+const resellerPatchSchema = resellerCreateSchema.omit({ email: true }).extend({
+  public_slug: z.string().trim().max(80).nullable().optional(),
+  public_link_enabled: z.boolean().optional(),
+  public_signup_enabled: z.boolean().optional(),
+}).partial();
 
 const settingsSchema = z.object({
   settings: z.array(z.object({
@@ -86,7 +92,7 @@ function currentMonthPeriod() {
 async function loadReseller(db: ReturnType<typeof createServiceClient>, resellerId: string) {
   const { data, error } = await db
     .from('resellers')
-    .select('*, reseller_plan_settings(*), reseller_merchants(*, commerces(id, nom, email, actif, billing_status))')
+    .select('*, reseller_plan_settings(*), reseller_public_plan_prices(*), reseller_merchants(*, commerces(id, nom, email, actif, billing_status))')
     .eq('id', resellerId)
     .maybeSingle();
   if (error) throw error;
@@ -101,6 +107,7 @@ function summarizeReseller(row: any) {
   const resellerRevenue = active.reduce((sum: number, merchant: any) => sum + cents(merchant.reseller_margin_cents), 0);
   return {
     ...row,
+    public_url: row.public_slug ? publicResellerUrl(row.public_slug) : null,
     metrics: {
       merchants_count: merchants.length,
       active_merchants_count: active.length,
@@ -109,6 +116,29 @@ function summarizeReseller(row: any) {
       reseller_revenue_cents: resellerRevenue,
       currency: row.currency ?? 'eur',
     },
+  };
+}
+
+async function loadResellerLinkStats(db: ReturnType<typeof createServiceClient>, resellerId: string, currency = 'eur') {
+  const [eventsRes, referralsRes] = await Promise.all([
+    db.from('reseller_link_events').select('event_type').eq('reseller_id', resellerId),
+    db.from('reseller_referrals').select('status, reseller_margin_cents').eq('reseller_id', resellerId),
+  ]);
+  const events = eventsRes.data ?? [];
+  const referrals = referralsRes.data ?? [];
+  const countEvent = (type: string) => events.filter((event: any) => event.event_type === type).length;
+  const paidReferrals = referrals.filter((referral: any) => ['paid', 'active'].includes(String(referral.status)));
+  const views = countEvent('view');
+  const completed = countEvent('checkout_completed') || paidReferrals.length;
+  return {
+    views,
+    plan_clicks: countEvent('plan_click'),
+    signup_started: countEvent('signup_started'),
+    checkout_completed: completed,
+    conversion_rate: views > 0 ? completed / views : 0,
+    generated_clients: paidReferrals.length,
+    monthly_reseller_revenue_cents: paidReferrals.reduce((sum: number, referral: any) => sum + cents(referral.reseller_margin_cents), 0),
+    currency,
   };
 }
 
@@ -216,6 +246,7 @@ adminResellerRoutes.get('/:id', async (c) => {
     data: summarizeReseller(reseller),
     transactions: transactionsRes.data ?? [],
     invoices: invoicesRes.data ?? [],
+    link_stats: await loadResellerLinkStats(db, resellerId, reseller.currency ?? 'eur'),
   });
 });
 
@@ -228,9 +259,28 @@ adminResellerRoutes.patch('/:id', async (c) => {
 
   const db = createServiceClient();
   const updates: Record<string, unknown> = { ...parsed.data, updated_at: new Date().toISOString() };
+  delete updates.public_slug;
   if (parsed.data.currency) updates.currency = normalizeCurrency(parsed.data.currency, 'eur');
   if (parsed.data.primary_color) updates.primary_color = normalizeHexColor(parsed.data.primary_color, '#2563eb');
   if (parsed.data.secondary_color) updates.secondary_color = normalizeHexColor(parsed.data.secondary_color, '#4f46e5');
+  if (Object.prototype.hasOwnProperty.call(parsed.data, 'public_slug')) {
+    const rawSlug = parsed.data.public_slug;
+    if (rawSlug === null || rawSlug === '') {
+      updates.public_slug = null;
+    } else {
+      const slug = normalizePublicSlug(rawSlug);
+      if (!slug) return c.json({ error: 'Slug public invalide ou réservé.' }, 400);
+      const { data: existing, error: existingError } = await db
+        .from('resellers')
+        .select('id')
+        .eq('public_slug', slug)
+        .neq('id', resellerId)
+        .maybeSingle();
+      if (existingError) return c.json({ error: 'Impossible de vérifier ce slug.' }, 500);
+      if (existing?.id) return c.json({ error: 'Ce slug public est déjà utilisé.' }, 409);
+      updates.public_slug = slug;
+    }
+  }
 
   const { error } = await db.from('resellers').update(updates).eq('id', resellerId);
   if (error) return c.json({ error: 'Impossible de modifier le revendeur.' }, 500);

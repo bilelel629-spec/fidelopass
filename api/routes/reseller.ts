@@ -115,8 +115,11 @@ async function loadResellerLinkStats(db: ReturnType<typeof createServiceClient>,
     db.from('reseller_referrals').select('status, reseller_margin_cents, public_price_cents, currency').eq('reseller_id', resellerId),
   ]);
 
-  const events = eventsRes.data ?? [];
-  const referrals = referralsRes.data ?? [];
+  if (eventsRes.error) console.warn('[reseller] link events load failed:', eventsRes.error.message);
+  if (referralsRes.error) console.warn('[reseller] referrals load failed:', referralsRes.error.message);
+
+  const events = eventsRes.error ? [] : eventsRes.data ?? [];
+  const referrals = referralsRes.error ? [] : referralsRes.data ?? [];
   const countEvent = (type: string) => events.filter((event: any) => event.event_type === type).length;
   const paidStatuses = new Set(['paid', 'active']);
   const paidReferrals = referrals.filter((referral: any) => paidStatuses.has(String(referral.status)));
@@ -144,7 +147,11 @@ async function loadPublicPlanPrices(db: ReturnType<typeof createServiceClient>, 
     .select('*')
     .eq('reseller_id', resellerId)
     .order('plan');
-  if (error) throw error;
+  if (error) {
+    const missing = error.code === '42P01' || /reseller_public_plan_prices/i.test(error.message ?? '');
+    if (missing) return [];
+    throw error;
+  }
   return data ?? [];
 }
 
@@ -296,6 +303,26 @@ resellerRoutes.post('/link/toggle', async (c) => {
   if (typeof parsed.data.public_signup_enabled === 'boolean') updates.public_signup_enabled = parsed.data.public_signup_enabled;
 
   const db = createServiceClient();
+  if (parsed.data.public_link_enabled === true || parsed.data.public_signup_enabled === true) {
+    if (!reseller.public_slug) {
+      return c.json({ error: 'Configurez un slug public avant d’activer le lien revendeur.' }, 400);
+    }
+    const { data: publicPrices, error: pricesError } = await db
+      .from('reseller_public_plan_prices')
+      .select('id')
+      .eq('reseller_id', reseller.id)
+      .eq('is_enabled', true);
+    if (pricesError) return c.json({ error: 'Impossible de vérifier les prix publics du lien.' }, 500);
+    if (!publicPrices?.length) {
+      return c.json({ error: 'Configurez au moins un prix public avant d’activer le lien revendeur.' }, 400);
+    }
+    if (
+      reseller.type === 'stripe_connect'
+      && (!reseller.stripe_connect_account_id || !reseller.stripe_charges_enabled)
+    ) {
+      return c.json({ error: 'Finalisez Stripe Connect avant d’activer un lien revendeur avec paiement en ligne.' }, 403);
+    }
+  }
   const { data, error } = await db.from('resellers').update(updates).eq('id', reseller.id).select('*').single();
   if (error) return c.json({ error: 'Impossible de modifier le statut du lien.' }, 500);
   return c.json({ data });

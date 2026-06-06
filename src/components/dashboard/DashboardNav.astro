@@ -129,6 +129,17 @@ const navToneClasses = {
         <path d="M9 12l2 2 4-4"></path>
       </svg>
     </a>
+    <a
+      id="dashboard-reseller-link"
+      href="/reseller"
+      class="hidden items-center justify-between rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-800 transition hover:border-violet-300 hover:bg-violet-100"
+    >
+      <span>Dashboard revendeur</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+      </svg>
+    </a>
     <a href="/app/install" class="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-600 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800">
       <span>Installer un téléphone</span>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
@@ -256,6 +267,14 @@ const navToneClasses = {
         Dashboard admin
         <span aria-hidden="true">→</span>
       </a>
+      <a
+        id="dashboard-reseller-link-mobile"
+        href="/reseller"
+        class="hidden items-center justify-between rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-800"
+      >
+        Dashboard revendeur
+        <span aria-hidden="true">→</span>
+      </a>
       <a href="/app/install" class="flex items-center justify-between rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-800">
         Installer un téléphone
         <span aria-hidden="true">→</span>
@@ -285,6 +304,7 @@ const navToneClasses = {
   const mobileMoreSheet = document.getElementById('mobile-more-sheet');
   const mobileMoreBtn = document.getElementById('mobile-more-btn');
   const adminLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('#dashboard-admin-link, #dashboard-admin-link-mobile'));
+  const resellerLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('#dashboard-reseller-link, #dashboard-reseller-link-mobile'));
   const scannerLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href="/app/scan"]'));
   const scannerOpenOverlay = document.getElementById('scanner-open-overlay');
   let scannerPrefetchStarted = false;
@@ -449,6 +469,21 @@ const navToneClasses = {
     }
   }
 
+  async function revealResellerLinksIfAllowed() {
+    if (!resellerLinks.length) return;
+    try {
+      const res = await authFetch('/api/reseller/me');
+      const payload = await res.json().catch(() => null);
+      if (!res.ok || !payload?.data) return;
+      for (const link of resellerLinks) {
+        link.classList.remove('hidden');
+        link.classList.add('flex');
+      }
+    } catch {
+      // best effort
+    }
+  }
+
   for (const pointVenteSelect of pointVenteSelects) {
     pointVenteSelect.addEventListener('change', (event) => {
       const nextPointVenteId = (event.target as HTMLSelectElement).value || null;
@@ -473,6 +508,7 @@ const navToneClasses = {
   await loadPointVenteSelector();
   await loadPlanBadge();
   await revealAdminLinksIfAllowed();
+  await revealResellerLinksIfAllowed();
 
   async function logout() {
     await supabase.auth.signOut();

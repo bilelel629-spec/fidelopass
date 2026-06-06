@@ -13,14 +13,11 @@ import ResellerLayout from '../../layouts/ResellerLayout.astro';
         </p>
       </div>
       <div class="flex flex-wrap gap-3">
-        <a href="/reseller/merchants/new" class="inline-flex w-fit items-center rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_36px_-24px_rgba(37,99,235,0.8)] transition hover:-translate-y-0.5">
-          Ajouter un commerçant
+        <a href="/reseller/link" class="inline-flex w-fit items-center rounded-2xl bg-gradient-to-r from-blue-600 to-violet-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_36px_-24px_rgba(37,99,235,0.8)] transition hover:-translate-y-0.5">
+          Configurer mon lien revendeur
         </a>
-        <a href="/reseller/link" class="inline-flex w-fit items-center rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-3 text-sm font-semibold text-indigo-800 shadow-[0_16px_32px_-28px_rgba(79,70,229,0.55)] transition hover:-translate-y-0.5 hover:border-indigo-300">
-          Lien revendeur
-        </a>
-        <a href="/reseller/branding" class="inline-flex w-fit items-center rounded-2xl border border-sky-200 bg-white px-5 py-3 text-sm font-semibold text-sky-800 shadow-[0_16px_32px_-28px_rgba(37,99,235,0.55)] transition hover:-translate-y-0.5 hover:border-sky-300">
-          Marque blanche
+        <a href="/reseller/merchants" class="inline-flex w-fit items-center rounded-2xl border border-sky-200 bg-white px-5 py-3 text-sm font-semibold text-sky-800 shadow-[0_16px_32px_-28px_rgba(37,99,235,0.55)] transition hover:-translate-y-0.5 hover:border-sky-300">
+          Voir mes commerçants
         </a>
       </div>
     </div>
@@ -76,9 +73,9 @@ import ResellerLayout from '../../layouts/ResellerLayout.astro';
       <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-violet-700">Lien revendeur</p>
-          <h2 class="mt-2 font-display text-2xl font-bold text-slate-950">Inscription automatique</h2>
+          <h2 class="mt-2 font-display text-2xl font-bold text-slate-950">Votre lien d’inscription</h2>
           <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            Partagez votre lien public: les commerçants qui s’abonnent dessus sont rattachés automatiquement à votre compte.
+            Configurez vos prix, partagez ce lien, puis tous les commerçants qui s’abonnent dessus sont rattachés automatiquement à votre compte.
           </p>
           <p id="dashboard-public-link" class="mt-3 break-all rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">Aucun lien configuré.</p>
         </div>
@@ -87,7 +84,7 @@ import ResellerLayout from '../../layouts/ResellerLayout.astro';
             Copier
           </button>
           <a href="/reseller/link" class="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800">
-            Configurer
+            Configurer le lien
           </a>
         </div>
       </div>

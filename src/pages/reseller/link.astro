@@ -13,7 +13,7 @@ import ResellerLayout from '../../layouts/ResellerLayout.astro';
         </p>
       </div>
       <a id="public-preview-link" href="#" target="_blank" rel="noreferrer" class="hidden rounded-2xl border border-sky-200 bg-white px-5 py-3 text-sm font-semibold text-sky-800 shadow-[0_16px_32px_-28px_rgba(37,99,235,0.55)] transition hover:-translate-y-0.5">
-        Voir la page publique
+        Prévisualiser ma page
       </a>
     </div>
 
@@ -46,15 +46,15 @@ import ResellerLayout from '../../layouts/ResellerLayout.astro';
 
         <div class="mt-5 grid gap-3 sm:grid-cols-2">
           <label class="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
-            <span>
-              <span class="block text-sm font-semibold text-slate-900">Lien actif</span>
-              <span class="block text-xs text-slate-500">La page `/r/slug` est accessible.</span>
-            </span>
+          <span>
+            <span class="block text-sm font-semibold text-slate-900">Lien actif</span>
+              <span class="block text-xs text-slate-500">La page revendeur est accessible.</span>
+          </span>
             <input id="toggle-link" type="checkbox" class="h-5 w-5 rounded border-slate-300" />
           </label>
           <label class="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
             <span>
-              <span class="block text-sm font-semibold text-slate-900">Inscriptions</span>
+            <span class="block text-sm font-semibold text-slate-900">Inscriptions</span>
               <span class="block text-xs text-slate-500">Autoriser les nouveaux clients.</span>
             </span>
             <input id="toggle-signup" type="checkbox" class="h-5 w-5 rounded border-slate-300" />
@@ -97,6 +97,9 @@ import ResellerLayout from '../../layouts/ResellerLayout.astro';
           <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-blue-700">Tarifs publics</p>
           <h2 class="mt-2 font-display text-2xl font-bold text-slate-950">Prix visibles par vos clients</h2>
           <p class="mt-2 text-sm text-slate-500">Le commerçant voit seulement le prix final. Votre marge et la part Fidelopass restent privées.</p>
+          <p class="mt-2 text-sm font-semibold text-slate-700">
+            Si un prix est sous le minimum autorisé ou sous la part Fidelopass, l’enregistrement est bloqué automatiquement.
+          </p>
         </div>
         <button id="save-prices-button" class="rounded-2xl bg-gradient-to-r from-blue-600 to-violet-500 px-5 py-3 text-sm font-bold text-white shadow-[0_18px_34px_-24px_rgba(37,99,235,0.9)]">
           Enregistrer les prix

@@ -60,7 +60,11 @@ async function loadEnabledPublicPrices(db: ReturnType<typeof createServiceClient
     .eq('reseller_id', resellerId)
     .eq('is_enabled', true)
     .order('public_price_cents');
-  if (error) throw error;
+  if (error) {
+    const missing = error.code === '42P01' || /reseller_public_plan_prices/i.test(error.message ?? '');
+    if (missing) return [];
+    throw error;
+  }
   return data ?? [];
 }
 

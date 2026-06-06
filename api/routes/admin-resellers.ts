@@ -6,6 +6,7 @@ import { getStripe } from '../services/stripe-billing';
 import {
   createOrInviteResellerUser,
   ensureDefaultResellerPlanSettings,
+  findUserIdByEmail,
   getResellerByUserId,
   normalizeCurrency,
   normalizeHexColor,
@@ -14,6 +15,7 @@ import {
   normalizeResellerPlan,
   type ResellerPlan,
 } from '../services/reseller';
+import { sendResellerAccessEmail } from '../services/reseller-email';
 
 export const adminResellerRoutes = new Hono<ApiEnv>();
 export const adminResellerPaymentsRoutes = new Hono<ApiEnv>();
@@ -34,6 +36,12 @@ const resellerCreateSchema = z.object({
   primary_color: z.string().optional(),
   secondary_color: z.string().optional(),
   support_email: z.string().trim().email().nullable().optional(),
+  settings: z.array(z.object({
+    plan: resellerPlanSchema,
+    min_price_cents: z.number().int().min(0),
+    platform_fee_cents: z.number().int().min(0),
+    currency: z.string().trim().max(3).optional(),
+  })).min(1).max(3).optional(),
 });
 
 const resellerPatchSchema = resellerCreateSchema.omit({ email: true }).extend({
@@ -90,13 +98,41 @@ function currentMonthPeriod() {
 }
 
 async function loadReseller(db: ReturnType<typeof createServiceClient>, resellerId: string) {
-  const { data, error } = await db
+  const { data: reseller, error } = await db
     .from('resellers')
-    .select('*, reseller_plan_settings(*), reseller_public_plan_prices(*), reseller_merchants(*, commerces(id, nom, email, actif, billing_status))')
+    .select('*')
     .eq('id', resellerId)
     .maybeSingle();
   if (error) throw error;
-  return data;
+  if (!reseller) return null;
+
+  const [settingsRes, publicPricesRes, merchantsRes] = await Promise.all([
+    db.from('reseller_plan_settings').select('*').eq('reseller_id', resellerId),
+    db.from('reseller_public_plan_prices').select('*').eq('reseller_id', resellerId),
+    db.from('reseller_merchants').select('*, commerces(id, nom, email, actif, billing_status)').eq('reseller_id', resellerId),
+  ]);
+
+  const settingsError = settingsRes.error as { code?: string; message?: string } | null;
+  const settingsMissing = settingsError?.code === '42P01'
+    || /reseller_plan_settings/i.test(settingsError?.message ?? '');
+  if (settingsError && !settingsMissing) throw settingsError;
+
+  const publicPricesError = publicPricesRes.error as { code?: string; message?: string } | null;
+  const publicPricesMissing = publicPricesError?.code === '42P01'
+    || /reseller_public_plan_prices/i.test(publicPricesError?.message ?? '');
+  if (publicPricesError && !publicPricesMissing) throw publicPricesError;
+
+  const merchantsError = merchantsRes.error as { code?: string; message?: string } | null;
+  const merchantsRelationMissing = merchantsError?.code === '42P01'
+    || /reseller_merchants|relationship|schema cache/i.test(merchantsError?.message ?? '');
+  if (merchantsError && !merchantsRelationMissing) throw merchantsError;
+
+  return {
+    ...reseller,
+    reseller_plan_settings: settingsMissing ? [] : settingsRes.data ?? [],
+    reseller_public_plan_prices: publicPricesMissing ? [] : publicPricesRes.data ?? [],
+    reseller_merchants: merchantsRelationMissing ? [] : merchantsRes.data ?? [],
+  };
 }
 
 function summarizeReseller(row: any) {
@@ -119,13 +155,36 @@ function summarizeReseller(row: any) {
   };
 }
 
+async function upsertPlanSettings(
+  db: ReturnType<typeof createServiceClient>,
+  resellerId: string,
+  settings: Array<{ plan: ResellerPlan; min_price_cents: number; platform_fee_cents: number; currency?: string }> | undefined,
+  fallbackCurrency: string,
+) {
+  if (!settings?.length) return null;
+  const invalid = settings.find((setting) => setting.platform_fee_cents > setting.min_price_cents);
+  if (invalid) return 'La part Fidelopass ne peut pas dépasser le prix minimum.';
+  const { error } = await db.from('reseller_plan_settings').upsert(settings.map((setting) => ({
+    reseller_id: resellerId,
+    plan: setting.plan,
+    min_price_cents: setting.min_price_cents,
+    platform_fee_cents: setting.platform_fee_cents,
+    currency: normalizeCurrency(setting.currency, fallbackCurrency),
+    updated_at: new Date().toISOString(),
+  })), { onConflict: 'reseller_id,plan' });
+  if (error) return 'Impossible de mettre à jour les conditions commerciales du revendeur.';
+  return null;
+}
+
 async function loadResellerLinkStats(db: ReturnType<typeof createServiceClient>, resellerId: string, currency = 'eur') {
   const [eventsRes, referralsRes] = await Promise.all([
     db.from('reseller_link_events').select('event_type').eq('reseller_id', resellerId),
     db.from('reseller_referrals').select('status, reseller_margin_cents').eq('reseller_id', resellerId),
   ]);
-  const events = eventsRes.data ?? [];
-  const referrals = referralsRes.data ?? [];
+  if (eventsRes.error) console.warn('[admin-resellers] link events load failed', resellerId, eventsRes.error);
+  if (referralsRes.error) console.warn('[admin-resellers] referrals load failed', resellerId, referralsRes.error);
+  const events = eventsRes.error ? [] : eventsRes.data ?? [];
+  const referrals = referralsRes.error ? [] : referralsRes.data ?? [];
   const countEvent = (type: string) => events.filter((event: any) => event.event_type === type).length;
   const paidReferrals = referrals.filter((referral: any) => ['paid', 'active'].includes(String(referral.status)));
   const views = countEvent('view');
@@ -146,10 +205,47 @@ adminResellerRoutes.get('/', async (c) => {
   const db = createServiceClient();
   const { data, error } = await db
     .from('resellers')
-    .select('*, reseller_plan_settings(*), reseller_merchants(*)')
+    .select('*')
     .order('created_at', { ascending: false });
   if (error) return c.json({ error: 'Impossible de charger les revendeurs.' }, 500);
-  return c.json({ data: (data ?? []).map(summarizeReseller) });
+  const hydrated = await Promise.all((data ?? []).map(async (row: any) => {
+    try {
+      return await loadReseller(db, row.id);
+    } catch (error) {
+      console.warn('[admin-resellers] reseller hydration failed', row.id, error);
+      return {
+        ...row,
+        reseller_plan_settings: [],
+        reseller_public_plan_prices: [],
+        reseller_merchants: [],
+      };
+    }
+  }));
+  return c.json({ data: hydrated.filter(Boolean).map(summarizeReseller) });
+});
+
+adminResellerRoutes.get('/users/search', async (c) => {
+  const email = c.req.query('email')?.trim().toLowerCase();
+  if (!email || !z.string().email().safeParse(email).success) {
+    return c.json({ error: 'Email invalide.' }, 400);
+  }
+  const db = createServiceClient();
+  try {
+    const userId = await findUserIdByEmail(db, email);
+    if (!userId) return c.json({ data: { exists: false, email } });
+    const reseller = await getResellerByUserId(db, userId);
+    return c.json({
+      data: {
+        exists: true,
+        email,
+        user_id: userId,
+        reseller_id: reseller?.id ?? null,
+        already_reseller: Boolean(reseller?.id),
+      },
+    });
+  } catch (error) {
+    return c.json({ error: 'Recherche utilisateur impossible.' }, 500);
+  }
 });
 
 adminResellerRoutes.post('/', async (c) => {
@@ -170,14 +266,36 @@ adminResellerRoutes.post('/', async (c) => {
 
   const existing = await getResellerByUserId(db, account.userId);
   if (existing?.id) {
-    if (!existing.support_email) {
-      await db
-        .from('resellers')
-        .update({ support_email: parsed.data.support_email ?? parsed.data.email, updated_at: new Date().toISOString() })
-        .eq('id', existing.id);
-    }
+    await db
+      .from('resellers')
+      .update({
+        type: parsed.data.type ?? existing.type,
+        status: parsed.data.status ?? existing.status,
+        country: parsed.data.country ?? existing.country,
+        currency: currency || existing.currency,
+        brand_name: brandName || existing.brand_name,
+        brand_logo_url: parsed.data.brand_logo_url ?? existing.brand_logo_url ?? null,
+        primary_color: normalizeHexColor(parsed.data.primary_color, existing.primary_color ?? '#2563eb'),
+        secondary_color: normalizeHexColor(parsed.data.secondary_color, existing.secondary_color ?? '#4f46e5'),
+        support_email: parsed.data.support_email ?? existing.support_email ?? parsed.data.email,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existing.id);
     await ensureDefaultResellerPlanSettings(db, existing.id, existing.currency ?? currency);
+    const settingsError = await upsertPlanSettings(
+      db,
+      existing.id,
+      parsed.data.settings?.map((setting) => ({ ...setting, plan: setting.plan as ResellerPlan })),
+      existing.currency ?? currency,
+    );
+    if (settingsError) return c.json({ error: settingsError }, 400);
     const reseller = await loadReseller(db, existing.id);
+    await sendResellerAccessEmail({
+      toEmail: parsed.data.email,
+      brandName: reseller?.brand_name ?? brandName,
+      dashboardUrl: `${(process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '')}/reseller`,
+      publicLinkUrl: reseller?.public_slug ? publicResellerUrl(reseller.public_slug) : null,
+    });
     return c.json({
       data: summarizeReseller(reseller),
       already_exists: true,
@@ -205,7 +323,20 @@ adminResellerRoutes.post('/', async (c) => {
       const resellerByUser = await getResellerByUserId(db, account.userId);
       if (resellerByUser?.id) {
         await ensureDefaultResellerPlanSettings(db, resellerByUser.id, resellerByUser.currency ?? currency);
+        const settingsError = await upsertPlanSettings(
+          db,
+          resellerByUser.id,
+          parsed.data.settings?.map((setting) => ({ ...setting, plan: setting.plan as ResellerPlan })),
+          resellerByUser.currency ?? currency,
+        );
+        if (settingsError) return c.json({ error: settingsError }, 400);
         const reseller = await loadReseller(db, resellerByUser.id);
+        await sendResellerAccessEmail({
+          toEmail: parsed.data.email,
+          brandName: reseller?.brand_name ?? brandName,
+          dashboardUrl: `${(process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '')}/reseller`,
+          publicLinkUrl: reseller?.public_slug ? publicResellerUrl(reseller.public_slug) : null,
+        });
         return c.json({
           data: summarizeReseller(reseller),
           already_exists: true,
@@ -219,7 +350,20 @@ adminResellerRoutes.post('/', async (c) => {
   }
 
   await ensureDefaultResellerPlanSettings(db, data.id, currency);
+  const settingsError = await upsertPlanSettings(
+    db,
+    data.id,
+    parsed.data.settings?.map((setting) => ({ ...setting, plan: setting.plan as ResellerPlan })),
+    currency,
+  );
+  if (settingsError) return c.json({ error: settingsError }, 400);
   const reseller = await loadReseller(db, data.id);
+  await sendResellerAccessEmail({
+    toEmail: parsed.data.email,
+    brandName,
+    dashboardUrl: `${(process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '')}/reseller`,
+    publicLinkUrl: data.public_slug ? publicResellerUrl(data.public_slug) : null,
+  });
   return c.json({
     data: summarizeReseller(reseller),
     account_created: account.created,
@@ -234,18 +378,26 @@ adminResellerRoutes.get('/:id', async (c) => {
   const resellerId = requireUuid(c.req.param('id'));
   if (!resellerId) return c.json({ error: 'Identifiant revendeur invalide.' }, 400);
   const db = createServiceClient();
-  const reseller = await loadReseller(db, resellerId);
+  let reseller: Awaited<ReturnType<typeof loadReseller>>;
+  try {
+    reseller = await loadReseller(db, resellerId);
+  } catch (error) {
+    console.warn('[admin-resellers] reseller detail load failed', resellerId, error);
+    return c.json({ error: 'Impossible de charger le dossier revendeur. Vérifiez que les migrations revendeur sont appliquées.' }, 500);
+  }
   if (!reseller) return c.json({ error: 'Revendeur introuvable.' }, 404);
 
   const [transactionsRes, invoicesRes] = await Promise.all([
     db.from('reseller_transactions').select('*').eq('reseller_id', resellerId).order('created_at', { ascending: false }).limit(80),
     db.from('reseller_invoices').select('*, reseller_invoice_lines(*)').eq('reseller_id', resellerId).order('period_start', { ascending: false }),
   ]);
+  if (transactionsRes.error) console.warn('[admin-resellers] transactions load failed', resellerId, transactionsRes.error);
+  if (invoicesRes.error) console.warn('[admin-resellers] invoices load failed', resellerId, invoicesRes.error);
 
   return c.json({
     data: summarizeReseller(reseller),
-    transactions: transactionsRes.data ?? [],
-    invoices: invoicesRes.data ?? [],
+    transactions: transactionsRes.error ? [] : transactionsRes.data ?? [],
+    invoices: invoicesRes.error ? [] : invoicesRes.data ?? [],
     link_stats: await loadResellerLinkStats(db, resellerId, reseller.currency ?? 'eur'),
   });
 });

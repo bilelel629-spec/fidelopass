@@ -6,6 +6,7 @@ import { getStripe } from '../services/stripe-billing';
 import {
   createOrInviteResellerUser,
   ensureDefaultResellerPlanSettings,
+  ensureDefaultResellerPublicPrices,
   findUserIdByEmail,
   getResellerByUserId,
   normalizeCurrency,
@@ -289,6 +290,7 @@ adminResellerRoutes.post('/', async (c) => {
       existing.currency ?? currency,
     );
     if (settingsError) return c.json({ error: settingsError }, 400);
+    await ensureDefaultResellerPublicPrices(db, existing.id, existing.currency ?? currency);
     const reseller = await loadReseller(db, existing.id);
     await sendResellerAccessEmail({
       toEmail: parsed.data.email,
@@ -330,6 +332,7 @@ adminResellerRoutes.post('/', async (c) => {
           resellerByUser.currency ?? currency,
         );
         if (settingsError) return c.json({ error: settingsError }, 400);
+        await ensureDefaultResellerPublicPrices(db, resellerByUser.id, resellerByUser.currency ?? currency);
         const reseller = await loadReseller(db, resellerByUser.id);
         await sendResellerAccessEmail({
           toEmail: parsed.data.email,
@@ -357,6 +360,7 @@ adminResellerRoutes.post('/', async (c) => {
     currency,
   );
   if (settingsError) return c.json({ error: settingsError }, 400);
+  await ensureDefaultResellerPublicPrices(db, data.id, currency);
   const reseller = await loadReseller(db, data.id);
   await sendResellerAccessEmail({
     toEmail: parsed.data.email,

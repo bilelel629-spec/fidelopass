@@ -11,7 +11,7 @@ const navItems = [
   { href: '/reseller', id: 'dashboard', label: 'Vue revendeur', icon: 'M4 13h6V4H4zm10 7h6v-9h-6zm0-11h6V4h-6zM4 20h6v-5H4z' },
   { href: '/reseller/link', id: 'link', label: 'Lien revendeur', icon: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71 M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71' },
   { href: '/reseller/merchants', id: 'merchants', label: 'Commerçants', icon: 'M3 21h18 M5 21V7l7-4 7 4v14 M9 9h.01 M15 9h.01' },
-  { href: '/reseller/stripe', id: 'stripe', label: 'Stripe Connect', icon: 'M12 5v14 M5 12h14 M6 17h12 M6 7h12' },
+  { href: '/reseller/stripe', id: 'stripe', label: 'Facturation', icon: 'M12 5v14 M5 12h14 M6 17h12 M6 7h12' },
 ];
 ---
 
@@ -57,7 +57,7 @@ const navItems = [
                   {icon.split(' M').map((path, index) => <path d={index === 0 ? path : `M${path}`}></path>)}
                 </svg>
               </span>
-              <span class={activeNav === id ? 'font-semibold' : 'font-medium'}>{label}</span>
+              <span id={id === 'stripe' ? 'reseller-billing-nav-label' : undefined} class={activeNav === id ? 'font-semibold' : 'font-medium'}>{label}</span>
             </a>
           ))}
         </nav>
@@ -102,6 +102,8 @@ const navItems = [
       }
       const badge = document.getElementById('reseller-layout-badge');
       if (badge) badge.textContent = reseller.type === 'stripe_connect' ? 'Revendeur Connect' : 'Revendeur facturé';
+      const billingLabel = document.getElementById('reseller-billing-nav-label');
+      if (billingLabel) billingLabel.textContent = reseller.type === 'stripe_connect' ? 'Stripe Connect' : 'Facturation';
     } catch {
       // best effort
     }

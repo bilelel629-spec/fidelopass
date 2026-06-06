@@ -12,6 +12,7 @@ import {
   calculateResellerPricing,
   createOrInviteMerchantUser,
   createResellerStripePrice,
+  ensureDefaultResellerPublicPrices,
   ensureMerchantCommerce,
   getResellerByUserId,
   getResellerPlanSetting,
@@ -244,11 +245,13 @@ resellerRoutes.get('/link', async (c) => {
   const { reseller } = getResellerContext(c);
   const db = createServiceClient();
   try {
-    const [settings, prices, stats] = await Promise.all([
-      getResellerPlanSettings(db, reseller.id),
-      loadPublicPlanPrices(db, reseller.id),
-      loadResellerLinkStats(db, reseller.id, reseller.currency),
-    ]);
+    const settings = await getResellerPlanSettings(db, reseller.id);
+    let prices = await loadPublicPlanPrices(db, reseller.id);
+    if (!prices.length) {
+      await ensureDefaultResellerPublicPrices(db, reseller.id, reseller.currency);
+      prices = await loadPublicPlanPrices(db, reseller.id);
+    }
+    const stats = await loadResellerLinkStats(db, reseller.id, reseller.currency);
     return c.json({
       reseller,
       public_url: reseller.public_slug ? publicResellerUrl(reseller.public_slug) : null,
@@ -390,7 +393,7 @@ resellerRoutes.get('/stripe/status', async (c) => {
     return c.json({ data: { enabled: false, message: 'Ce revendeur est en mode facturé.' } });
   }
   if (!reseller.stripe_connect_account_id) {
-    return c.json({ data: { enabled: false, connected: false, reseller } });
+    return c.json({ data: { enabled: true, connected: false, reseller } });
   }
 
   const db = createServiceClient();

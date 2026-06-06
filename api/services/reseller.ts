@@ -242,6 +242,33 @@ export async function ensureDefaultResellerPlanSettings(
   if (error) throw error;
 }
 
+export async function ensureDefaultResellerPublicPrices(
+  db: ReturnType<typeof createServiceClient>,
+  resellerId: string,
+  currency = 'eur',
+) {
+  const settings = await getResellerPlanSettings(db, resellerId);
+  const rows = (['starter', 'pro', 'premium'] as ResellerPlan[]).map((plan) => {
+    const setting = settings.get(plan)!;
+    const computed = calculatePublicResellerPricing(plan, Number(setting.min_price_cents), {
+      min_price_cents: Number(setting.min_price_cents),
+      platform_fee_cents: Number(setting.platform_fee_cents),
+      currency: setting.currency || currency,
+    });
+    return {
+      reseller_id: resellerId,
+      ...computed,
+      is_enabled: true,
+      updated_at: new Date().toISOString(),
+    };
+  });
+
+  const { error } = await db
+    .from('reseller_public_plan_prices')
+    .upsert(rows, { onConflict: 'reseller_id,plan', ignoreDuplicates: true });
+  if (error) throw error;
+}
+
 export async function findUserIdByEmail(
   db: ReturnType<typeof createServiceClient>,
   email: string,

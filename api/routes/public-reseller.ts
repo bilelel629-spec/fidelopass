@@ -6,6 +6,7 @@ import { getStripe } from '../services/stripe-billing';
 import {
   createOrInviteMerchantUser,
   createResellerStripePrice,
+  ensureDefaultResellerPublicPrices,
   ensureMerchantCommerce,
   getResellerPlanSetting,
   normalizeCurrency,
@@ -136,7 +137,14 @@ publicResellerRoutes.get('/:slug', async (c) => {
     if (!reseller || reseller.status !== 'approved' || !reseller.public_link_enabled) {
       return c.json({ available: false, message: unavailableMessage() }, 404);
     }
-    const prices = await loadEnabledPublicPrices(db, reseller.id);
+    let prices = await loadEnabledPublicPrices(db, reseller.id);
+    if (!prices.length) {
+      await ensureDefaultResellerPublicPrices(db, reseller.id, reseller.currency);
+      prices = await loadEnabledPublicPrices(db, reseller.id);
+    }
+    if (!prices.length) {
+      return c.json({ available: false, message: 'Cette offre doit encore être configurée par le revendeur.' }, 404);
+    }
     await logLinkEvent(db, reseller.id, 'view', null, {
       user_agent: c.req.header('user-agent') ?? null,
     });

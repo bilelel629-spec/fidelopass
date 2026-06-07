@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import type { ApiEnv } from '../types';
 import { z } from 'zod';
 import Stripe from 'stripe';
@@ -39,6 +40,18 @@ function pricingItem(slot: string, priceIds: Record<string, string>) {
     mode: resolveExpectedModeFromSlot(slot as PriceSlot),
     available: Boolean(priceId) && !isLegacyPrice,
   };
+}
+
+function stripeConfigErrorResponse(c: Context<ApiEnv>, error: unknown) {
+  const message = error instanceof Error ? error.message : 'Configuration Stripe indisponible.';
+  if (
+    message.includes('STRIPE_SECRET_KEY')
+    || message.includes('Clé Stripe test interdite')
+    || message.toLowerCase().includes('stripe')
+  ) {
+    return c.json({ error: message }, 503);
+  }
+  return c.json({ error: message }, 400);
 }
 
 /** GET /api/checkout/pricing-config */
@@ -100,7 +113,16 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   }
 
   const { priceId, mode, includeAccompagnement, dryRun } = parsed.data;
-  const priceIds = await loadRuntimePriceIds(getStripe({ maxNetworkRetries: 1 }));
+  let stripe: Stripe;
+  let priceIds: Record<PriceSlot, string>;
+  try {
+    stripe = getStripe({ maxNetworkRetries: 1 });
+    priceIds = await loadRuntimePriceIds(stripe);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Configuration Stripe indisponible.';
+    console.error('[checkout] stripe configuration error:', message);
+    return stripeConfigErrorResponse(c, error);
+  }
   const selectedSlot = resolvePriceSlot(priceId, priceIds);
 
   if (!selectedSlot) {
@@ -163,7 +185,6 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
     }
   }
 
-  const stripe = getStripe();
   const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
 
   if (isAccompagnementOnly) {

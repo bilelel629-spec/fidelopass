@@ -46,10 +46,10 @@ import ResellerLayout from '../../../layouts/ResellerLayout.astro';
           <label class="space-y-2">
             <span class="text-sm font-semibold text-slate-700">Mode de paiement</span>
             <select name="payment_mode" id="payment-mode-input" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+              <option value="stripe_direct">Paiement en ligne Fidelopass</option>
               <option value="manual">Manuel</option>
               <option value="bank_transfer">Virement</option>
               <option value="cash">Espèces</option>
-              <option value="stripe_connect">Stripe Checkout</option>
             </select>
           </label>
           <label class="space-y-2">
@@ -97,7 +97,6 @@ import ResellerLayout from '../../../layouts/ResellerLayout.astro';
   import { authFetch } from '../../../lib/api';
 
   const settings = new Map<string, any>();
-  let resellerType = 'invoiced';
   let currency = 'eur';
 
   const formatMoney = (cents: unknown, curr = currency) => new Intl.NumberFormat('fr-FR', {
@@ -112,13 +111,6 @@ import ResellerLayout from '../../../layouts/ResellerLayout.astro';
 
   function currentPriceCents() {
     return Math.round(Number((document.getElementById('price-input') as HTMLInputElement).value || 0) * 100);
-  }
-
-  function updatePaymentModes() {
-    const select = document.getElementById('payment-mode-input') as HTMLSelectElement;
-    const stripeOption = Array.from(select.options).find((option) => option.value === 'stripe_connect');
-    if (stripeOption) stripeOption.disabled = resellerType !== 'stripe_connect';
-    if (resellerType !== 'stripe_connect' && select.value === 'stripe_connect') select.value = 'manual';
   }
 
   function updateSummary() {
@@ -140,12 +132,10 @@ import ResellerLayout from '../../../layouts/ResellerLayout.astro';
     const res = await authFetch('/api/reseller/me');
     const payload = await res.json().catch(() => null);
     const reseller = payload?.data;
-    resellerType = reseller?.type ?? 'invoiced';
     currency = reseller?.currency ?? 'eur';
     for (const setting of payload?.settings ?? []) settings.set(setting.plan, setting);
     const starter = settings.get('starter');
     if (starter) (document.getElementById('price-input') as HTMLInputElement).value = String(Math.round(starter.min_price_cents / 100));
-    updatePaymentModes();
     updateSummary();
   }
 
@@ -172,7 +162,7 @@ import ResellerLayout from '../../../layouts/ResellerLayout.astro';
       country: String(formData.get('country') ?? ''),
       plan: String(formData.get('plan') ?? 'starter'),
       price_cents: currentPriceCents(),
-      payment_mode: String(formData.get('payment_mode') ?? 'manual'),
+      payment_mode: String(formData.get('payment_mode') ?? 'stripe_direct'),
       creation_mode: String(formData.get('creation_mode') ?? 'invite'),
       activate_now: (document.getElementById('activate-now-input') as HTMLInputElement).checked,
     };
@@ -183,7 +173,7 @@ import ResellerLayout from '../../../layouts/ResellerLayout.astro';
       button.disabled = false;
       return;
     }
-    if (payload.payment_mode === 'stripe_connect') {
+    if (payload.payment_mode === 'stripe_direct' || payload.payment_mode === 'stripe_connect') {
       const checkoutRes = await authFetch(`/api/reseller/merchants/${result.data.id}/checkout`, { method: 'POST', body: JSON.stringify({}) });
       const checkout = await checkoutRes.json().catch(() => null);
       if (checkoutRes.ok && checkout?.url) {

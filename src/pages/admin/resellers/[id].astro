@@ -56,10 +56,10 @@ const { id } = Astro.params;
             <input name="brand_name" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
           </label>
           <label class="space-y-2">
-            <span class="text-sm font-semibold text-slate-700">Type</span>
+            <span class="text-sm font-semibold text-slate-700">Mode revendeur</span>
             <select name="type" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <option value="stripe_connect">Stripe Connect</option>
-              <option value="invoiced">Facturé</option>
+              <option value="invoiced">V1 simple — Stripe Fidelopass + commissions</option>
+              <option value="stripe_connect">Ancien mode Connect — compatibilité</option>
             </select>
           </label>
           <label class="space-y-2">
@@ -186,6 +186,20 @@ const { id } = Astro.params;
       </div>
     </section>
 
+    <section class="rounded-[1.7rem] border border-emerald-100 bg-white/90 p-6 shadow-[0_22px_52px_-38px_rgba(16,185,129,0.34)]">
+      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p class="text-[0.7rem] font-bold uppercase tracking-[0.24em] text-emerald-600">Reversements</p>
+          <h2 class="mt-2 text-2xl font-black text-slate-950">Commissions revendeur</h2>
+          <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+            Stripe encaisse le client sur Fidelopass. Les commissions ci-dessous servent de registre pour payer le revendeur manuellement.
+          </p>
+        </div>
+        <p id="commission-summary" class="rounded-full border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-800">-</p>
+      </div>
+      <div id="commission-list" class="mt-5 space-y-3"></div>
+    </section>
+
     <div class="grid gap-6 xl:grid-cols-2">
       <section class="rounded-[1.7rem] border border-sky-100 bg-white/90 p-6 shadow-[0_22px_52px_-38px_rgba(37,99,235,0.45)]">
         <p class="text-[0.7rem] font-bold uppercase tracking-[0.24em] text-blue-600">Transactions</p>
@@ -194,7 +208,7 @@ const { id } = Astro.params;
       </section>
       <section class="rounded-[1.7rem] border border-sky-100 bg-white/90 p-6 shadow-[0_22px_52px_-38px_rgba(37,99,235,0.45)]">
         <p class="text-[0.7rem] font-bold uppercase tracking-[0.24em] text-blue-600">Factures</p>
-        <h2 class="mt-2 text-2xl font-black text-slate-950">Revendeurs facturés</h2>
+        <h2 class="mt-2 text-2xl font-black text-slate-950">Suivi interne</h2>
         <div id="invoice-list" class="mt-5 space-y-3"></div>
       </section>
     </div>
@@ -231,6 +245,60 @@ const { id } = Astro.params;
     }).format(Number(cents ?? 0) / 100);
   }
 
+  function typeLabel(type: unknown) {
+    return String(type ?? '') === 'stripe_connect'
+      ? 'Ancien Connect'
+      : 'V1 commissions';
+  }
+
+  function paymentLabel(mode: unknown) {
+    switch (String(mode ?? '')) {
+      case 'stripe_direct':
+        return 'Stripe Fidelopass';
+      case 'stripe_connect':
+        return 'Ancien Connect';
+      case 'manual':
+        return 'Manuel';
+      case 'bank_transfer':
+        return 'Virement';
+      case 'cash':
+        return 'Espèces';
+      default:
+        return '-';
+    }
+  }
+
+  function commissionStatusLabel(status: unknown) {
+    switch (String(status ?? '')) {
+      case 'pending':
+        return 'À reverser';
+      case 'paid':
+        return 'Payée';
+      case 'approved':
+        return 'Validée';
+      case 'refunded':
+        return 'Remboursée';
+      case 'cancelled':
+        return 'Annulée';
+      default:
+        return String(status ?? '-');
+    }
+  }
+
+  function commissionStatusClass(status: unknown) {
+    switch (String(status ?? '')) {
+      case 'pending':
+        return 'border-amber-200 bg-amber-50 text-amber-800';
+      case 'paid':
+        return 'border-emerald-200 bg-emerald-50 text-emerald-800';
+      case 'refunded':
+      case 'cancelled':
+        return 'border-red-200 bg-red-50 text-red-700';
+      default:
+        return 'border-slate-200 bg-slate-50 text-slate-600';
+    }
+  }
+
   function showFeedback(message: string, danger = false) {
     const feedback = document.getElementById('feedback')!;
     feedback.classList.remove('hidden', 'border-red-200', 'bg-red-50', 'text-red-700', 'border-sky-100', 'bg-white', 'text-slate-700');
@@ -260,7 +328,7 @@ const { id } = Astro.params;
     const reseller = payload.data;
     const metrics = reseller.metrics ?? {};
     document.getElementById('reseller-title')!.textContent = reseller.brand_name ?? 'Revendeur';
-    document.getElementById('reseller-subtitle')!.textContent = `${reseller.type === 'stripe_connect' ? 'Stripe Connect' : 'Facturé'} · ${reseller.status} · ${reseller.country ?? 'Pays non renseigné'}`;
+    document.getElementById('reseller-subtitle')!.textContent = `${typeLabel(reseller.type)} · ${reseller.status} · ${reseller.country ?? 'Pays non renseigné'}`;
     document.getElementById('metric-active')!.textContent = String(metrics.active_merchants_count ?? 0);
     document.getElementById('metric-revenue')!.textContent = money(metrics.total_revenue_cents, reseller.currency);
     document.getElementById('metric-platform')!.textContent = money(metrics.platform_revenue_cents, reseller.currency);
@@ -328,10 +396,68 @@ const { id } = Astro.params;
         <td class="px-4 py-4">${money(merchant.reseller_price_cents, merchant.currency)}</td>
         <td class="px-4 py-4">${money(merchant.platform_fee_cents, merchant.currency)}</td>
         <td class="px-4 py-4">${money(merchant.reseller_margin_cents, merchant.currency)}</td>
-        <td class="px-4 py-4">${escapeHtml(merchant.payment_mode)}</td>
+        <td class="px-4 py-4">${escapeHtml(paymentLabel(merchant.payment_mode))}</td>
         <td class="px-4 py-4">${escapeHtml(merchant.subscription_status)}</td>
       </tr>
     `).join('') : '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Aucun commerçant lié.</td></tr>';
+
+    const commissions = Array.isArray(payload.commissions) ? payload.commissions : [];
+    const pendingCommissionCents = commissions
+      .filter((commission: any) => commission.status === 'pending')
+      .reduce((sum: number, commission: any) => sum + Number(commission.reseller_commission_cents ?? 0), 0);
+    document.getElementById('commission-summary')!.textContent = `${money(pendingCommissionCents, reseller.currency)} à reverser`;
+    document.getElementById('commission-list')!.innerHTML = commissions.length ? commissions.map((commission: any) => {
+      const isPending = commission.status === 'pending';
+      return `
+        <article class="grid gap-4 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4 lg:grid-cols-[1.1fr_0.8fr_0.8fr_0.8fr_auto] lg:items-center">
+          <div>
+            <p class="font-semibold text-slate-950">${escapeHtml(planLabels[commission.plan] ?? commission.plan ?? 'Abonnement')}</p>
+            <p class="mt-1 text-xs text-slate-500">${escapeHtml(new Date(commission.created_at).toLocaleString('fr-FR'))}</p>
+            ${commission.stripe_invoice_id ? `<p class="mt-1 break-all text-[0.68rem] text-slate-400">Invoice: ${escapeHtml(commission.stripe_invoice_id)}</p>` : ''}
+          </div>
+          <div>
+            <p class="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-slate-400">Payé client</p>
+            <p class="mt-1 font-black text-slate-950">${money(commission.amount_paid_cents, commission.currency)}</p>
+          </div>
+          <div>
+            <p class="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-slate-400">Part Fidelopass</p>
+            <p class="mt-1 font-black text-slate-950">${money(commission.platform_fee_cents, commission.currency)}</p>
+          </div>
+          <div>
+            <p class="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-slate-400">À reverser</p>
+            <p class="mt-1 font-black text-emerald-700">${money(commission.reseller_commission_cents, commission.currency)}</p>
+          </div>
+          <div class="flex flex-col gap-2">
+            <span class="inline-flex justify-center rounded-full border px-3 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.14em] ${commissionStatusClass(commission.status)}">${escapeHtml(commissionStatusLabel(commission.status))}</span>
+            ${isPending ? `
+              <button
+                type="button"
+                data-commission-id="${escapeHtml(commission.id)}"
+                class="rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-emerald-700 transition hover:-translate-y-0.5 hover:bg-emerald-50"
+              >
+                Marquer payée
+              </button>
+            ` : ''}
+          </div>
+        </article>
+      `;
+    }).join('') : '<p class="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-500">Aucune commission enregistrée pour le moment.</p>';
+
+    document.querySelectorAll('[data-commission-id]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const btn = button as HTMLButtonElement;
+        if (!confirm('Marquer cette commission comme payée au revendeur ?')) return;
+        try {
+          await post(`/api/admin/resellers/${resellerId}/commissions/mark-paid`, {
+            commission_ids: [btn.dataset.commissionId],
+          });
+          showFeedback('Commission marquée comme payée.');
+          await loadDetail();
+        } catch (error) {
+          showFeedback(error instanceof Error ? error.message : 'Commission impossible à modifier.', true);
+        }
+      });
+    });
 
     const generateButton = document.getElementById('generate-invoice')!;
     generateButton.classList.toggle('hidden', reseller.type !== 'invoiced');

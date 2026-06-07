@@ -9,12 +9,12 @@ import {
   ensureDefaultResellerPublicPrices,
   ensureMerchantCommerce,
   getResellerPlanSetting,
+  getResellerPlanSettings,
   normalizeCurrency,
   normalizePublicSlug,
   normalizeResellerPlan,
   publicResellerUrl,
   resellerPlanLabel,
-  stripeApplicationFeePercent,
   type ResellerPlan,
   type ResellerRecord,
 } from '../services/reseller';
@@ -110,7 +110,15 @@ async function loadPublicPlanOrThrow(
   return data;
 }
 
-function publicResellerPayload(reseller: ResellerRecord, prices: any[]) {
+async function publicResellerPayload(
+  db: ReturnType<typeof createServiceClient>,
+  reseller: ResellerRecord,
+  prices: any[],
+) {
+  const settings = await getResellerPlanSettings(db, reseller.id);
+  const checkoutAvailable = true;
+  const checkoutMessage = null;
+
   return {
     brand_name: reseller.brand_name,
     brand_logo_url: reseller.brand_logo_url,
@@ -121,7 +129,28 @@ function publicResellerPayload(reseller: ResellerRecord, prices: any[]) {
     public_url: reseller.public_slug ? publicResellerUrl(reseller.public_slug) : null,
     type: reseller.type,
     signup_enabled: reseller.public_signup_enabled !== false,
+    checkout_available: checkoutAvailable,
+    checkout_message: checkoutMessage,
     plans: prices.map((price) => ({
+      ...(() => {
+        const setting = settings.get(price.plan);
+        const publicPrice = Number(price.public_price_cents);
+        const platformFee = Number(price.platform_fee_cents);
+        const minPrice = Number(setting?.min_price_cents ?? 0);
+        const minFee = Number(setting?.platform_fee_cents ?? 0);
+        let validationMessage: string | null = null;
+        if (!setting) {
+          validationMessage = 'Paramètres du plan introuvables.';
+        } else if (publicPrice < minPrice) {
+          validationMessage = `Prix trop bas. Minimum: ${Math.round(minPrice / 100)}€.`;
+        } else if (platformFee < minFee || platformFee > publicPrice) {
+          validationMessage = 'La part Fidelopass doit être vérifiée par le revendeur.';
+        }
+        return {
+          is_valid: !validationMessage,
+          validation_message: validationMessage,
+        };
+      })(),
       plan: price.plan,
       label: resellerPlanLabel(price.plan),
       public_price_cents: price.public_price_cents,
@@ -148,7 +177,7 @@ publicResellerRoutes.get('/:slug', async (c) => {
     await logLinkEvent(db, reseller.id, 'view', null, {
       user_agent: c.req.header('user-agent') ?? null,
     });
-    return c.json({ available: true, data: publicResellerPayload(reseller, prices) });
+    return c.json({ available: true, data: await publicResellerPayload(db, reseller, prices) });
   } catch (error) {
     return c.json({ available: false, message: unavailableMessage() }, 500);
   }
@@ -211,13 +240,6 @@ publicResellerRoutes.post('/:slug/checkout', async (c) => {
     if (!reseller || reseller.status !== 'approved' || !reseller.public_link_enabled || reseller.public_signup_enabled === false) {
       return c.json({ error: unavailableMessage() }, 403);
     }
-    if (reseller.type !== 'stripe_connect') {
-      return c.json({ error: 'Ce revendeur utilise une inscription manuelle.' }, 400);
-    }
-    if (!reseller.stripe_connect_account_id || !reseller.stripe_charges_enabled) {
-      return c.json({ error: 'Le paiement en ligne de cette offre n’est pas encore disponible.' }, 403);
-    }
-
     const publicPrice = await loadPublicPlanOrThrow(db, reseller.id, parsed.data.plan);
     const currency = normalizeCurrency(publicPrice.currency, reseller.currency);
     const { data: referral, error: referralError } = await db.from('reseller_referrals').insert({
@@ -247,7 +269,7 @@ publicResellerRoutes.post('/:slug/checkout', async (c) => {
         platform_fee_cents: publicPrice.platform_fee_cents,
         reseller_margin_cents: publicPrice.reseller_margin_cents,
         currency,
-        payment_mode: 'stripe_connect',
+        payment_mode: 'stripe_direct',
         subscription_status: 'incomplete',
         source: 'public_link',
       })
@@ -266,7 +288,7 @@ publicResellerRoutes.post('/:slug/checkout', async (c) => {
       resellerMerchantId: resellerMerchant.id,
       plan: parsed.data.plan,
       billingStatus: 'unpaid',
-      paymentMode: 'stripe_connect',
+      paymentMode: 'stripe_direct',
       resellerPriceCents: publicPrice.public_price_cents,
       platformFeeCents: publicPrice.platform_fee_cents,
     });
@@ -298,6 +320,7 @@ publicResellerRoutes.post('/:slug/checkout', async (c) => {
       referral_id: referral.id,
       plan: parsed.data.plan,
       source: 'public_link',
+      payment_mode: 'stripe_direct',
       reseller_price_cents: String(publicPrice.public_price_cents),
       platform_fee_cents: String(publicPrice.platform_fee_cents),
       reseller_margin_cents: String(publicPrice.reseller_margin_cents),
@@ -312,8 +335,6 @@ publicResellerRoutes.post('/:slug/checkout', async (c) => {
       locale: 'fr',
       metadata,
       subscription_data: {
-        application_fee_percent: stripeApplicationFeePercent(publicPrice.platform_fee_cents, publicPrice.public_price_cents),
-        transfer_data: { destination: reseller.stripe_connect_account_id },
         metadata,
       },
     });

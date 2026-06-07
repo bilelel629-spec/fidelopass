@@ -9,7 +9,7 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
         <p class="text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-red-600/75">Administration</p>
         <h1 class="mt-2 font-display text-4xl font-bold tracking-tight text-slate-950">Revendeurs</h1>
         <p class="mt-3 max-w-2xl text-base leading-7 text-slate-600">
-          Approbation manuelle, suivi financier, type de revendeur et configuration des parts Fidelopass.
+          Approbation manuelle, lien revendeur, prix publics et commissions à reverser.
         </p>
       </div>
       <button id="create-open-button" class="inline-flex w-fit items-center rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_36px_-24px_rgba(37,99,235,0.8)] transition hover:-translate-y-0.5">
@@ -29,13 +29,16 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
           </div>
           <span id="user-search-feedback" class="block text-xs font-medium text-slate-500">Recherchez le compte avant de créer le revendeur. S’il n’existe pas, une invitation sera envoyée.</span>
         </label>
-        <label class="space-y-2">
-          <span class="text-sm font-semibold text-slate-700">Type</span>
-          <select name="type" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <option value="stripe_connect">Stripe Connect</option>
-            <option value="invoiced">Facturé</option>
-          </select>
-        </label>
+        <div class="space-y-2">
+          <span class="text-sm font-semibold text-slate-700">Mode V1</span>
+          <input type="hidden" name="type" value="invoiced" />
+          <div class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+            <p class="text-sm font-bold text-emerald-800">Stripe Fidelopass + commissions</p>
+            <p class="mt-1 text-xs leading-5 text-emerald-700">
+              Fidelopass encaisse le commerçant, puis la marge revendeur est suivie pour reversement manuel.
+            </p>
+          </div>
+        </div>
         <label class="space-y-2">
           <span class="text-sm font-semibold text-slate-700">Pays</span>
           <input name="country" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" placeholder="FR, DZ..." />
@@ -134,6 +137,12 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
     return `<span class="rounded-full border ${color} px-3 py-1 text-xs font-semibold">${escapeHtml(normalized)}</span>`;
   }
 
+  function typeLabel(type: unknown) {
+    return String(type ?? '') === 'stripe_connect'
+      ? 'Ancien Connect'
+      : 'V1 commissions';
+  }
+
   async function action(id: string, endpoint: string, body: any = {}) {
     const res = await authFetch(`/api/admin/resellers/${id}/${endpoint}`, { method: 'POST', body: JSON.stringify(body) });
     if (!res.ok) alert((await res.json().catch(() => null))?.error ?? 'Action impossible.');
@@ -156,7 +165,7 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
           <p class="text-xs text-slate-500">${escapeHtml(reseller.support_email ?? '')}</p>
         </td>
         <td class="px-4 py-4">${escapeHtml(reseller.country ?? '-')}</td>
-        <td class="px-4 py-4">${escapeHtml(reseller.type)}</td>
+        <td class="px-4 py-4">${escapeHtml(typeLabel(reseller.type))}</td>
         <td class="px-4 py-4">${statusBadge(reseller.status)}</td>
         <td class="px-4 py-4">${reseller.metrics?.active_merchants_count ?? 0}/${reseller.metrics?.merchants_count ?? 0}</td>
         <td class="px-4 py-4">${formatMoney(reseller.metrics?.total_revenue_cents, reseller.currency)}</td>

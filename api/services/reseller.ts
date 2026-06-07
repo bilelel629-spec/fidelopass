@@ -6,7 +6,7 @@ import { getPublicSiteUrl } from '../utils/public-site-url';
 export type ResellerType = 'stripe_connect' | 'invoiced';
 export type ResellerStatus = 'pending' | 'approved' | 'suspended';
 export type ResellerPlan = 'starter' | 'pro' | 'premium';
-export type ResellerPaymentMode = 'stripe_connect' | 'manual' | 'bank_transfer' | 'cash';
+export type ResellerPaymentMode = 'stripe_direct' | 'stripe_connect' | 'manual' | 'bank_transfer' | 'cash';
 
 export type ResellerRecord = {
   id: string;
@@ -110,6 +110,54 @@ export function normalizeCurrency(value: unknown, fallback = 'eur') {
 export function normalizeStripeCountryCode(value: unknown) {
   const normalized = String(value ?? '').trim().toUpperCase();
   return /^[A-Z]{2}$/.test(normalized) ? normalized : undefined;
+}
+
+const STRIPE_CONNECT_SUPPORTED_COUNTRIES = new Set([
+  'AT',
+  'AU',
+  'BE',
+  'BG',
+  'BR',
+  'CA',
+  'CH',
+  'CY',
+  'CZ',
+  'DE',
+  'DK',
+  'EE',
+  'ES',
+  'FI',
+  'FR',
+  'GB',
+  'GR',
+  'HK',
+  'HR',
+  'HU',
+  'IE',
+  'IT',
+  'JP',
+  'LT',
+  'LU',
+  'LV',
+  'MT',
+  'MX',
+  'NL',
+  'NO',
+  'NZ',
+  'PL',
+  'PT',
+  'RO',
+  'SE',
+  'SG',
+  'SI',
+  'SK',
+  'TH',
+  'US',
+]);
+
+export function isStripeConnectCountrySupported(value: unknown) {
+  const country = normalizeStripeCountryCode(value);
+  return Boolean(country && STRIPE_CONNECT_SUPPORTED_COUNTRIES.has(country));
 }
 
 export function normalizeHexColor(value: unknown, fallback: string) {

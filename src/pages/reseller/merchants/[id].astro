@@ -30,7 +30,7 @@ const { id } = Astro.params;
           <div class="flex justify-between rounded-2xl bg-slate-50 px-4 py-3"><span>Statut</span><strong id="info-status">-</strong></div>
         </div>
         <div class="mt-6 grid gap-3">
-          <button id="checkout-button" class="rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-500 px-5 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5">Envoyer le lien de paiement Stripe</button>
+          <button id="checkout-button" class="rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-500 px-5 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5">Envoyer le lien de paiement Fidelopass</button>
           <button id="manual-button" class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-bold text-emerald-800 transition hover:-translate-y-0.5">Activer en manuel</button>
           <button id="suspend-button" class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-bold text-amber-800 transition hover:-translate-y-0.5">Suspendre</button>
           <button id="cancel-button" class="rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-bold text-red-700 transition hover:-translate-y-0.5">Annuler</button>
@@ -93,6 +93,21 @@ const { id } = Astro.params;
     el.textContent = message;
   }
 
+  function paymentLabel(mode: unknown) {
+    switch (String(mode ?? 'manual')) {
+      case 'stripe_direct':
+        return 'Paiement en ligne Fidelopass';
+      case 'stripe_connect':
+        return 'Paiement en ligne Fidelopass (ancien)';
+      case 'bank_transfer':
+        return 'Virement';
+      case 'cash':
+        return 'Espèces';
+      default:
+        return 'Manuel';
+    }
+  }
+
   function render() {
     if (!merchant) return;
     document.getElementById('merchant-title')!.textContent = merchant.merchant_name ?? merchant.commerce?.nom ?? 'Commerce';
@@ -101,12 +116,13 @@ const { id } = Astro.params;
     document.getElementById('info-price')!.textContent = formatMoney(merchant.reseller_price_cents, merchant.currency);
     document.getElementById('info-fee')!.textContent = formatMoney(merchant.platform_fee_cents, merchant.currency);
     document.getElementById('info-margin')!.textContent = formatMoney(merchant.reseller_margin_cents, merchant.currency);
-    document.getElementById('info-payment')!.textContent = merchant.payment_mode;
+    document.getElementById('info-payment')!.textContent = paymentLabel(merchant.payment_mode);
     document.getElementById('info-status')!.textContent = merchant.subscription_status;
     (document.getElementById('plan-input') as HTMLSelectElement).value = merchant.plan;
     (document.getElementById('price-input') as HTMLInputElement).value = String(Math.round(Number(merchant.reseller_price_cents ?? 0) / 100));
-    (document.getElementById('checkout-button') as HTMLButtonElement).disabled = merchant.payment_mode !== 'stripe_connect';
-    (document.getElementById('manual-button') as HTMLButtonElement).disabled = merchant.payment_mode === 'stripe_connect';
+    const onlinePayment = ['stripe_direct', 'stripe_connect'].includes(String(merchant.payment_mode));
+    (document.getElementById('checkout-button') as HTMLButtonElement).disabled = !onlinePayment;
+    (document.getElementById('manual-button') as HTMLButtonElement).disabled = onlinePayment;
   }
 
   function renderTransactions(transactions: any[]) {
@@ -143,7 +159,7 @@ const { id } = Astro.params;
     const res = await authFetch(`/api/reseller/merchants/${merchantId}/checkout`, { method: 'POST', body: JSON.stringify({}) });
     const payload = await res.json().catch(() => null);
     if (res.ok && payload?.url) window.location.href = payload.url;
-    else showFeedback(payload?.error ?? 'Impossible de créer le lien Stripe.');
+    else showFeedback(payload?.error ?? 'Impossible de créer le lien de paiement.');
   });
 
   document.getElementById('manual-button')?.addEventListener('click', async () => {

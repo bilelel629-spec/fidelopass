@@ -335,7 +335,19 @@ publicResellerRoutes.post('/:slug/checkout', async (c) => {
       .single();
     if (merchantError || !resellerMerchant) throw new Error(merchantError?.message ?? 'Rattachement impossible.');
 
-    const account = await createOrInviteMerchantUser(db, parsed.data.email, parsed.data.commerce_name, 'invite');
+    // Nouveau parcours : l'utilisateur est authentifié avant le checkout.
+    // Ancien parcours (compat) : on envoie une invitation email.
+    const authHeader = c.req.header('Authorization');
+    let preAuthUserId: string | null = null;
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.slice(7).trim();
+      const { data: { user } } = await db.auth.getUser(token);
+      preAuthUserId = user?.id ?? null;
+    }
+
+    const account = preAuthUserId
+      ? { userId: preAuthUserId, created: false, invited: false }
+      : await createOrInviteMerchantUser(db, parsed.data.email, parsed.data.commerce_name, 'invite');
     const commerceId = await ensureMerchantCommerce(db, {
       ownerUserId: account.userId,
       commerceName: parsed.data.commerce_name,

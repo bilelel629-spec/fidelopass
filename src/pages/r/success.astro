@@ -157,6 +157,15 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
   async function loadSessionStatus() {
     if (!sessionId) { show('state-error'); return; }
     try {
+      // Nouveau parcours : si déjà authentifié, rediriger directement vers le dashboard
+      const { data: { session: existingSession } } = await supabase.auth.getSession();
+      if (existingSession?.access_token) {
+        if (slug) await loadBranding(slug);
+        show('state-success');
+        window.location.replace('/dashboard');
+        return;
+      }
+
       const res = await fetch(`${apiBase}/api/public/reseller/session-status?session_id=${encodeURIComponent(sessionId)}`);
       const payload = await res.json().catch(() => null);
       if (!res.ok || !payload?.data) { show('state-error'); return; }

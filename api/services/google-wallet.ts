@@ -340,8 +340,8 @@ export async function updateGooglePassObject(
   carte: CarteData,
   client: ClientData,
 ): Promise<void> {
-  // Propage les changements de logo/couleur/nom dans la classe aussi
-  await upsertLoyaltyClass(carte).catch((err) =>
+  // Propage logo/couleur/nom dans la classe en arrière-plan — ne bloque pas le PATCH score.
+  upsertLoyaltyClass(carte).catch((err) =>
     console.error('[Google Wallet] upsertLoyaltyClass échec lors de la mise à jour:', err),
   );
 

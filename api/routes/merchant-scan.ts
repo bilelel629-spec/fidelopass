@@ -429,7 +429,7 @@ async function handleAddPoint(c: Context) {
     body: `Vous avez maintenant ${scoreValue} ${scoreLabel} sur votre carte.`,
   };
 
-  await updateWalletsAfterScan(db, safeClient, updatedClient, scanMessage);
+  void updateWalletsAfterScan(db, safeClient, updatedClient, scanMessage);
   void sendWebPushAfterScan(
     db,
     safeClient.id,
@@ -530,7 +530,7 @@ async function handleUseReward(c: Context) {
     body: `Il vous reste ${scoreValueReward} ${scoreLabelReward} sur votre carte.`,
   };
 
-  await updateWalletsAfterScan(db, safeClient, updatedClient, rewardMessage);
+  void updateWalletsAfterScan(db, safeClient, updatedClient, rewardMessage);
   void sendWebPushAfterScan(
     db,
     safeClient.id,

@@ -114,7 +114,7 @@ async function loadReseller(db: ReturnType<typeof createServiceClient>, reseller
   const [settingsRes, publicPricesRes, merchantsRes] = await Promise.all([
     db.from('reseller_plan_settings').select('*').eq('reseller_id', resellerId),
     db.from('reseller_public_plan_prices').select('*').eq('reseller_id', resellerId),
-    db.from('reseller_merchants').select('*, commerces(id, nom, email, actif, billing_status)').eq('reseller_id', resellerId),
+    db.from('reseller_merchants').select('*, commerces!merchant_id(id, nom, email, actif, billing_status)').eq('reseller_id', resellerId),
   ]);
 
   const settingsError = settingsRes.error as { code?: string; message?: string } | null;

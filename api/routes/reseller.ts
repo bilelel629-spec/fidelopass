@@ -99,7 +99,7 @@ async function loadOwnedResellerMerchant(
 ) {
   const { data, error } = await db
     .from('reseller_merchants')
-    .select('*, commerces(id, nom, email, actif, billing_status, stripe_customer_id, stripe_subscription_id)')
+    .select('*, commerces!merchant_id(id, nom, email, actif, billing_status, stripe_customer_id, stripe_subscription_id)')
     .eq('id', resellerMerchantId)
     .eq('reseller_id', resellerId)
     .maybeSingle();
@@ -411,7 +411,7 @@ resellerRoutes.get('/merchants', async (c) => {
   const db = createServiceClient();
   const { data, error } = await db
     .from('reseller_merchants')
-    .select('*, commerces(id, nom, email, actif, billing_status)')
+    .select('*, commerces!merchant_id(id, nom, email, actif, billing_status)')
     .eq('reseller_id', reseller.id)
     .order('created_at', { ascending: false });
   if (error) return c.json({ error: 'Impossible de charger les commerçants.' }, 500);

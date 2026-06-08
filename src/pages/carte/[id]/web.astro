@@ -887,7 +887,9 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
           && Notification.permission === 'granted'
           && (!isIos || isStandalone())
         ) {
-          registerWebPushToken({ silent: true }).catch((error) => {
+          registerWebPushToken({ silent: true }).then(() => {
+            refreshPushUi();
+          }).catch((error) => {
             console.warn('[web-card push refresh]', error);
           });
         }

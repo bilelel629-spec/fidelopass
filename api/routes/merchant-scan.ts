@@ -6,7 +6,9 @@ import { paidMiddleware } from '../middleware/paid';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { updateGooglePassObject } from '../services/google-wallet';
 import { applyProgressIncrement, applyRewardRedemption } from '../services/loyalty-progress';
+import { sendPersonalizedPushNotifications } from '../services/push';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
+import { getPublicSiteUrl } from '../utils/public-site-url';
 
 export const merchantScanRoutes = new Hono();
 
@@ -228,6 +230,49 @@ async function updateWalletsAfterScan(
   await Promise.allSettled(walletUpdates);
 }
 
+async function sendWebPushAfterScan(
+  db: ReturnType<typeof createServiceClient>,
+  clientId: string,
+  carteNom: string,
+  carteType: string,
+  carteLogoUrl: string | null | undefined,
+  score: number,
+  isReward: boolean,
+) {
+  try {
+    const { data: subscriptions } = await db
+      .from('web_push_subscriptions')
+      .select('endpoint, p256dh, auth, carte_id, client_id')
+      .eq('client_id', clientId)
+      .eq('enabled', true);
+
+    if (!subscriptions?.length) return;
+
+    const label = carteType === 'points' ? (score > 1 ? 'points' : 'point') : (score > 1 ? 'tampons' : 'tampon');
+    const title = isReward ? 'Récompense utilisée' : `+1 ${carteType === 'points' ? 'point' : 'tampon'}`;
+    const body = isReward
+      ? `Il vous reste ${score} ${label} sur votre carte.`
+      : `Vous avez maintenant ${score} ${label} sur votre carte.`;
+
+    const siteUrl = getPublicSiteUrl();
+    const recipients = subscriptions.map((sub) => ({
+      endpoint: sub.endpoint,
+      p256dh: sub.p256dh,
+      auth: sub.auth,
+      clickUrl: `${siteUrl}/carte/${sub.carte_id}/web?client=${sub.client_id}`,
+    }));
+
+    await sendPersonalizedPushNotifications(
+      recipients,
+      title,
+      body,
+      carteLogoUrl ?? undefined,
+    );
+  } catch (error) {
+    console.warn('[merchant-scan web-push]', error instanceof Error ? error.message : error);
+  }
+}
+
 function applyClientStateGuard<T extends { eq: (column: string, value: unknown) => T }>(
   query: T,
   client: ScanClient,
@@ -369,6 +414,17 @@ async function handleAddPoint(c: Context) {
   };
   await updateWalletsAfterScan(db, safeClient, updatedClient);
 
+  const carteData = safeClient.cartes as { id: string; type?: string; nom?: string; logo_url?: string | null };
+  void sendWebPushAfterScan(
+    db,
+    safeClient.id,
+    carteData.nom ?? '',
+    carteData.type ?? 'tampons',
+    carteData.logo_url,
+    carteData.type === 'points' ? updatedClient.points_actuels : updatedClient.tampons_actuels,
+    false,
+  );
+
   return c.json({
     success: true,
     message: safeClient.cartes.type === 'points' ? '+1 point ajouté.' : '+1 tampon ajouté.',
@@ -451,6 +507,17 @@ async function handleUseReward(c: Context) {
     recompenses_obtenues: nextRewards,
   };
   await updateWalletsAfterScan(db, safeClient, updatedClient);
+
+  const carteDataReward = safeClient.cartes as { id: string; type?: string; nom?: string; logo_url?: string | null };
+  void sendWebPushAfterScan(
+    db,
+    safeClient.id,
+    carteDataReward.nom ?? '',
+    carteDataReward.type ?? 'tampons',
+    carteDataReward.logo_url,
+    carteDataReward.type === 'points' ? updatedClient.points_actuels : updatedClient.tampons_actuels,
+    true,
+  );
 
   return c.json({
     success: true,

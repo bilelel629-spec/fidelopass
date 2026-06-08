@@ -161,6 +161,51 @@ import AppLayout from '../../layouts/AppLayout.astro';
 <script>
   import { authFetch } from '../../lib/api';
   import jsQR from 'jsqr';
+  import {
+    BarcodeFormat,
+    BinaryBitmap,
+    DecodeHintType,
+    HTMLCanvasElementLuminanceSource,
+    HybridBinarizer,
+    MultiFormatReader,
+  } from '@zxing/library';
+
+  // Décodeur multi-format universel (CODE128, EAN, UPC, ITF, Codabar, PDF417,
+  // Aztec, Data Matrix, QR). Pur JS → fonctionne partout, iOS Safari inclus,
+  // là où l'API native BarcodeDetector est absente.
+  let zxingReader: MultiFormatReader | null = null;
+  let zxingHints: Map<DecodeHintType, unknown> | null = null;
+  function getZxingReader() {
+    if (zxingReader && zxingHints) return { reader: zxingReader, hints: zxingHints };
+    const reader = new MultiFormatReader();
+    const hints = new Map<DecodeHintType, unknown>();
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+      BarcodeFormat.CODE_128, BarcodeFormat.CODE_39, BarcodeFormat.CODE_93,
+      BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.UPC_A, BarcodeFormat.UPC_E,
+      BarcodeFormat.ITF, BarcodeFormat.CODABAR,
+      BarcodeFormat.PDF_417, BarcodeFormat.AZTEC, BarcodeFormat.DATA_MATRIX, BarcodeFormat.QR_CODE,
+    ]);
+    hints.set(DecodeHintType.TRY_HARDER, true);
+    reader.setHints(hints);
+    zxingReader = reader;
+    zxingHints = hints;
+    return { reader, hints };
+  }
+
+  function decodeZxingCanvas(canvas: HTMLCanvasElement): string | null {
+    try {
+      const { reader } = getZxingReader();
+      const luminance = new HTMLCanvasElementLuminanceSource(canvas);
+      const bitmap = new BinaryBitmap(new HybridBinarizer(luminance));
+      const result = reader.decode(bitmap);
+      const value = result?.getText?.()?.trim();
+      return value || null;
+    } catch {
+      return null;
+    } finally {
+      zxingReader?.reset();
+    }
+  }
 
   let currentClientId: string | null = null;
   let currentClientRecompenses = 0;
@@ -549,6 +594,10 @@ import AppLayout from '../../layouts/AppLayout.astro';
     const fullFrameBarcode = await decodeNativeBarcodeCanvas(scanCanvas);
     if (fullFrameBarcode) return fullFrameBarcode;
 
+    // Fallback universel (iOS Safari & navigateurs sans BarcodeDetector)
+    const fullFrameZxing = decodeZxingCanvas(scanCanvas);
+    if (fullFrameZxing) return fullFrameZxing;
+
     if (!barcodeContext) return null;
 
     for (const strip of BARCODE_SCAN_STRIPS) {
@@ -576,6 +625,9 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
       const decodedStrip = await decodeNativeBarcodeCanvas(barcodeCanvas);
       if (decodedStrip) return decodedStrip;
+
+      const decodedStripZxing = decodeZxingCanvas(barcodeCanvas);
+      if (decodedStripZxing) return decodedStripZxing;
     }
 
     return null;

@@ -185,57 +185,61 @@ async function formatScanResponse(db: ReturnType<typeof createServiceClient>, cl
   };
 }
 
+// Push Apple Wallet — priorité absolue, déclenché en premier et isolé de Google
+// pour que l'APNs ne soit jamais retardé par la charge Google Wallet.
+async function pushAppleAfterScan(
+  db: ReturnType<typeof createServiceClient>,
+  client: ScanClient,
+) {
+  if (!client.apple_pass_serial) return;
+  try {
+    const { data, error } = await db
+      .from('apple_pass_registrations')
+      .select('push_token, pass_type_identifier')
+      .eq('client_id', client.id);
+
+    if (error) {
+      console.error('[merchant-scan apple registrations]', error);
+      return;
+    }
+
+    const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
+    const uniqueRegistrations = Array.from(
+      new Map((data ?? []).map((registration) => [registration.push_token, registration])).values(),
+    );
+
+    await Promise.allSettled(
+      uniqueRegistrations.map((registration) =>
+        pushApplePassUpdate(registration.push_token, passTypeId || registration.pass_type_identifier),
+      ),
+    );
+  } catch (e) {
+    console.error('[merchant-scan apple push]', e instanceof Error ? e.message : e);
+  }
+}
+
 async function updateWalletsAfterScan(
   db: ReturnType<typeof createServiceClient>,
   client: ScanClient,
   updatedClient: ScanClient,
   walletMessage?: { titre: string; body: string },
 ) {
-  const walletUpdates: Array<Promise<unknown>> = [];
+  // 1) Apple d'abord, seul, sans rien d'autre en concurrence (push quasi instantané)
+  void pushAppleAfterScan(db, client);
 
+  // 2) Google ensuite, en arrière-plan (non bloquant, non prioritaire)
   if (client.google_pass_id) {
-    walletUpdates.push(
-      updateGooglePassObject(
-        client.google_pass_id,
-        client.cartes as Parameters<typeof updateGooglePassObject>[1],
-        updatedClient,
-      ).catch((error) => console.error('[merchant-scan google update]', error)),
-    );
+    void updateGooglePassObject(
+      client.google_pass_id,
+      client.cartes as Parameters<typeof updateGooglePassObject>[1],
+      updatedClient,
+    ).catch((error) => console.error('[merchant-scan google update]', error));
 
     if (walletMessage) {
-      walletUpdates.push(
-        sendGoogleWalletMessage(client.google_pass_id, walletMessage.titre, walletMessage.body)
-          .catch((error) => console.error('[merchant-scan google message]', error)),
-      );
+      void sendGoogleWalletMessage(client.google_pass_id, walletMessage.titre, walletMessage.body)
+        .catch((error) => console.error('[merchant-scan google message]', error));
     }
   }
-
-  if (client.apple_pass_serial) {
-    walletUpdates.push((async () => {
-      const { data, error } = await db
-        .from('apple_pass_registrations')
-        .select('push_token, pass_type_identifier')
-        .eq('client_id', client.id);
-
-      if (error) {
-        console.error('[merchant-scan apple registrations]', error);
-        return;
-      }
-
-      const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
-      const uniqueRegistrations = Array.from(
-        new Map((data ?? []).map((registration) => [registration.push_token, registration])).values(),
-      );
-
-      await Promise.allSettled(
-        uniqueRegistrations.map((registration) =>
-          pushApplePassUpdate(registration.push_token, passTypeId || registration.pass_type_identifier),
-        ),
-      );
-    })());
-  }
-
-  await Promise.allSettled(walletUpdates);
 }
 
 async function sendWebPushAfterScan(

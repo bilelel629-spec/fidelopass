@@ -325,6 +325,9 @@ stripeWebhookRoutes.post('/', async (c) => {
     console.error('[stripe-webhook] STRIPE_WEBHOOK_SECRET manquant');
     return c.json({ error: 'Configuration webhook manquante' }, 500);
   }
+  if (!webhookSecret.startsWith('whsec_')) {
+    console.warn('[stripe-webhook] STRIPE_WEBHOOK_SECRET ne commence pas par whsec_. Vérifiez le secret du endpoint Stripe exact.');
+  }
 
   const sig = c.req.header('stripe-signature');
   if (!sig) return c.json({ error: 'Signature manquante' }, 400);
@@ -341,7 +344,12 @@ stripeWebhookRoutes.post('/', async (c) => {
 
   const db = createServiceClient();
   const priceIds = loadPriceIds();
-  console.log('[stripe-webhook] Event :', event.type);
+  console.log('[stripe-webhook] event received', {
+    id: event.id,
+    type: event.type,
+    livemode: event.livemode,
+    created: event.created,
+  });
 
   // Idempotency : ignore les événements déjà traités (retry Stripe)
   const { data: alreadyProcessed } = await db

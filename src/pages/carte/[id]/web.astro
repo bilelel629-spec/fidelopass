@@ -285,6 +285,7 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
       const API = document.querySelector('meta[name="api-config"]')?.content || 'https://api.fidelopass.com';
       const apiUrl = (path) => `${API}${path}`;
       const clientStorageKey = `fidelopass_client_${cardId}`;
+      const pushPromptStoragePrefix = `fidelopass_web_push_prompted_${cardId}`;
       let cardData = null;
       let clientData = null;
       let refreshTimer = null;
@@ -377,6 +378,26 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
           }));
         } catch {
           // Local storage only improves convenience.
+        }
+      }
+
+      function pushPromptStorageKey() {
+        return `${pushPromptStoragePrefix}_${clientData?.id || 'anonymous'}`;
+      }
+
+      function hasAlreadyPromptedForPush() {
+        try {
+          return localStorage.getItem(pushPromptStorageKey()) === '1';
+        } catch {
+          return true;
+        }
+      }
+
+      function markPushPrompted() {
+        try {
+          localStorage.setItem(pushPromptStorageKey(), '1');
+        } catch {
+          // La permission navigateur reste la source de vérité.
         }
       }
 
@@ -605,6 +626,56 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
         return { status: silent ? 'refreshed' : 'success' };
       }
 
+      async function maybeRequestPushOnInstalledLaunch() {
+        if (
+          !clientData?.id
+          || !isStandalone()
+          || pushActivationRunning
+          || !isPushConfigured
+          || !supportsPushApi
+          || Notification.permission !== 'default'
+          || hasAlreadyPromptedForPush()
+        ) {
+          return;
+        }
+
+        markPushPrompted();
+        pushActivationRunning = true;
+        refreshPushUi();
+
+        try {
+          const result = await registerWebPushToken({ silent: true });
+          if (result.status === 'success' || result.status === 'refreshed') {
+            setPushUi({
+              status: 'Notifications activées. Vous recevrez les offres et rappels de ce commerce.',
+              buttonLabel: 'Notifications activées',
+              disabled: true,
+            });
+          } else if (result.status === 'denied') {
+            setPushUi({
+              status: 'Les notifications sont bloquées dans les réglages du navigateur.',
+              buttonLabel: 'Autorisation bloquée',
+              disabled: true,
+              note: 'Autorisez les notifications pour fidelopass.com puis revenez sur cette carte.',
+            });
+          } else {
+            setPushUi({
+              status: 'Vous pouvez activer les notifications quand vous voulez depuis ce bouton.',
+              buttonLabel: 'Activer les notifications',
+            });
+          }
+        } catch (error) {
+          console.warn('[web-card push auto prompt]', error);
+          setPushUi({
+            status: friendlyPushError(error),
+            buttonLabel: 'Activer les notifications',
+            note: 'La carte reste utilisable même sans notifications web.',
+          });
+        } finally {
+          pushActivationRunning = false;
+        }
+      }
+
       function renderStamps(current, total, accent, textColor, iconUrl, emoji, iconScale = 1) {
         const container = $('stamps');
         if (!container) return;
@@ -820,6 +891,9 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
             console.warn('[web-card push refresh]', error);
           });
         }
+        window.setTimeout(() => {
+          void maybeRequestPushOnInstalledLaunch();
+        }, 800);
       }
 
       async function refresh() {

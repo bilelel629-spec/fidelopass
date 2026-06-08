@@ -171,11 +171,10 @@ export async function resolveCommerceAndPointVente<T extends CommerceRow = Comme
   }
 
   const commerceDisplayName = (commerce.nom ?? '').trim();
-  if (commerceDisplayName) {
-    points = points.map((point) => (
-      point.principal ? { ...point, nom: commerceDisplayName } : point
-    ));
-  }
+  points = points.map((point) => {
+    const pointName = (point.nom ?? '').trim();
+    return pointName ? point : { ...point, nom: commerceDisplayName || 'Point de vente' };
+  });
 
   const fallbackPoint = points.find((point) => point.principal) ?? points[0] ?? null;
   const selectedPoint = requestedPointVenteId

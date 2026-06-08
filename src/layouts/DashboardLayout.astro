@@ -501,6 +501,16 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
     }
 
     if (!billing.payload?.data?.has_access) {
+      const reseller = await fetch(`${API}/api/reseller/me`, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      }).then(async (r) => (r.ok ? await r.json().catch(() => null) : null)).catch(() => null);
+      if (reseller?.data) {
+        window.location.replace('/reseller');
+        return;
+      }
       window.location.replace('/abonnement/choix');
       return;
     }

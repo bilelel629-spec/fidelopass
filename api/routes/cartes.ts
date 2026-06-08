@@ -54,7 +54,7 @@ const stripPositionSchema = z.string().default('50:50').refine((value) => {
 }, { message: 'Position de bannière invalide' });
 
 const carteSchema = z.object({
-  nom: z.string().min(2).max(255),
+  nom: z.string().trim().min(2).max(255),
   description: z.string().max(500).nullable().optional(),
   type: z.enum(['points', 'tampons']),
   tampons_total: z.number().int().min(1).max(50).default(10),
@@ -103,6 +103,41 @@ const carteSchema = z.object({
   birthday_push_title: z.string().max(80).nullable().optional(),
   birthday_push_message: z.string().max(180).nullable().optional(),
 });
+
+function normalizeDisplayName(value: string | null | undefined) {
+  return String(value ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+async function syncPointVenteNameFromCard(
+  db: ReturnType<typeof createServiceClient>,
+  pointVente: { id: string; nom?: string | null },
+  nextCardName: string | null | undefined,
+  previousCardName: string | null | undefined,
+  commerceName: string | null | undefined,
+) {
+  const nextName = String(nextCardName ?? '').trim();
+  if (nextName.length < 2) return;
+
+  const currentName = normalizeDisplayName(pointVente.nom);
+  const defaultNames = new Set([
+    '',
+    'point de vente',
+    'mon commerce',
+    normalizeDisplayName(commerceName),
+    normalizeDisplayName(previousCardName),
+  ]);
+
+  if (!defaultNames.has(currentName)) return;
+
+  const { error } = await db
+    .from('points_vente')
+    .update({ nom: nextName, updated_at: new Date().toISOString() })
+    .eq('id', pointVente.id);
+
+  if (error) {
+    console.error('[cartes sync point vente name]', error);
+  }
+}
 
 /** GET /api/cartes — Récupère la carte du commerce connecté */
 cartesRoutes.get('/', authMiddleware, paidMiddleware, async (c) => {
@@ -187,7 +222,7 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   const planLimits = getPlanLimits(getEffectivePlanRaw(commerce));
   const { data: existingCarte } = await db
     .from('cartes')
-    .select('id')
+    .select('id, nom')
     .eq('point_vente_id', pointVente.id)
     .maybeSingle();
 
@@ -308,6 +343,14 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
     return c.json({ error: result.error.message }, 500);
   }
 
+  await syncPointVenteNameFromCard(
+    db,
+    pointVente,
+    result.data?.nom ?? parsed.data.nom,
+    existingCarte?.nom ?? null,
+    commerce.nom,
+  );
+
   const commerceEmail = typeof commerce.email === 'string' ? commerce.email : null;
   if (!existingCarte && commerceEmail) {
     sendCardCreatedEmail({
@@ -337,7 +380,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
     db,
     userId,
     requestedPointVenteId,
-    'id, plan, plan_override',
+    'id, nom, plan, plan_override',
   );
 
   if (!commerce || !pointVente) return c.json({ error: 'Point de vente introuvable' }, 404);
@@ -400,6 +443,13 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   if (birthday_push_message !== undefined) programFields.birthday_push_message = birthday_push_message;
 
   const ts = { updated_at: new Date().toISOString() };
+  const { data: previousCarte } = await db
+    .from('cartes')
+    .select('nom')
+    .eq('id', carteId)
+    .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
+    .maybeSingle();
 
   // Essai 1 : tout
   let result = await db
@@ -462,6 +512,16 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   if (result.error) {
     console.error('[cartes PATCH]', result.error);
     return c.json({ error: result.error.message }, 500);
+  }
+
+  if (parsed.data.nom !== undefined) {
+    await syncPointVenteNameFromCard(
+      db,
+      pointVente,
+      result.data?.nom ?? parsed.data.nom,
+      previousCarte?.nom ?? null,
+      commerce.nom,
+    );
   }
 
   // Synchronisation Wallet des clients déjà inscrits

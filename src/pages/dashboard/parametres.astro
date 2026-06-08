@@ -345,11 +345,26 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   async function reactivateBilling() {
+    const confirmed = window.confirm("Réactiver l'abonnement et reprendre les renouvellements Stripe ?");
+    if (!confirmed) return;
     const res = await authFetch('/api/billing/reactivate', { method: 'POST' });
     const payload = await res.json().catch(() => null);
     if (!res.ok) throw new Error(payload?.error ?? "Impossible de réactiver l'abonnement.");
     await loadPlansControls();
     setPlansFeedback("L'abonnement est réactivé.");
+  }
+
+  async function changeBillingPlan(targetPriceId: string) {
+    const confirmed = window.confirm("Confirmer le changement de plan ? Stripe appliquera les ajustements de facturation éventuels.");
+    if (!confirmed) return;
+    const res = await authFetch('/api/billing/change-plan', {
+      method: 'POST',
+      body: JSON.stringify({ targetPriceId }),
+    });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(payload?.error ?? 'Impossible de changer de plan.');
+    await loadPlansControls();
+    setPlansFeedback('Plan mis à jour. La facturation Stripe a été synchronisée.');
   }
 
   async function loadSettings() {
@@ -483,7 +498,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       setPlansFeedback('Aucun prix Stripe cible disponible pour ce changement de plan.');
       return;
     }
-    await withBillingButton(plansUpgradeBtn, 'Ouverture...', () => openBillingPortal('change_plan', targetPriceId));
+    await withBillingButton(plansUpgradeBtn, 'Mise à jour...', () => changeBillingPlan(targetPriceId));
   });
 
   plansManageBtn.addEventListener('click', async () => {

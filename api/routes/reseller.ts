@@ -585,6 +585,7 @@ resellerRoutes.post('/merchants/:id/checkout', async (c) => {
       allow_promotion_codes: false,
       metadata,
       subscription_data: {
+        trial_period_days: 14,
         metadata,
       },
     });

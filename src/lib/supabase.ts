@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 const processEnv = typeof process !== 'undefined' ? process.env : {};
+const isBrowser = typeof window !== 'undefined';
 
 // PUBLIC_ = accessible navigateur + serveur Astro
 // Sans préfixe = serveur uniquement (API Hono / Node.js)
@@ -23,6 +24,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(
   supabaseUrl || 'http://localhost:54321',
   supabaseAnonKey || 'missing-anon-key',
+  {
+    auth: {
+      autoRefreshToken: isBrowser,
+      persistSession: isBrowser,
+      detectSessionInUrl: isBrowser,
+    },
+  },
 );
 
 /** Client avec la service role key — côté serveur/API uniquement */
@@ -32,7 +40,7 @@ export function createServiceClient() {
     ?? processEnv.SUPABASE_SERVICE_ROLE_KEY
     ?? '';
   if (!serviceKey) throw new Error('SUPABASE_SERVICE_ROLE_KEY est requis');
-  return createClient(supabaseUrl, serviceKey, {
+  return createClient(supabaseUrl || 'http://localhost:54321', serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }

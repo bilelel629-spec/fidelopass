@@ -1,7 +1,6 @@
-import { google } from 'googleapis';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import jwt from 'jsonwebtoken';
+import { createSign } from 'crypto';
 
 interface CarteData {
   id: string;
@@ -114,17 +113,64 @@ function getMerchantLocations(carte: CarteData): Array<{ latitude: number; longi
   return [{ latitude, longitude }];
 }
 
+function base64UrlEncode(input: string | Buffer): string {
+  return Buffer.from(input)
+    .toString('base64')
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+}
+
+function signGoogleWalletJwt(
+  claims: Record<string, unknown>,
+  privateKey: string,
+): string {
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const encodedHeader = base64UrlEncode(JSON.stringify(header));
+  const encodedPayload = base64UrlEncode(JSON.stringify(claims));
+  const signingInput = `${encodedHeader}.${encodedPayload}`;
+  const signature = createSign('RSA-SHA256').update(signingInput).sign(privateKey);
+  return `${signingInput}.${base64UrlEncode(signature)}`;
+}
+
+type HttpRequester = {
+  request: (opts: { url: string; method: string; data?: unknown }) => Promise<unknown>;
+};
+
+type GoogleAuthConstructor = new (opts: {
+  credentials: { client_email: string; private_key: string };
+  scopes: string[];
+}) => {
+  getClient: () => Promise<HttpRequester>;
+};
+
+let googleAuthConstructorPromise: Promise<GoogleAuthConstructor> | null = null;
+
+async function getGoogleAuthConstructor(): Promise<GoogleAuthConstructor> {
+  if (!googleAuthConstructorPromise) {
+    // googleapis embarque un très gros graphe de types. Le charger à la demande
+    // évite que les builds/typechecks serveur restent bloqués à analyser tout le SDK.
+    const dynamicImport = new Function('specifier', 'return import(specifier)') as (
+      specifier: string,
+    ) => Promise<{ google: { auth: { GoogleAuth: GoogleAuthConstructor } } }>;
+    googleAuthConstructorPromise = dynamicImport('googleapis').then(
+      (module) => module.google.auth.GoogleAuth,
+    );
+  }
+  return googleAuthConstructorPromise;
+}
+
 // Cache de l'authClient pour éviter un échange OAuth2 à chaque appel
-type GAuthClient = Awaited<ReturnType<InstanceType<typeof google.auth.GoogleAuth>['getClient']>>;
-let cachedAuthClient: GAuthClient | null = null;
+let cachedAuthClient: HttpRequester | null = null;
 let cachedAuthClientExpiry = 0;
 const AUTH_CLIENT_TTL_MS = 55 * 60 * 1000;
 
-async function getAuthClient(): Promise<GAuthClient> {
+async function getAuthClient(): Promise<HttpRequester> {
   const now = Date.now();
   if (cachedAuthClient && now < cachedAuthClientExpiry) return cachedAuthClient;
   const credentials = getCredentials();
-  const auth = new google.auth.GoogleAuth({
+  const GoogleAuth = await getGoogleAuthConstructor();
+  const auth = new GoogleAuth({
     credentials,
     scopes: ['https://www.googleapis.com/auth/wallet_object.issuer'],
   });
@@ -132,10 +178,6 @@ async function getAuthClient(): Promise<GAuthClient> {
   cachedAuthClientExpiry = now + AUTH_CLIENT_TTL_MS;
   return cachedAuthClient;
 }
-
-type HttpRequester = {
-  request: (opts: { url: string; method: string; data?: unknown }) => Promise<unknown>;
-};
 
 export async function upsertLoyaltyClass(carte: CarteData): Promise<string> {
   const issuerId = getIssuerId();
@@ -286,7 +328,7 @@ export async function generateGooglePass(
     payload: { loyaltyObjects: [loyaltyObject] },
   };
 
-  const token = jwt.sign(claims, credentials.private_key, { algorithm: 'RS256' });
+  const token = signGoogleWalletJwt(claims, credentials.private_key);
   return {
     objectId,
     saveUrl: `https://pay.google.com/gp/v/save/${token}`,

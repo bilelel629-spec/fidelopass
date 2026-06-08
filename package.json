@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "rm -rf .astro dist node_modules/.vite && ASTRO_TELEMETRY_DISABLED=1 astro build",
     "start": "node ./dist/server/entry.mjs",
     "start:api": "tsx api/index.ts",
     "preview": "astro preview",

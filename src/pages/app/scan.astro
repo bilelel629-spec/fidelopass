@@ -161,16 +161,6 @@ import AppLayout from '../../layouts/AppLayout.astro';
 <script>
   import { authFetch } from '../../lib/api';
   import jsQR from 'jsqr';
-  import {
-    BarcodeFormat,
-    BinaryBitmap,
-    DecodeHintType,
-    GlobalHistogramBinarizer,
-    HTMLCanvasElementLuminanceSource,
-    HybridBinarizer,
-    MultiFormatReader,
-    MultiFormatOneDReader,
-  } from '@zxing/library';
 
   let currentClientId: string | null = null;
   let currentClientRecompenses = 0;
@@ -182,33 +172,27 @@ import AppLayout from '../../layouts/AppLayout.astro';
   let mediaStream: MediaStream | null = null;
   let scanFrameId: number | null = null;
   let lastDecodeAttemptAt = 0;
-  const ONE_D_BARCODE_FORMATS = [
-    BarcodeFormat.CODE_128,
-    BarcodeFormat.EAN_13,
-    BarcodeFormat.EAN_8,
-    BarcodeFormat.UPC_A,
-    BarcodeFormat.UPC_E,
-    BarcodeFormat.CODE_39,
-    BarcodeFormat.CODE_93,
-    BarcodeFormat.ITF,
-    BarcodeFormat.CODABAR,
+  let decodeInProgress = false;
+  type BrowserBarcodeDetector = {
+    detect: (source: CanvasImageSource) => Promise<Array<{ rawValue?: string }>>;
+  };
+  type BrowserBarcodeDetectorConstructor = new (options?: { formats?: string[] }) => BrowserBarcodeDetector;
+  const BARCODE_DETECTOR_FORMATS = [
+    'qr_code',
+    'code_128',
+    'ean_13',
+    'ean_8',
+    'upc_a',
+    'upc_e',
+    'code_39',
+    'code_93',
+    'itf',
+    'codabar',
+    'pdf417',
+    'aztec',
+    'data_matrix',
   ];
-  const TWO_D_BARCODE_FORMATS = [
-    BarcodeFormat.QR_CODE,
-    BarcodeFormat.PDF_417,
-    BarcodeFormat.AZTEC,
-  ];
-  const oneDBarcodeHints = new Map<DecodeHintType, unknown>();
-  oneDBarcodeHints.set(DecodeHintType.POSSIBLE_FORMATS, ONE_D_BARCODE_FORMATS);
-  oneDBarcodeHints.set(DecodeHintType.TRY_HARDER, true);
-  oneDBarcodeHints.set(DecodeHintType.ENABLE_CODE_39_EXTENDED_MODE, true);
-  const multiBarcodeHints = new Map<DecodeHintType, unknown>();
-  multiBarcodeHints.set(DecodeHintType.POSSIBLE_FORMATS, [...TWO_D_BARCODE_FORMATS, ...ONE_D_BARCODE_FORMATS]);
-  multiBarcodeHints.set(DecodeHintType.TRY_HARDER, true);
-  multiBarcodeHints.set(DecodeHintType.ENABLE_CODE_39_EXTENDED_MODE, true);
-  const oneDBarcodeReader = new MultiFormatOneDReader(oneDBarcodeHints);
-  const multiBarcodeReader = new MultiFormatReader();
-  multiBarcodeReader.setHints(multiBarcodeHints);
+  let barcodeDetectorPromise: Promise<BrowserBarcodeDetector | null> | null = null;
 
   const scannerStatus = document.getElementById('scanner-status')!;
   const cameraHelp = document.getElementById('camera-help')!;
@@ -246,61 +230,41 @@ import AppLayout from '../../layouts/AppLayout.astro';
     { y: 0.66, height: 0.24 },
   ];
 
-  function createBinaryBitmapFromCanvas(canvas: HTMLCanvasElement, options: { globalHistogram?: boolean; inverted?: boolean } = {}) {
-    const source = new HTMLCanvasElementLuminanceSource(canvas, false);
-    const luminanceSource = options.inverted ? source.invert() : source;
-    const binarizer = options.globalHistogram
-      ? new GlobalHistogramBinarizer(luminanceSource)
-      : new HybridBinarizer(luminanceSource);
-    return new BinaryBitmap(binarizer);
-  }
+  async function getNativeBarcodeDetector() {
+    if (barcodeDetectorPromise) return barcodeDetectorPromise;
+    barcodeDetectorPromise = (async () => {
+      const Detector = (window as Window & {
+        BarcodeDetector?: BrowserBarcodeDetectorConstructor & {
+          getSupportedFormats?: () => Promise<string[]>;
+        };
+      }).BarcodeDetector;
+      if (!Detector) return null;
 
-  function readDecodedText(result: { getText?: () => string | null } | null | undefined) {
-    const value = result?.getText?.()?.trim();
-    return value || null;
-  }
-
-  function decodeOneDBarcodeCanvas(canvas: HTMLCanvasElement, options: { exhaustive?: boolean } = {}) {
-    const attempts = [
-      () => oneDBarcodeReader.decode(createBinaryBitmapFromCanvas(canvas, { globalHistogram: true }), oneDBarcodeHints),
-      () => oneDBarcodeReader.decode(createBinaryBitmapFromCanvas(canvas, { globalHistogram: true, inverted: true }), oneDBarcodeHints),
-      ...(options.exhaustive
-        ? [
-            () => oneDBarcodeReader.decode(createBinaryBitmapFromCanvas(canvas), oneDBarcodeHints),
-            () => oneDBarcodeReader.decode(createBinaryBitmapFromCanvas(canvas, { inverted: true }), oneDBarcodeHints),
-          ]
-        : []),
-    ];
-
-    for (const attempt of attempts) {
       try {
-        const decodedText = readDecodedText(attempt());
-        if (decodedText) return decodedText;
+        const supportedFormats = typeof Detector.getSupportedFormats === 'function'
+          ? await Detector.getSupportedFormats()
+          : BARCODE_DETECTOR_FORMATS;
+        const formats = BARCODE_DETECTOR_FORMATS.filter((format) => supportedFormats.includes(format));
+        if (!formats.length) return null;
+        return new Detector({ formats });
       } catch {
-        // On tente la stratégie suivante.
+        return null;
       }
-    }
-
-    return null;
+    })();
+    return barcodeDetectorPromise;
   }
 
-  function decodeMultiFormatCanvas(canvas: HTMLCanvasElement) {
-    try {
-      const decodedText = readDecodedText(multiBarcodeReader.decodeWithState(createBinaryBitmapFromCanvas(canvas)));
-      if (decodedText) return decodedText;
-    } catch {
-      // On tente aussi l'image inversée, utile avec certains visuels Wallet.
-    }
+  async function decodeNativeBarcodeCanvas(canvas: HTMLCanvasElement) {
+    const detector = await getNativeBarcodeDetector();
+    if (!detector) return null;
 
     try {
-      return readDecodedText(multiBarcodeReader.decodeWithState(createBinaryBitmapFromCanvas(canvas, { inverted: true })));
+      const results = await detector.detect(canvas);
+      const value = results.find((result) => result.rawValue?.trim())?.rawValue?.trim();
+      return value || null;
     } catch {
       return null;
     }
-  }
-
-  function decodeBarcodeCanvas(canvas: HTMLCanvasElement) {
-    return decodeOneDBarcodeCanvas(canvas, { exhaustive: true }) || decodeMultiFormatCanvas(canvas);
   }
 
   function resizeCanvas(canvas: HTMLCanvasElement, width: number, height: number) {
@@ -559,7 +523,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
     });
   }
 
-  function decodeCurrentFrame() {
+  async function decodeCurrentFrame() {
     if (!scanContext || !mediaStream || cameraVideo.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return null;
     const sourceWidth = cameraVideo.videoWidth;
     const sourceHeight = cameraVideo.videoHeight;
@@ -582,7 +546,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
     const qrText = code?.data?.trim();
     if (qrText) return qrText;
 
-    const fullFrameBarcode = decodeBarcodeCanvas(scanCanvas);
+    const fullFrameBarcode = await decodeNativeBarcodeCanvas(scanCanvas);
     if (fullFrameBarcode) return fullFrameBarcode;
 
     if (!barcodeContext) return null;
@@ -610,7 +574,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
         stripTargetHeight,
       );
 
-      const decodedStrip = decodeOneDBarcodeCanvas(barcodeCanvas);
+      const decodedStrip = await decodeNativeBarcodeCanvas(barcodeCanvas);
       if (decodedStrip) return decodedStrip;
     }
 
@@ -620,12 +584,16 @@ import AppLayout from '../../layouts/AppLayout.astro';
   function scanFrame(timestamp: number) {
     if (!mediaStream) return;
 
-    if (!scannerPaused && timestamp - lastDecodeAttemptAt >= DECODE_INTERVAL_MS) {
+    if (!scannerPaused && !decodeInProgress && timestamp - lastDecodeAttemptAt >= DECODE_INTERVAL_MS) {
       lastDecodeAttemptAt = timestamp;
-      const decodedText = decodeCurrentFrame();
-      if (decodedText) {
-        void handleScan(decodedText);
-      }
+      decodeInProgress = true;
+      decodeCurrentFrame()
+        .then((decodedText) => {
+          if (decodedText) void handleScan(decodedText);
+        })
+        .finally(() => {
+          decodeInProgress = false;
+        });
     }
 
     scanFrameId = requestAnimationFrame(scanFrame);

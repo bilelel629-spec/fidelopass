@@ -135,7 +135,56 @@ export function buildBillingStatusPayload(record: BillingRecord | null): Billing
   };
 }
 
-export async function getBillingStatusForUser(userId: string): Promise<BillingStatusPayload> {
+const ADMIN_BYPASS_EMAILS = new Set([
+  'bilelel@live.fr',
+  'bilelel629@gmail.com',
+  ...(process.env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean),
+]);
+
+function buildAdminBypassPayload(record: BillingRecord | null): BillingStatusPayload {
+  return {
+    has_commerce: Boolean(record),
+    commerce_id: record?.id ?? null,
+    plan: record?.plan ?? 'business',
+    billing_status: 'active',
+    stripe_subscription_id: record?.stripe_subscription_id ?? null,
+    stripe_customer_id: record?.stripe_customer_id ?? null,
+    stripe_price_id: record?.stripe_price_id ?? null,
+    trial_ends_at: null,
+    billing_interval: 'month',
+    billing_commitment: 'monthly-flex',
+    billing_current_period_end: null,
+    billing_cancel_at_period_end: false,
+    billing_cancel_at: null,
+    billing_canceled_at: null,
+    billing_access_ends_at: null,
+    trial_active: false,
+    one_time_access_active: false,
+    has_access: true,
+    needs_payment: false,
+    can_open_portal: false,
+    can_change_plan: false,
+    can_cancel: false,
+    can_reactivate: false,
+    is_subscription: false,
+    is_one_time_access: false,
+    renewal_or_access_end_at: null,
+    onboarding_completed: Boolean(record?.onboarding_completed ?? true),
+  };
+}
+
+export async function getBillingStatusForUser(userId: string, userEmail?: string): Promise<BillingStatusPayload> {
+  // Bypass abonnement pour les comptes admin — pas d'appel Supabase supplémentaire
+  if (userEmail && ADMIN_BYPASS_EMAILS.has(userEmail.toLowerCase())) {
+    const db = createServiceClient();
+    const { data } = await db
+      .from('commerces')
+      .select('id, plan, stripe_subscription_id, stripe_customer_id, stripe_price_id, onboarding_completed')
+      .eq('user_id', userId)
+      .single();
+    return buildAdminBypassPayload((data as BillingRecord | null) ?? null);
+  }
+
   const db = createServiceClient();
   const { data } = await db
     .from('commerces')

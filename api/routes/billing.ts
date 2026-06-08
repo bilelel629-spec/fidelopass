@@ -35,7 +35,8 @@ const changePlanSchema = z.object({
 /** GET /api/billing/status — statut d'accès abonnement pour l'utilisateur connecté */
 billingRoutes.get('/status', async (c) => {
   const userId = c.get('userId') as string;
-  const data = await getBillingStatusForUser(userId);
+  const userEmail = (c.get('user') as { email?: string } | undefined)?.email;
+  const data = await getBillingStatusForUser(userId, userEmail);
   const response = c.json({ data });
   response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   response.headers.set('Pragma', 'no-cache');

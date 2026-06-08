@@ -7,7 +7,8 @@ export async function paidMiddleware(c: Context, next: Next) {
     return c.json({ error: 'Utilisateur non authentifié' }, 401);
   }
 
-  const status = await getBillingStatusForUser(userId);
+  const userEmail = (c.get('user') as { email?: string } | undefined)?.email;
+  const status = await getBillingStatusForUser(userId, userEmail);
   if (!status.has_access) {
     return c.json({
       error: 'Abonnement requis pour accéder à cette fonctionnalité.',

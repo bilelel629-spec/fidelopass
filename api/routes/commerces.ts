@@ -203,6 +203,16 @@ commercesRoutes.post('/bootstrap', async (c) => {
     return c.json({ error: "Impossible de créer l'espace commerçant." }, 500);
   }
 
+  // Crée immédiatement le point de vente principal pour éviter tout état intermédiaire sans point.
+  await db.from('points_vente').insert({
+    commerce_id: commerce.id,
+    nom: commerceName,
+    principal: true,
+    actif: true,
+  }).then(({ error }) => {
+    if (error) console.warn('[commerces bootstrap] point de vente creation failed (will be auto-created later):', error.message);
+  });
+
   const welcomeEmail = email
     ? await sendWelcomeEmail({ toEmail: email, commerceName })
     : { ok: false, skipped: true, reason: 'missing_email' as const };

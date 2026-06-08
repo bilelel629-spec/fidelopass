@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { clearSessionCookie, setSessionCookie } from './session-cookie';
+import { ACTIVE_POINT_VENTE_STORAGE_KEY } from './api';
 import { withTimeout } from './utils/with-timeout';
 
 const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 2500);
@@ -39,6 +40,9 @@ export async function signUp(email: string, password: string) {
 
 export async function signOut() {
   clearSessionCookie();
+  // Nettoie le point de vente actif pour éviter qu'un autre utilisateur
+  // sur le même navigateur hérite d'un UUID de point de vente invalide.
+  try { window.localStorage.removeItem(ACTIVE_POINT_VENTE_STORAGE_KEY); } catch {}
   return supabase.auth.signOut();
 }
 

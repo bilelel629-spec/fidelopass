@@ -177,8 +177,10 @@ export async function resolveCommerceAndPointVente<T extends CommerceRow = Comme
   });
 
   const fallbackPoint = points.find((point) => point.principal) ?? points[0] ?? null;
+  // Si le point demandé n'existe pas (stale localStorage, point supprimé, autre compte),
+  // on tombe sur le point principal plutôt que de retourner null.
   const selectedPoint = requestedPointVenteId
-    ? points.find((point) => point.id === requestedPointVenteId) ?? null
+    ? (points.find((point) => point.id === requestedPointVenteId) ?? fallbackPoint)
     : fallbackPoint;
 
   return {

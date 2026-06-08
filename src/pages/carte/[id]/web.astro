@@ -728,15 +728,33 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
         return card?.recompense_description || 'Votre recompense Fidelopass';
       }
 
-      function renderQr(value) {
+      function renderBarcode(value) {
         setText('wallet-code', value);
         const img = $('qr-img');
         if (!img) return;
-        img.src = `/code/qr.svg?data=${encodeURIComponent(value)}&size=480`;
+        const barcodeType = (cardData?.barcode_type ?? 'QR').toUpperCase();
+        if (barcodeType === 'NONE') {
+          img.removeAttribute('src');
+          img.alt = '';
+          img.closest?.('.web-card-code')?.classList?.add('hidden');
+          return;
+        }
+        img.closest?.('.web-card-code')?.classList?.remove('hidden');
+        if (barcodeType === 'QR') {
+          img.src = `/code/qr.svg?data=${encodeURIComponent(value)}&size=480`;
+          img.style.maxWidth = '180px';
+          img.style.height = 'auto';
+        } else {
+          // CODE128, PDF417, AZTEC → génération CODE128 côté serveur (format le plus lisible)
+          const fmt = ['CODE128', 'PDF417', 'AZTEC'].includes(barcodeType) ? 'CODE128' : 'CODE128';
+          img.src = `/code/barcode.svg?data=${encodeURIComponent(value)}&format=${fmt}`;
+          img.style.maxWidth = '100%';
+          img.style.height = '64px';
+        }
         img.onerror = () => {
           img.removeAttribute('src');
           img.alt = `Code client Fidelopass ${value}`;
-        }
+        };
       }
 
       function trackWebCardOpened() {
@@ -881,7 +899,7 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
 
         applyCardDesign();
         renderProgress();
-        renderQr(clientData.wallet_code || clientData.id);
+        renderBarcode(clientData.wallet_code || clientData.id);
         setText('last-update', `Mis a jour a ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`);
         showContent();
         trackWebCardOpened();

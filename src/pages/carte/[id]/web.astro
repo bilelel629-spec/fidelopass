@@ -732,7 +732,7 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
         setText('wallet-code', value);
         const img = $('qr-img');
         if (!img) return;
-        const barcodeType = (cardData?.barcode_type ?? 'QR').toUpperCase();
+        const barcodeType = (cardData?.carte?.barcode_type ?? 'QR').toUpperCase();
         if (barcodeType === 'NONE') {
           img.removeAttribute('src');
           img.alt = '';

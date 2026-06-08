@@ -18,7 +18,7 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
     <title>Carte fidélité digitale — Offre partenaire Fidelopass</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
   </head>
-  <body class="bg-white text-slate-950 antialiased" data-slug={slug ?? ''} data-api-base={apiBase}>
+  <body class="bg-white text-slate-950 antialiased" data-slug={slug ?? ''} data-api-base={apiBase} data-supabase-url={supabaseUrl} data-supabase-anon-key={supabaseAnonKey}>
 
     <!-- Nav -->
     <nav class="sticky top-0 z-30 border-b border-slate-100 bg-white/90 backdrop-blur-xl">
@@ -243,7 +243,7 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
   </body>
 </html>
 
-<script define:vars={{ supabaseUrl, supabaseAnonKey }}>
+<script is:inline type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
   const COOKIE_NAME = 'fp_session';
@@ -252,13 +252,15 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
     document.cookie = `${COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax${secure}`;
   }
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
-  });
-
   const body = document.body;
   const slug = body.dataset.slug ?? '';
   const API = (body.dataset.apiBase || (location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.fidelopass.com')).replace(/\/$/, '');
+  const _supabaseUrl = body.dataset.supabaseUrl ?? '';
+  const _supabaseAnonKey = body.dataset.supabaseAnonKey ?? '';
+
+  const supabase = createClient(_supabaseUrl, _supabaseAnonKey, {
+    auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
+  });
 
   let publicData = null;
   let selectedPlan = null;

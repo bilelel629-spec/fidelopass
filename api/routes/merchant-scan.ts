@@ -4,7 +4,7 @@ import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
 import { pushApplePassUpdate } from '../services/apple-wallet';
-import { updateGooglePassObject } from '../services/google-wallet';
+import { sendGoogleWalletMessage, updateGooglePassObject } from '../services/google-wallet';
 import { applyProgressIncrement, applyRewardRedemption } from '../services/loyalty-progress';
 import { sendPersonalizedPushNotifications } from '../services/push';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
@@ -189,6 +189,7 @@ async function updateWalletsAfterScan(
   db: ReturnType<typeof createServiceClient>,
   client: ScanClient,
   updatedClient: ScanClient,
+  walletMessage?: { titre: string; body: string },
 ) {
   const walletUpdates: Array<Promise<unknown>> = [];
 
@@ -200,6 +201,13 @@ async function updateWalletsAfterScan(
         updatedClient,
       ).catch((error) => console.error('[merchant-scan google update]', error)),
     );
+
+    if (walletMessage) {
+      walletUpdates.push(
+        sendGoogleWalletMessage(client.google_pass_id, walletMessage.titre, walletMessage.body)
+          .catch((error) => console.error('[merchant-scan google message]', error)),
+      );
+    }
   }
 
   if (client.apple_pass_serial) {
@@ -412,9 +420,16 @@ async function handleAddPoint(c: Context) {
     tampons_actuels: nextTampons,
     recompenses_obtenues: nextRewards,
   };
-  await updateWalletsAfterScan(db, safeClient, updatedClient);
-
   const carteData = safeClient.cartes as { id: string; type?: string; nom?: string; logo_url?: string | null };
+  const isPoints = carteData.type === 'points';
+  const scoreLabel = isPoints ? (updatedClient.points_actuels > 1 ? 'points' : 'point') : (updatedClient.tampons_actuels > 1 ? 'tampons' : 'tampon');
+  const scoreValue = isPoints ? updatedClient.points_actuels : updatedClient.tampons_actuels;
+  const scanMessage = {
+    titre: isPoints ? '+1 point ajouté' : '+1 tampon ajouté',
+    body: `Vous avez maintenant ${scoreValue} ${scoreLabel} sur votre carte.`,
+  };
+
+  await updateWalletsAfterScan(db, safeClient, updatedClient, scanMessage);
   void sendWebPushAfterScan(
     db,
     safeClient.id,
@@ -506,9 +521,16 @@ async function handleUseReward(c: Context) {
     tampons_actuels: nextTampons,
     recompenses_obtenues: nextRewards,
   };
-  await updateWalletsAfterScan(db, safeClient, updatedClient);
-
   const carteDataReward = safeClient.cartes as { id: string; type?: string; nom?: string; logo_url?: string | null };
+  const isPointsReward = carteDataReward.type === 'points';
+  const scoreLabelReward = isPointsReward ? (updatedClient.points_actuels > 1 ? 'points' : 'point') : (updatedClient.tampons_actuels > 1 ? 'tampons' : 'tampon');
+  const scoreValueReward = isPointsReward ? updatedClient.points_actuels : updatedClient.tampons_actuels;
+  const rewardMessage = {
+    titre: 'Récompense utilisée',
+    body: `Il vous reste ${scoreValueReward} ${scoreLabelReward} sur votre carte.`,
+  };
+
+  await updateWalletsAfterScan(db, safeClient, updatedClient, rewardMessage);
   void sendWebPushAfterScan(
     db,
     safeClient.id,

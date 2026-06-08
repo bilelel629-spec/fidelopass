@@ -21,6 +21,64 @@ import {
 
 export const publicResellerRoutes = new Hono<ApiEnv>();
 
+// GET /api/public/reseller/session-status?session_id=XXX
+publicResellerRoutes.get('/session-status', async (c) => {
+  const sessionId = c.req.query('session_id');
+  if (!sessionId || sessionId.length < 10) return c.json({ error: 'session_id requis.' }, 400);
+  const db = createServiceClient();
+  const { data: merchant } = await db
+    .from('reseller_merchants')
+    .select('merchant_email, plan, reseller_id, merchant_id')
+    .eq('stripe_checkout_session_id', sessionId)
+    .single();
+  if (!merchant) return c.json({ error: 'Session introuvable.' }, 404);
+  const { data: reseller } = await db
+    .from('resellers')
+    .select('public_slug, brand_name')
+    .eq('id', merchant.reseller_id)
+    .single();
+  return c.json({
+    data: {
+      merchant_email: merchant.merchant_email,
+      plan: merchant.plan,
+      reseller_slug: reseller?.public_slug ?? null,
+      ready: !!merchant.merchant_id,
+    },
+  });
+});
+
+const setupAccountSchema = z.object({
+  session_id: z.string().min(10),
+  password: z.string().min(8).max(128),
+});
+
+// POST /api/public/reseller/setup-account
+publicResellerRoutes.post('/setup-account', async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const parsed = setupAccountSchema.safeParse(body);
+  if (!parsed.success) return c.json({ error: 'Données invalides. Le mot de passe doit faire au moins 8 caractères.' }, 400);
+  const db = createServiceClient();
+  const { data: merchant } = await db
+    .from('reseller_merchants')
+    .select('merchant_id, merchant_email, subscription_status')
+    .eq('stripe_checkout_session_id', parsed.data.session_id)
+    .single();
+  if (!merchant) return c.json({ error: 'Session introuvable.' }, 404);
+  if (!merchant.merchant_id) return c.json({ error: 'Compte en cours d\'activation, réessayez dans quelques secondes.' }, 409);
+  const { data: commerce } = await db
+    .from('commerces')
+    .select('user_id')
+    .eq('id', merchant.merchant_id)
+    .single();
+  if (!commerce?.user_id) return c.json({ error: 'Compte introuvable.' }, 404);
+  const { error } = await db.auth.admin.updateUserById(commerce.user_id, {
+    password: parsed.data.password,
+    email_confirm: true,
+  });
+  if (error) return c.json({ error: 'Impossible de définir le mot de passe.' }, 500);
+  return c.json({ ok: true, email: merchant.merchant_email });
+});
+
 const planSchema = z.preprocess(
   (value) => normalizeResellerPlan(value),
   z.enum(['starter', 'pro', 'premium']),
@@ -330,7 +388,7 @@ publicResellerRoutes.post('/:slug/checkout', async (c) => {
       mode: 'subscription',
       customer: customer.id,
       line_items: [{ price: price.id, quantity: 1 }],
-      success_url: `${siteUrl()}/login?reseller=success`,
+      success_url: `${siteUrl()}/r/success?session_id={CHECKOUT_SESSION_ID}&slug=${reseller.public_slug}`,
       cancel_url: `${siteUrl()}/r/${reseller.public_slug}?cancelled=1`,
       locale: 'fr',
       metadata,

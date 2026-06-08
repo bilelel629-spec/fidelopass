@@ -22,6 +22,7 @@ const { id } = Astro.params;
         <button data-admin-action="reactivate" class="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-800">Réactiver</button>
         <button data-admin-action="suspend" class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">Suspendre</button>
         <button data-admin-action="suspend-clients" class="rounded-2xl border border-red-300 bg-red-100 px-4 py-3 text-sm font-semibold text-red-800">Suspendre + clients</button>
+        <button id="delete-reseller-btn" class="rounded-2xl border border-red-400 bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700">Supprimer définitivement</button>
       </div>
     </div>
 
@@ -513,6 +514,28 @@ const { id } = Astro.params;
       });
     });
   }
+
+  document.getElementById('delete-reseller-btn')?.addEventListener('click', async () => {
+    const name = (document.getElementById('reseller-title') as HTMLElement | null)?.textContent?.trim()
+      ?? resellerId;
+    const confirmed = window.confirm(
+      `Supprimer définitivement "${name}" ?\n\nCette action supprime le revendeur, toutes ses données (commissions, factures, commerçants liés) et son compte d'accès. Elle est irréversible.`
+    );
+    if (!confirmed) return;
+    const btn = document.getElementById('delete-reseller-btn') as HTMLButtonElement;
+    btn.disabled = true;
+    btn.textContent = 'Suppression...';
+    try {
+      const res = await authFetch(`/api/admin/resellers/${resellerId}`, { method: 'DELETE' });
+      const result = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(result?.error ?? 'Suppression impossible.');
+      window.location.href = '/admin/resellers';
+    } catch (error) {
+      showFeedback(error instanceof Error ? error.message : 'Suppression impossible.', true);
+      btn.disabled = false;
+      btn.textContent = 'Supprimer définitivement';
+    }
+  });
 
   document.querySelectorAll('[data-admin-action]').forEach((button) => {
     button.addEventListener('click', async () => {

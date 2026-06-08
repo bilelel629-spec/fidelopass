@@ -692,3 +692,33 @@ adminResellerPaymentsRoutes.post('/:id/refund', async (c) => {
 
   return c.json({ data: refund });
 });
+
+/** DELETE /api/admin/resellers/:id — Suppression définitive (tests uniquement) */
+adminResellerRoutes.delete('/:id', async (c) => {
+  const resellerId = requireUuid(c.req.param('id'));
+  if (!resellerId) return c.json({ error: 'Identifiant revendeur invalide.' }, 400);
+
+  const db = createServiceClient();
+
+  const { data: reseller, error: fetchError } = await db
+    .from('resellers')
+    .select('id, user_id, brand_name')
+    .eq('id', resellerId)
+    .single();
+
+  if (fetchError || !reseller) return c.json({ error: 'Revendeur introuvable.' }, 404);
+
+  // Supprimer le revendeur → cascade DB vers toutes les tables liées (merchants, invoices, etc.)
+  const { error: deleteError } = await db.from('resellers').delete().eq('id', resellerId);
+  if (deleteError) return c.json({ error: 'Suppression impossible : ' + deleteError.message }, 500);
+
+  // Supprimer l'auth user du revendeur (best-effort, les commerces liés ont leurs propres users)
+  if (reseller.user_id) {
+    const { error: authDeleteError } = await db.auth.admin.deleteUser(reseller.user_id);
+    if (authDeleteError) {
+      console.warn('[admin-resellers] auth user delete failed (reseller delete):', authDeleteError.message);
+    }
+  }
+
+  return c.json({ ok: true });
+});

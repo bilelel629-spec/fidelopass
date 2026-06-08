@@ -1,0 +1,227 @@
+---
+import '../../styles/global.css';
+
+const sessionId = Astro.url.searchParams.get('session_id') ?? '';
+const slug = Astro.url.searchParams.get('slug') ?? '';
+const apiBase = (
+  import.meta.env.PUBLIC_API_URL
+  ?? (import.meta.env.PROD ? 'https://api.fidelopass.com' : 'http://localhost:3001')
+).replace(/\/$/, '');
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL ?? '';
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Activation de votre compte — Fidelopass</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+  </head>
+  <body class="min-h-screen bg-slate-50 text-slate-950 antialiased">
+    <main class="relative min-h-screen overflow-hidden px-4 py-8 sm:px-6 lg:px-8">
+      <div class="pointer-events-none absolute inset-0">
+        <div class="absolute -top-36 right-[-8rem] h-[30rem] w-[30rem] rounded-full bg-emerald-200/50 blur-3xl"></div>
+        <div class="absolute top-1/3 left-[-10rem] h-[26rem] w-[26rem] rounded-full bg-indigo-200/35 blur-3xl"></div>
+      </div>
+
+      <section class="relative mx-auto max-w-lg space-y-6">
+        <header class="flex items-center justify-between gap-4 rounded-[2rem] border border-white/80 bg-white/88 p-5 shadow-[0_28px_80px_-58px_rgba(15,23,42,0.45)] backdrop-blur-xl">
+          <div class="flex items-center gap-3">
+            <div class="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              <img id="brand-logo" src="/logo-premium.png" alt="Logo" class="h-full w-full object-contain p-1.5" />
+            </div>
+            <h1 id="brand-name" class="font-display text-lg font-bold text-slate-950">Fidelopass</h1>
+          </div>
+          <img src="/logo-premium.png" alt="Fidelopass" class="h-9 w-32 object-contain object-right" />
+        </header>
+
+        <!-- État : chargement -->
+        <div id="state-loading" class="rounded-[2rem] border border-slate-100 bg-white/92 p-8 text-center shadow-[0_30px_90px_-62px_rgba(15,23,42,0.25)]">
+          <div class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600"></div>
+          <p class="mt-4 text-sm font-medium text-slate-500">Chargement de votre espace...</p>
+        </div>
+
+        <!-- État : erreur session invalide -->
+        <div id="state-error" class="hidden rounded-[2rem] border border-amber-100 bg-white/92 p-8 shadow-[0_30px_90px_-62px_rgba(15,23,42,0.25)]">
+          <p class="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-amber-700">Lien invalide</p>
+          <h2 class="mt-2 font-display text-2xl font-bold text-slate-950">Ce lien ne correspond à aucun paiement.</h2>
+          <p class="mt-3 text-sm leading-6 text-slate-600">Contactez votre revendeur si vous venez d'effectuer un paiement.</p>
+          <a href="/" class="mt-6 inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300">Retour à l'accueil</a>
+        </div>
+
+        <!-- État : formulaire définir mot de passe -->
+        <div id="state-form" class="hidden rounded-[2rem] border border-emerald-100 bg-white/92 p-8 shadow-[0_30px_90px_-62px_rgba(16,185,129,0.4)]">
+          <div class="flex items-start gap-3">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+              <svg class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-emerald-700">Paiement confirmé</p>
+              <h2 class="mt-0.5 font-display text-2xl font-bold text-slate-950">Définissez votre mot de passe</h2>
+            </div>
+          </div>
+
+          <p class="mt-5 text-sm leading-6 text-slate-600">
+            Votre compte a été créé. Choisissez un mot de passe pour vous connecter à votre tableau de bord Fidelopass.
+          </p>
+
+          <form id="setup-form" class="mt-6 space-y-4">
+            <div>
+              <label class="block text-sm font-semibold text-slate-700">Email</label>
+              <input id="field-email" type="email" readonly class="mt-1.5 w-full cursor-default rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-medium text-slate-600 outline-none" />
+            </div>
+            <div>
+              <label for="field-password" class="block text-sm font-semibold text-slate-700">Mot de passe</label>
+              <input id="field-password" type="password" minlength="8" required autocomplete="new-password"
+                class="mt-1.5 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                placeholder="8 caractères minimum" />
+            </div>
+            <div>
+              <label for="field-confirm" class="block text-sm font-semibold text-slate-700">Confirmer le mot de passe</label>
+              <input id="field-confirm" type="password" minlength="8" required autocomplete="new-password"
+                class="mt-1.5 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                placeholder="••••••••" />
+            </div>
+            <p id="form-error" class="hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"></p>
+            <button id="submit-btn" type="submit"
+              class="w-full rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-500 px-5 py-3.5 text-sm font-bold text-white shadow-[0_16px_28px_-18px_rgba(37,99,235,0.8)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50">
+              Activer mon compte et accéder au dashboard
+            </button>
+          </form>
+        </div>
+
+        <!-- État : succès, redirection -->
+        <div id="state-success" class="hidden rounded-[2rem] border border-blue-100 bg-white/92 p-8 text-center shadow-[0_30px_90px_-62px_rgba(37,99,235,0.3)]">
+          <div class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600"></div>
+          <p class="mt-4 text-sm font-bold text-slate-950">Compte activé !</p>
+          <p class="mt-1 text-sm text-slate-500">Redirection vers votre tableau de bord...</p>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
+
+<script define:vars={{ sessionId, slug, apiBase, supabaseUrl, supabaseAnonKey }}>
+  import { createClient } from '@supabase/supabase-js';
+
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+  const COOKIE_NAME = 'fp_session';
+  function setSessionCookie(token) {
+    const secure = location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `${COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax${secure}`;
+  }
+
+  function show(id) {
+    ['state-loading', 'state-error', 'state-form', 'state-success'].forEach((s) => {
+      document.getElementById(s)?.classList.toggle('hidden', s !== id);
+    });
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('form-error');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.remove('hidden');
+  }
+
+  function hideError() {
+    document.getElementById('form-error')?.classList.add('hidden');
+  }
+
+  // Charger le branding du revendeur
+  async function loadBranding(resellerSlug) {
+    if (!resellerSlug) return;
+    try {
+      const res = await fetch(`${apiBase}/api/public/reseller/${encodeURIComponent(resellerSlug)}`);
+      if (!res.ok) return;
+      const payload = await res.json().catch(() => null);
+      const data = payload?.data;
+      if (!data) return;
+      if (data.brand_name) {
+        const el = document.getElementById('brand-name');
+        if (el) el.textContent = data.brand_name;
+      }
+      if (data.brand_logo_url) {
+        const el = document.getElementById('brand-logo');
+        if (el) el.src = data.brand_logo_url;
+      }
+    } catch {}
+  }
+
+  // Récupérer l'email du commerçant depuis la session Stripe
+  async function loadSessionStatus() {
+    if (!sessionId) { show('state-error'); return; }
+    try {
+      const res = await fetch(`${apiBase}/api/public/reseller/session-status?session_id=${encodeURIComponent(sessionId)}`);
+      const payload = await res.json().catch(() => null);
+      if (!res.ok || !payload?.data) { show('state-error'); return; }
+      const { merchant_email, reseller_slug } = payload.data;
+      const emailInput = document.getElementById('field-email');
+      if (emailInput) emailInput.value = merchant_email ?? '';
+      if (reseller_slug) await loadBranding(reseller_slug);
+      else if (slug) await loadBranding(slug);
+      show('state-form');
+      document.getElementById('field-password')?.focus();
+    } catch {
+      show('state-error');
+    }
+  }
+
+  // Soumission du formulaire
+  document.getElementById('setup-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideError();
+    const email = document.getElementById('field-email').value;
+    const password = document.getElementById('field-password').value;
+    const confirm = document.getElementById('field-confirm').value;
+    if (password !== confirm) { showError('Les mots de passe ne correspondent pas.'); return; }
+    if (password.length < 8) { showError('Le mot de passe doit faire au moins 8 caractères.'); return; }
+
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Activation...';
+
+    try {
+      // 1. Définir le mot de passe via le serveur
+      const res = await fetch(`${apiBase}/api/public/reseller/setup-account`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId, password }),
+      });
+      const result = await res.json().catch(() => null);
+      if (!res.ok) {
+        showError(result?.error ?? 'Impossible d\'activer le compte. Réessayez.');
+        btn.disabled = false;
+        btn.textContent = 'Activer mon compte et accéder au dashboard';
+        return;
+      }
+
+      // 2. Connexion automatique
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: result.email ?? email,
+        password,
+      });
+      if (signInError || !signInData?.session?.access_token) {
+        // Mot de passe défini mais connexion auto échouée → rediriger vers /login
+        window.location.href = `/login?email=${encodeURIComponent(result.email ?? email)}&activated=1`;
+        return;
+      }
+
+      // 3. Poser le cookie de session et rediriger
+      setSessionCookie(signInData.session.access_token);
+      show('state-success');
+      window.location.replace('/dashboard');
+    } catch {
+      showError('Une erreur est survenue. Réessayez.');
+      btn.disabled = false;
+      btn.textContent = 'Activer mon compte et accéder au dashboard';
+    }
+  });
+
+  await loadSessionStatus();
+</script>

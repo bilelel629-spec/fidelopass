@@ -13,277 +13,390 @@ const apiBase = (
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Offre revendeur Fidelopass</title>
+    <title>Carte fidélité digitale — Offre partenaire Fidelopass</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
   </head>
-  <body class="min-h-screen bg-slate-50 text-slate-950 antialiased">
-    <main id="reseller-public-page" data-public-slug={slug ?? ''} data-api-base={apiBase} class="relative min-h-screen overflow-hidden px-4 py-8 sm:px-6 lg:px-8">
-      <div class="pointer-events-none absolute inset-0">
-        <div class="absolute -top-36 right-[-8rem] h-[30rem] w-[30rem] rounded-full bg-cyan-200/50 blur-3xl"></div>
-        <div class="absolute top-1/3 left-[-10rem] h-[26rem] w-[26rem] rounded-full bg-indigo-200/35 blur-3xl"></div>
-      </div>
+  <body class="bg-white text-slate-950 antialiased" data-slug={slug ?? ''} data-api-base={apiBase}>
 
-      <section class="relative mx-auto max-w-6xl space-y-8">
-        <header class="flex flex-col gap-5 rounded-[2rem] border border-white/80 bg-white/88 p-6 shadow-[0_28px_80px_-58px_rgba(15,23,42,0.45)] backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
-          <div class="flex items-center gap-4">
-            <div class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white">
-              <img id="brand-logo" src="/logo-premium.png" alt="Logo" class="h-full w-full object-contain p-2" />
-            </div>
-            <div>
-              <p class="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-blue-700">Offre partenaire Fidelopass</p>
-              <h1 id="brand-name" class="mt-1 font-display text-3xl font-bold tracking-tight text-slate-950">Chargement...</h1>
-            </div>
+    <!-- Nav -->
+    <nav class="sticky top-0 z-30 border-b border-slate-100 bg-white/90 backdrop-blur-xl">
+      <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+        <div class="flex items-center gap-3">
+          <div id="nav-logo-wrap" class="hidden h-9 w-9 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <img id="nav-logo" src="/logo-premium.png" alt="Logo" class="h-full w-full object-contain p-1" />
           </div>
-          <img src="/logo-premium.png" alt="Fidelopass" class="h-12 w-44 object-contain object-right" />
-        </header>
-
-        <div id="unavailable-card" class="hidden rounded-[2rem] border border-amber-200 bg-amber-50 p-8 text-amber-900">
-          <p class="text-[0.68rem] font-semibold uppercase tracking-[0.24em]">Offre indisponible</p>
-          <h2 class="mt-2 font-display text-3xl font-bold">Cette offre n’est plus disponible.</h2>
-          <p class="mt-3 text-base">Contactez votre revendeur pour obtenir un nouveau lien ou une offre à jour.</p>
+          <span id="nav-brand" class="font-display text-base font-bold text-slate-950 hidden"></span>
         </div>
+        <img src="/logo-premium.png" alt="Fidelopass" class="h-8 w-32 object-contain object-right" />
+      </div>
+    </nav>
 
-        <div id="public-content" class="hidden space-y-8">
-          <section class="rounded-[2.2rem] border border-sky-100 bg-white/92 p-8 shadow-[0_30px_90px_-62px_rgba(37,99,235,0.55)]">
-            <div class="grid gap-8 lg:grid-cols-[0.92fr_1.08fr] lg:items-end">
-              <div>
-                <p class="text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-sky-700">Carte fidélité digitale</p>
-                <h2 class="mt-3 font-display text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">
-                  Lancez votre fidélité Wallet avec <span id="hero-reseller-name">votre partenaire</span>.
-                </h2>
-                <p id="partner-line" class="mt-4 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-900">
-                  Fidelopass vous est proposé par votre revendeur.
-                </p>
-                <p class="mt-5 text-lg leading-8 text-slate-600">
-                  Choisissez une offre, créez votre compte commerçant, profitez de 14 jours d’essai gratuit, puis configurez votre carte Fidelopass.
-                </p>
-              </div>
-              <div class="rounded-[1.6rem] bg-gradient-to-br from-slate-950 via-blue-950 to-sky-700 p-6 text-white">
-                <p class="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-white/60">Inclus</p>
-                <ul class="mt-4 space-y-3 text-sm font-medium text-white/86">
-                  <li>Carte Apple Wallet, Google Wallet et carte web</li>
-                  <li>Dashboard commerçant et scanner mobile</li>
-                  <li>Notifications et suivi des clients</li>
-                  <li>14 jours d’essai gratuit sur votre abonnement</li>
-                </ul>
-              </div>
-            </div>
-          </section>
+    <!-- Hero -->
+    <section class="relative overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_65%,#ffffff_100%)] pb-8 pt-10 sm:pt-14 sm:pb-10">
+      <div class="pointer-events-none absolute inset-0">
+        <div class="absolute -top-24 right-0 h-64 w-64 rounded-full bg-sky-200/30 blur-3xl"></div>
+        <div class="absolute -top-10 left-0 h-56 w-56 rounded-full bg-indigo-200/20 blur-3xl"></div>
+      </div>
+      <div class="relative mx-auto max-w-3xl px-4 text-center sm:px-6">
+        <span id="hero-eyebrow" class="mb-4 inline-flex items-center rounded-full border border-sky-200 bg-white px-3.5 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-sky-700 shadow-sm">
+          Offre partenaire Fidelopass
+        </span>
+        <h1 class="font-display text-3xl font-bold leading-tight text-slate-900 sm:text-5xl">
+          Lancez votre fidélité<br />
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-500">dans Apple & Google Wallet.</span>
+        </h1>
+        <p id="hero-sub" class="mx-auto mt-4 max-w-xl text-base leading-relaxed text-slate-500 sm:text-lg">
+          Choisissez votre plan, créez votre compte et profitez de 14 jours d'essai gratuit.
+        </p>
+      </div>
+    </section>
 
-          <section>
-            <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p class="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-blue-700">Offres disponibles</p>
-                <h2 class="mt-2 font-display text-3xl font-bold text-slate-950">Choisissez votre plan</h2>
-              </div>
-              <p class="text-sm text-slate-500">Prix configurés par votre revendeur.</p>
-            </div>
-            <div id="plans-grid" class="mt-5 grid gap-4 lg:grid-cols-3"></div>
-          </section>
+    <!-- Unavailable -->
+    <div id="unavailable-card" class="hidden mx-auto max-w-2xl px-4 py-12 sm:px-6">
+      <div class="rounded-[2rem] border border-amber-200 bg-amber-50 p-8 text-center text-amber-900">
+        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.24em]">Offre indisponible</p>
+        <h2 class="mt-2 font-display text-2xl font-bold">Cette offre n'est plus disponible.</h2>
+        <p id="unavailable-msg" class="mt-3 text-sm leading-6">Contactez votre revendeur pour obtenir un nouveau lien ou une offre à jour.</p>
+      </div>
+    </div>
 
-          <section class="grid gap-5 lg:grid-cols-[1fr_0.85fr]">
-            <form id="signup-form" class="rounded-[2rem] border border-sky-100 bg-white/92 p-6 shadow-[0_28px_80px_-58px_rgba(37,99,235,0.45)]">
-              <p class="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-blue-700">Inscription commerçant</p>
-              <h2 class="mt-2 font-display text-3xl font-bold text-slate-950">Créer votre compte</h2>
-              <div class="mt-6 grid gap-4 sm:grid-cols-2">
-                <label class="space-y-2 sm:col-span-2">
-                  <span class="text-sm font-semibold text-slate-700">Nom du commerce</span>
-                  <input name="commerce_name" required class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100" placeholder="Votre commerce" />
-                </label>
-                <label class="space-y-2">
-                  <span class="text-sm font-semibold text-slate-700">Email</span>
-                  <input name="email" type="email" required class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100" placeholder="vous@email.com" />
-                </label>
-                <label class="space-y-2">
-                  <span class="text-sm font-semibold text-slate-700">Téléphone</span>
-                  <input name="phone" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100" placeholder="+33..." />
-                </label>
-                <label class="space-y-2 sm:col-span-2">
-                  <span class="text-sm font-semibold text-slate-700">Pays</span>
-                  <input name="country" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100" placeholder="France" />
-                </label>
-              </div>
-              <button id="signup-button" class="mt-6 w-full rounded-2xl bg-gradient-to-r from-blue-600 to-violet-500 px-5 py-4 text-sm font-bold text-white shadow-[0_20px_36px_-24px_rgba(37,99,235,0.8)] transition hover:-translate-y-0.5">
-                Créer mon compte et démarrer l’essai
-              </button>
-              <p id="signup-feedback" class="mt-4 text-sm text-slate-500"></p>
-            </form>
+    <!-- Content -->
+    <div id="public-content" class="hidden">
 
-            <aside class="rounded-[2rem] border border-indigo-100 bg-white/92 p-6 shadow-[0_28px_80px_-58px_rgba(79,70,229,0.45)]">
-              <p class="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-indigo-700">Votre sélection</p>
-              <h2 id="selected-plan-title" class="mt-2 font-display text-3xl font-bold text-slate-950">Sélectionnez un plan</h2>
-              <p id="selected-plan-price" class="mt-4 text-4xl font-bold text-slate-950">-</p>
-              <p id="selected-plan-help" class="mt-4 text-sm leading-6 text-slate-500">
-                Le commerçant final voit uniquement le prix de son abonnement.
-              </p>
-            </aside>
-          </section>
+      <!-- Plans -->
+      <section class="bg-slate-50/70 px-4 py-10 sm:px-6 sm:py-14">
+        <div class="mx-auto max-w-5xl">
+          <div class="mb-3 text-center">
+            <p class="text-[0.7rem] font-semibold uppercase tracking-[0.26em] text-sky-700/75">Plans disponibles</p>
+            <h2 class="mt-2 font-display text-2xl font-bold text-slate-900 sm:text-3xl">Choisissez votre offre</h2>
+            <p class="mt-1 text-sm text-slate-400">Prix configurés par votre partenaire. TVA applicable selon votre situation.</p>
+          </div>
+          <div id="plans-grid" class="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"></div>
         </div>
       </section>
-    </main>
 
-    <script is:inline type="module">
-      const root = document.getElementById('reseller-public-page');
-      const slug = root?.dataset.publicSlug || '';
-      const API = (root?.dataset.apiBase || 'https://api.fidelopass.com').replace(/\/$/, '');
-      let publicData = null;
-      let selectedPlan = null;
+      <!-- Included features -->
+      <section class="border-y border-slate-100 bg-white px-4 py-10 sm:px-6">
+        <div class="mx-auto max-w-5xl">
+          <p class="mb-6 text-center text-[0.7rem] font-semibold uppercase tracking-[0.26em] text-slate-400">Inclus dans tous les plans</p>
+          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              { icon: '📱', title: 'Apple Wallet & Google Wallet', desc: 'Vos clients ajoutent la carte directement dans leur portefeuille digital. Aucun téléchargement requis.' },
+              { icon: '📊', title: 'Dashboard commerçant', desc: 'Pilotez vos clients, vos points de vente et vos statistiques depuis une interface claire.' },
+              { icon: '📷', title: 'Scanner mobile & affiche QR', desc: 'Scannez les cartes depuis votre téléphone. Imprimez votre affiche QR en 30 secondes.' },
+              { icon: '🔔', title: 'Notifications push', desc: 'Envoyez des messages ciblés à vos clients directement sur leur écran de verrouillage.' },
+              { icon: '🎁', title: 'Carte tampons, points & paliers', desc: 'Configurez votre programme de fidélité selon votre modèle : tampons, points ou niveaux.' },
+              { icon: '🆓', title: '14 jours d\'essai gratuit', desc: 'Testez tout sans engagement. Résiliable à tout moment pendant l\'essai.' },
+            ].map(({ icon, title, desc }) => (
+              <div class="flex items-start gap-4 rounded-[1.5rem] border border-slate-100 bg-slate-50/60 p-5">
+                <span class="mt-0.5 text-2xl">{icon}</span>
+                <div>
+                  <p class="text-sm font-bold text-slate-900">{title}</p>
+                  <p class="mt-1 text-xs leading-5 text-slate-500">{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-      const formatMoney = (cents, currency = 'eur') => new Intl.NumberFormat('fr-FR', {
-        style: 'currency',
-        currency: String(currency || 'eur').toUpperCase(),
-        maximumFractionDigits: 0,
-      }).format(Number(cents || 0) / 100);
+      <!-- Signup form -->
+      <section class="bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_100%)] px-4 py-12 sm:px-6 sm:py-16">
+        <div class="mx-auto max-w-2xl">
+          <div class="mb-8 text-center">
+            <p class="text-[0.7rem] font-semibold uppercase tracking-[0.26em] text-blue-700">Inscription commerçant</p>
+            <h2 class="mt-2 font-display text-2xl font-bold text-slate-900 sm:text-3xl">Créer votre compte</h2>
+            <p id="form-plan-label" class="mt-2 text-sm text-slate-400">Sélectionnez d'abord un plan ci-dessus</p>
+          </div>
 
-      function setUnavailable(message) {
-        document.getElementById('public-content')?.classList.add('hidden');
-        const card = document.getElementById('unavailable-card');
-        card?.classList.remove('hidden');
-        const text = card?.querySelector('p:last-child');
-        if (text) text.textContent = message || 'Contactez votre revendeur pour obtenir un nouveau lien ou une offre à jour.';
-      }
+          <div class="rounded-[2rem] border border-sky-100 bg-white p-7 shadow-[0_30px_80px_-48px_rgba(37,99,235,0.35)] sm:p-9">
+            <!-- Plan summary -->
+            <div id="plan-summary" class="mb-6 hidden rounded-2xl border border-indigo-100 bg-indigo-50/60 px-5 py-4">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <p id="plan-summary-name" class="text-sm font-bold text-indigo-900"></p>
+                  <p class="mt-0.5 text-xs text-indigo-600">14 jours gratuits · Résiliable à tout moment</p>
+                </div>
+                <p id="plan-summary-price" class="font-display text-2xl font-bold text-indigo-900"></p>
+              </div>
+            </div>
 
-      async function trackPlanClick(plan) {
-        fetch(`${API}/api/public/reseller/${encodeURIComponent(slug)}/track`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ event_type: 'plan_click', plan }),
-        }).catch(() => null);
-      }
+            <form id="signup-form" class="space-y-4">
+              <div class="grid gap-4 sm:grid-cols-2">
+                <label class="sm:col-span-2 space-y-1.5">
+                  <span class="block text-sm font-semibold text-slate-700">Nom du commerce</span>
+                  <input name="commerce_name" required
+                    class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    placeholder="Votre commerce" />
+                </label>
+                <label class="space-y-1.5">
+                  <span class="block text-sm font-semibold text-slate-700">Email</span>
+                  <input name="email" type="email" required
+                    class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    placeholder="vous@email.com" />
+                </label>
+                <label class="space-y-1.5">
+                  <span class="block text-sm font-semibold text-slate-700">Téléphone</span>
+                  <input name="phone"
+                    class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    placeholder="+33..." />
+                </label>
+                <label class="sm:col-span-2 space-y-1.5">
+                  <span class="block text-sm font-semibold text-slate-700">Pays</span>
+                  <input name="country"
+                    class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    placeholder="France" />
+                </label>
+              </div>
 
-      function selectPlan(plan) {
-        selectedPlan = plan;
-        const offer = publicData.plans.find((item) => item.plan === plan);
-        document.querySelectorAll('[data-plan-card]').forEach((card) => {
-          card.classList.toggle('ring-4', card.getAttribute('data-plan-card') === plan);
-          card.classList.toggle('ring-blue-100', card.getAttribute('data-plan-card') === plan);
-          card.classList.toggle('border-blue-300', card.getAttribute('data-plan-card') === plan);
-        });
-        document.getElementById('selected-plan-title').textContent = offer?.label ?? 'Plan';
-        document.getElementById('selected-plan-price').textContent = `${formatMoney(offer?.public_price_cents, offer?.currency)}/mois`;
-        if (offer?.is_valid === false) {
-          document.getElementById('selected-plan-help').textContent = offer.validation_message || 'Cette offre doit être vérifiée par le revendeur.';
-        } else if (publicData.checkout_available === false) {
-          document.getElementById('selected-plan-help').textContent = publicData.checkout_message || 'Le paiement en ligne de cette offre n’est pas encore disponible.';
-        } else {
-          document.getElementById('selected-plan-help').textContent = 'Après inscription, Stripe sécurise votre moyen de paiement. Votre abonnement démarre par 14 jours d’essai gratuit.';
-        }
-        updateSignupState();
-        trackPlanClick(plan);
-      }
+              <p id="signup-feedback" class="hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"></p>
 
-      function canSubmitSelectedPlan() {
-        const offer = publicData?.plans?.find((item) => item.plan === selectedPlan);
-        if (!offer || offer.is_valid === false) return false;
-        if (publicData.checkout_available === false) return false;
-        return publicData.signup_enabled !== false;
-      }
+              <button id="signup-button" type="submit" disabled
+                class="mt-2 w-full rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-500 px-5 py-4 text-sm font-bold text-white shadow-[0_16px_32px_-20px_rgba(37,99,235,0.8)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0">
+                Sélectionnez un plan pour continuer
+              </button>
 
-      function updateSignupState() {
-        const button = document.getElementById('signup-button');
-        const feedback = document.getElementById('signup-feedback');
-        if (!button || !feedback) return;
-        const offer = publicData?.plans?.find((item) => item.plan === selectedPlan);
-        const canSubmit = canSubmitSelectedPlan();
-        button.disabled = !canSubmit;
-        button.classList.toggle('opacity-50', !canSubmit);
-        button.classList.toggle('cursor-not-allowed', !canSubmit);
-        if (offer?.is_valid === false) {
-          feedback.textContent = offer.validation_message || 'Cette offre doit être vérifiée par le revendeur.';
-        } else if (publicData?.checkout_available === false) {
-          feedback.textContent = publicData.checkout_message || 'Le paiement en ligne de cette offre n’est pas encore disponible.';
-        } else if (publicData?.signup_enabled === false) {
-          feedback.textContent = 'Les inscriptions publiques sont temporairement désactivées.';
-        } else {
-          feedback.textContent = '';
-        }
-      }
+              <p class="text-center text-xs text-slate-400">Paiement sécurisé via Stripe · Résiliable à tout moment pendant l'essai</p>
+            </form>
+          </div>
 
-      function render(data) {
-        publicData = data;
-        document.documentElement.style.setProperty('--reseller-primary', data.primary_color || '#2563eb');
-        document.getElementById('brand-name').textContent = data.brand_name || 'Revendeur Fidelopass';
-        document.getElementById('hero-reseller-name').textContent = data.brand_name || 'votre partenaire Fidelopass';
-        document.getElementById('partner-line').textContent = `Fidelopass vous est proposé par ${data.brand_name || 'votre partenaire'}.`;
-        const logo = document.getElementById('brand-logo');
-        if (data.brand_logo_url) logo.src = data.brand_logo_url;
-        const grid = document.getElementById('plans-grid');
-        grid.innerHTML = data.plans.map((plan) => `
-          <button type="button" data-plan-card="${plan.plan}" ${plan.is_valid === false ? 'disabled aria-disabled="true"' : ''} class="text-left rounded-[1.6rem] border ${plan.is_valid === false ? 'border-amber-200 bg-amber-50/70 opacity-70' : 'border-slate-200 bg-white hover:-translate-y-1 hover:border-blue-200'} p-6 shadow-[0_18px_42px_-36px_rgba(15,23,42,0.35)] transition">
-            <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-blue-700">${plan.label}</p>
-            <p class="mt-3 text-4xl font-bold text-slate-950">${formatMoney(plan.public_price_cents, plan.currency)}</p>
-            <p class="mt-1 text-sm font-semibold text-slate-500">par mois</p>
-            <p class="mt-4 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.14em] text-emerald-700">14 jours gratuits</p>
-            <p class="mt-5 text-sm leading-6 text-slate-600">Carte fidélité digitale, Wallet, carte web, dashboard et scanner inclus.</p>
-            ${plan.is_valid === false ? `<p class="mt-4 rounded-2xl border border-amber-200 bg-white/70 px-3 py-2 text-xs font-semibold text-amber-800">${plan.validation_message || 'Offre à vérifier.'}</p>` : ''}
-          </button>
-        `).join('');
-        document.querySelectorAll('[data-plan-card]').forEach((button) => {
-          if (button.disabled) return;
-          button.addEventListener('click', () => selectPlan(button.getAttribute('data-plan-card')));
-        });
-        const firstAvailablePlan = data.plans.find((plan) => plan.is_valid !== false);
-        if (firstAvailablePlan) {
-          selectPlan(firstAvailablePlan.plan);
-        } else {
-          document.getElementById('selected-plan-title').textContent = 'Offres à vérifier';
-          document.getElementById('selected-plan-price').textContent = '-';
-          document.getElementById('selected-plan-help').textContent = 'Le revendeur doit corriger ses prix avant de proposer cette offre.';
-          updateSignupState();
-        }
-        document.getElementById('public-content')?.classList.remove('hidden');
-      }
+          <!-- Trust row -->
+          <div class="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-slate-400">
+            <span class="flex items-center gap-1.5"><svg class="h-3.5 w-3.5 text-emerald-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>14 jours gratuits</span>
+            <span class="flex items-center gap-1.5"><svg class="h-3.5 w-3.5 text-emerald-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Aucun prélèvement aujourd'hui</span>
+            <span class="flex items-center gap-1.5"><svg class="h-3.5 w-3.5 text-emerald-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Résiliable à tout moment</span>
+            <span class="flex items-center gap-1.5"><svg class="h-3.5 w-3.5 text-emerald-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Paiement sécurisé Stripe</span>
+          </div>
+        </div>
+      </section>
 
-      async function loadPublicOffer() {
-        const res = await fetch(`${API}/api/public/reseller/${encodeURIComponent(slug)}`);
-        const payload = await res.json().catch(() => null);
-        if (!res.ok || !payload?.available) {
-          setUnavailable(payload?.message);
-          return;
-        }
-        render(payload.data);
-      }
+      <!-- Footer -->
+      <footer class="border-t border-slate-100 bg-white px-4 py-8 sm:px-6">
+        <div class="mx-auto flex max-w-6xl flex-col items-center gap-3 text-center sm:flex-row sm:justify-between sm:text-left">
+          <img src="/logo-premium.png" alt="Fidelopass" class="h-8 w-auto object-contain" />
+          <p id="footer-partner" class="text-xs text-slate-400"></p>
+          <p class="text-xs text-slate-300">Propulsé par <strong class="text-slate-400">Fidelopass</strong></p>
+        </div>
+      </footer>
 
-      document.getElementById('signup-form')?.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        if (!selectedPlan || !canSubmitSelectedPlan()) {
-          updateSignupState();
-          return;
-        }
-        const form = event.currentTarget;
-        const button = document.getElementById('signup-button');
-        const feedback = document.getElementById('signup-feedback');
-        const data = new FormData(form);
-        const payload = {
-          commerce_name: String(data.get('commerce_name') || ''),
-          email: String(data.get('email') || ''),
-          phone: String(data.get('phone') || ''),
-          country: String(data.get('country') || ''),
-          plan: selectedPlan,
-        };
-        button.disabled = true;
-        feedback.textContent = 'Préparation de votre inscription...';
-        const endpoint = publicData.checkout_available === false ? 'manual-request' : 'checkout';
-        const res = await fetch(`${API}/api/public/reseller/${encodeURIComponent(slug)}/${endpoint}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        const result = await res.json().catch(() => null);
-        if (!res.ok) {
-          feedback.textContent = result?.error || 'Inscription impossible pour le moment.';
-          button.disabled = false;
-          return;
-        }
-        if (result?.url) {
-          window.location.href = result.url;
-          return;
-        }
-        feedback.textContent = 'Demande envoyée. Votre revendeur vous contactera pour finaliser.';
-        button.disabled = false;
-      });
+    </div><!-- /public-content -->
 
-      loadPublicOffer();
-    </script>
   </body>
 </html>
+
+<script is:inline type="module">
+  const body = document.body;
+  const slug = body.dataset.slug ?? '';
+  const API = (body.dataset.apiBase || (location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.fidelopass.com')).replace(/\/$/, '');
+
+  let publicData = null;
+  let selectedPlan = null;
+
+  const formatMoney = (cents, currency = 'eur') =>
+    new Intl.NumberFormat('fr-FR', { style: 'currency', currency: String(currency || 'eur').toUpperCase(), maximumFractionDigits: 0 })
+      .format(Number(cents || 0) / 100);
+
+  const PLAN_FEATURES = {
+    starter: ["Jusqu'à 500 cartes actives", '1 point de vente', 'Scanners illimités', 'Apple Wallet + Google Wallet', 'Notifications push', 'Carte tampons, points, paliers', 'Analytics de base', 'Support email'],
+    pro: ["Jusqu'à 2 000 cartes actives", '3 points de vente', 'Scanners illimités', 'Apple Wallet + Google Wallet', 'Push ciblées & campagnes', 'Push avis Google auto', 'Analytics avancés', 'Anniversaire automatique', 'Support prioritaire'],
+    premium: ['Cartes actives illimitées', 'Points de vente avancés', 'Scanners illimités', 'Apple Wallet + Google Wallet', 'Push ciblées & campagnes', 'Automatisations incluses', 'Analytics avancés', 'Accompagnement setup', 'Support prioritaire'],
+  };
+
+  const PLAN_LABELS = { starter: 'Starter', pro: 'Pro', premium: 'Business' };
+  const PLAN_EYEBROW = { starter: 'Première carte', pro: 'Croissance', premium: 'Volume' };
+  const PLAN_DESC = {
+    starter: 'Pour lancer votre première carte et commencer à fidéliser.',
+    pro: 'Pour fidéliser plus fort et communiquer avec vos clients.',
+    premium: 'Pour les commerces qui veulent un déploiement complet.',
+  };
+  const HIGHLIGHT_PLAN = 'pro';
+
+  function setUnavailable(msg) {
+    document.getElementById('public-content')?.classList.add('hidden');
+    const card = document.getElementById('unavailable-card');
+    card?.classList.remove('hidden');
+    if (msg) { const el = document.getElementById('unavailable-msg'); if (el) el.textContent = msg; }
+  }
+
+  function trackPlanClick(plan) {
+    fetch(`${API}/api/public/reseller/${encodeURIComponent(slug)}/track`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_type: 'plan_click', plan }),
+    }).catch(() => null);
+  }
+
+  function selectPlan(plan) {
+    selectedPlan = plan;
+    const offer = publicData.plans.find((p) => p.plan === plan);
+
+    document.querySelectorAll('[data-plan-card]').forEach((card) => {
+      const active = card.getAttribute('data-plan-card') === plan;
+      const isHighlight = card.getAttribute('data-plan-highlight') === 'true';
+      card.classList.toggle('ring-4', active && !isHighlight);
+      card.classList.toggle('ring-blue-300', active && !isHighlight);
+      card.classList.toggle('ring-2', active && isHighlight);
+      card.classList.toggle('ring-white/60', active && isHighlight);
+    });
+
+    const summaryEl = document.getElementById('plan-summary');
+    if (summaryEl) {
+      summaryEl.classList.remove('hidden');
+      document.getElementById('plan-summary-name').textContent = PLAN_LABELS[plan] ?? plan;
+      document.getElementById('plan-summary-price').textContent = offer ? `${formatMoney(offer.public_price_cents, offer.currency)}/mois` : '';
+    }
+
+    const formLabel = document.getElementById('form-plan-label');
+    if (formLabel) formLabel.textContent = offer ? `Plan sélectionné : ${PLAN_LABELS[plan] ?? plan} — ${formatMoney(offer.public_price_cents, offer.currency)}/mois` : '';
+
+    const btn = document.getElementById('signup-button');
+    if (btn) {
+      const canSubmit = offer?.is_valid !== false && publicData.signup_enabled !== false && publicData.checkout_available !== false;
+      btn.disabled = !canSubmit;
+      btn.textContent = canSubmit
+        ? `Démarrer l'essai gratuit — ${PLAN_LABELS[plan] ?? plan}`
+        : offer?.is_valid === false
+          ? (offer.validation_message || 'Cette offre doit être vérifiée par le revendeur.')
+          : 'Inscriptions indisponibles pour le moment';
+    }
+
+    const feedback = document.getElementById('signup-feedback');
+    if (feedback) {
+      if (offer?.is_valid === false && offer.validation_message) {
+        feedback.textContent = offer.validation_message;
+        feedback.classList.remove('hidden');
+      } else {
+        feedback.classList.add('hidden');
+      }
+    }
+
+    trackPlanClick(plan);
+  }
+
+  function render(data) {
+    publicData = data;
+
+    // Branding
+    const primaryColor = data.primary_color || '#2563eb';
+    document.documentElement.style.setProperty('--reseller-primary', primaryColor);
+    const brandName = data.brand_name || 'Fidelopass';
+
+    // Nav
+    if (data.brand_logo_url) {
+      const wrap = document.getElementById('nav-logo-wrap');
+      const logo = document.getElementById('nav-logo');
+      if (wrap) wrap.classList.remove('hidden'); wrap?.classList.add('flex');
+      if (logo) logo.src = data.brand_logo_url;
+    }
+    const navBrand = document.getElementById('nav-brand');
+    if (navBrand) { navBrand.textContent = brandName; navBrand.classList.remove('hidden'); }
+
+    // Hero
+    const eyebrow = document.getElementById('hero-eyebrow');
+    if (eyebrow) eyebrow.textContent = `Offre proposée par ${brandName}`;
+    const sub = document.getElementById('hero-sub');
+    if (sub) sub.textContent = `${brandName} vous propose Fidelopass, la solution de carte fidélité digitale. Choisissez votre plan et profitez de 14 jours d'essai gratuit.`;
+
+    // Footer
+    const footer = document.getElementById('footer-partner');
+    if (footer) footer.textContent = `Cette offre vous est proposée par ${brandName} en partenariat avec Fidelopass.`;
+
+    // Plans
+    const grid = document.getElementById('plans-grid');
+    grid.innerHTML = data.plans.map((plan) => {
+      const isHighlight = plan.plan === HIGHLIGHT_PLAN && plan.is_valid !== false;
+      const features = PLAN_FEATURES[plan.plan] ?? [];
+      const invalid = plan.is_valid === false;
+
+      return `
+        <button type="button" data-plan-card="${plan.plan}" data-plan-highlight="${isHighlight}"
+          ${invalid ? 'disabled aria-disabled="true"' : ''}
+          class="relative flex flex-col rounded-[1.75rem] border p-6 text-left shadow-[0_20px_50px_rgba(15,23,42,0.08)] transition focus:outline-none ${
+            invalid
+              ? 'border-amber-200 bg-amber-50/40 opacity-60 cursor-not-allowed'
+              : isHighlight
+                ? 'border-indigo-400 bg-[linear-gradient(155deg,#1e1b4b_0%,#312e81_62%,#0284c7_100%)] text-white shadow-[0_30px_80px_rgba(49,46,129,0.24)] hover:-translate-y-1'
+                : 'border-slate-200 bg-white text-slate-900 hover:-translate-y-1 hover:border-blue-200 hover:shadow-[0_24px_60px_rgba(15,23,42,0.12)]'
+          }">
+          ${isHighlight ? '<div class="absolute -top-3.5 left-1/2 -translate-x-1/2"><span class="rounded-full bg-amber-400 px-4 py-1.5 text-xs font-bold text-amber-900 shadow whitespace-nowrap">Le plus populaire</span></div>' : ''}
+          <p class="text-xs font-bold uppercase tracking-widest ${isHighlight ? 'text-indigo-200' : invalid ? 'text-amber-600' : 'text-slate-400'}">${PLAN_EYEBROW[plan.plan] ?? ''}</p>
+          <h3 class="mt-2 font-display text-2xl font-bold ${isHighlight ? 'text-white' : 'text-slate-950'}">${PLAN_LABELS[plan.plan] ?? plan.plan}</h3>
+          <p class="mt-2 text-sm leading-relaxed ${isHighlight ? 'text-indigo-100' : 'text-slate-500'}">${PLAN_DESC[plan.plan] ?? ''}</p>
+          <div class="mt-4 flex items-end gap-1">
+            <span class="font-display text-5xl font-bold leading-none tracking-[-0.05em] ${isHighlight ? 'text-white' : 'text-slate-950'}">${formatMoney(plan.public_price_cents, plan.currency)}</span>
+            <span class="mb-1 text-sm ${isHighlight ? 'text-indigo-200' : 'text-slate-400'}">/mois</span>
+          </div>
+          <p class="mt-1 text-xs ${isHighlight ? 'text-indigo-200' : 'text-slate-400'}">Facturation mensuelle</p>
+          ${invalid ? `<p class="mt-4 rounded-2xl border border-amber-200 bg-white/70 px-3 py-2 text-xs font-semibold text-amber-800">${plan.validation_message || 'Offre temporairement indisponible.'}</p>` : `
+          <p class="mt-3 inline-flex rounded-full border px-3 py-1 text-xs font-extrabold uppercase tracking-[0.14em] ${isHighlight ? 'border-white/20 bg-white/15 text-white' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}">14 jours gratuits</p>
+          <ul class="mt-5 flex-1 space-y-2.5">
+            ${features.map((f) => `<li class="flex items-center gap-2.5 text-sm"><span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold ${isHighlight ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-600'}">✓</span><span class="${isHighlight ? 'text-indigo-50' : 'text-slate-700'}">${f}</span></li>`).join('')}
+          </ul>`}
+        </button>`;
+    }).join('');
+
+    document.querySelectorAll('[data-plan-card]').forEach((btn) => {
+      if (btn.disabled) return;
+      btn.addEventListener('click', () => selectPlan(btn.getAttribute('data-plan-card')));
+    });
+
+    // Auto-select first valid
+    const firstValid = data.plans.find((p) => p.is_valid !== false);
+    if (firstValid) selectPlan(firstValid.plan);
+
+    document.getElementById('public-content')?.classList.remove('hidden');
+  }
+
+  async function loadPublicOffer() {
+    const res = await fetch(`${API}/api/public/reseller/${encodeURIComponent(slug)}`);
+    const payload = await res.json().catch(() => null);
+    if (!res.ok || !payload?.available) { setUnavailable(payload?.message); return; }
+    render(payload.data);
+  }
+
+  document.getElementById('signup-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!selectedPlan) return;
+    const offer = publicData?.plans?.find((p) => p.plan === selectedPlan);
+    if (offer?.is_valid === false || publicData?.signup_enabled === false) return;
+
+    const form = event.currentTarget;
+    const btn = document.getElementById('signup-button');
+    const feedback = document.getElementById('signup-feedback');
+    const data = new FormData(form);
+
+    btn.disabled = true;
+    btn.textContent = 'Préparation en cours...';
+    feedback.classList.add('hidden');
+
+    const endpoint = publicData.checkout_available === false ? 'manual-request' : 'checkout';
+    const res = await fetch(`${API}/api/public/reseller/${encodeURIComponent(slug)}/${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        commerce_name: String(data.get('commerce_name') || ''),
+        email: String(data.get('email') || ''),
+        phone: String(data.get('phone') || ''),
+        country: String(data.get('country') || ''),
+        plan: selectedPlan,
+      }),
+    });
+    const result = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      feedback.textContent = result?.error || 'Inscription impossible pour le moment.';
+      feedback.classList.remove('hidden');
+      btn.disabled = false;
+      btn.textContent = `Démarrer l'essai gratuit — ${PLAN_LABELS[selectedPlan] ?? selectedPlan}`;
+      return;
+    }
+
+    if (result?.url) { window.location.href = result.url; return; }
+
+    feedback.textContent = 'Demande envoyée. Votre revendeur vous contactera pour finaliser.';
+    feedback.classList.remove('hidden');
+    feedback.className = 'rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700';
+    btn.disabled = false;
+  });
+
+  loadPublicOffer();
+</script>

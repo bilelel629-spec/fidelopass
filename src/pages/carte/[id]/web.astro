@@ -780,6 +780,10 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
         }
         document.documentElement.style.setProperty('--web-card-accent', accent);
 
+        // Synchronise theme-color avec le fond de la carte (barre navigateur / splash screen PWA)
+        const metaTheme = document.querySelector('meta[name="theme-color"]');
+        if (metaTheme) metaTheme.setAttribute('content', bg);
+
         const appName = commerce?.nom || card.nom || 'Fidelopass';
         document.title = appName;
         const appleTitle = document.getElementById('apple-web-app-title');

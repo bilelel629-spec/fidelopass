@@ -29,6 +29,8 @@ import { resellerRoutes } from './routes/reseller';
 import { publicResellerRoutes } from './routes/public-reseller';
 import { createServiceClient } from '../src/lib/supabase';
 import { withCronLock } from './services/cron-lock';
+import { authMiddleware } from './middleware/auth';
+import { adminMiddleware } from './middleware/admin';
 
 const app = new Hono<ApiEnv>();
 
@@ -72,6 +74,55 @@ app.route('/api/reseller', resellerRoutes);
 app.route('/api/public/reseller', publicResellerRoutes);
 
 app.get('/api/health', (c) => c.json({ ok: true, ts: new Date().toISOString() }));
+
+/** GET /api/health/deps — Diagnostic des dépendances (admin). Alimente le panneau "Santé plateforme". */
+app.get('/api/health/deps', authMiddleware, adminMiddleware, async (c) => {
+  const db = createServiceClient();
+
+  // ── Base de données : latence d'une requête simple ──────────────────────────
+  let database: { ok: boolean; latency_ms: number; error?: string };
+  const dbStart = Date.now();
+  try {
+    const { error } = await db.from('commerces').select('id', { head: true, count: 'exact' });
+    database = error
+      ? { ok: false, latency_ms: Date.now() - dbStart, error: error.message }
+      : { ok: true, latency_ms: Date.now() - dbStart };
+  } catch (e) {
+    database = { ok: false, latency_ms: Date.now() - dbStart, error: e instanceof Error ? e.message : 'unknown' };
+  }
+
+  // ── Stripe : clé secrète configurée ─────────────────────────────────────────
+  const stripeKey = (process.env.STRIPE_SECRET_KEY ?? '').trim();
+  const stripe = { ok: stripeKey.startsWith('sk_') };
+
+  // ── Wallet : certificats Apple + compte de service Google ───────────────────
+  const appleOk = Boolean(
+    (process.env.APPLE_SIGNER_CERT_PEM ?? '').trim()
+    && (process.env.APPLE_SIGNER_KEY_PEM ?? '').trim()
+    && (process.env.APPLE_WWDR_PEM ?? '').trim()
+    && (process.env.APPLE_PASS_TYPE_ID ?? '').trim(),
+  );
+  const googleOk = Boolean(
+    ((process.env.GOOGLE_SERVICE_ACCOUNT_JSON ?? '').trim() || (process.env.GOOGLE_SERVICE_ACCOUNT_PATH ?? '').trim())
+    && (process.env.GOOGLE_ISSUER_ID ?? '').trim(),
+  );
+  const wallet = { apple_ok: appleOk, google_ok: googleOk };
+
+  // ── Migrations : présence des tables clés (une par époque de migration) ─────
+  const tablesToCheck = ['commerces', 'points_vente', 'web_card_events', 'web_push_subscriptions', 'resellers', 'reseller_commissions'];
+  const checks: Record<string, { ok: boolean }> = {};
+  await Promise.all(
+    tablesToCheck.map(async (table) => {
+      const { error } = await db.from(table).select('*', { head: true, count: 'exact' }).limit(1);
+      // 42P01 = relation inexistante → migration manquante
+      checks[table] = { ok: !(error && error.code === '42P01') };
+    }),
+  );
+  const migrations = { ok: Object.values(checks).every((entry) => entry.ok), checks };
+
+  return c.json({ ok: true, services: { database, stripe, wallet, migrations } });
+});
+
 app.notFound((c) => c.json({ error: 'Route introuvable' }, 404));
 app.onError((err, c) => {
   console.error('[API Error]', err);

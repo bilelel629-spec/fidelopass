@@ -18,7 +18,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
       <div class="max-w-2xl">
         <p class="text-[0.7rem] font-semibold uppercase tracking-[0.26em] text-sky-700/75">Activation abonnement</p>
-        <h1 class="font-display text-4xl sm:text-5xl font-bold text-slate-900 leading-tight mt-3">
+        <h1 id="choix-title" class="font-display text-4xl sm:text-5xl font-bold text-slate-900 leading-tight mt-3">
           Choisissez votre plan pour activer l’accès à l’outil.
         </h1>
         <p class="text-slate-500 text-base mt-4 leading-relaxed">
@@ -26,7 +26,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         </p>
       </div>
 
-      <div class="mt-8 rounded-xl border border-slate-200 bg-white/90 px-4 py-3 text-sm text-slate-600">
+      <div id="trial-info-banner" class="mt-8 rounded-xl border border-slate-200 bg-white/90 px-4 py-3 text-sm text-slate-600">
         <p><strong>Essai gratuit :</strong> 14 jours avec carte bancaire, aucun prélèvement aujourd’hui, résiliable pendant l’essai.</p>
         <p class="mt-1"><strong>Mensuel :</strong> après l’essai, résiliable à tout moment.</p>
         <p class="mt-1"><strong>Annuel :</strong> après l’essai, renouvellement automatique chaque année.</p>
@@ -219,6 +219,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   let currentMode: 'monthly' | 'annual' = 'monthly';
   let pricingLoaded = false;
   let pricingDegraded = false;
+  let hasUsedTrial = false; // l'essai 14j n'est offert qu'une fois
 
   function toggleWarning(message: string | null) {
     if (!message) {
@@ -239,11 +240,12 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   function planBaseLabel(plan?: string) {
     const normalizedPlan = plan === 'pro' || plan === 'business' ? plan : 'starter';
+    const verb = hasUsedTrial ? 'Reprendre avec' : 'Continuer avec';
     const baseLabel = normalizedPlan === 'business'
-      ? 'Continuer avec Business'
+      ? `${verb} Business`
       : normalizedPlan === 'pro'
-        ? 'Continuer avec Pro'
-        : 'Continuer avec Starter';
+        ? `${verb} Pro`
+        : `${verb} Starter`;
     return setupRequested && (!preselectedPlan || preselectedPlan === normalizedPlan)
       ? `${baseLabel} + Setup`
       : baseLabel;
@@ -402,9 +404,25 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       return null;
     }
 
+    // L'essai gratuit a déjà été consommé → on propose de reprendre l'abonnement, sans essai
+    hasUsedTrial = Boolean(billing?.data?.has_used_trial);
+    if (hasUsedTrial) applyTrialUsedMessaging();
+
     activeSession = session;
     await hydratePricingConfig(session.access_token);
     return session;
+  }
+
+  function applyTrialUsedMessaging() {
+    const title = document.getElementById('choix-title');
+    if (title) title.textContent = 'Reprenez votre abonnement pour réactiver votre accès.';
+    const banner = document.getElementById('trial-info-banner');
+    if (banner) {
+      banner.innerHTML = `
+        <p><strong>Essai gratuit déjà utilisé.</strong> Vous avez profité de vos 14 jours offerts : l'abonnement démarre dès la validation du paiement.</p>
+        <p class="mt-1"><strong>Mensuel :</strong> résiliable à tout moment.</p>
+        <p class="mt-1"><strong>Annuel :</strong> renouvellement automatique chaque année.</p>`;
+    }
   }
 
   async function choosePlan(btn: HTMLButtonElement) {

@@ -155,7 +155,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
 
   const { data: existingCommerce } = await db
     .from('commerces')
-    .select('id, stripe_customer_id, stripe_subscription_id, billing_status, onboarding_purchased')
+    .select('id, stripe_customer_id, stripe_subscription_id, billing_status, onboarding_purchased, trial_ends_at')
     .eq('user_id', userId)
     .single();
 
@@ -289,8 +289,11 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   };
 
   if (mode === 'subscription') {
+    // L'essai gratuit n'est accordé qu'une seule fois. Un commerce qui a déjà eu
+    // un essai (trial_ends_at renseigné) ne le reçoit pas une seconde fois.
+    const hasUsedTrial = Boolean((commerce as { trial_ends_at?: string | null }).trial_ends_at);
     sessionParams.subscription_data = {
-      trial_period_days: 14,
+      ...(hasUsedTrial ? {} : { trial_period_days: 14 }),
       metadata: {
         commerce_id: commerce.id,
         user_id: userId,

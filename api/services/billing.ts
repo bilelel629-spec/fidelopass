@@ -35,6 +35,7 @@ export type BillingStatusPayload = {
   billing_canceled_at: string | null;
   billing_access_ends_at: string | null;
   trial_active: boolean;
+  has_used_trial: boolean;
   one_time_access_active: boolean;
   has_access: boolean;
   needs_payment: boolean;
@@ -80,6 +81,7 @@ export function buildBillingStatusPayload(record: BillingRecord | null): Billing
       billing_canceled_at: null,
       billing_access_ends_at: null,
       trial_active: false,
+      has_used_trial: false,
       one_time_access_active: false,
       has_access: false,
       needs_payment: true,
@@ -121,6 +123,7 @@ export function buildBillingStatusPayload(record: BillingRecord | null): Billing
     billing_canceled_at: record.billing_canceled_at,
     billing_access_ends_at: record.billing_access_ends_at,
     trial_active: trialActive,
+    has_used_trial: Boolean(record.trial_ends_at),
     one_time_access_active: oneTimeAccessActive,
     has_access: hasAccess,
     needs_payment: !hasAccess,
@@ -159,6 +162,7 @@ function buildAdminBypassPayload(record: BillingRecord | null): BillingStatusPay
     billing_canceled_at: null,
     billing_access_ends_at: null,
     trial_active: false,
+    has_used_trial: true,
     one_time_access_active: false,
     has_access: true,
     needs_payment: false,

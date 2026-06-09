@@ -94,11 +94,11 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
           </form>
         </div>
 
-        <!-- État : succès, redirection -->
+        <!-- État : succès, activation en cours -->
         <div id="state-success" class="hidden rounded-[2rem] border border-blue-100 bg-white/92 p-8 text-center shadow-[0_30px_90px_-62px_rgba(37,99,235,0.3)]">
           <div class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600"></div>
-          <p class="mt-4 text-sm font-bold text-slate-950">Compte activé !</p>
-          <p class="mt-1 text-sm text-slate-500">Redirection vers votre tableau de bord...</p>
+          <p class="mt-4 text-sm font-bold text-slate-950">Paiement confirmé — activation de votre abonnement...</p>
+          <p class="mt-1 text-sm text-slate-500">Quelques secondes, puis accès à votre tableau de bord.</p>
         </div>
       </section>
     </main>
@@ -153,16 +153,37 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
     } catch {}
   }
 
+  // Attend que l'abonnement soit actif (webhook Stripe) avant de rediriger.
+  async function waitForAccessThenRedirect(accessToken) {
+    show('state-success');
+    const maxAttempts = 20; // ~30 s (20 × 1,5 s)
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        const res = await fetch(`${apiBase}/api/billing/status`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const payload = await res.json().catch(() => null);
+        if (payload?.data?.has_access) {
+          window.location.replace('/dashboard/carte');
+          return;
+        }
+      } catch {}
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+    // Le webhook peut être en retard : on redirige quand même, le dashboard rechargera le statut.
+    window.location.replace('/dashboard/carte');
+  }
+
   // Récupérer l'email du commerçant depuis la session Stripe
   async function loadSessionStatus() {
     if (!sessionId) { show('state-error'); return; }
     try {
-      // Nouveau parcours : si déjà authentifié, rediriger directement vers le dashboard
+      // Nouveau parcours : déjà authentifié → on attend que le webhook ait activé
+      // l'abonnement avant de rediriger, pour éviter d'atterrir sur /abonnement/choix.
       const { data: { session: existingSession } } = await supabase.auth.getSession();
       if (existingSession?.access_token) {
         if (slug) await loadBranding(slug);
-        show('state-success');
-        window.location.replace('/dashboard');
+        await waitForAccessThenRedirect(existingSession.access_token);
         return;
       }
 
@@ -221,10 +242,9 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
         return;
       }
 
-      // 3. Poser le cookie de session et rediriger
+      // 3. Poser le cookie, attendre l'activation de l'abonnement, puis rediriger
       setSessionCookie(signInData.session.access_token);
-      show('state-success');
-      window.location.replace('/dashboard');
+      await waitForAccessThenRedirect(signInData.session.access_token);
     } catch {
       showError('Une erreur est survenue. Réessayez.');
       btn.disabled = false;

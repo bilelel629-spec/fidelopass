@@ -170,10 +170,16 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
                 class="w-full rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-500 px-5 py-3.5 text-sm font-bold text-white shadow-[0_16px_28px_-18px_rgba(37,99,235,0.8)] transition hover:-translate-y-0.5">
                 Vérifier et continuer
               </button>
-              <button id="otp-back-btn" type="button" class="w-full rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
-                ← Modifier l'email
-              </button>
+              <div class="flex gap-3">
+                <button id="otp-resend-btn" type="button" disabled class="flex-1 rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
+                  Renvoyer le code
+                </button>
+                <button id="otp-back-btn" type="button" class="flex-1 rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                  ← Modifier l'email
+                </button>
+              </div>
               <p id="otp-error" class="hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"></p>
+              <p id="otp-success" class="hidden rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700"></p>
             </div>
 
             <!-- Étape 2 : Infos commerce -->
@@ -421,9 +427,12 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
       btn.addEventListener('click', () => selectPlan(btn.getAttribute('data-plan-card')));
     });
 
-    // Auto-select first valid
+    // Restaure le plan choisi avant un éventuel aller-retour OAuth, sinon 1er valide
+    const savedPlan = (() => { try { return sessionStorage.getItem('fp_reseller_plan'); } catch { return null; } })();
+    const savedValid = savedPlan && data.plans.find((p) => p.plan === savedPlan && p.is_valid !== false);
     const firstValid = data.plans.find((p) => p.is_valid !== false);
-    if (firstValid) selectPlan(firstValid.plan);
+    if (savedValid) selectPlan(savedPlan);
+    else if (firstValid) selectPlan(firstValid.plan);
 
     document.getElementById('public-content')?.classList.remove('hidden');
   }
@@ -452,6 +461,7 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
   function onAuthenticated(session) {
     currentSession = session;
     setSessionCookie(session.access_token);
+    try { sessionStorage.removeItem('fp_reseller_plan'); } catch {}
     const email = session.user?.email ?? '';
     const emailDisplay = document.getElementById('commerce-email-display');
     if (emailDisplay) emailDisplay.value = email;
@@ -478,9 +488,15 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
     }
   });
 
+  // Conserve le plan choisi avant un aller-retour OAuth (sinon perdu au rechargement)
+  function rememberSelectedPlan() {
+    try { if (selectedPlan) sessionStorage.setItem('fp_reseller_plan', selectedPlan); } catch {}
+  }
+
   // Apple OAuth
   document.getElementById('auth-apple-btn')?.addEventListener('click', async () => {
     hideAuthError();
+    rememberSelectedPlan();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'apple',
       options: { redirectTo: window.location.href },
@@ -491,12 +507,53 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
   // Google OAuth
   document.getElementById('auth-google-btn')?.addEventListener('click', async () => {
     hideAuthError();
+    rememberSelectedPlan();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.href },
     });
     if (error) showAuthError('Connexion Google impossible : ' + error.message);
   });
+
+  // Mémorise les identifiants pour la vérification + le renvoi du code
+  let pendingAuthEmail = '';
+  let pendingAuthPassword = '';
+
+  // Cooldown du bouton "Renvoyer le code" (actif après 29s)
+  let otpResendTimer = null;
+  function startOtpResendCooldown(seconds = 29) {
+    const btn = document.getElementById('otp-resend-btn');
+    if (!btn) return;
+    if (otpResendTimer) clearInterval(otpResendTimer);
+    let remaining = seconds;
+    btn.disabled = true;
+    btn.textContent = `Renvoyer le code (${remaining}s)`;
+    otpResendTimer = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(otpResendTimer); otpResendTimer = null;
+        btn.disabled = false; btn.textContent = 'Renvoyer le code';
+      } else {
+        btn.textContent = `Renvoyer le code (${remaining}s)`;
+      }
+    }, 1000);
+  }
+
+  // Appelle le même endpoint que l'inscription normale → code OTP envoyé par Brevo
+  async function requestOtpCode(email, password) {
+    const res = await fetch(`${API}/api/auth/register/request-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) {
+      if (payload?.code === 'EMAIL_ALREADY_CONFIRMED') {
+        throw new Error('Cette adresse a déjà un compte. Connectez-vous, ou utilisez une autre adresse.');
+      }
+      throw new Error(payload?.error ?? 'Impossible d’envoyer le code de vérification.');
+    }
+  }
 
   // Email + OTP : demande du code
   document.getElementById('auth-email-btn')?.addEventListener('click', async () => {
@@ -509,25 +566,52 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
     }
     const btn = document.getElementById('auth-email-btn');
     btn.disabled = true; btn.textContent = 'Envoi du code...';
-    const { error } = await supabase.auth.signUp({ email, password });
-    btn.disabled = false; btn.textContent = 'Recevoir mon code de vérification';
-    if (error && !/already registered/i.test(error.message)) {
-      showAuthError(error.message); return;
+    try {
+      await requestOtpCode(email, password);
+      pendingAuthEmail = email;
+      pendingAuthPassword = password;
+      document.getElementById('otp-email-display').textContent = email;
+      showSection('otp-step');
+      startOtpResendCooldown();
+      document.getElementById('otp-code')?.focus();
+    } catch (e) {
+      showAuthError(e instanceof Error ? e.message : 'Erreur lors de l’envoi du code.');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Recevoir mon code de vérification';
     }
-    // Stocker pour la vérification OTP
-    document.getElementById('otp-email-display').textContent = email;
-    showSection('otp-step');
+  });
+
+  // Renvoyer le code
+  document.getElementById('otp-resend-btn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('otp-resend-btn');
+    if (!btn || btn.disabled) return;
+    const errEl = document.getElementById('otp-error');
+    const okEl = document.getElementById('otp-success');
+    errEl?.classList.add('hidden'); okEl?.classList.add('hidden');
+    btn.disabled = true; btn.textContent = 'Renvoi...';
+    try {
+      await requestOtpCode(pendingAuthEmail, pendingAuthPassword);
+      if (okEl) { okEl.textContent = 'Nouveau code envoyé. Pensez à vérifier vos spams.'; okEl.classList.remove('hidden'); }
+      startOtpResendCooldown();
+    } catch (e) {
+      if (errEl) { errEl.textContent = e instanceof Error ? e.message : 'Impossible de renvoyer le code.'; errEl.classList.remove('hidden'); }
+      btn.disabled = false; btn.textContent = 'Renvoyer le code';
+    }
   });
 
   // Retour vers email depuis OTP
-  document.getElementById('otp-back-btn')?.addEventListener('click', () => showSection('auth-step'));
+  document.getElementById('otp-back-btn')?.addEventListener('click', () => {
+    if (otpResendTimer) { clearInterval(otpResendTimer); otpResendTimer = null; }
+    showSection('auth-step');
+  });
 
   // Vérification OTP
   document.getElementById('otp-verify-btn')?.addEventListener('click', async () => {
-    const email = document.getElementById('auth-email')?.value?.trim();
+    const email = pendingAuthEmail || document.getElementById('auth-email')?.value?.trim();
     const token = document.getElementById('otp-code')?.value?.replace(/\D/g, '').trim();
     const errEl = document.getElementById('otp-error');
-    errEl?.classList.add('hidden');
+    const okEl = document.getElementById('otp-success');
+    errEl?.classList.add('hidden'); okEl?.classList.add('hidden');
     if (!token || token.length < 6) {
       if (errEl) { errEl.textContent = 'Entrez le code reçu par email.'; errEl.classList.remove('hidden'); }
       return;
@@ -540,6 +624,7 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
       if (errEl) { errEl.textContent = 'Code invalide ou expiré. Demandez-en un nouveau.'; errEl.classList.remove('hidden'); }
       return;
     }
+    if (otpResendTimer) { clearInterval(otpResendTimer); otpResendTimer = null; }
     if (data.session) onAuthenticated(data.session);
   });
 

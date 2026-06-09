@@ -294,6 +294,25 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   };
   const clearPending = () => sessionStorage.removeItem(PENDING_KEY);
 
+  let resendCooldownTimer: ReturnType<typeof setInterval> | null = null;
+  function startResendCooldown(seconds = 29) {
+    if (resendCooldownTimer) clearInterval(resendCooldownTimer);
+    let remaining = seconds;
+    resendBtn.disabled = true;
+    resendBtn.textContent = `Renvoyer le code (${remaining}s)`;
+    resendCooldownTimer = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        if (resendCooldownTimer) clearInterval(resendCooldownTimer);
+        resendCooldownTimer = null;
+        resendBtn.disabled = false;
+        resendBtn.textContent = 'Renvoyer le code';
+      } else {
+        resendBtn.textContent = `Renvoyer le code (${remaining}s)`;
+      }
+    }, 1000);
+  }
+
   const setStep = (step: 'method' | 'email' | 'verify', email?: string) => {
     hideAll();
     hideProgress();
@@ -301,7 +320,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     emailStep.classList.toggle('hidden', step !== 'email');
     verifyStep.classList.toggle('hidden', step !== 'verify');
     setProgress(step === 'verify' ? 2 : 1);
-    if (step === 'verify' && email) { verifyEmailEl.textContent = email; codeInput.focus(); }
+    if (step === 'verify' && email) { verifyEmailEl.textContent = email; codeInput.focus(); startResendCooldown(); }
   };
 
   async function sendCode(email: string, password: string, mode: 'request' | 'resend'): Promise<RegistrationResponse> {
@@ -508,14 +527,18 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   });
 
   resendBtn.addEventListener('click', async () => {
+    if (resendBtn.disabled) return;
     hideAll(); hideProgress(); const pending = loadPending();
     if (!pending) { setStep('method'); return; }
     resendBtn.disabled = true; resendBtn.textContent = 'Renvoi...';
     try {
       await requestCode(pending.email, pending.password, 'resend');
       show(verifySuccessMsg, 'Nouveau code envoyé. Pensez à vérifier les spams / indésirables.');
-    } catch (err: unknown) { show(verifyErrorMsg, getError(err, 'Impossible de renvoyer.', 'verify')); }
-    finally { resendBtn.disabled = false; resendBtn.textContent = 'Renvoyer le code'; }
+      startResendCooldown();
+    } catch (err: unknown) {
+      show(verifyErrorMsg, getError(err, 'Impossible de renvoyer.', 'verify'));
+      resendBtn.disabled = false; resendBtn.textContent = 'Renvoyer le code';
+    }
   });
 
   changeEmailBtn.addEventListener('click', async () => {

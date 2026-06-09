@@ -792,16 +792,16 @@ scannersRoutes.post('/transactions', async (c) => {
   const rewardJustEarned = nextRewards > (safeClient.recompenses_obtenues ?? 0);
   let walletMessage: { titre: string; body: string } | undefined;
   if (parsed.data.type === 'recompense') {
-    walletMessage = { titre: '✅ Récompense utilisée', body: 'Merci de votre fidélité ! Continuez à cumuler pour la prochaine.' };
+    walletMessage = { titre: '✅ Récompense utilisée', body: 'Merci de votre fidélité !' };
   } else if (parsed.data.type === 'reset') {
     walletMessage = undefined;
   } else if (rewardJustEarned) {
-    walletMessage = { titre: '🎁 Récompense débloquée !', body: 'Présentez votre carte pour profiter de votre récompense.' };
+    walletMessage = { titre: '🎁 Récompense débloquée !', body: 'Présentez votre carte pour en profiter.' };
   } else {
     walletMessage = {
-      titre: isPoints ? '🎉 Points ajoutés' : '🎉 Nouveau tampon',
+      titre: isPoints ? '🎉 Points ajoutés !' : '🎉 Nouveau tampon !',
       body: remainingToReward > 0
-        ? `Plus que ${remainingToReward} ${isPoints ? 'point(s)' : 'tampon(s)'} avant votre récompense.`
+        ? `Plus que ${remainingToReward} avant votre récompense.`
         : 'Votre récompense est à portée !',
     };
   }

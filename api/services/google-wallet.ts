@@ -187,14 +187,18 @@ export async function upsertLoyaltyClass(carte: CarteData): Promise<string> {
   const logoUri = carte.logo_url ?? carte.commerces.logo_url
     ?? `${process.env.SUPABASE_URL}/storage/v1/object/public/assets/logo-default.png`;
 
+  // Nom affiché = nom de la CARTE choisie (pas le commerce), pour distinguer
+  // les différentes cartes d'un même commerce (plan Pro = jusqu'à 3 cartes).
+  const displayName = String(carte.nom ?? '').trim() || String(carte.commerces.nom ?? '').trim() || 'Fidelopass';
+
   const classData: Record<string, unknown> = {
     id: classId,
-    issuerName: carte.commerces.nom,
-    programName: carte.nom,
+    issuerName: displayName,
+    programName: displayName,
     programLogo: {
       sourceUri: { uri: logoUri },
       contentDescription: {
-        defaultValue: { language: 'fr-FR', value: carte.commerces.nom },
+        defaultValue: { language: 'fr-FR', value: displayName },
       },
     },
     hexBackgroundColor: carte.couleur_fond,

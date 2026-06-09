@@ -171,7 +171,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
         onboarding_completed: false,
         billing_status: 'unpaid',
       })
-      .select('id, stripe_customer_id, stripe_subscription_id, billing_status, onboarding_purchased')
+      .select('id, stripe_customer_id, stripe_subscription_id, billing_status, onboarding_purchased, trial_ends_at')
       .single();
     if (createCommerceError || !createdCommerce) {
       return c.json({ error: "Impossible d'initialiser le commerce avant le paiement." }, 500);
@@ -183,6 +183,9 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
         console.warn('[checkout] welcome email failed for new commerce');
       }
     }
+  }
+  if (!commerce) {
+    return c.json({ error: "Commerce introuvable." }, 500);
   }
 
   const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');

@@ -425,12 +425,12 @@ async function handleAddPoint(c: Context) {
   const scanMessage = rewardsAvail > 0
     ? {
         titre: '🎁 Récompense débloquée !',
-        body: 'Présentez votre carte pour profiter de votre récompense.',
+        body: 'Présentez votre carte pour en profiter.',
       }
     : {
-        titre: isPoints ? '🎉 Points ajoutés' : '🎉 Nouveau tampon',
+        titre: isPoints ? '🎉 Points ajoutés !' : '🎉 Nouveau tampon !',
         body: remaining > 0
-          ? `Plus que ${remaining} ${isPoints ? 'point(s)' : 'tampon(s)'} avant votre récompense.`
+          ? `Plus que ${remaining} avant votre récompense.`
           : 'Votre récompense est à portée !',
       };
 
@@ -521,7 +521,7 @@ async function handleUseReward(c: Context) {
   const carteDataReward = safeClient.cartes as { id: string; type?: string; nom?: string; logo_url?: string | null };
   const rewardMessage = {
     titre: '✅ Récompense utilisée',
-    body: 'Merci de votre fidélité ! Continuez à cumuler pour la prochaine.',
+    body: 'Merci de votre fidélité !',
   };
 
   void updateWalletsAfterScan(db, safeClient, updatedClient, rewardMessage);

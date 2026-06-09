@@ -69,12 +69,28 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
   };
 }
 
+// Cache des images distantes par URL : l'icône tampon et l'image de strip ne
+// changent pas tant que le design de la carte est le même. Sans cache, chaque
+// scan (le compteur change → strip régénérée) refait un fetch réseau de 1-3 s.
+const remoteImageCache = new Map<string, Buffer | null>();
+const REMOTE_IMAGE_CACHE_MAX = 200;
+
 async function fetchBuffer(url: string): Promise<Buffer | null> {
+  if (remoteImageCache.has(url)) return remoteImageCache.get(url) ?? null;
+  let result: Buffer | null = null;
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
-    if (!res.ok) return null;
-    return Buffer.from(await res.arrayBuffer());
-  } catch { return null; }
+    if (res.ok) result = Buffer.from(await res.arrayBuffer());
+  } catch { result = null; }
+  // On ne met en cache que les succès (un échec réseau pourra être retenté).
+  if (result) {
+    if (remoteImageCache.size >= REMOTE_IMAGE_CACHE_MAX) {
+      const oldest = remoteImageCache.keys().next().value;
+      if (oldest !== undefined) remoteImageCache.delete(oldest);
+    }
+    remoteImageCache.set(url, result);
+  }
+  return result;
 }
 
 function emojiToCodepointPath(emoji: string, keepVariationSelector = true): string | null {

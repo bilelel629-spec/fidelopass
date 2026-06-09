@@ -403,16 +403,26 @@ export async function sendGoogleWalletMessage(
   const authClient = await getAuthClient();
   const requester = authClient as unknown as HttpRequester;
 
-  await withTimeout(requester.request({
-    url: `${GOOGLE_WALLET_API}/loyaltyObject/${objectId}/addMessage`,
-    method: 'POST',
-    data: {
-      message: {
-        id: notificationId ? `notif_${notificationId}` : `notif_${Date.now()}`,
-        header: titre,
-        body: message,
-        messageType: 'TEXT_AND_NOTIFY',
+  try {
+    const response = await withTimeout(requester.request({
+      url: `${GOOGLE_WALLET_API}/loyaltyObject/${objectId}/addMessage`,
+      method: 'POST',
+      data: {
+        message: {
+          id: notificationId ? `notif_${notificationId}` : `notif_${Date.now()}`,
+          header: titre,
+          body: message,
+          messageType: 'TEXT_AND_NOTIFY',
+        },
       },
-    },
-  }), GOOGLE_WALLET_FAST_TIMEOUT_MS);
+    }), GOOGLE_WALLET_FAST_TIMEOUT_MS);
+    const status = (response as { status?: number } | undefined)?.status;
+    console.info(`[google-wallet addMessage] OK objet=${objectId} status=${status ?? '?'}`);
+  } catch (err) {
+    const e = err as { code?: number; status?: number; response?: { status?: number; data?: unknown }; message?: string };
+    const status = e?.code ?? e?.status ?? e?.response?.status;
+    const body = e?.response?.data ? JSON.stringify(e.response.data).slice(0, 500) : e?.message;
+    console.error(`[google-wallet addMessage] ÉCHEC objet=${objectId} status=${status ?? '?'} détail=${body}`);
+    throw err;
+  }
 }

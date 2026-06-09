@@ -245,11 +245,9 @@ async function updateWalletsAfterScan(
 async function sendWebPushAfterScan(
   db: ReturnType<typeof createServiceClient>,
   clientId: string,
-  carteNom: string,
-  carteType: string,
   carteLogoUrl: string | null | undefined,
-  score: number,
-  isReward: boolean,
+  title: string,
+  body: string,
 ) {
   try {
     const { data: subscriptions } = await db
@@ -259,12 +257,6 @@ async function sendWebPushAfterScan(
       .eq('enabled', true);
 
     if (!subscriptions?.length) return;
-
-    const label = carteType === 'points' ? (score > 1 ? 'points' : 'point') : (score > 1 ? 'tampons' : 'tampon');
-    const title = isReward ? 'Récompense utilisée' : `+1 ${carteType === 'points' ? 'point' : 'tampon'}`;
-    const body = isReward
-      ? `Il vous reste ${score} ${label} sur votre carte.`
-      : `Vous avez maintenant ${score} ${label} sur votre carte.`;
 
     const siteUrl = getPublicSiteUrl();
     const recipients = subscriptions.map((sub) => ({
@@ -424,25 +416,26 @@ async function handleAddPoint(c: Context) {
     tampons_actuels: nextTampons,
     recompenses_obtenues: nextRewards,
   };
-  const carteData = safeClient.cartes as { id: string; type?: string; nom?: string; logo_url?: string | null };
+  const carteData = safeClient.cartes as { id: string; type?: string; nom?: string; logo_url?: string | null; tampons_total?: number; points_recompense?: number };
   const isPoints = carteData.type === 'points';
-  const scoreLabel = isPoints ? (updatedClient.points_actuels > 1 ? 'points' : 'point') : (updatedClient.tampons_actuels > 1 ? 'tampons' : 'tampon');
   const scoreValue = isPoints ? updatedClient.points_actuels : updatedClient.tampons_actuels;
-  const scanMessage = {
-    titre: isPoints ? '+1 point ajouté' : '+1 tampon ajouté',
-    body: `Vous avez maintenant ${scoreValue} ${scoreLabel} sur votre carte.`,
-  };
+  const threshold = isPoints ? (carteData.points_recompense || 100) : (carteData.tampons_total || 10);
+  const remaining = Math.max(0, threshold - scoreValue);
+  const rewardsAvail = updatedClient.recompenses_obtenues ?? 0;
+  const scanMessage = rewardsAvail > 0
+    ? {
+        titre: '🎁 Récompense débloquée !',
+        body: 'Présentez votre carte pour profiter de votre récompense.',
+      }
+    : {
+        titre: isPoints ? '🎉 Points ajoutés' : '🎉 Nouveau tampon',
+        body: remaining > 0
+          ? `Plus que ${remaining} ${isPoints ? 'point(s)' : 'tampon(s)'} avant votre récompense.`
+          : 'Votre récompense est à portée !',
+      };
 
   void updateWalletsAfterScan(db, safeClient, updatedClient, scanMessage);
-  void sendWebPushAfterScan(
-    db,
-    safeClient.id,
-    carteData.nom ?? '',
-    carteData.type ?? 'tampons',
-    carteData.logo_url,
-    carteData.type === 'points' ? updatedClient.points_actuels : updatedClient.tampons_actuels,
-    false,
-  );
+  void sendWebPushAfterScan(db, safeClient.id, carteData.logo_url, scanMessage.titre, scanMessage.body);
 
   return c.json({
     success: true,
@@ -526,24 +519,13 @@ async function handleUseReward(c: Context) {
     recompenses_obtenues: nextRewards,
   };
   const carteDataReward = safeClient.cartes as { id: string; type?: string; nom?: string; logo_url?: string | null };
-  const isPointsReward = carteDataReward.type === 'points';
-  const scoreLabelReward = isPointsReward ? (updatedClient.points_actuels > 1 ? 'points' : 'point') : (updatedClient.tampons_actuels > 1 ? 'tampons' : 'tampon');
-  const scoreValueReward = isPointsReward ? updatedClient.points_actuels : updatedClient.tampons_actuels;
   const rewardMessage = {
-    titre: 'Récompense utilisée',
-    body: `Il vous reste ${scoreValueReward} ${scoreLabelReward} sur votre carte.`,
+    titre: '✅ Récompense utilisée',
+    body: 'Merci de votre fidélité ! Continuez à cumuler pour la prochaine.',
   };
 
   void updateWalletsAfterScan(db, safeClient, updatedClient, rewardMessage);
-  void sendWebPushAfterScan(
-    db,
-    safeClient.id,
-    carteDataReward.nom ?? '',
-    carteDataReward.type ?? 'tampons',
-    carteDataReward.logo_url,
-    carteDataReward.type === 'points' ? updatedClient.points_actuels : updatedClient.tampons_actuels,
-    true,
-  );
+  void sendWebPushAfterScan(db, safeClient.id, carteDataReward.logo_url, rewardMessage.titre, rewardMessage.body);
 
   return c.json({
     success: true,

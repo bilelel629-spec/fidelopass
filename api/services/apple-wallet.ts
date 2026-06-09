@@ -222,6 +222,23 @@ export async function generateApplePass(
   const soldeValue = carte.type === 'tampons'
     ? `${client.tampons_actuels}/${carte.tampons_total}`
     : String(client.points_actuels);
+
+  // Message de notification personnalisé selon la progression du client.
+  // Affiché par iOS dès que le solde change (= à chaque tampon/point/récompense).
+  const isTampons = carte.type === 'tampons';
+  const currentScore = isTampons ? (client.tampons_actuels ?? 0) : (client.points_actuels ?? 0);
+  const rewardThreshold = isTampons ? (carte.tampons_total || 10) : (carte.points_recompense || 100);
+  const remainingToReward = Math.max(0, rewardThreshold - currentScore);
+  const rewardsAvailable = client.recompenses_obtenues ?? 0;
+  const soldeChangeMessage = rewardsAvailable > 0
+    ? '🎁 Récompense débloquée ! Présentez votre carte pour en profiter.'
+    : isTampons
+      ? (remainingToReward > 0
+          ? `🎉 Nouveau tampon ! Plus que ${remainingToReward} avant votre récompense.`
+          : '🎉 Nouveau tampon ! Votre récompense est à portée.')
+      : (remainingToReward > 0
+          ? `🎉 Points ajoutés ! Plus que ${remainingToReward} avant votre récompense.`
+          : '🎉 Points ajoutés ! Votre récompense est à portée.');
   const rewardsText = (carte.rewards_config ?? [])
     .filter((reward) => reward?.seuil && reward?.recompense)
     .map((reward) => `${reward.seuil} ${carte.type === 'tampons' ? 'tampons' : 'points'} : ${reward.recompense}`)
@@ -252,7 +269,7 @@ export async function generateApplePass(
           key: 'solde',
           label: soldeLabel.toUpperCase(),
           value: soldeValue,
-          changeMessage: `Votre solde ${soldeLabel.toLowerCase()} est maintenant %@.`,
+          changeMessage: soldeChangeMessage,
         },
       ],
       // primaryFields : zone sur la strip — on laisse vide pour ne rien superposer
@@ -271,13 +288,11 @@ export async function generateApplePass(
           key: 'recompense',
           label: 'Récompense',
           value: carte.recompense_description ?? '—',
-          changeMessage: 'Votre récompense Fidelopass a été mise à jour.',
         },
         {
           key: 'recompenses_disponibles',
           label: 'Récompenses dispo',
           value: String(client.recompenses_obtenues ?? 0),
-          changeMessage: 'Récompenses disponibles : %@.',
         },
       ],
       backFields: [

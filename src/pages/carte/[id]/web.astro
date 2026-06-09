@@ -802,7 +802,7 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
         const metaTheme = document.querySelector('meta[name="theme-color"]');
         if (metaTheme) metaTheme.setAttribute('content', bg);
 
-        const appName = commerce?.nom || card.nom || 'Fidelopass';
+        const appName = card.nom || commerce?.nom || 'Fidelopass';
         document.title = appName;
         const appleTitle = document.getElementById('apple-web-app-title');
         if (appleTitle instanceof HTMLMetaElement) appleTitle.content = appName;

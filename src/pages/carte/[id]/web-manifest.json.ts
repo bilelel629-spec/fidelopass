@@ -47,7 +47,8 @@ export const GET: APIRoute = async ({ params, url }) => {
   const clientId = url.searchParams.get('client');
   const startUrl = `/carte/${encodeURIComponent(cardId)}/web${clientId ? `?client=${encodeURIComponent(clientId)}` : ''}`;
   const data = await loadPublicCard(cardId);
-  const appName = cleanName(data?.commerce?.nom) || cleanName(data?.carte?.nom) || 'Carte web Fidelopass';
+  // Nom de la carte ajoutée à l'écran d'accueil = nom de la carte choisie, pas du commerce
+  const appName = cleanName(data?.carte?.nom) || cleanName(data?.commerce?.nom) || 'Carte web Fidelopass';
   const iconSrc = `/carte/${encodeURIComponent(cardId)}/web-icon.png${clientId ? `?client=${encodeURIComponent(clientId)}` : ''}`;
   const themeColor = safeColor(data?.carte?.couleur_accent, '#2563eb');
   const backgroundColor = safeColor(data?.carte?.couleur_fond, '#f8fbff');

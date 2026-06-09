@@ -70,7 +70,7 @@ const carteSchema = z.object({
   strip_url: z.string().url().nullable().optional(),
   strip_position: stripPositionSchema,
   tampon_icon_url: z.string().url().nullable().optional(),
-  barcode_type: z.enum(['QR', 'PDF417', 'AZTEC', 'CODE128', 'NONE']).default('CODE128'),
+  barcode_type: z.enum(['QR', 'PDF417', 'AZTEC', 'CODE128', 'NONE']).default('QR'),
   label_client: z.string().max(50).default('Client'),
   push_icon_bg_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable().optional(),
   // Champs avancés (migration 003)

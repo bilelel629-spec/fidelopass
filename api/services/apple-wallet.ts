@@ -60,6 +60,30 @@ interface WalletMessage {
   message: string;
 }
 
+// ── Cache d'assets image ────────────────────────────────────────────────────
+// Le logo, le fond et les icônes ne dépendent QUE du design de la carte (pas du
+// score). La strip dépend du design + du nombre de tampons. On les met en cache
+// pour qu'une mise à jour de solde ne re-télécharge plus le logo ni ne régénère
+// les images via Sharp → régénération de pass quasi instantanée (~50 ms vs ~1 s).
+type DesignAssets = {
+  logo1x: Buffer; logo2x: Buffer;
+  icon1x: Buffer; icon2x: Buffer; icon3x: Buffer;
+  bg1x: Buffer; bg2x: Buffer; bg3x: Buffer;
+};
+type StripAssets = { strip1x: Buffer; strip2x: Buffer };
+
+const designAssetCache = new Map<string, DesignAssets>();
+const stripAssetCache = new Map<string, StripAssets>();
+const MAX_CACHE_ENTRIES = 400;
+
+function cacheSet<T>(map: Map<string, T>, key: string, value: T): void {
+  if (map.size >= MAX_CACHE_ENTRIES) {
+    const oldest = map.keys().next().value;
+    if (oldest !== undefined) map.delete(oldest);
+  }
+  map.set(key, value);
+}
+
 function isProPlan(plan: string | null | undefined): boolean {
   const normalized = String(plan ?? 'starter').trim().toLowerCase();
   return normalized === 'pro'
@@ -372,58 +396,81 @@ export async function generateApplePass(
     }];
   }
 
-  // ── Génération de la strip (image bannière avec tampons) ──────────
-  const stripBuffer = await generateStripImage({
-    type: carte.type,
-    tamponsActuels: client.tampons_actuels,
-    tamponsTotal: carte.tampons_total,
-    couleurFond: carte.couleur_fond,
-    couleurAccent: carte.couleur_accent,
-    stripImageUrl: carte.strip_url,
-    stripPosition: carte.strip_position ?? 'center',
-    tamponIconUrl: carte.tampon_icon_url,
-    tamponIconScale: carte.tampon_icon_scale,
-    couleurFond2: carte.couleur_fond_2,
-    gradientAngle: carte.gradient_angle,
-    patternType: carte.pattern_type,
-    tamponEmoji: carte.tampon_emoji,
-    stripLayout: carte.strip_layout,
-    bannerOverlayOpacity: carte.banner_overlay_opacity,
-    showBranding: false,
-  });
-  const background2x = await generatePassBackgroundImage({
-    couleurFond: carte.couleur_fond,
-    couleurAccent: carte.couleur_accent,
-    couleurFond2: carte.couleur_fond_2,
-    gradientAngle: carte.gradient_angle,
-    patternType: carte.pattern_type,
-    width: 360,
-    height: 440,
-  });
-
-  // ── Logo ──────────────────────────────────────────────────────────
   const logoUrl = carte.logo_url ?? carte.commerces.logo_url;
-  const logoRaw = logoUrl ? await fetchImageBuffer(logoUrl) : null;
-  const logo1x = logoRaw ? await resizeTo(logoRaw, 120, 120) : readAsset('logo.png');
-  const logo2x = logoRaw ? await resizeTo(logoRaw, 240, 240) : readAsset('logo@2x.png');
-  // iOS 15+ affiche une icône de notification Wallet plus grande.
-  // Apple recommande maintenant 38x38 minimum à l'échelle 1x.
-  // Source of truth: notification icon background follows the dedicated push setting.
-  // The old purple default is treated as unset so existing cards inherit their card background.
-  const customPushBg = isHexColor(carte.push_icon_bg_color)
-    && carte.push_icon_bg_color.toLowerCase() !== '#6366f1'
-    ? carte.push_icon_bg_color
-    : null;
-  const iconBgColor = customPushBg
-    ? customPushBg
-    : (isHexColor(carte.couleur_fond)
-      ? carte.couleur_fond
-      : (isHexColor(carte.couleur_accent) ? carte.couleur_accent : '#6366f1'));
-  const fallbackIconRaw = readAsset('icon@3x.png');
-  const iconSource = logoRaw ?? fallbackIconRaw;
-  const icon1x = await createPassIcon(iconSource, 38, iconBgColor);
-  const icon2x = await createPassIcon(iconSource, 76, iconBgColor);
-  const icon3x = await createPassIcon(iconSource, 114, iconBgColor);
+
+  // ── Assets de DESIGN (logo, fond, icônes) — invariants face au score ──────
+  // Clé = uniquement les champs qui influencent ces images. Une mise à jour de
+  // score ne change pas la clé → on réutilise le cache (pas de fetch logo, pas de Sharp).
+  const designKey = JSON.stringify([
+    carte.id, logoUrl, carte.push_icon_bg_color, carte.couleur_fond, carte.couleur_accent,
+    carte.couleur_fond_2, carte.gradient_angle, carte.pattern_type,
+  ]);
+  let design = designAssetCache.get(designKey);
+  if (!design) {
+    const logoRaw = logoUrl ? await fetchImageBuffer(logoUrl) : null;
+    const logo1x = logoRaw ? await resizeTo(logoRaw, 120, 120) : readAsset('logo.png');
+    const logo2x = logoRaw ? await resizeTo(logoRaw, 240, 240) : readAsset('logo@2x.png');
+    // Fond de l'icône de notification : réglage push dédié, sinon fond/accent de la carte.
+    const customPushBg = isHexColor(carte.push_icon_bg_color)
+      && carte.push_icon_bg_color.toLowerCase() !== '#6366f1'
+      ? carte.push_icon_bg_color
+      : null;
+    const iconBgColor = customPushBg
+      ? customPushBg
+      : (isHexColor(carte.couleur_fond)
+        ? carte.couleur_fond
+        : (isHexColor(carte.couleur_accent) ? carte.couleur_accent : '#6366f1'));
+    const iconSource = logoRaw ?? readAsset('icon@3x.png');
+    const icon1x = await createPassIcon(iconSource, 38, iconBgColor);
+    const icon2x = await createPassIcon(iconSource, 76, iconBgColor);
+    const icon3x = await createPassIcon(iconSource, 114, iconBgColor);
+    const background2x = await generatePassBackgroundImage({
+      couleurFond: carte.couleur_fond,
+      couleurAccent: carte.couleur_accent,
+      couleurFond2: carte.couleur_fond_2,
+      gradientAngle: carte.gradient_angle,
+      patternType: carte.pattern_type,
+      width: 360,
+      height: 440,
+    });
+    const bg1x = await sharp(background2x).resize(180, 220, { fit: 'cover' }).png().toBuffer();
+    const bg3x = await sharp(background2x).resize(540, 660, { fit: 'cover' }).png().toBuffer();
+    design = { logo1x, logo2x, icon1x, icon2x, icon3x, bg1x, bg2x: background2x, bg3x };
+    cacheSet(designAssetCache, designKey, design);
+  }
+
+  // ── STRIP (bannière + tampons) — dépend du design ET du nombre de tampons ──
+  const stripKey = JSON.stringify([
+    carte.id, carte.type, client.tampons_actuels, carte.tampons_total,
+    carte.couleur_fond, carte.couleur_accent, carte.strip_url, carte.strip_position,
+    carte.tampon_icon_url, carte.tampon_icon_scale, carte.couleur_fond_2,
+    carte.gradient_angle, carte.pattern_type, carte.tampon_emoji, carte.strip_layout,
+    carte.banner_overlay_opacity,
+  ]);
+  let strip = stripAssetCache.get(stripKey);
+  if (!strip) {
+    const stripBuffer = await generateStripImage({
+      type: carte.type,
+      tamponsActuels: client.tampons_actuels,
+      tamponsTotal: carte.tampons_total,
+      couleurFond: carte.couleur_fond,
+      couleurAccent: carte.couleur_accent,
+      stripImageUrl: carte.strip_url,
+      stripPosition: carte.strip_position ?? 'center',
+      tamponIconUrl: carte.tampon_icon_url,
+      tamponIconScale: carte.tampon_icon_scale,
+      couleurFond2: carte.couleur_fond_2,
+      gradientAngle: carte.gradient_angle,
+      patternType: carte.pattern_type,
+      tamponEmoji: carte.tampon_emoji,
+      stripLayout: carte.strip_layout,
+      bannerOverlayOpacity: carte.banner_overlay_opacity,
+      showBranding: false,
+    });
+    const strip1x = await sharp(stripBuffer).resize(375, 123, { fit: 'cover' }).png().toBuffer();
+    strip = { strip1x, strip2x: stripBuffer };
+    cacheSet(stripAssetCache, stripKey, strip);
+  }
 
   // ── Dossier temporaire .pass ──────────────────────────────────────
   const tmpPassDir = resolve(tmpdir(), `fidelopass-${randomUUID()}.pass`);
@@ -432,22 +479,18 @@ export async function generateApplePass(
   try {
     writeFileSync(resolve(tmpPassDir, 'pass.json'), JSON.stringify(passJson));
 
-    writeFileSync(resolve(tmpPassDir, 'icon.png'), icon1x);
-    writeFileSync(resolve(tmpPassDir, 'icon@2x.png'), icon2x);
-    writeFileSync(resolve(tmpPassDir, 'icon@3x.png'), icon3x);
+    writeFileSync(resolve(tmpPassDir, 'icon.png'), design.icon1x);
+    writeFileSync(resolve(tmpPassDir, 'icon@2x.png'), design.icon2x);
+    writeFileSync(resolve(tmpPassDir, 'icon@3x.png'), design.icon3x);
 
-    writeFileSync(resolve(tmpPassDir, 'logo.png'), logo1x);
-    writeFileSync(resolve(tmpPassDir, 'logo@2x.png'), logo2x);
+    writeFileSync(resolve(tmpPassDir, 'logo.png'), design.logo1x);
+    writeFileSync(resolve(tmpPassDir, 'logo@2x.png'), design.logo2x);
 
-    // strip.png = image générée dynamiquement (tampons ou bannière)
-    const strip1x = await sharp(stripBuffer).resize(375, 123, { fit: 'cover' }).png().toBuffer();
-    writeFileSync(resolve(tmpPassDir, 'strip.png'), strip1x);
-    writeFileSync(resolve(tmpPassDir, 'strip@2x.png'), stripBuffer);
-    const background1x = await sharp(background2x).resize(180, 220, { fit: 'cover' }).png().toBuffer();
-    const background3x = await sharp(background2x).resize(540, 660, { fit: 'cover' }).png().toBuffer();
-    writeFileSync(resolve(tmpPassDir, 'background.png'), background1x);
-    writeFileSync(resolve(tmpPassDir, 'background@2x.png'), background2x);
-    writeFileSync(resolve(tmpPassDir, 'background@3x.png'), background3x);
+    writeFileSync(resolve(tmpPassDir, 'strip.png'), strip.strip1x);
+    writeFileSync(resolve(tmpPassDir, 'strip@2x.png'), strip.strip2x);
+    writeFileSync(resolve(tmpPassDir, 'background.png'), design.bg1x);
+    writeFileSync(resolve(tmpPassDir, 'background@2x.png'), design.bg2x);
+    writeFileSync(resolve(tmpPassDir, 'background@3x.png'), design.bg3x);
 
     const pass = await PKPass.from(
       {

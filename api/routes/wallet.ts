@@ -154,8 +154,13 @@ walletRoutes.delete('/apple/v1/devices/:deviceLibraryIdentifier/registrations/:p
 walletRoutes.get('/apple/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier', async (c) => {
   const deviceLibraryIdentifier = c.req.param('deviceLibraryIdentifier') ?? '';
   const passTypeIdentifier = c.req.param('passTypeIdentifier') ?? '';
+  // Tag envoyé par iOS : il ne veut que les passes modifiés depuis cette date.
+  const passesUpdatedSinceRaw = c.req.query('passesUpdatedSince');
+  const sinceDate = passesUpdatedSinceRaw ? new Date(passesUpdatedSinceRaw) : null;
+  const sinceMs = sinceDate && !Number.isNaN(sinceDate.getTime()) ? sinceDate.getTime() : null;
 
-  const { data, error } = await createServiceClient()
+  const db = createServiceClient();
+  const { data, error } = await db
     .from('apple_pass_registrations')
     .select('client_id')
     .eq('device_library_identifier', deviceLibraryIdentifier)
@@ -166,9 +171,55 @@ walletRoutes.get('/apple/v1/devices/:deviceLibraryIdentifier/registrations/:pass
     return c.json({ error: 'Impossible de lister les passes' }, 500);
   }
 
+  const clientIds = Array.from(new Set((data ?? []).map((row) => row.client_id).filter(Boolean)));
+  if (clientIds.length === 0) {
+    return c.json({ serialNumbers: [], lastUpdated: new Date().toISOString() });
+  }
+
+  // Date de dernière modif de chaque pass = max(client.updated_at, carte.updated_at,
+  // dernière notification du point de vente). Permet de ne renvoyer QUE les passes
+  // réellement modifiés depuis le tag → iOS ne re-télécharge pas toutes les cartes.
+  const { data: clients } = await db
+    .from('clients')
+    .select('id, updated_at, carte_id, point_vente_id')
+    .in('id', clientIds);
+  const rows = clients ?? [];
+
+  const carteIds = Array.from(new Set(rows.map((r) => r.carte_id).filter(Boolean)));
+  const pointIds = Array.from(new Set(rows.map((r) => r.point_vente_id).filter(Boolean)));
+
+  const [cartesRes, notifsRes] = await Promise.all([
+    carteIds.length
+      ? db.from('cartes').select('id, updated_at').in('id', carteIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; updated_at: string | null }> }),
+    pointIds.length
+      ? db.from('notifications').select('point_vente_id, created_at').in('point_vente_id', pointIds).order('created_at', { ascending: false })
+      : Promise.resolve({ data: [] as Array<{ point_vente_id: string; created_at: string | null }> }),
+  ]);
+
+  const carteUpdatedAt = new Map<string, string | null>();
+  for (const carte of (cartesRes.data ?? [])) carteUpdatedAt.set(carte.id, carte.updated_at);
+  const pointLastNotif = new Map<string, string | null>();
+  for (const notif of (notifsRes.data ?? [])) {
+    if (!pointLastNotif.has(notif.point_vente_id)) pointLastNotif.set(notif.point_vente_id, notif.created_at);
+  }
+
+  let maxLastMod = 0;
+  const serialNumbers = rows
+    .filter((row) => {
+      const lastMod = latestValidDate(
+        row.updated_at,
+        row.carte_id ? carteUpdatedAt.get(row.carte_id) : null,
+        row.point_vente_id ? pointLastNotif.get(row.point_vente_id) : null,
+      ).getTime();
+      if (lastMod > maxLastMod) maxLastMod = lastMod;
+      return sinceMs === null || lastMod > sinceMs;
+    })
+    .map((row) => row.id);
+
   return c.json({
-    serialNumbers: (data ?? []).map((row) => row.client_id),
-    lastUpdated: new Date().toISOString(),
+    serialNumbers,
+    lastUpdated: new Date(maxLastMod || Date.now()).toISOString(),
   });
 });
 

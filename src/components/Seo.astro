@@ -1,0 +1,56 @@
+---
+// Composant SEO centralisé : title, description, canonical, Open Graph,
+// Twitter Card, robots (noindex) et données structurées JSON-LD.
+interface Props {
+  title: string;
+  description: string;
+  image?: string;
+  ogType?: 'website' | 'article';
+  noindex?: boolean;
+  jsonLd?: Record<string, unknown> | Array<Record<string, unknown>>;
+}
+
+const {
+  title,
+  description,
+  image = '/images/og-fidelopass.jpg',
+  ogType = 'website',
+  noindex = false,
+  jsonLd,
+} = Astro.props;
+
+const siteName = 'Fidelopass';
+// URL canonique = URL courante sans query string. Astro.site est défini dans astro.config.
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? 'https://www.fidelopass.com').href;
+const imageUrl = new URL(image, Astro.site ?? 'https://www.fidelopass.com').href;
+const jsonLdItems = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
+---
+
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonicalUrl} />
+{noindex
+  ? <meta name="robots" content="noindex, nofollow" />
+  : <meta name="robots" content="index, follow, max-image-preview:large" />}
+
+<!-- Open Graph -->
+<meta property="og:type" content={ogType} />
+<meta property="og:site_name" content={siteName} />
+<meta property="og:locale" content="fr_FR" />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonicalUrl} />
+<meta property="og:image" content={imageUrl} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={imageUrl} />
+
+<!-- Données structurées -->
+{jsonLdItems.map((item) => (
+  <script type="application/ld+json" set:html={JSON.stringify(item)} />
+))}

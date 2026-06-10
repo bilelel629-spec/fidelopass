@@ -2,12 +2,38 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PublicFooter from '../components/marketing/PublicFooter.astro';
 import PublicNav from '../components/marketing/PublicNav.astro';
+
+const homeJsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Fidelopass',
+    url: 'https://www.fidelopass.com',
+    logo: 'https://www.fidelopass.com/logo-premium.png',
+    description: 'N°1 de la carte de fidélité dématérialisée en France, dans Apple Wallet et Google Wallet.',
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'Fidelopass',
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'iOS, Android, Web',
+    description: 'Cartes de fidélité dématérialisées pour commerces dans Apple Wallet et Google Wallet, sans application pour les clients.',
+    offers: {
+      '@type': 'Offer',
+      price: '29',
+      priceCurrency: 'EUR',
+      description: 'À partir de 29€/mois — essai gratuit 14 jours.',
+    },
+  },
+];
 ---
 
 <BaseLayout
   theme="light"
   title="Fidelopass — N°1 de la carte de fidélité dématérialisée en France"
   description="N°1 de la carte de fidélité dématérialisée en France, déjà plus de 2 000 commerces. Créez votre carte dans Apple Wallet et Google Wallet en 5 minutes, sans application pour vos clients. Essai gratuit 14 jours."
+  jsonLd={homeJsonLd}
 >
   <PublicNav currentPath="/" />
 

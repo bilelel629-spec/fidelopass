@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /app
+Disallow: /partner
+Disallow: /reseller
+Disallow: /carte/
+Disallow: /r/
+Disallow: /auth/
+Disallow: /onboarding
+Disallow: /abonnement/
+Disallow: /login
+Disallow: /register
+Disallow: /reset-password
+Disallow: /poster/
+Disallow: /review/
+
+Sitemap: https://www.fidelopass.com/sitemap.xml

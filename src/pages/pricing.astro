@@ -13,6 +13,16 @@ const faq = [
   { q: "Mes clients doivent-ils télécharger une app ?", a: "Non. Vos clients utilisent Apple Wallet ou Google Wallet, déjà installés sur leur téléphone. Aucun téléchargement supplémentaire." },
 ];
 
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faq.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+};
+
 const plans = [
   {
     id: 'starter',
@@ -97,6 +107,7 @@ const plans = [
   theme="light"
   title="Tarifs Fidelopass — Essai gratuit 14 jours"
   description="Plans Starter, Pro et Business pour commerces. Essai gratuit 14 jours, résiliable à tout moment pendant l’essai."
+  jsonLd={faqJsonLd}
 >
   <PublicNav currentPath="/pricing" />
 

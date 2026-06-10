@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import GoogleTag from '../components/GoogleTag.astro';
+import ConversionAchat from '../components/ConversionAchat.astro';
 
 interface Props {
   title?: string;
@@ -29,6 +30,7 @@ const navItems = [
     <link rel="icon" type="image/png" href="/favicon.png" />
     <title>{title}</title>
     <GoogleTag />
+    <ConversionAchat />
   </head>
   <body class="min-h-screen bg-transparent text-slate-900 antialiased">
     <div class="pointer-events-none fixed inset-0 overflow-hidden">

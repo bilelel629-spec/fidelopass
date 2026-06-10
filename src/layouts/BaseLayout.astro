@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import Seo from '../components/Seo.astro';
 import GoogleTag from '../components/GoogleTag.astro';
+import ConversionAchat from '../components/ConversionAchat.astro';
 
 interface Props {
   title?: string;
@@ -35,6 +36,7 @@ const {
     <link rel="icon" type="image/png" href="/favicon.png" />
     <Seo title={title} description={description} image={image} ogType={ogType} noindex={noindex} jsonLd={jsonLd} />
     <GoogleTag />
+    <ConversionAchat />
   </head>
   <body class:list={[
     "min-h-screen antialiased overflow-x-hidden bg-transparent text-slate-900",

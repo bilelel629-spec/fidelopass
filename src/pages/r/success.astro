@@ -1,5 +1,7 @@
 ---
 import '../../styles/global.css';
+import GoogleTag from '../../components/GoogleTag.astro';
+import ConversionAchat from '../../components/ConversionAchat.astro';
 
 const sessionId = Astro.url.searchParams.get('session_id') ?? '';
 const slug = Astro.url.searchParams.get('slug') ?? '';
@@ -19,6 +21,8 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
     <meta name="robots" content="noindex, nofollow" />
     <title>Activation de votre compte — Fidelopass</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
+    <GoogleTag />
+    <ConversionAchat />
   </head>
   <body class="min-h-screen bg-slate-50 text-slate-950 antialiased"
     data-session-id={sessionId} data-slug={slug} data-api-base={apiBase}

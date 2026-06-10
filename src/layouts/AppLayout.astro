@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import GoogleTag from '../components/GoogleTag.astro';
 
 interface Props {
   title?: string;
@@ -22,6 +23,7 @@ const { title = 'Fidelopass Scanner', deferSessionCheck = false } = Astro.props;
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <title>{title}</title>
+    <GoogleTag />
   </head>
   <body class="min-h-[100dvh] bg-[#f5f9ff] text-slate-900 antialiased overflow-x-hidden" data-defer-session-check={deferSessionCheck ? 'true' : 'false'}>
     <div class="pointer-events-none fixed inset-0 overflow-hidden">

@@ -20,12 +20,14 @@ const homeJsonLd = [
     applicationSubCategory: 'Logiciel de programme de fidélité',
     operatingSystem: 'iOS, Android, Web',
     url: 'https://www.fidelopass.com',
-    description: 'Cartes de fidélité dématérialisées pour commerces de proximité dans Apple Wallet et Google Wallet, sans application pour les clients. Tampons, points et paliers, notifications incluses.',
+    description: 'Cartes de fidélité dématérialisées pour commerces, du commerce indépendant aux chaînes et réseaux. Carte dans Apple Wallet, Google Wallet et sur le web — disponible sur 100% des smartphones, sans application pour les clients. Tampons, points et paliers, notifications incluses.',
     featureList: [
-      'Carte de fidélité dans Apple Wallet et Google Wallet',
+      'Carte de fidélité dans Apple Wallet, Google Wallet et sur le web',
+      'Compatible 100% des smartphones (même sans Apple ni Google Wallet)',
       'Aucune application à installer pour les clients',
+      'Gestion multi-points de vente, chaînes et réseaux',
       'Mécaniques tampons, points et paliers / VIP',
-      'Notifications push gratuites',
+      'Notifications push gratuites (Wallet et web)',
       'Suivi de l’activité client',
       'Données non revendues (conforme RGPD)',
       'Mise en place en 5 minutes',
@@ -444,7 +446,7 @@ const homeJsonLd = [
               <p id="home-roi-roi" class="text-lg font-extrabold text-blue-700">ROI : x49</p>
               <p id="home-roi-roi-text" class="mt-1 text-xs leading-5 text-slate-600">Pour 1€ investi dans Fidelopass, vous pourriez générer environ 49€ de chiffre d’affaires supplémentaire.</p>
             </div>
-            <p class="mt-4 text-xs leading-5 text-blue-100/80">Estimation indicative basée sur une visite supplémentaire par client revenu. Les résultats peuvent varier selon votre activité, votre fréquence de passage et vos campagnes.</p>
+            <p class="mt-4 text-xs leading-5 text-blue-100/80">Simulation à titre indicatif — résultats non garantis. Le taux de retour (27% par défaut) est une hypothèse que vous pouvez ajuster ; les résultats réels dépendent de votre activité, de votre fréquence de passage et de vos campagnes.</p>
           </div>
         </div>
       </div>
@@ -917,9 +919,9 @@ const homeJsonLd = [
       </div>
       <div class="space-y-3" id="faq-list">
         {[
-          { q: 'Mes clients doivent-ils télécharger une application ?', a: 'Non. Vos clients reçoivent la carte directement dans Apple Wallet (iPhone) ou Google Wallet (Android), déjà installés sur tous les smartphones. Aucun téléchargement supplémentaire.' },
+          { q: 'Mes clients doivent-ils télécharger une application ?', a: 'Non, jamais. Sur iPhone la carte s’ajoute à Apple Wallet, sur Android à Google Wallet, et sur tout autre téléphone elle reste accessible via une version web. Résultat : elle fonctionne sur 100% des smartphones, sans aucune application à installer.' },
           { q: 'Comment fonctionne l\'essai gratuit de 14 jours ?', a: 'Vous choisissez un forfait et ajoutez votre carte bancaire pour activer l’essai. Vous pouvez résilier à tout moment pendant les 14 jours. Sans résiliation, l’abonnement démarre automatiquement sur le forfait choisi.' },
-          { q: 'La carte fonctionne-t-elle sur iPhone et Android ?', a: 'Oui. Fidelopass génère automatiquement une carte Apple Wallet (iPhone) et Google Wallet (Android). Vos clients reçoivent le bon format selon leur téléphone.' },
+          { q: 'La carte fonctionne-t-elle sur iPhone et Android ?', a: 'Oui, sur les deux — et au-delà. Fidelopass génère automatiquement une carte Apple Wallet (iPhone) et Google Wallet (Android), et propose une version web pour tout autre téléphone. Aucun client n’est exclu, quel que soit son appareil.' },
           { q: 'Combien de temps pour créer sa première carte ?', a: 'Moins de 5 minutes. Choisissez le type (tampons, points ou paliers), personnalisez couleurs et logo — votre carte est prête.' },
           { q: 'Puis-je changer de plan à tout moment ?', a: 'Oui. Passez à un plan supérieur ou résiliez à tout moment. Pas d\'engagement minimum sur les plans mensuels.' },
         ].map((item, i) => (

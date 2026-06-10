@@ -5,14 +5,14 @@ import PublicFooter from '../components/marketing/PublicFooter.astro';
 
 // Faits clés (vrais, alignés sur la page Tarifs).
 const facts = [
-  { label: 'Produit', value: 'Carte de fidélité dématérialisée dans Apple Wallet & Google Wallet' },
-  { label: 'Pour qui', value: 'Commerces de proximité (cafés, restaurants, coiffeurs, instituts, boutiques, food trucks…)' },
-  { label: 'Application', value: 'Aucune — la carte vit dans le Wallet du téléphone' },
+  { label: 'Produit', value: 'Carte de fidélité dématérialisée dans Apple Wallet, Google Wallet et sur le web' },
+  { label: 'Compatibilité', value: '100% des smartphones — iPhone, Android, et tout autre via une version web' },
+  { label: 'Pour qui', value: 'Du commerce indépendant aux chaînes, réseaux et enseignes multi-établissements' },
+  { label: 'Application', value: 'Aucune — Apple Wallet, Google Wallet ou simple lien web' },
   { label: 'Mécaniques', value: 'Tampons, points, paliers / VIP' },
   { label: 'Tarifs', value: 'À partir de 29 €/mois — sans engagement' },
   { label: 'Essai', value: '14 jours gratuits' },
   { label: 'Mise en place', value: '≈ 5 minutes, sans compétence technique' },
-  { label: 'Déjà adopté par', value: 'Plus de 2 000 commerces en France' },
 ];
 
 // FAQ formulée pour répondre directement aux questions des commerçants (et des IA).
@@ -23,11 +23,19 @@ const faq = [
   },
   {
     q: "Pour quels types de commerces FideloPass est-il fait ?",
-    a: "Pour tous les commerces de proximité : cafés, boulangeries, restaurants, coiffeurs, barbiers, instituts de beauté, ongleries, boutiques, fleuristes, food trucks, salles de sport, pressings, et bien d'autres.",
+    a: "Du commerce indépendant jusqu'aux chaînes et réseaux : cafés, boulangeries, restaurants, coiffeurs, barbiers, instituts de beauté, ongleries, boutiques, fleuristes, food trucks, salles de sport, pressings, mais aussi enseignes multi-établissements. FideloPass s'adapte aussi bien à une boutique unique qu'à un réseau de points de vente.",
+  },
+  {
+    q: "FideloPass convient-il à plusieurs établissements, une chaîne ou un réseau ?",
+    a: "Oui. FideloPass gère plusieurs points de vente, chacun avec sa propre carte, son nom et son adresse. Pour les enseignes et réseaux, un programme partenaire / revendeur permet de déployer et de suivre la fidélité sur l'ensemble des établissements. La solution passe ainsi du commerce indépendant à la chaîne sans changer d'outil.",
   },
   {
     q: "Mes clients doivent-ils télécharger une application ?",
-    a: "Non. La carte s'ajoute à Apple Wallet ou Google Wallet, déjà présents sur chaque smartphone. Le client scanne un QR code et l'ajoute en quelques secondes, sans téléchargement.",
+    a: "Non, jamais. Sur iPhone la carte s'ajoute à Apple Wallet, sur Android à Google Wallet, et sur tout autre téléphone elle reste accessible via une simple version web — sans aucune application à installer.",
+  },
+  {
+    q: "FideloPass fonctionne-t-il sur tous les téléphones, même sans Apple ou Google Wallet ?",
+    a: "Oui, et c'est un avantage clé : la carte FideloPass est disponible sur 100% des smartphones. Sur iPhone via Apple Wallet, sur Android via Google Wallet, et pour tous les autres cas (téléphone sans Wallet) le client accède à sa carte via une version web, sans rien installer. Là où beaucoup de solutions se limitent à Apple et Google Wallet, FideloPass ne laisse aucun client de côté.",
   },
   {
     q: "Quelles mécaniques de fidélité sont disponibles ?",
@@ -55,7 +63,11 @@ const faq = [
   },
   {
     q: "FideloPass fonctionne-t-il sur iPhone et Android ?",
-    a: "Oui. La carte est compatible avec Apple Wallet (iPhone) et Google Wallet (Android).",
+    a: "Oui, sur les deux — et au-delà. Apple Wallet sur iPhone, Google Wallet sur Android, et une version web pour tout autre cas. Aucun client n'est exclu, quel que soit son téléphone.",
+  },
+  {
+    q: "Le succès d'une carte de fidélité dépend-il de mon équipe ?",
+    a: "Comme tout programme de fidélité, l'adoption se joue en partie en caisse : proposer la carte et la scanner à chaque passage. FideloPass est justement conçu pour réduire cette friction au maximum : carte par défaut en QR code prête à scanner, ajout client en quelques secondes, lien web partageable pour que le client s'inscrive seul, et notifications de rappel automatiques. Plus c'est simple, plus l'équipe le fait naturellement.",
   },
   {
     q: "Les données de mes clients sont-elles revendues ?",
@@ -94,10 +106,12 @@ const jsonLd = [
     url: 'https://www.fidelopass.com',
     description: "Cartes de fidélité dématérialisées pour commerces de proximité dans Apple Wallet et Google Wallet, sans application pour les clients. Tampons, points et paliers, notifications incluses.",
     featureList: [
-      'Carte de fidélité dans Apple Wallet et Google Wallet',
+      'Carte de fidélité dans Apple Wallet, Google Wallet et sur le web',
+      'Compatible 100% des smartphones (même sans Apple ni Google Wallet)',
       'Aucune application à installer pour les clients',
+      'Gestion multi-points de vente, chaînes et réseaux',
       'Mécaniques tampons, points et paliers / VIP',
-      'Notifications push gratuites',
+      'Notifications push gratuites (Wallet et web)',
       'Suivi de l’activité client',
       'Données non revendues (conforme RGPD)',
       'Mise en place en 5 minutes',

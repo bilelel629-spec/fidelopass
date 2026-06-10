@@ -8,6 +8,7 @@ const SITE = 'https://www.fidelopass.com';
 const PAGES: Array<{ path: string; priority: string; changefreq: string }> = [
   { path: '/', priority: '1.0', changefreq: 'weekly' },
   { path: '/pricing', priority: '0.9', changefreq: 'monthly' },
+  { path: '/faq', priority: '0.8', changefreq: 'monthly' },
   { path: '/blog', priority: '0.8', changefreq: 'weekly' },
   { path: '/comment-ca-fonctionne', priority: '0.8', changefreq: 'monthly' },
   { path: '/cas-d-utilisation', priority: '0.8', changefreq: 'monthly' },

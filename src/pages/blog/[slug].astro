@@ -1,0 +1,103 @@
+---
+import { getCollection, render } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PublicNav from '../../components/marketing/PublicNav.astro';
+import PublicFooter from '../../components/marketing/PublicFooter.astro';
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog');
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+}
+
+interface Props { post: CollectionEntry<'blog'> }
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+const dateFmt = (d: Date) => d.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' });
+const ogImage = post.data.image ?? '/images/og-fidelopass.jpg';
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: post.data.title,
+  description: post.data.description,
+  datePublished: post.data.pubDate.toISOString(),
+  dateModified: (post.data.updatedDate ?? post.data.pubDate).toISOString(),
+  image: new URL(ogImage, 'https://www.fidelopass.com').href,
+  author: { '@type': 'Organization', name: 'Fidelopass' },
+  publisher: {
+    '@type': 'Organization',
+    name: 'Fidelopass',
+    logo: { '@type': 'ImageObject', url: 'https://www.fidelopass.com/logo-premium.png' },
+  },
+  mainEntityOfPage: `https://www.fidelopass.com/blog/${post.id}`,
+};
+---
+
+<BaseLayout
+  theme="light"
+  title={`${post.data.title} — Fidelopass`}
+  description={post.data.description}
+  image={ogImage}
+  ogType="article"
+  jsonLd={jsonLd}
+>
+  <PublicNav currentPath="/blog" />
+
+  <article class="bg-white">
+    <header class="bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_100%)] pt-8 pb-6 sm:pt-14 sm:pb-10">
+      <div class="max-w-3xl mx-auto px-4 sm:px-6">
+        <nav class="text-xs text-slate-400 mb-5">
+          <a href="/" class="hover:text-slate-600">Accueil</a> ·
+          <a href="/blog" class="hover:text-slate-600">Blog</a>
+        </nav>
+        <span class="inline-flex rounded-full bg-indigo-50 px-3 py-1 text-[0.66rem] font-bold uppercase tracking-[0.14em] text-indigo-700">{post.data.category}</span>
+        <h1 class="mt-4 font-display text-3xl sm:text-[2.7rem] font-bold text-slate-900 leading-[1.08] tracking-[-0.02em]">{post.data.title}</h1>
+        <p class="mt-4 text-lg text-slate-500 leading-relaxed">{post.data.description}</p>
+        <p class="mt-5 text-xs font-semibold text-slate-400">Publié le {dateFmt(post.data.pubDate)}</p>
+      </div>
+    </header>
+
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div class="article-prose">
+        <Content />
+      </div>
+
+      <div class="mt-12 rounded-[1.7rem] bg-[linear-gradient(135deg,#0f172a_0%,#312e81_55%,#0284c7_100%)] p-8 text-center text-white">
+        <h2 class="font-display text-2xl font-bold">Prêt à fidéliser vos clients ?</h2>
+        <p class="mt-2 text-indigo-100">Créez votre carte dans Apple Wallet & Google Wallet en 5 minutes. Essai gratuit 14 jours.</p>
+        <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+          <a href="/register" class="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 text-sm font-bold text-indigo-700 hover:bg-indigo-50 transition">Démarrer l'essai gratuit</a>
+          <a href="/pricing" class="inline-flex items-center justify-center rounded-xl border border-white/25 bg-white/10 px-6 py-3 text-sm font-semibold text-white hover:bg-white/20 transition">Voir les tarifs</a>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <PublicFooter />
+</BaseLayout>
+
+<style is:global>
+  .article-prose { color: #334155; font-size: 1.05rem; line-height: 1.8; }
+  .article-prose > * + * { margin-top: 1.15rem; }
+  .article-prose h2 { font-family: var(--font-display), system-ui, sans-serif; font-size: 1.65rem; font-weight: 700; color: #0f172a; margin-top: 2.4rem; margin-bottom: 0.4rem; letter-spacing: -0.02em; }
+  .article-prose h3 { font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-top: 1.8rem; margin-bottom: 0.2rem; }
+  .article-prose p { margin-top: 1.1rem; }
+  .article-prose a { color: #4f46e5; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+  .article-prose a:hover { color: #4338ca; }
+  .article-prose ul, .article-prose ol { margin-top: 1.1rem; padding-left: 1.35rem; }
+  .article-prose ul { list-style: disc; }
+  .article-prose ol { list-style: decimal; }
+  .article-prose li { margin-top: 0.5rem; }
+  .article-prose li::marker { color: #6366f1; }
+  .article-prose strong { color: #0f172a; font-weight: 700; }
+  .article-prose blockquote { border-left: 4px solid #c7d2fe; background: #f5f7ff; padding: 0.9rem 1.2rem; border-radius: 0.6rem; color: #475569; font-style: italic; }
+  .article-prose table { width: 100%; border-collapse: collapse; margin-top: 1.4rem; font-size: 0.95rem; }
+  .article-prose th, .article-prose td { border: 1px solid #e2e8f0; padding: 0.6rem 0.8rem; text-align: left; }
+  .article-prose th { background: #f8fafc; font-weight: 700; color: #0f172a; }
+  .article-prose img { border-radius: 1rem; margin-top: 1.6rem; }
+  .article-prose hr { border: none; border-top: 1px solid #e2e8f0; margin: 2.2rem 0; }
+</style>

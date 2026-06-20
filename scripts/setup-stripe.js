@@ -2,6 +2,7 @@
 // Usage:
 //   STRIPE_SECRET_KEY=sk_test_... node scripts/setup-stripe.js --mode=test
 //   STRIPE_SECRET_KEY=sk_live_... node scripts/setup-stripe.js --mode=live
+//   STRIPE_SECRET_KEY=sk_live_... node scripts/setup-stripe.js --mode=live --currency=chf
 //
 // Le script crée uniquement la grille canonique FideloPass. En test, il écrit
 // stripe-price-ids.test.json pour éviter de mélanger des Price IDs live/test.
@@ -76,6 +77,7 @@ function parseArgs() {
   const modeArg = args.find((arg) => arg.startsWith('--mode='))?.split('=')[1];
   return {
     mode: modeArg === 'live' ? 'live' : 'test',
+    currency: args.find((arg) => arg.startsWith('--currency='))?.split('=')[1] === 'chf' ? 'chf' : 'eur',
   };
 }
 
@@ -115,7 +117,7 @@ async function findPriceByLookupKey(stripe, lookupKey) {
   return prices.data[0] ?? null;
 }
 
-async function findEquivalentActivePrice(stripe, productId, config, recurring) {
+async function findEquivalentActivePrice(stripe, productId, config, recurring, currency) {
   const prices = await stripe.prices.list({
     product: productId,
     active: true,
@@ -123,7 +125,7 @@ async function findEquivalentActivePrice(stripe, productId, config, recurring) {
   });
 
   return prices.data.find((price) => {
-    const sameAmount = price.unit_amount === config.amount && price.currency === 'eur';
+    const sameAmount = price.unit_amount === config.amount && price.currency === currency;
     const expectedType = recurring ? 'recurring' : 'one_time';
     const sameType = price.type === expectedType;
     const sameRecurring = !recurring || price.recurring?.interval === recurring.interval;
@@ -131,14 +133,18 @@ async function findEquivalentActivePrice(stripe, productId, config, recurring) {
   }) ?? null;
 }
 
-async function ensurePrice(stripe, productId, config, metadata, recurring = null) {
-  const equivalent = await findEquivalentActivePrice(stripe, productId, config, recurring);
+async function ensurePrice(stripe, productId, config, metadata, recurring = null, currency = 'eur') {
+  const pricedConfig = {
+    ...config,
+    lookupKey: currency === 'chf' ? `${config.lookupKey}_chf` : config.lookupKey,
+  };
+  const equivalent = await findEquivalentActivePrice(stripe, productId, pricedConfig, recurring, currency);
   if (equivalent) return equivalent;
 
-  const existing = await findPriceByLookupKey(stripe, config.lookupKey);
+  const existing = await findPriceByLookupKey(stripe, pricedConfig.lookupKey);
   if (existing) {
     const expectedType = recurring ? 'recurring' : 'one_time';
-    const sameAmount = existing.unit_amount === config.amount && existing.currency === 'eur';
+    const sameAmount = existing.unit_amount === pricedConfig.amount && existing.currency === currency;
     const sameType = existing.type === expectedType;
     const sameRecurring = !recurring || existing.recurring?.interval === recurring.interval;
     if (sameAmount && sameType && sameRecurring) return existing;
@@ -146,11 +152,11 @@ async function ensurePrice(stripe, productId, config, metadata, recurring = null
 
   return stripe.prices.create({
     product: productId,
-    unit_amount: config.amount,
-    currency: 'eur',
-    ...(existing ? {} : { lookup_key: config.lookupKey }),
-    nickname: config.lookupKey,
-    metadata,
+    unit_amount: pricedConfig.amount,
+    currency,
+    ...(existing ? {} : { lookup_key: pricedConfig.lookupKey }),
+    nickname: pricedConfig.lookupKey,
+    metadata: { ...metadata, currency },
     ...(recurring ? { recurring } : {}),
   });
 }
@@ -159,7 +165,7 @@ async function main() {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error('STRIPE_SECRET_KEY manquant');
 
-  const { mode } = parseArgs();
+  const { mode, currency } = parseArgs();
   assertKeyMatchesMode(key, mode);
 
   const stripe = new Stripe(key, { maxNetworkRetries: 1 });
@@ -179,7 +185,7 @@ async function main() {
     sms_2000: '',
   };
 
-  console.log(`Stripe ${mode}: synchronisation de la grille canonique FideloPass.`);
+  console.log(`Stripe ${mode}: synchronisation de la grille Fidelopass ${currency.toUpperCase()}.`);
 
   for (const plan of PLANS) {
     const product = await ensureProduct(stripe, plan, { kind: 'fidelopass_plan', plan: plan.slot });
@@ -189,6 +195,7 @@ async function main() {
       plan.monthly,
       { kind: 'fidelopass_plan', plan: plan.slot, billing: 'monthly', slot: plan.monthly.slot },
       { interval: 'month' },
+      currency,
     );
     const annual = await ensurePrice(
       stripe,
@@ -196,6 +203,7 @@ async function main() {
       plan.annual,
       { kind: 'fidelopass_plan', plan: plan.slot, billing: 'annual_recurring', slot: plan.annual.slot },
       { interval: 'year' },
+      currency,
     );
 
     ids[plan.monthly.slot] = monthly.id;
@@ -203,22 +211,32 @@ async function main() {
     console.log(`${plan.productName}: ${monthly.id} / ${annual.id}`);
   }
 
-  for (const addon of ADDONS) {
+  for (const addon of ADDONS.filter((item) => currency === 'eur' || item.slot === 'accompagnement')) {
     const product = await ensureProduct(stripe, addon, { kind: 'fidelopass_addon' });
     const price = await ensurePrice(
       stripe,
       product.id,
       addon,
       { kind: 'fidelopass_addon', slot: addon.slot, ...(addon.metadata ?? {}) },
+      null,
+      currency,
     );
     ids[addon.slot] = price.id;
     console.log(`${addon.productName} ${addon.slot}: ${price.id}`);
   }
 
-  const outFile = mode === 'test' ? 'stripe-price-ids.test.json' : 'stripe-price-ids.json';
+  const outFile = currency === 'chf'
+    ? `stripe-price-ids.chf.${mode}.json`
+    : mode === 'test' ? 'stripe-price-ids.test.json' : 'stripe-price-ids.json';
   const outPath = resolve(__dirname, '..', outFile);
   writeFileSync(outPath, `${JSON.stringify(ids, null, 2)}\n`);
   console.log(`Sauvegardé dans ${outPath}`);
+  if (currency === 'chf') {
+    console.log('\nVariables Railway à copier :');
+    for (const [slot, id] of Object.entries(ids)) {
+      if (id) console.log(`STRIPE_PRICE_ID_CHF_${slot.toUpperCase()}=${id}`);
+    }
+  }
 }
 
 main().catch((error) => {

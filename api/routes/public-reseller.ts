@@ -8,6 +8,7 @@ import {
   createResellerStripePrice,
   ensureDefaultResellerPublicPrices,
   ensureMerchantCommerce,
+  formatResellerAmount,
   getResellerPlanSetting,
   getResellerPlanSettings,
   normalizeCurrency,
@@ -200,7 +201,7 @@ async function publicResellerPayload(
         if (!setting) {
           validationMessage = 'Paramètres du plan introuvables.';
         } else if (publicPrice < minPrice) {
-          validationMessage = `Prix trop bas. Minimum: ${Math.round(minPrice / 100)}€.`;
+          validationMessage = `Prix trop bas. Minimum: ${formatResellerAmount(minPrice, price.currency)}.`;
         } else if (platformFee < minFee || platformFee > publicPrice) {
           validationMessage = 'La part Fidelopass doit être vérifiée par le revendeur.';
         }

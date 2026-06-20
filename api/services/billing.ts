@@ -7,6 +7,9 @@ export type BillingRecord = {
   stripe_subscription_id: string | null;
   stripe_customer_id: string | null;
   stripe_price_id: string | null;
+  billing_currency: string | null;
+  billing_country: string | null;
+  billing_currency_locked_at: string | null;
   trial_ends_at: string | null;
   billing_interval: string | null;
   billing_commitment: string | null;
@@ -26,6 +29,9 @@ export type BillingStatusPayload = {
   stripe_subscription_id: string | null;
   stripe_customer_id: string | null;
   stripe_price_id: string | null;
+  billing_currency: string;
+  billing_country: string | null;
+  billing_currency_locked_at: string | null;
   trial_ends_at: string | null;
   billing_interval: string | null;
   billing_commitment: string | null;
@@ -72,6 +78,9 @@ export function buildBillingStatusPayload(record: BillingRecord | null): Billing
       stripe_subscription_id: null,
       stripe_customer_id: null,
       stripe_price_id: null,
+      billing_currency: 'eur',
+      billing_country: null,
+      billing_currency_locked_at: null,
       trial_ends_at: null,
       billing_interval: null,
       billing_commitment: null,
@@ -114,6 +123,9 @@ export function buildBillingStatusPayload(record: BillingRecord | null): Billing
     stripe_subscription_id: record.stripe_subscription_id,
     stripe_customer_id: record.stripe_customer_id,
     stripe_price_id: record.stripe_price_id,
+    billing_currency: record.billing_currency === 'chf' ? 'chf' : 'eur',
+    billing_country: record.billing_country,
+    billing_currency_locked_at: record.billing_currency_locked_at,
     trial_ends_at: record.trial_ends_at,
     billing_interval: record.billing_interval,
     billing_commitment: record.billing_commitment,
@@ -153,6 +165,9 @@ function buildAdminBypassPayload(record: BillingRecord | null): BillingStatusPay
     stripe_subscription_id: record?.stripe_subscription_id ?? null,
     stripe_customer_id: record?.stripe_customer_id ?? null,
     stripe_price_id: record?.stripe_price_id ?? null,
+    billing_currency: record?.billing_currency === 'chf' ? 'chf' : 'eur',
+    billing_country: record?.billing_country ?? null,
+    billing_currency_locked_at: record?.billing_currency_locked_at ?? null,
     trial_ends_at: null,
     billing_interval: 'month',
     billing_commitment: 'monthly-flex',
@@ -183,7 +198,7 @@ export async function getBillingStatusForUser(userId: string, userEmail?: string
     const db = createServiceClient();
     const { data } = await db
       .from('commerces')
-      .select('id, plan, stripe_subscription_id, stripe_customer_id, stripe_price_id, onboarding_completed')
+      .select('id, plan, stripe_subscription_id, stripe_customer_id, stripe_price_id, billing_currency, billing_country, billing_currency_locked_at, onboarding_completed')
       .eq('user_id', userId)
       .single();
     return buildAdminBypassPayload((data as BillingRecord | null) ?? null);
@@ -199,6 +214,9 @@ export async function getBillingStatusForUser(userId: string, userEmail?: string
       stripe_subscription_id,
       stripe_customer_id,
       stripe_price_id,
+      billing_currency,
+      billing_country,
+      billing_currency_locked_at,
       trial_ends_at,
       billing_interval,
       billing_commitment,

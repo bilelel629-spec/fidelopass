@@ -107,6 +107,14 @@ export function normalizeCurrency(value: unknown, fallback = 'eur') {
   return /^[a-z]{3}$/.test(normalized) ? normalized : fallback;
 }
 
+export function formatResellerAmount(amountCents: number, currency: string) {
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: normalizeCurrency(currency).toUpperCase(),
+    maximumFractionDigits: 0,
+  }).format(amountCents / 100);
+}
+
 export function normalizeStripeCountryCode(value: unknown) {
   const normalized = String(value ?? '').trim().toUpperCase();
   return /^[A-Z]{2}$/.test(normalized) ? normalized : undefined;
@@ -193,7 +201,7 @@ export function calculateResellerPricing(
   const platformFee = Number(setting.platform_fee_cents);
 
   if (!Number.isFinite(price) || price < minPrice) {
-    throw new Error(`Prix trop bas pour le plan ${resellerPlanLabel(plan)}. Minimum: ${Math.round(minPrice / 100)}€.`);
+    throw new Error(`Prix trop bas pour le plan ${resellerPlanLabel(plan)}. Minimum: ${formatResellerAmount(minPrice, setting.currency)}.`);
   }
   if (platformFee > price) {
     throw new Error('La part Fidelopass ne peut pas dépasser le prix facturé au commerçant.');

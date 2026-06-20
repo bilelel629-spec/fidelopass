@@ -3,6 +3,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 export type PlanName = 'starter' | 'pro' | 'business';
+export type BillingCurrency = 'eur' | 'chf';
+export type BillingCountry = 'FR' | 'CH';
 
 export type PriceSlot =
   | 'starter_mensuel'
@@ -45,6 +47,54 @@ export const PLAN_PRICE_SLOTS: PriceSlot[] = [
   'business_mensuel',
   'business_annuel_once',
 ];
+
+export const BILLING_CURRENCIES: BillingCurrency[] = ['eur', 'chf'];
+
+export const PUBLIC_PRICE_AMOUNTS: Record<BillingCurrency, Partial<Record<PriceSlot, number>>> = {
+  eur: {
+    starter_mensuel: 2900,
+    starter_annuel_once: 29500,
+    pro_mensuel: 6900,
+    pro_annuel_once: 69900,
+    business_mensuel: 19900,
+    business_annuel_once: 199000,
+    accompagnement: 9000,
+  },
+  chf: {
+    starter_mensuel: 2900,
+    starter_annuel_once: 29500,
+    pro_mensuel: 6900,
+    pro_annuel_once: 69900,
+    business_mensuel: 19900,
+    business_annuel_once: 199000,
+    accompagnement: 9000,
+  },
+};
+
+export type StripePriceCatalog = Record<BillingCurrency, Record<PriceSlot, string>>;
+
+export function normalizeBillingCurrency(value: unknown, fallback: BillingCurrency = 'eur'): BillingCurrency {
+  return String(value ?? '').trim().toLowerCase() === 'chf' ? 'chf' : fallback;
+}
+
+export function normalizeBillingCountry(value: unknown): BillingCountry | null {
+  const country = String(value ?? '').trim().toUpperCase();
+  if (country === 'CH') return 'CH';
+  if (country === 'FR') return 'FR';
+  return null;
+}
+
+export function currencyForCountry(value: unknown): BillingCurrency {
+  return normalizeBillingCountry(value) === 'CH' ? 'chf' : 'eur';
+}
+
+export function formatBillingAmount(amountCents: number, currency: BillingCurrency) {
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: currency.toUpperCase(),
+    maximumFractionDigits: 0,
+  }).format(amountCents / 100);
+}
 
 export const LEGACY_PRICE_IDS: Record<PriceSlot, string[]> = {
   starter_mensuel: ['price_1TLWbz7qMJeoJ4KrW4C8UFLr', 'price_1TMlVz60FYcAjVxl8VNyc7o6'],
@@ -98,7 +148,10 @@ export function resolveStripePriceIdsFile() {
   return resolveStripeRuntimeMode() === 'test' ? 'stripe-price-ids.test.json' : 'stripe-price-ids.json';
 }
 
-export function getPriceIdsDiagnostics(priceIds: Record<PriceSlot, string>) {
+export function getPriceIdsDiagnostics(
+  priceIds: Record<PriceSlot, string>,
+  currency: BillingCurrency = 'eur',
+) {
   const requiredSlots: PriceSlot[] = [
     'starter_mensuel',
     'starter_annuel_once',
@@ -110,13 +163,14 @@ export function getPriceIdsDiagnostics(priceIds: Record<PriceSlot, string>) {
   ];
   return {
     stripeMode: resolveStripeRuntimeMode(),
+    currency,
     priceIdsFile: resolveStripePriceIdsFile(),
     priceIdsFileFound: existsSync(resolve(process.cwd(), resolveStripePriceIdsFile())),
     missingRequiredSlots: requiredSlots.filter((slot) => !priceIds[slot]),
   };
 }
 
-function isLegacyPriceId(slot: PriceSlot, priceId: string) {
+export function isLegacyPriceId(slot: PriceSlot, priceId: string) {
   return LEGACY_PRICE_IDS[slot]?.includes(priceId) ?? false;
 }
 
@@ -280,11 +334,13 @@ async function createCanonicalTestPriceIds(stripe: Stripe) {
   return ids;
 }
 
-export async function loadRuntimePriceIds(stripe?: Stripe) {
-  const priceIds = loadPriceIds();
-  const diagnostics = getPriceIdsDiagnostics(priceIds);
+export async function loadRuntimePriceIds(stripe?: Stripe, currency: BillingCurrency = 'eur') {
+  const priceIds = loadPriceIds(currency);
+  const diagnostics = getPriceIdsDiagnostics(priceIds, currency);
 
   if (
+    currency !== 'eur'
+    ||
     diagnostics.stripeMode !== 'test'
     || isProductionRuntime()
     || diagnostics.missingRequiredSlots.length === 0
@@ -304,20 +360,29 @@ export async function loadRuntimePriceIds(stripe?: Stripe) {
   };
 }
 
-export function loadPriceIds() {
+export function loadPriceIds(currency: BillingCurrency = 'eur') {
   const envPriceIds = Object.fromEntries(
-    PRICE_SLOTS.map((slot) => [slot, process.env[`STRIPE_PRICE_ID_${slot.toUpperCase()}`] ?? '']),
+    PRICE_SLOTS.map((slot) => {
+      const key = currency === 'chf'
+        ? `STRIPE_PRICE_ID_CHF_${slot.toUpperCase()}`
+        : `STRIPE_PRICE_ID_${slot.toUpperCase()}`;
+      return [slot, process.env[key] ?? ''];
+    }),
   ) as Record<PriceSlot, string>;
   const mergeEnv = (base: Record<PriceSlot, string>) => {
     const merged = { ...base };
     PRICE_SLOTS.forEach((slot) => {
       const envValue = envPriceIds[slot];
-      if (envValue && !isLegacyPriceId(slot, envValue)) {
+      if (envValue && (currency === 'chf' || !isLegacyPriceId(slot, envValue))) {
         merged[slot] = envValue;
       }
     });
     return merged;
   };
+
+  if (currency === 'chf') {
+    return mergeEnv(Object.fromEntries(PRICE_SLOTS.map((slot) => [slot, ''])) as Record<PriceSlot, string>);
+  }
 
   const priceIdsFile = resolveStripePriceIdsFile();
 
@@ -345,15 +410,36 @@ export function loadPriceIds() {
   }
 }
 
+export function loadPriceCatalog(): StripePriceCatalog {
+  return {
+    eur: loadPriceIds('eur'),
+    chf: loadPriceIds('chf'),
+  };
+}
+
 export function unique(values: Array<string | null | undefined>): string[] {
   return Array.from(new Set(values.filter((v): v is string => Boolean(v))));
 }
 
-export function candidatesForSlot(slot: PriceSlot, priceIds: Record<string, string>): string[] {
+type PriceIdSource = Record<string, string> | StripePriceCatalog;
+
+function isPriceCatalog(source: PriceIdSource): source is StripePriceCatalog {
+  return typeof source.eur === 'object' && source.eur !== null
+    && typeof source.chf === 'object' && source.chf !== null;
+}
+
+export function candidatesForSlot(slot: PriceSlot, priceIds: PriceIdSource): string[] {
+  if (isPriceCatalog(priceIds)) {
+    return unique([
+      priceIds.eur[slot],
+      priceIds.chf[slot],
+      ...(LEGACY_PRICE_IDS[slot] ?? []),
+    ]);
+  }
   return unique([priceIds[slot], ...(LEGACY_PRICE_IDS[slot] ?? [])]);
 }
 
-export function resolvePriceSlot(priceId: string | null | undefined, priceIds: Record<string, string>): PriceSlot | null {
+export function resolvePriceSlot(priceId: string | null | undefined, priceIds: PriceIdSource): PriceSlot | null {
   if (!priceId) return null;
   for (const slot of PRICE_SLOTS) {
     if (candidatesForSlot(slot, priceIds).includes(priceId)) return slot;
@@ -361,7 +447,19 @@ export function resolvePriceSlot(priceId: string | null | undefined, priceIds: R
   return null;
 }
 
-export function priceMatchesSlot(priceId: string | null | undefined, slot: PriceSlot, priceIds: Record<string, string>) {
+export function resolvePriceCurrency(
+  priceId: string | null | undefined,
+  catalog: StripePriceCatalog,
+): BillingCurrency | null {
+  if (!priceId) return null;
+  for (const currency of BILLING_CURRENCIES) {
+    if (PRICE_SLOTS.some((slot) => catalog[currency][slot] === priceId)) return currency;
+  }
+  if (PRICE_SLOTS.some((slot) => LEGACY_PRICE_IDS[slot]?.includes(priceId))) return 'eur';
+  return null;
+}
+
+export function priceMatchesSlot(priceId: string | null | undefined, slot: PriceSlot, priceIds: PriceIdSource) {
   return resolvePriceSlot(priceId, priceIds) === slot;
 }
 
@@ -403,7 +501,7 @@ export function resolvePlanFromSlot(slot: PriceSlot): PlanName | null {
   return null;
 }
 
-export function resolvePlanFromPriceId(priceId: string | null | undefined, priceIds: Record<string, string>): PlanName | null {
+export function resolvePlanFromPriceId(priceId: string | null | undefined, priceIds: PriceIdSource): PlanName | null {
   return resolvePlanFromSlot(resolvePriceSlot(priceId, priceIds) ?? 'scanner');
 }
 
@@ -442,8 +540,9 @@ export function getSubscriptionPeriodEnd(sub: Stripe.Subscription): string | nul
   return toIsoFromSeconds(subAny.current_period_end ?? item?.current_period_end ?? null);
 }
 
-export function buildSubscriptionBillingUpdate(sub: Stripe.Subscription, priceIds: Record<string, string>) {
+export function buildSubscriptionBillingUpdate(sub: Stripe.Subscription, priceIds: PriceIdSource) {
   const priceId = sub.items?.data?.[0]?.price?.id ?? null;
+  const priceCurrency = normalizeBillingCurrency(sub.items?.data?.[0]?.price?.currency);
   const slot = resolvePriceSlot(priceId, priceIds);
   const planFromMetadata = String(sub.metadata?.selected_plan ?? '').toLowerCase();
   const plan = planFromMetadata === 'starter' || planFromMetadata === 'pro' || planFromMetadata === 'business'
@@ -457,6 +556,9 @@ export function buildSubscriptionBillingUpdate(sub: Stripe.Subscription, priceId
     stripe_subscription_id: sub.id,
     billing_status: normalizeBillingStatusFromSubscription(sub.status),
     stripe_price_id: priceId,
+    billing_currency: priceCurrency,
+    billing_country: normalizeBillingCountry(sub.metadata?.billing_country),
+    billing_currency_locked_at: new Date().toISOString(),
     billing_interval: slot ? resolveBillingIntervalFromSlot(slot) : null,
     billing_commitment: commitment,
     billing_current_period_end: periodEnd,
@@ -476,12 +578,21 @@ export function buildSubscriptionBillingUpdate(sub: Stripe.Subscription, priceId
   return { updates, slot, plan, priceId, commitment, periodEnd };
 }
 
-export function buildOneTimeAnnualBillingUpdate(slot: PriceSlot, priceId: string | null, createdSeconds?: number | null) {
+export function buildOneTimeAnnualBillingUpdate(
+  slot: PriceSlot,
+  priceId: string | null,
+  createdSeconds?: number | null,
+  currency: BillingCurrency = 'eur',
+  country?: BillingCountry | null,
+) {
   const plan = resolvePlanFromSlot(slot);
   return {
     plan,
     billing_status: 'active',
     stripe_price_id: priceId,
+    billing_currency: currency,
+    billing_country: country ?? null,
+    billing_currency_locked_at: new Date().toISOString(),
     stripe_subscription_id: null,
     billing_interval: resolveBillingIntervalFromSlot(slot),
     billing_commitment: resolveCommitmentLabelFromSlot(slot),

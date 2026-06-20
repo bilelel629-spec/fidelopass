@@ -208,6 +208,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const inspirationFeedback = document.getElementById('brief-inspiration-feedback') as HTMLParagraphElement;
 
   let accompagnementPriceId: string | null = null;
+  let assistantBillingCurrency: 'eur' | 'chf' = 'eur';
+  let assistantBillingCountry: 'FR' | 'CH' | null = null;
   let currentBrief: AssistantBrief | null = null;
   const assistantParams = new URLSearchParams(window.location.search);
   const checkoutSuccess = assistantParams.get('checkout') === 'success';
@@ -387,10 +389,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     nextAction.classList.add('hidden');
 
     try {
-      const pricingRes = await authFetch('/api/checkout/pricing-config');
+      const billingRes = await authFetch('/api/billing/status');
+      const billingPayload = await billingRes.json().catch(() => null);
+      assistantBillingCurrency = billingPayload?.data?.billing_currency === 'chf' ? 'chf' : 'eur';
+      assistantBillingCountry = billingPayload?.data?.billing_country === 'CH'
+        ? 'CH'
+        : billingPayload?.data?.billing_country === 'FR' ? 'FR' : null;
+
+      const pricingRes = await authFetch(`/api/checkout/pricing-config?currency=${assistantBillingCurrency}`);
       const pricingPayload = await pricingRes.json().catch(() => null);
       const addonPricing = pricingPayload?.data?.addons?.accompagnement ?? null;
-      accompagnementPriceId = pricingRes.ok && addonPricing?.available ? String(addonPricing?.priceId ?? '') : null;
+      accompagnementPriceId = pricingRes.ok && addonPricing?.available ? 'available' : null;
 
       const assistantRes = await authFetch('/api/assistant-card/brief');
       const assistantPayload = await assistantRes.json().catch(() => null);
@@ -443,9 +452,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const res = await authFetch('/api/checkout/create-session', {
         method: 'POST',
         body: JSON.stringify({
-          priceId: accompagnementPriceId,
-          priceSlot: 'accompagnement',
-          mode: 'payment',
+          purchase: 'accompagnement',
+          currency: assistantBillingCurrency,
+          country: assistantBillingCountry,
         }),
       });
       const payload = await res.json().catch(() => null);

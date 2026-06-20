@@ -278,7 +278,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const plansCancelBtn = document.getElementById('plans-cancel-btn') as HTMLButtonElement;
   const plansReactivateBtn = document.getElementById('plans-reactivate-btn') as HTMLButtonElement;
   const plansActionFeedback = document.getElementById('plans-action-feedback') as HTMLParagraphElement;
-  let billingPrices: Array<{ slot: string; price_id: string; plan: string }> = [];
+  let billingPrices: Array<{ slot: string; available: boolean; plan: string; currency: string }> = [];
   let billingStatus: Record<string, any> | null = null;
 
   function setPlansFeedback(message = '') {
@@ -304,7 +304,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     button.classList.toggle('cursor-not-allowed', !enabled);
   }
 
-  function pickTargetPriceId(data: Record<string, any>) {
+  function pickTargetPlan(data: Record<string, any>) {
     const currentPlan = String(data.plan ?? '').toLowerCase();
     const interval = String(data.billing_interval ?? 'month');
     const commitment = String(data.billing_commitment ?? 'monthly-flex');
@@ -314,16 +314,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       if (commitment === 'annual-12m-monthly') return `${targetPlan}_annuel_mensuel`;
       return `${targetPlan}_mensuel`;
     })();
-    return billingPrices.find((item) => item.slot === targetSlot)?.price_id
-      ?? billingPrices.find((item) => item.plan === targetPlan && item.slot.endsWith('_mensuel'))?.price_id
-      ?? null;
+    const exact = billingPrices.find((item) => item.slot === targetSlot && item.available);
+    const fallback = billingPrices.find((item) => item.plan === targetPlan && item.slot.endsWith('_mensuel') && item.available);
+    const selected = exact ?? fallback;
+    if (!selected) return null;
+    return {
+      plan: targetPlan,
+      interval: selected.slot.endsWith('_annuel_once') ? 'yearly' : 'monthly',
+    };
   }
 
-  async function openBillingPortal(flow: 'manage' | 'cancel' | 'payment_method' | 'change_plan', targetPriceId?: string | null) {
+  async function openBillingPortal(flow: 'manage' | 'cancel' | 'payment_method' | 'change_plan') {
     setPlansFeedback('');
     const res = await authFetch('/api/billing/portal', {
       method: 'POST',
-      body: JSON.stringify({ flow, ...(targetPriceId ? { targetPriceId } : {}) }),
+      body: JSON.stringify({ flow }),
     });
     const payload = await res.json().catch(() => null);
     if (!res.ok || !payload?.url) {
@@ -354,12 +359,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     setPlansFeedback("L'abonnement est réactivé.");
   }
 
-  async function changeBillingPlan(targetPriceId: string) {
+  async function changeBillingPlan(target: { plan: string; interval: string }) {
     const confirmed = window.confirm("Confirmer le changement de plan ? Stripe appliquera les ajustements de facturation éventuels.");
     if (!confirmed) return;
     const res = await authFetch('/api/billing/change-plan', {
       method: 'POST',
-      body: JSON.stringify({ targetPriceId }),
+      body: JSON.stringify(target),
     });
     const payload = await res.json().catch(() => null);
     if (!res.ok) throw new Error(payload?.error ?? 'Impossible de changer de plan.');
@@ -422,7 +427,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         plansUpgradeBtn.textContent = 'Changer de plan';
       }
 
-      setButtonState(plansUpgradeBtn, Boolean(data.can_change_plan) && Boolean(pickTargetPriceId(data)));
+      setButtonState(plansUpgradeBtn, Boolean(data.can_change_plan) && Boolean(pickTargetPlan(data)));
       setButtonState(plansManageBtn, Boolean(data.can_open_portal));
       setButtonState(plansPaymentBtn, Boolean(data.can_open_portal));
       setButtonState(plansCancelBtn, Boolean(data.can_cancel) && !cancelScheduled);
@@ -493,12 +498,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   plansUpgradeBtn.addEventListener('click', async () => {
-    const targetPriceId = billingStatus ? pickTargetPriceId(billingStatus) : null;
-    if (!targetPriceId) {
+    const target = billingStatus ? pickTargetPlan(billingStatus) : null;
+    if (!target) {
       setPlansFeedback('Aucun prix Stripe cible disponible pour ce changement de plan.');
       return;
     }
-    await withBillingButton(plansUpgradeBtn, 'Mise à jour...', () => changeBillingPlan(targetPriceId));
+    await withBillingButton(plansUpgradeBtn, 'Mise à jour...', () => changeBillingPlan(target));
   });
 
   plansManageBtn.addEventListener('click', async () => {

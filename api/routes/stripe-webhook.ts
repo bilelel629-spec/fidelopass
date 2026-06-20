@@ -6,7 +6,9 @@ import {
   buildOneTimeAnnualBillingUpdate,
   buildSubscriptionBillingUpdate,
   getStripe,
-  loadPriceIds,
+  loadPriceCatalog,
+  normalizeBillingCountry,
+  normalizeBillingCurrency,
   priceMatchesSlot,
   resolvePlanFromPriceId,
   resolvePriceSlot,
@@ -343,7 +345,7 @@ stripeWebhookRoutes.post('/', async (c) => {
   }
 
   const db = createServiceClient();
-  const priceIds = loadPriceIds();
+  const priceIds = loadPriceCatalog();
   console.log('[stripe-webhook] event received', {
     id: event.id,
     type: event.type,
@@ -387,7 +389,12 @@ stripeWebhookRoutes.post('/', async (c) => {
         }
 
         if (session.metadata?.onboarding_addon === 'true') {
-          await db.from('commerces').update({ onboarding_purchased: true }).eq('id', commerceId);
+          await db.from('commerces').update({
+            onboarding_purchased: true,
+            billing_currency: normalizeBillingCurrency(session.currency ?? session.metadata?.billing_currency),
+            billing_country: normalizeBillingCountry(session.metadata?.billing_country),
+            billing_currency_locked_at: new Date().toISOString(),
+          }).eq('id', commerceId);
           console.log('[stripe-webhook] → onboarding_purchased = true (addon inclus au checkout abonnement)');
         }
 
@@ -415,13 +422,22 @@ stripeWebhookRoutes.post('/', async (c) => {
             plan: matchedPlan,
             billing_status: session.mode === 'subscription' ? 'trialing' : 'active',
             stripe_price_id: planPriceId,
+            billing_currency: normalizeBillingCurrency(session.currency ?? session.metadata?.billing_currency),
+            billing_country: normalizeBillingCountry(session.metadata?.billing_country),
+            billing_currency_locked_at: new Date().toISOString(),
           };
           if (matchedPlan === 'business') {
             planUpdate.onboarding_purchased = true;
           }
 
           if (session.mode === 'payment' && planSlot) {
-            Object.assign(planUpdate, buildOneTimeAnnualBillingUpdate(planSlot, planPriceId, session.created));
+            Object.assign(planUpdate, buildOneTimeAnnualBillingUpdate(
+              planSlot,
+              planPriceId,
+              session.created,
+              normalizeBillingCurrency(session.currency ?? session.metadata?.billing_currency),
+              normalizeBillingCountry(session.metadata?.billing_country),
+            ));
           }
 
           if (session.subscription && typeof session.subscription === 'string') {
@@ -563,7 +579,11 @@ stripeWebhookRoutes.post('/', async (c) => {
         if (commerceId) {
           const { data: comm } = await db.from('commerces').select('billing_status').eq('id', commerceId).maybeSingle();
           if (comm?.billing_status === 'past_due') {
-            await db.from('commerces').update({ billing_status: 'active' }).eq('id', commerceId);
+            await db.from('commerces').update({
+              billing_status: 'active',
+              billing_currency: normalizeBillingCurrency(invoice.currency),
+              billing_currency_locked_at: new Date().toISOString(),
+            }).eq('id', commerceId);
             console.log('[stripe-webhook] invoice.payment_succeeded → billing_status = active (était past_due) | commerce:', commerceId);
           } else {
             console.log('[stripe-webhook] invoice.payment_succeeded | commerce:', commerceId, '| statut:', comm?.billing_status);
@@ -612,7 +632,11 @@ stripeWebhookRoutes.post('/', async (c) => {
         }
         if (!commerceId) break;
 
-        await db.from('commerces').update({ billing_status: 'past_due' }).eq('id', commerceId);
+        await db.from('commerces').update({
+          billing_status: 'past_due',
+          billing_currency: normalizeBillingCurrency(invoice.currency),
+          billing_currency_locked_at: new Date().toISOString(),
+        }).eq('id', commerceId);
         const contact = await getCommerceBillingContact(db, commerceId, invoice.customer_email ?? null);
         if (contact.toEmail) {
           await sendBillingLifecycleEmail({

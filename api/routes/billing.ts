@@ -11,7 +11,10 @@ import {
   getCommitmentEndIso,
   getStripe,
   isAnnualMonthlyCommitment,
+  loadPriceCatalog,
   loadPriceIds,
+  normalizeBillingCurrency,
+  type PriceSlot,
   resolveBillingIntervalFromSlot,
   resolveCommitmentLabelFromSlot,
   resolvePriceSlot,
@@ -25,11 +28,11 @@ billingRoutes.use('*', authMiddleware);
 
 const portalSchema = z.object({
   flow: z.enum(['manage', 'cancel', 'payment_method', 'change_plan']).optional().default('manage'),
-  targetPriceId: z.string().min(1).optional(),
 });
 
 const changePlanSchema = z.object({
-  targetPriceId: z.string().min(1),
+  plan: z.enum(['starter', 'pro', 'business']),
+  interval: z.enum(['monthly', 'yearly']),
 });
 
 /** GET /api/billing/status — statut d'accès abonnement pour l'utilisateur connecté */
@@ -66,15 +69,17 @@ billingRoutes.post('/change-plan', async (c) => {
 
   try {
     const stripe = getStripe();
-    const priceIds = loadPriceIds();
-    const targetSlot = resolvePriceSlot(parsed.data.targetPriceId, priceIds);
-    const targetPlan = targetSlot ? resolvePlanFromSlot(targetSlot) : null;
+    const catalog = loadPriceCatalog();
+    const subscription = await stripe.subscriptions.retrieve(commerce.stripe_subscription_id);
+    const currentCurrency = normalizeBillingCurrency(subscription.items?.data?.[0]?.price?.currency);
+    const priceIds = loadPriceIds(currentCurrency);
+    const targetSlot = `${parsed.data.plan}_${parsed.data.interval === 'yearly' ? 'annuel_once' : 'mensuel'}` as PriceSlot;
+    const targetPlan = resolvePlanFromSlot(targetSlot);
 
-    if (!targetSlot || !targetPlan) {
+    if (!targetPlan) {
       return c.json({ error: 'Le plan cible est invalide.' }, 400);
     }
 
-    const subscription = await stripe.subscriptions.retrieve(commerce.stripe_subscription_id);
     const subscriptionItemId = subscription.items?.data?.[0]?.id;
     if (!subscriptionItemId) {
       return c.json({ error: "Impossible d'identifier la ligne d'abonnement Stripe à modifier." }, 400);
@@ -88,7 +93,7 @@ billingRoutes.post('/change-plan', async (c) => {
     }
 
     const currentPriceId = subscription.items?.data?.[0]?.price?.id ?? null;
-    const currentSlot = resolvePriceSlot(currentPriceId, priceIds);
+    const currentSlot = resolvePriceSlot(currentPriceId, catalog);
     const commitment = String(subscription.metadata?.billing_commitment ?? '').toLowerCase();
 
     if (isAnnualMonthlyCommitment(currentSlot, commitment)) {
@@ -105,7 +110,11 @@ billingRoutes.post('/change-plan', async (c) => {
       }
     }
 
-    const usablePriceId = await resolveUsablePriceId(stripe, targetSlot, parsed.data.targetPriceId, priceIds);
+    const requestedPriceId = priceIds[targetSlot];
+    if (!requestedPriceId) {
+      return c.json({ error: `Le tarif ${currentCurrency.toUpperCase()} demandé n'est pas configuré.` }, 503);
+    }
+    const usablePriceId = await resolveUsablePriceId(stripe, targetSlot, requestedPriceId, priceIds);
     const updatedSubscription = await stripe.subscriptions.update(commerce.stripe_subscription_id, {
       items: [{ id: subscriptionItemId, price: usablePriceId, quantity: 1 }],
       metadata: {
@@ -113,12 +122,13 @@ billingRoutes.post('/change-plan', async (c) => {
         selected_plan: targetPlan,
         billing_commitment: resolveCommitmentLabelFromSlot(targetSlot),
         billing_interval: resolveBillingIntervalFromSlot(targetSlot) ?? '',
+        billing_currency: currentCurrency,
       },
       payment_behavior: 'pending_if_incomplete',
       proration_behavior: 'create_prorations',
     });
 
-    const { updates } = buildSubscriptionBillingUpdate(updatedSubscription, priceIds);
+    const { updates } = buildSubscriptionBillingUpdate(updatedSubscription, catalog);
     await db.from('commerces').update(updates).eq('id', commerce.id);
 
     return c.json({
@@ -137,14 +147,23 @@ billingRoutes.post('/change-plan', async (c) => {
 
 /** GET /api/billing/prices — prix publics utiles pour les changements de plan */
 billingRoutes.get('/prices', async (c) => {
-  const priceIds = loadPriceIds();
+  const userId = c.get('userId') as string;
+  const db = createServiceClient();
+  const { data: commerce } = await db
+    .from('commerces')
+    .select('billing_currency')
+    .eq('user_id', userId)
+    .single();
+  const currency = normalizeBillingCurrency(commerce?.billing_currency);
+  const priceIds = loadPriceIds(currency);
   const data = PLAN_PRICE_SLOTS
     .map((slot) => ({
       slot,
-      price_id: priceIds[slot] ?? null,
+      available: Boolean(priceIds[slot]),
       plan: resolvePlanFromSlot(slot),
+      currency,
     }))
-    .filter((item) => item.price_id);
+    .filter((item) => item.available);
 
   return c.json({ data });
 });
@@ -168,7 +187,7 @@ billingRoutes.post('/portal', async (c) => {
   if (!commerce) return c.json({ error: 'Commerce introuvable.' }, 404);
 
   const stripe = getStripe();
-  const priceIds = loadPriceIds();
+  const priceIds = loadPriceCatalog();
   let customerId = commerce.stripe_customer_id as string | null;
   const subscriptionId = commerce.stripe_subscription_id as string | null;
 
@@ -288,7 +307,7 @@ billingRoutes.post('/cancel', async (c) => {
 
   try {
     const stripe = getStripe();
-    const priceIds = loadPriceIds();
+    const priceIds = loadPriceCatalog();
     const subscription = await stripe.subscriptions.retrieve(commerce.stripe_subscription_id);
     const currentPriceId = subscription.items?.data?.[0]?.price?.id ?? null;
     const currentSlot = resolvePriceSlot(currentPriceId, priceIds);
@@ -343,7 +362,7 @@ billingRoutes.post('/reactivate', async (c) => {
 
   try {
     const stripe = getStripe();
-    const priceIds = loadPriceIds();
+    const priceIds = loadPriceCatalog();
     const updatedSubscription = await stripe.subscriptions.update(commerce.stripe_subscription_id, {
       cancel_at_period_end: false,
     });

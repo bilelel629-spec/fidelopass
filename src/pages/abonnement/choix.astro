@@ -22,7 +22,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
           Choisissez votre plan pour activer l’accès à l’outil.
         </h1>
         <p class="text-slate-500 text-base mt-4 leading-relaxed">
-          Vous pourrez ajouter l’option <strong>Accompagnement Setup (90€)</strong> à l’étape suivante avant Stripe.
+          Vous pourrez ajouter l’option <strong>Accompagnement Setup (<span data-setup-price>90 €</span>)</strong> à l’étape suivante avant Stripe.
         </p>
       </div>
 
@@ -30,6 +30,14 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         <p><strong>Essai gratuit :</strong> 14 jours avec carte bancaire, aucun prélèvement aujourd’hui, résiliable pendant l’essai.</p>
         <p class="mt-1"><strong>Mensuel :</strong> après l’essai, résiliable à tout moment.</p>
         <p class="mt-1"><strong>Annuel :</strong> après l’essai, renouvellement automatique chaque année.</p>
+      </div>
+
+      <div class="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p id="currency-caption" class="text-sm font-medium text-slate-600">Prix affichés en EUR.</p>
+        <div class="inline-flex w-fit rounded-xl border border-slate-200 bg-white p-1 shadow-sm" aria-label="Pays et devise">
+          <button id="currency-eur" type="button" class="rounded-lg px-3 py-2 text-sm font-semibold">France · EUR</button>
+          <button id="currency-chf" type="button" class="rounded-lg px-3 py-2 text-sm font-semibold">Suisse · CHF</button>
+        </div>
       </div>
 
       <div id="choice-error" class="hidden mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"></div>
@@ -195,6 +203,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   const API = (import.meta.env.PUBLIC_API_URL || 'https://api.fidelopass.com').replace(/\/$/, '');
   const STORAGE_KEY = 'fidelopass.checkout.selection';
+  const CURRENCY_KEY = 'fidelopass.billing.currency';
   const SESSION_PROBE_TIMEOUT_MS = Number(import.meta.env.PUBLIC_AUTH_SESSION_PROBE_TIMEOUT_MS ?? 900);
   const BILLING_CHECK_TIMEOUT_MS = Number(import.meta.env.PUBLIC_BILLING_CHECK_TIMEOUT_MS ?? 2200);
   const queryParams = new URLSearchParams(window.location.search);
@@ -206,20 +215,40 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   const annualBtn = document.getElementById('toggle-annual') as HTMLButtonElement;
   const errorEl = document.getElementById('choice-error') as HTMLDivElement;
   const warningEl = document.getElementById('choice-warning') as HTMLDivElement;
+  const currencyCaption = document.getElementById('currency-caption') as HTMLParagraphElement;
+  const currencyEurBtn = document.getElementById('currency-eur') as HTMLButtonElement;
+  const currencyChfBtn = document.getElementById('currency-chf') as HTMLButtonElement;
 
   type SessionLike = { access_token: string };
-  type PriceSlot =
-    | 'starter_mensuel'
-    | 'starter_annuel_once'
-    | 'pro_mensuel'
-    | 'pro_annuel_once'
-    | 'business_mensuel'
-    | 'business_annuel_once';
+  type BillingCurrency = 'eur' | 'chf';
   let activeSession: SessionLike | null = null;
   let currentMode: 'monthly' | 'annual' = 'monthly';
   let pricingLoaded = false;
   let pricingDegraded = false;
   let hasUsedTrial = false; // l'essai 14j n'est offert qu'une fois
+  const savedCurrency = localStorage.getItem(CURRENCY_KEY);
+  let currencyWasChosen = savedCurrency === 'eur' || savedCurrency === 'chf';
+  let currentCurrency: BillingCurrency = currencyWasChosen
+    ? savedCurrency as BillingCurrency
+    : (/[-_](CH)$/i.test(navigator.language) || Intl.DateTimeFormat().resolvedOptions().timeZone === 'Europe/Zurich' ? 'chf' : 'eur');
+  let detectedCountry: 'FR' | 'CH' | null = currentCurrency === 'chf' ? 'CH' : null;
+
+  function formatPrice(value: string | undefined) {
+    const amount = value ?? '0';
+    return currentCurrency === 'chf' ? `${amount} CHF` : `${amount} €`;
+  }
+
+  function refreshCurrencyControls() {
+    const activeClass = 'bg-slate-950 text-white shadow-sm';
+    const inactiveClass = 'text-slate-500 hover:bg-slate-50';
+    currencyEurBtn.className = `rounded-lg px-3 py-2 text-sm font-semibold ${currentCurrency === 'eur' ? activeClass : inactiveClass}`;
+    currencyChfBtn.className = `rounded-lg px-3 py-2 text-sm font-semibold ${currentCurrency === 'chf' ? activeClass : inactiveClass}`;
+    currencyCaption.textContent = currentCurrency === 'chf'
+      ? 'Prix affichés en CHF pour les commerces suisses.'
+      : 'Prix affichés en EUR pour les commerces français et européens.';
+    const setupPrice = document.querySelector<HTMLElement>('[data-setup-price]');
+    if (setupPrice) setupPrice.textContent = formatPrice('90');
+  }
 
   function toggleWarning(message: string | null) {
     if (!message) {
@@ -311,36 +340,32 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       const value = suffixKey === 'monthly'
         ? el.dataset.monthly
         : el.dataset.annualOnce;
-      el.textContent = `${value ?? '0'}€`;
+      el.textContent = formatPrice(value);
     });
 
     document.querySelectorAll<HTMLElement>('.plan-price-suffix').forEach((el) => {
-      const value = suffixKey === 'monthly'
-        ? el.dataset.monthly
-        : el.dataset.annualOnce;
-      el.textContent = value ?? '';
+      el.textContent = suffixKey === 'monthly' ? '/mois' : '/an';
     });
 
-    document.querySelectorAll<HTMLElement>('.plan-price-label').forEach((el) => {
-      const value = suffixKey === 'monthly'
-        ? el.dataset.monthly
-        : el.dataset.annualOnce;
-      el.textContent = value ?? '';
+    document.querySelectorAll<HTMLElement>('[data-plan-card]').forEach((card) => {
+      const price = card.querySelector<HTMLElement>('.plan-price');
+      const label = card.querySelector<HTMLElement>('.plan-price-label');
+      if (!price || !label) return;
+      const value = suffixKey === 'monthly' ? price.dataset.monthly : price.dataset.annualOnce;
+      const saving = card.dataset.planCard === 'business' ? '16%' : '15%';
+      label.textContent = suffixKey === 'monthly'
+        ? `${formatPrice(value)}/mois sans engagement`
+        : `${formatPrice(value)}/an · économisez ${saving}`;
     });
     refreshPlanButtonsState();
-  }
-
-  function resolvePriceSlot(plan: string): PriceSlot {
-    const normalizedPlan = plan === 'pro' || plan === 'business' ? plan : 'starter';
-    if (currentMode === 'monthly') return `${normalizedPlan}_mensuel` as PriceSlot;
-    return `${normalizedPlan}_annuel_once` as PriceSlot;
   }
 
   async function hydratePricingConfig(accessToken: string) {
     pricingLoaded = false;
     refreshPlanButtonsState();
     try {
-      const res = await fetch(`${API}/api/checkout/pricing-config`, {
+      const currencyQuery = currencyWasChosen ? `?currency=${currentCurrency}` : '';
+      const res = await fetch(`${API}/api/checkout/pricing-config${currencyQuery}`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
@@ -348,6 +373,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       });
       if (!res.ok) return;
       const payload = await res.json().catch(() => null);
+      if (payload?.currency === 'eur' || payload?.currency === 'chf') currentCurrency = payload.currency;
+      if (payload?.country === 'FR' || payload?.country === 'CH') detectedCountry = payload.country;
+      refreshCurrencyControls();
       pricingDegraded = Boolean(payload?.degraded);
       const starter = payload?.data?.starter;
       const pro = payload?.data?.pro;
@@ -356,23 +384,25 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       const proBtn = document.querySelector<HTMLButtonElement>('.plan-select-btn[data-plan="pro"]');
       const businessBtn = document.querySelector<HTMLButtonElement>('.plan-select-btn[data-plan="business"]');
       if (starterBtn && starter) {
-        if (starter.monthly?.priceId) starterBtn.dataset.priceMonthly = String(starter.monthly.priceId);
+        if (starter.monthly?.amountCents) {
+          document.querySelector<HTMLElement>('[data-plan-card="starter"] .plan-price')!.dataset.monthly = String(starter.monthly.amountCents / 100);
+        }
         const annual = starter.annual ?? starter.annual_once;
-        if (annual?.priceId) starterBtn.dataset.priceAnnualOnce = String(annual.priceId);
+        if (annual?.amountCents) document.querySelector<HTMLElement>('[data-plan-card="starter"] .plan-price')!.dataset.annualOnce = String(annual.amountCents / 100);
         starterBtn.dataset.availabilityMonthly = starter.monthly?.available ? '1' : '0';
         starterBtn.dataset.availabilityAnnualOnce = annual?.available ? '1' : '0';
       }
       if (proBtn && pro) {
-        if (pro.monthly?.priceId) proBtn.dataset.priceMonthly = String(pro.monthly.priceId);
+        if (pro.monthly?.amountCents) document.querySelector<HTMLElement>('[data-plan-card="pro"] .plan-price')!.dataset.monthly = String(pro.monthly.amountCents / 100);
         const annual = pro.annual ?? pro.annual_once;
-        if (annual?.priceId) proBtn.dataset.priceAnnualOnce = String(annual.priceId);
+        if (annual?.amountCents) document.querySelector<HTMLElement>('[data-plan-card="pro"] .plan-price')!.dataset.annualOnce = String(annual.amountCents / 100);
         proBtn.dataset.availabilityMonthly = pro.monthly?.available ? '1' : '0';
         proBtn.dataset.availabilityAnnualOnce = annual?.available ? '1' : '0';
       }
       if (businessBtn && business) {
-        if (business.monthly?.priceId) businessBtn.dataset.priceMonthly = String(business.monthly.priceId);
+        if (business.monthly?.amountCents) document.querySelector<HTMLElement>('[data-plan-card="business"] .plan-price')!.dataset.monthly = String(business.monthly.amountCents / 100);
         const annual = business.annual ?? business.annual_once;
-        if (annual?.priceId) businessBtn.dataset.priceAnnualOnce = String(annual.priceId);
+        if (annual?.amountCents) document.querySelector<HTMLElement>('[data-plan-card="business"] .plan-price')!.dataset.annualOnce = String(annual.amountCents / 100);
         businessBtn.dataset.availabilityMonthly = business.monthly?.available ? '1' : '0';
         businessBtn.dataset.availabilityAnnualOnce = annual?.available ? '1' : '0';
       }
@@ -380,6 +410,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       pricingDegraded = true;
     } finally {
       pricingLoaded = true;
+      setMode(currentMode);
       refreshPlanButtonsState();
     }
   }
@@ -433,23 +464,17 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       return;
     }
 
-    const isAnnual = currentMode === 'annual';
-    const priceId = !isAnnual ? btn.dataset.priceMonthly : btn.dataset.priceAnnualOnce;
-    if (!priceId || !resolveButtonPriceAvailability(btn)) {
+    if (!resolveButtonPriceAvailability(btn)) {
       errorEl.textContent = "Ce tarif n'est pas disponible pour le moment. Réessayez dans quelques instants.";
       errorEl.classList.remove('hidden');
       return;
     }
 
-    const checkoutMode: 'subscription' = 'subscription';
-    const priceSlot = resolvePriceSlot(btn.dataset.plan ?? 'starter');
-
     const selection = {
       plan: btn.dataset.plan,
       mode: currentMode,
-      checkoutMode,
-      priceSlot,
-      priceId,
+      currency: currentCurrency,
+      country: detectedCountry ?? (currentCurrency === 'chf' ? 'CH' : 'FR'),
       setupRequested: setupRequested && (!preselectedPlan || preselectedPlan === btn.dataset.plan),
       selectedAt: Date.now(),
     };
@@ -459,7 +484,24 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   monthlyBtn.addEventListener('click', () => setMode('monthly'));
   annualBtn.addEventListener('click', () => setMode('annual'));
+  currencyEurBtn.addEventListener('click', async () => {
+    currentCurrency = 'eur';
+    detectedCountry = 'FR';
+    currencyWasChosen = true;
+    localStorage.setItem(CURRENCY_KEY, currentCurrency);
+    refreshCurrencyControls();
+    if (activeSession) await hydratePricingConfig(activeSession.access_token);
+  });
+  currencyChfBtn.addEventListener('click', async () => {
+    currentCurrency = 'chf';
+    detectedCountry = 'CH';
+    currencyWasChosen = true;
+    localStorage.setItem(CURRENCY_KEY, currentCurrency);
+    refreshCurrencyControls();
+    if (activeSession) await hydratePricingConfig(activeSession.access_token);
+  });
 
+  refreshCurrencyControls();
   setMode(requestedBillingParam === 'annual' ? 'annual' : 'monthly');
 
   const cancelled = queryParams.get('cancelled');

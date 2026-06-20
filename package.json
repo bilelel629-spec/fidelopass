@@ -13,6 +13,7 @@
     "api:start": "node --loader tsx/esm api/index.ts",
     "billing:backfill": "node scripts/backfill-stripe-billing.mjs",
     "billing:check-portal": "node scripts/check-stripe-portal.mjs",
+    "billing:check-multicurrency": "tsx scripts/check-multicurrency-billing.ts",
     "reseller:check": "tsx scripts/reseller-validation-check.ts",
     "security:audit": "node scripts/security-audit.mjs",
     "typecheck": "astro check && tsc --noEmit"

@@ -8,14 +8,23 @@ import { createServiceClient } from '../../src/lib/supabase';
 import {
   getStripe,
   getPriceIdsDiagnostics,
+  formatBillingAmount,
+  loadPriceCatalog,
   loadRuntimePriceIds,
+  normalizeBillingCountry,
+  normalizeBillingCurrency,
+  currencyForCountry,
+  type BillingCountry,
+  type BillingCurrency,
+  type PlanName,
   type PriceSlot,
-  resolvePriceSlot,
   resolveExpectedModeFromSlot,
   resolveCommitmentLabelFromSlot,
   resolvePlanFromSlot,
+  resolvePriceSlot,
   resolveUsablePriceId,
-  LEGACY_PRICE_IDS,
+  isLegacyPriceId,
+  PUBLIC_PRICE_AMOUNTS,
   loadPriceIds,
 } from '../services/stripe-billing';
 import { sendWelcomeEmail } from '../services/welcome-email';
@@ -23,23 +32,46 @@ import { sendWelcomeEmail } from '../services/welcome-email';
 export const checkoutRoutes = new Hono<ApiEnv>();
 
 const createSessionSchema = z.object({
-  priceId: z.string().min(1),
-  mode: z.enum(['subscription', 'payment']),
-  priceSlot: z.string().optional(),
+  purchase: z.enum(['subscription', 'accompagnement']).optional().default('subscription'),
+  plan: z.enum(['starter', 'pro', 'business']).optional(),
+  interval: z.enum(['monthly', 'yearly']).optional(),
+  currency: z.enum(['eur', 'chf']),
+  country: z.enum(['FR', 'CH']).nullable().optional(),
   includeAccompagnement: z.boolean().optional().default(false),
   dryRun: z.boolean().optional().default(false),
+}).superRefine((value, ctx) => {
+  if (value.purchase === 'subscription' && (!value.plan || !value.interval)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Le plan et la périodicité sont obligatoires.',
+    });
+  }
 });
 
-function pricingItem(slot: string, priceIds: Record<string, string>) {
+function pricingItem(slot: PriceSlot, priceIds: Record<string, string>, currency: BillingCurrency) {
   const priceId = priceIds[slot] ?? '';
-  const isLegacyPrice = Object.prototype.hasOwnProperty.call(LEGACY_PRICE_IDS, slot)
-    && LEGACY_PRICE_IDS[slot as keyof typeof LEGACY_PRICE_IDS].includes(priceId);
+  const amount = PUBLIC_PRICE_AMOUNTS[currency][slot] ?? null;
   return {
     slot,
-    priceId,
     mode: resolveExpectedModeFromSlot(slot as PriceSlot),
-    available: Boolean(priceId) && !isLegacyPrice,
+    currency,
+    amountCents: amount,
+    formattedAmount: amount === null ? null : formatBillingAmount(amount, currency),
+    available: Boolean(priceId) && (currency === 'chf' || !isLegacyPriceId(slot, priceId)),
   };
+}
+
+function resolveRequestCountry(c: Context<ApiEnv>): BillingCountry | null {
+  return normalizeBillingCountry(
+    c.req.header('cf-ipcountry')
+    ?? c.req.header('x-vercel-ip-country')
+    ?? c.req.header('x-country-code')
+    ?? c.req.header('x-country'),
+  );
+}
+
+function resolvePlanSlot(plan: PlanName, interval: 'monthly' | 'yearly'): PriceSlot {
+  return `${plan}_${interval === 'yearly' ? 'annuel_once' : 'mensuel'}` as PriceSlot;
 }
 
 function stripeConfigErrorResponse(c: Context<ApiEnv>, error: unknown) {
@@ -56,47 +88,54 @@ function stripeConfigErrorResponse(c: Context<ApiEnv>, error: unknown) {
 
 /** GET /api/checkout/pricing-config */
 checkoutRoutes.get('/pricing-config', authMiddleware, async (c) => {
+  const detectedCountry = resolveRequestCountry(c);
+  const requestedCurrency = c.req.query('currency');
+  const currency = requestedCurrency === 'chf' || requestedCurrency === 'eur'
+    ? normalizeBillingCurrency(requestedCurrency)
+    : currencyForCountry(detectedCountry);
   let priceIds: Record<PriceSlot, string>;
   let meta: ReturnType<typeof getPriceIdsDiagnostics>;
   try {
-    priceIds = await loadRuntimePriceIds();
-    meta = getPriceIdsDiagnostics(priceIds);
+    priceIds = await loadRuntimePriceIds(undefined, currency);
+    meta = getPriceIdsDiagnostics(priceIds, currency);
     if (meta.missingRequiredSlots.length > 0) {
       console.warn('[checkout] pricing-config missing required slots', meta);
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Configuration Stripe indisponible.';
     console.error('[checkout] pricing-config error:', message);
-    priceIds = loadPriceIds();
-    meta = getPriceIdsDiagnostics(priceIds);
+    priceIds = loadPriceIds(currency);
+    meta = getPriceIdsDiagnostics(priceIds, currency);
   }
-  const starterAnnual = pricingItem('starter_annuel_once', priceIds);
-  const proAnnual = pricingItem('pro_annuel_once', priceIds);
-  const businessAnnual = pricingItem('business_annuel_once', priceIds);
+  const starterAnnual = pricingItem('starter_annuel_once', priceIds, currency);
+  const proAnnual = pricingItem('pro_annuel_once', priceIds, currency);
+  const businessAnnual = pricingItem('business_annuel_once', priceIds, currency);
   return c.json({
     degraded: meta.missingRequiredSlots.length > 0,
     meta,
+    currency,
+    country: detectedCountry,
     data: {
       starter: {
-        monthly: pricingItem('starter_mensuel', priceIds),
+        monthly: pricingItem('starter_mensuel', priceIds, currency),
         annual: starterAnnual,
         annual_once: starterAnnual,
         annual_monthly: null,
       },
       pro: {
-        monthly: pricingItem('pro_mensuel', priceIds),
+        monthly: pricingItem('pro_mensuel', priceIds, currency),
         annual: proAnnual,
         annual_once: proAnnual,
         annual_monthly: null,
       },
       business: {
-        monthly: pricingItem('business_mensuel', priceIds),
+        monthly: pricingItem('business_mensuel', priceIds, currency),
         annual: businessAnnual,
         annual_once: businessAnnual,
         annual_monthly: null,
       },
       addons: {
-        accompagnement: pricingItem('accompagnement', priceIds),
+        accompagnement: pricingItem('accompagnement', priceIds, currency),
       },
     },
   });
@@ -112,30 +151,38 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
     return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides' }, 400);
   }
 
-  const { priceId, mode, includeAccompagnement, dryRun } = parsed.data;
+  const {
+    purchase,
+    plan,
+    interval,
+    currency,
+    includeAccompagnement,
+    dryRun,
+  } = parsed.data;
+  const country = normalizeBillingCountry(parsed.data.country) ?? resolveRequestCountry(c);
+  const selectedSlot = purchase === 'accompagnement'
+    ? 'accompagnement'
+    : resolvePlanSlot(plan as PlanName, interval as 'monthly' | 'yearly');
+  const mode: 'subscription' | 'payment' = purchase === 'accompagnement' ? 'payment' : 'subscription';
   let stripe: Stripe;
   let priceIds: Record<PriceSlot, string>;
   try {
     stripe = getStripe({ maxNetworkRetries: 1 });
-    priceIds = await loadRuntimePriceIds(stripe);
+    priceIds = await loadRuntimePriceIds(stripe, currency);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Configuration Stripe indisponible.';
     console.error('[checkout] stripe configuration error:', message);
     return stripeConfigErrorResponse(c, error);
   }
-  const selectedSlot = resolvePriceSlot(priceId, priceIds);
-
-  if (!selectedSlot) {
-    return c.json({ error: 'Prix Stripe invalide.' }, 400);
-  }
-  if (LEGACY_PRICE_IDS[selectedSlot]?.includes(priceId)) {
-    return c.json({ error: 'Ce tarif Stripe correspond à une ancienne grille. Configurez le nouveau Price ID avant de créer le paiement.' }, 409);
+  const requestedPriceId = priceIds[selectedSlot];
+  if (!requestedPriceId) {
+    return c.json({ error: `Le tarif ${currency.toUpperCase()} sélectionné n'est pas encore configuré.` }, 503);
   }
 
   const expectedMode = resolveExpectedModeFromSlot(selectedSlot);
   const selectedPlan = resolvePlanFromSlot(selectedSlot);
   const isPlanCheckout = selectedPlan !== null;
-  const isAccompagnementOnly = selectedSlot === 'accompagnement';
+  const isAccompagnementOnly = purchase === 'accompagnement';
 
   if (mode !== expectedMode) {
     return c.json({
@@ -155,7 +202,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
 
   const { data: existingCommerce } = await db
     .from('commerces')
-    .select('id, stripe_customer_id, stripe_subscription_id, billing_status, onboarding_purchased, trial_ends_at')
+    .select('id, stripe_customer_id, stripe_subscription_id, billing_status, onboarding_purchased, trial_ends_at, billing_currency, billing_country, billing_currency_locked_at')
     .eq('user_id', userId)
     .single();
 
@@ -171,7 +218,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
         onboarding_completed: false,
         billing_status: 'unpaid',
       })
-      .select('id, stripe_customer_id, stripe_subscription_id, billing_status, onboarding_purchased, trial_ends_at')
+      .select('id, stripe_customer_id, stripe_subscription_id, billing_status, onboarding_purchased, trial_ends_at, billing_currency, billing_country, billing_currency_locked_at')
       .single();
     if (createCommerceError || !createdCommerce) {
       return c.json({ error: "Impossible d'initialiser le commerce avant le paiement." }, 500);
@@ -188,6 +235,14 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
     return c.json({ error: "Commerce introuvable." }, 500);
   }
 
+  const lockedCurrency = normalizeBillingCurrency(commerce.billing_currency);
+  if (commerce.billing_currency_locked_at && lockedCurrency !== currency) {
+    return c.json({
+      error: `Ce compte est déjà rattaché à la devise ${lockedCurrency.toUpperCase()}.`,
+      code: 'BILLING_CURRENCY_LOCKED',
+    }, 409);
+  }
+
   const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
 
   if (isAccompagnementOnly) {
@@ -198,7 +253,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
       return c.json({ error: 'Accompagnement Setup déjà activé pour ce commerce.' }, 409);
     }
 
-    const resolvedAccompagnementPriceId = await resolveUsablePriceId(stripe, 'accompagnement', priceId, priceIds);
+    const resolvedAccompagnementPriceId = await resolveUsablePriceId(stripe, 'accompagnement', requestedPriceId, priceIds);
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'payment',
       line_items: [{ price: resolvedAccompagnementPriceId, quantity: 1 }],
@@ -211,11 +266,13 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
         commerce_id: commerce.id,
         user_id: userId,
         base_price_id: resolvedAccompagnementPriceId,
-        requested_base_price_id: priceId,
+        requested_base_price_id: resolvedAccompagnementPriceId,
         selected_price_slot: 'accompagnement',
         selected_plan: '',
         onboarding_addon: 'true',
         billing_commitment: 'unknown',
+        billing_currency: currency,
+        billing_country: country ?? '',
       },
       ...(commerce.stripe_customer_id ? { customer: commerce.stripe_customer_id } : email ? { customer_email: email } : {}),
     };
@@ -240,7 +297,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
     }, 409);
   }
 
-  const resolvedBasePriceId = await resolveUsablePriceId(stripe, selectedSlot, priceId, priceIds);
+  const resolvedBasePriceId = await resolveUsablePriceId(stripe, selectedSlot, requestedPriceId, priceIds);
   const resolvedAccompagnementPriceId = includeAccompagnement
     ? await resolveUsablePriceId(stripe, 'accompagnement', priceIds.accompagnement, priceIds)
     : null;
@@ -252,6 +309,8 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
         selectedSlot,
         selectedPlan,
         mode,
+        currency,
+        country,
         resolvedBasePriceId,
         resolvedAccompagnementPriceId,
       },
@@ -282,11 +341,13 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
       commerce_id: commerce.id,
       user_id: userId,
       base_price_id: resolvedBasePriceId,
-      requested_base_price_id: priceId,
+      requested_base_price_id: resolvedBasePriceId,
       selected_price_slot: selectedSlot,
       selected_plan: selectedPlan ?? '',
       onboarding_addon: includeAccompagnement ? 'true' : 'false',
       billing_commitment: resolveCommitmentLabelFromSlot(selectedSlot),
+      billing_currency: currency,
+      billing_country: country ?? '',
     },
     ...(commerce.stripe_customer_id ? { customer: commerce.stripe_customer_id } : email ? { customer_email: email } : {}),
   };
@@ -301,11 +362,13 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
         commerce_id: commerce.id,
         user_id: userId,
         base_price_id: resolvedBasePriceId,
-        requested_base_price_id: priceId,
+        requested_base_price_id: resolvedBasePriceId,
         selected_price_slot: selectedSlot,
         selected_plan: selectedPlan ?? '',
         onboarding_addon: includeAccompagnement ? 'true' : 'false',
         billing_commitment: resolveCommitmentLabelFromSlot(selectedSlot),
+        billing_currency: currency,
+        billing_country: country ?? '',
       },
     };
   }
@@ -324,7 +387,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
 checkoutRoutes.post('/create-portal-session', authMiddleware, async (c) => {
   const userId = c.get('userId') as string;
   const db = createServiceClient();
-  const priceIds = loadPriceIds();
+  const priceIds = loadPriceCatalog();
 
   const { data: commerce } = await db
     .from('commerces')

@@ -38,7 +38,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
             </svg>
           </div>
           <span class="text-sm text-slate-700 leading-relaxed">
-            Ajouter <strong>Accompagnement Setup (+90€ une seule fois)</strong><br />
+            Ajouter <strong id="setup-addon-price">Accompagnement Setup (+90 € une seule fois)</strong><br />
             <span class="text-xs text-slate-500">
               Un designer configure votre première carte pour qu’elle soit adaptée à votre commerce
               (logo, couleurs, structure, rendu Wallet), selon les options de personnalisation disponibles sur la plateforme.
@@ -89,15 +89,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   type Selection = {
     plan: 'starter' | 'pro' | 'business';
     mode: 'monthly' | 'annual';
-    checkoutMode?: 'subscription' | 'payment';
-    priceSlot?:
-      | 'starter_mensuel'
-      | 'starter_annuel_once'
-      | 'pro_mensuel'
-      | 'pro_annuel_once'
-      | 'business_mensuel'
-      | 'business_annuel_once';
-    priceId: string;
+    currency: 'eur' | 'chf';
+    country?: 'FR' | 'CH' | null;
     setupRequested?: boolean;
     selectedAt: number;
   };
@@ -107,10 +100,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       const raw = sessionStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
       const parsed = JSON.parse(raw) as Partial<Selection>;
-      if (!parsed.plan || !parsed.mode || !parsed.priceId) return null;
+      if (!parsed.plan || !parsed.mode || !parsed.currency) return null;
       if (parsed.plan !== 'starter' && parsed.plan !== 'pro' && parsed.plan !== 'business') return null;
       if (parsed.mode !== 'monthly' && parsed.mode !== 'annual') return null;
-      if (parsed.checkoutMode && parsed.checkoutMode !== 'subscription' && parsed.checkoutMode !== 'payment') return null;
+      if (parsed.currency !== 'eur' && parsed.currency !== 'chf') return null;
       return parsed as Selection;
     } catch {
       return null;
@@ -123,7 +116,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       ? 'Facturation annuelle — renouvellement automatique'
       : 'Facturation mensuelle — résiliable à tout moment';
     summaryPlan.textContent = planLabel;
-    summaryBilling.textContent = billingLabel;
+    summaryBilling.textContent = `${billingLabel} · ${selection.currency.toUpperCase()}`;
+    const setupAddonPrice = document.getElementById('setup-addon-price');
+    if (setupAddonPrice) {
+      setupAddonPrice.textContent = `Accompagnement Setup (+90 ${selection.currency === 'chf' ? 'CHF' : '€'} une seule fois)`;
+    }
   }
 
   async function requireSessionAndBilling() {
@@ -166,7 +163,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   async function refreshSelectionFromPricingConfig(sessionToken: string, selection: Selection): Promise<Selection | null> {
     try {
-      const res = await fetch(`${API}/api/checkout/pricing-config`, {
+      const res = await fetch(`${API}/api/checkout/pricing-config?currency=${selection.currency}`, {
         headers: {
           Authorization: `Bearer ${sessionToken}`,
           'Content-Type': 'application/json',
@@ -182,14 +179,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         business_mensuel: payload?.data?.business?.monthly,
         business_annuel_once: payload?.data?.business?.annual ?? payload?.data?.business?.annual_once,
       } as const;
-      const slot = selection.priceSlot;
-      if (!slot || !lookup[slot]) return selection;
+      const slot = `${selection.plan}_${selection.mode === 'annual' ? 'annuel_once' : 'mensuel'}` as keyof typeof lookup;
       const resolved = lookup[slot];
-      if (!resolved?.available || !resolved?.priceId) return null;
-      return {
-        ...selection,
-        priceId: String(resolved.priceId),
-      };
+      if (!resolved?.available) return null;
+      return selection;
     } catch {
       return selection;
     }
@@ -227,9 +220,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          priceId: syncedSelection.priceId,
-          priceSlot: syncedSelection.priceSlot,
-          mode: syncedSelection.checkoutMode ?? 'subscription',
+          purchase: 'subscription',
+          plan: syncedSelection.plan,
+          interval: syncedSelection.mode === 'annual' ? 'yearly' : 'monthly',
+          currency: syncedSelection.currency,
+          country: syncedSelection.country ?? null,
           includeAccompagnement: syncedSelection.plan === 'business' ? false : setupAddon.checked,
         }),
       });

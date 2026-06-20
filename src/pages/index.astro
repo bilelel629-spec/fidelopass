@@ -77,7 +77,7 @@ const homeJsonLd = [
           Créez une carte de fidélité directement dans Apple Wallet et Google Wallet.
           Vos clients l'ajoutent en 20 secondes — sans compte, sans téléchargement.
         </p>
-        <p class="mt-3 flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+        <p class="mt-3 hidden items-center gap-2 text-sm font-semibold text-slate-700 sm:flex dark:text-slate-200">
           <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
             <svg viewBox="0 0 20 20" class="h-3.5 w-3.5" fill="none" aria-hidden="true"><path d="M5 10.2 8.1 13.3 15 6.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
           </span>
@@ -107,6 +107,12 @@ const homeJsonLd = [
             <div class="hero-float hero-float--three"><strong>0 app</strong><span>à télécharger</span></div>
           </div>
         </div>
+        <p class="mx-auto mt-1 flex max-w-sm items-center justify-center gap-2 text-center text-sm font-semibold leading-6 text-slate-700 sm:hidden dark:text-slate-200">
+          <span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
+            <svg viewBox="0 0 20 20" class="h-4 w-4" fill="none" aria-hidden="true"><path d="M5 10.2 8.1 13.3 15 6.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </span>
+          <span>Déjà plus de <strong class="text-indigo-600 dark:text-indigo-300">2 000 commerces</strong> nous font confiance.</span>
+        </p>
 
         <div class="mt-5 flex flex-col gap-3 sm:mt-8 sm:flex-row">
           <a href="/register" class="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-7 py-3.5 text-base font-semibold text-white shadow-[0_18px_40px_rgba(15,23,42,0.18)] transition-all hover:-translate-y-0.5 hover:bg-slate-900">

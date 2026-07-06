@@ -22,7 +22,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
           Choisissez votre plan pour activer l’accès à l’outil.
         </h1>
         <p class="text-slate-500 text-base mt-4 leading-relaxed">
-          Vous pourrez ajouter l’option <strong>Accompagnement Setup (<span data-setup-price>90 €</span>)</strong> à l’étape suivante avant Stripe.
+          L’<strong>Accompagnement Setup</strong> est offert avec votre abonnement
+          <span class="font-semibold text-emerald-700">(au lieu de <span class="line-through" data-setup-price>90 €</span>)</span>.
         </p>
       </div>
 
@@ -210,7 +211,6 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   const requestedPlanParam = queryParams.get('plan');
   const preselectedPlan = requestedPlanParam === 'starter' || requestedPlanParam === 'pro' || requestedPlanParam === 'business' ? requestedPlanParam : null;
   const requestedBillingParam = queryParams.get('billing');
-  const setupRequested = ['1', 'true', 'yes'].includes((queryParams.get('setup') ?? '').toLowerCase());
   const monthlyBtn = document.getElementById('toggle-monthly') as HTMLButtonElement;
   const annualBtn = document.getElementById('toggle-annual') as HTMLButtonElement;
   const errorEl = document.getElementById('choice-error') as HTMLDivElement;
@@ -275,9 +275,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       : normalizedPlan === 'pro'
         ? `${verb} Pro`
         : `${verb} Starter`;
-    return setupRequested && (!preselectedPlan || preselectedPlan === normalizedPlan)
-      ? `${baseLabel} + Setup`
-      : baseLabel;
+    return baseLabel;
   }
 
   function applyPreselection() {
@@ -475,7 +473,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       mode: currentMode,
       currency: currentCurrency,
       country: detectedCountry ?? (currentCurrency === 'chf' ? 'CH' : 'FR'),
-      setupRequested: setupRequested && (!preselectedPlan || preselectedPlan === btn.dataset.plan),
+      setupRequested: true,
       selectedAt: Date.now(),
     };
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(selection));

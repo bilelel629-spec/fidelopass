@@ -5,7 +5,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 <BaseLayout
   theme="light"
   title="Finaliser votre abonnement — Fidelopass"
-  description="Ajoutez l’option d’accompagnement setup avant de finaliser le paiement Stripe."
+  description="Finalisez votre abonnement Fidelopass avec accompagnement setup offert."
 >
   <section class="min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_62%,#ffffff_100%)] px-4 py-10 sm:py-14 relative overflow-hidden">
     <div class="pointer-events-none absolute -top-20 right-[-10rem] h-[28rem] w-[28rem] rounded-full bg-cyan-200/35 blur-3xl"></div>
@@ -20,7 +20,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         <p class="text-[0.7rem] font-semibold uppercase tracking-[0.26em] text-sky-700/75">Étape 2 sur 2</p>
         <h1 class="font-display text-3xl sm:text-4xl font-bold text-slate-900 mt-3">Finalisez votre commande</h1>
         <p class="text-slate-500 text-base mt-3 leading-relaxed">
-          Vous pouvez ajouter l’accompagnement setup avant la redirection vers Stripe.
+          L’accompagnement setup est inclus automatiquement avant la redirection vers Stripe.
         </p>
 
         <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
@@ -29,23 +29,22 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
           <p id="summary-billing" class="text-slate-500 text-sm mt-1">—</p>
         </div>
 
-        <label class="mt-5 flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 cursor-pointer hover:border-indigo-200 transition-colors">
-          <div class="relative mt-0.5 flex-shrink-0">
-            <input id="setup-addon" type="checkbox" class="peer sr-only" />
-            <div class="h-5 w-5 rounded-md border-2 border-slate-300 bg-white transition-colors peer-checked:border-indigo-600 peer-checked:bg-indigo-600"></div>
-            <svg class="absolute inset-0 m-auto hidden h-3 w-3 text-white peer-checked:block" fill="none" viewBox="0 0 12 12" aria-hidden="true">
+        <div class="mt-5 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <div class="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 12 12" aria-hidden="true">
               <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
           <span class="text-sm text-slate-700 leading-relaxed">
-            Ajouter <strong id="setup-addon-price">Accompagnement Setup (+90 € une seule fois)</strong><br />
+            <strong>Accompagnement Setup offert</strong>
+            <span class="ml-1 text-slate-500">au lieu de <span id="setup-addon-price" class="line-through">90 €</span></span><br />
             <span class="text-xs text-slate-500">
               Un designer configure votre première carte pour qu’elle soit adaptée à votre commerce
               (logo, couleurs, structure, rendu Wallet), selon les options de personnalisation disponibles sur la plateforme.
               Ensuite, votre abonnement sélectionné démarre normalement.
             </span>
           </span>
-        </label>
+        </div>
 
         <div id="setup-error" class="hidden mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"></div>
 
@@ -81,7 +80,6 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   const summaryPlan = document.getElementById('summary-plan') as HTMLParagraphElement;
   const summaryBilling = document.getElementById('summary-billing') as HTMLParagraphElement;
-  const setupAddon = document.getElementById('setup-addon') as HTMLInputElement;
   const errorEl = document.getElementById('setup-error') as HTMLDivElement;
 
   const checkoutBtn = document.getElementById('btn-checkout') as HTMLButtonElement;
@@ -119,7 +117,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     summaryBilling.textContent = `${billingLabel} · ${selection.currency.toUpperCase()}`;
     const setupAddonPrice = document.getElementById('setup-addon-price');
     if (setupAddonPrice) {
-      setupAddonPrice.textContent = `Accompagnement Setup (+90 ${selection.currency === 'chf' ? 'CHF' : '€'} une seule fois)`;
+      setupAddonPrice.textContent = `90 ${selection.currency === 'chf' ? 'CHF' : '€'}`;
     }
   }
 
@@ -151,12 +149,6 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     window.location.replace('/abonnement/choix');
   } else {
     describeSelection(initialSelection);
-    if (initialSelection.plan === 'business') {
-      setupAddon.checked = false;
-      setupAddon.closest('label')?.classList.add('hidden');
-    } else if (initialSelection.setupRequested) {
-      setupAddon.checked = true;
-    }
   }
 
   void requireSessionAndBilling();
@@ -225,7 +217,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
           interval: syncedSelection.mode === 'annual' ? 'yearly' : 'monthly',
           currency: syncedSelection.currency,
           country: syncedSelection.country ?? null,
-          includeAccompagnement: syncedSelection.plan === 'business' ? false : setupAddon.checked,
+          includeAccompagnement: true,
         }),
       });
 

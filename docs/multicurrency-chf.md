@@ -54,12 +54,12 @@ STRIPE_PRICE_ID_CHF_ACCOMPAGNEMENT
 
 Ne pas renommer ni supprimer les variables ou Price IDs EUR existants.
 
-## Code promotionnel SETUP10
+## Accompagnement setup offert
 
-- Une promotion en pourcentage peut être autorisée pour les paiements EUR et CHF.
-- Une promotion avec montant fixe doit utiliser un coupon CHF distinct.
-- Vérifier dans Stripe que le code est actif jusqu'au 1er juillet et qu'il
-  s'applique aux produits souhaités.
+- Ne pas afficher de code promotionnel pour le setup.
+- Présenter la valeur perçue avec le prix barré: 90 EUR ou 90 CHF selon la devise.
+- Ne pas ajouter de ligne Stripe payante pour le setup dans le checkout abonnement.
+- L'activation se fait via la métadonnée `onboarding_addon=true` sur la session d'abonnement.
 
 ## Fiscalité
 
@@ -74,7 +74,7 @@ Fidelopass.
 - Nouveau client France : affichage et checkout EUR.
 - Nouveau client Suisse : affichage et checkout CHF.
 - Choix manuel EUR/CHF mémorisé après inscription.
-- Starter CHF mensuel, Pro CHF annuel et accompagnement CHF.
+- Starter CHF mensuel, Pro CHF annuel et activation du setup offert.
 - Refus d'une devise différente sur un compte déjà verrouillé.
 - Upgrade et downgrade dans la devise existante.
 - Paiement réussi, paiement échoué et annulation reçus par webhook.

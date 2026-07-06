@@ -879,9 +879,9 @@ const homeJsonLd = [
             annualValue: '1990',
             note: 'par mois',
             monthly: '1990€/an · économisez 16%',
-            desc: 'Pour les équipes qui veulent cartes illimitées et setup inclus.',
+            desc: 'Pour les équipes qui veulent cartes illimitées et accompagnement inclus.',
             highlight: false,
-            features: ['Cartes actives illimitées', 'Scanners illimités', 'Setup compris', 'Automatisations incluses', 'Analytics avancés', 'Support prioritaire'],
+            features: ['Cartes actives illimitées', 'Scanners illimités', 'Accompagnement setup offert', 'Automatisations incluses', 'Analytics avancés', 'Support prioritaire'],
           },
           {
             name: 'Sur mesure',
@@ -923,6 +923,11 @@ const homeJsonLd = [
                 </li>
               ))}
             </ul>
+            {plan.name !== 'Sur mesure' && (
+              <p class="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-xs font-extrabold uppercase tracking-[0.12em] text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300">
+                Accompagnement offert · <span class="line-through opacity-70" data-home-setup-value>90 €</span>
+              </p>
+            )}
             <a data-home-pricing-cta={plan.name === 'Sur mesure' ? undefined : 'true'} href={plan.name === 'Sur mesure' ? '/contact' : '/register'} class={`mt-7 inline-flex w-full items-center justify-center rounded-2xl px-5 py-3.5 text-sm font-bold transition-all ${plan.highlight ? 'bg-blue-600 text-white shadow-[0_18px_38px_rgba(37,99,235,0.25)] hover:bg-blue-700' : 'border border-slate-200 bg-white text-slate-800 hover:border-blue-200 hover:text-blue-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100'}`}>
               {plan.name === 'Sur mesure' ? 'Demander une démo' : 'Démarrer l’essai gratuit'}
             </a>
@@ -1468,6 +1473,9 @@ const homeJsonLd = [
       const value = element.dataset.homePlanAnnual ?? '0';
       const saving = element.dataset.homePlanSaving ?? '15%';
       element.textContent = `${homeBillingCurrency === 'chf' ? `${value} CHF` : `${value} €`}/an · économisez ${saving}`;
+    });
+    document.querySelectorAll<HTMLElement>('[data-home-setup-value]').forEach((element) => {
+      element.textContent = homeBillingCurrency === 'chf' ? '90 CHF' : '90 €';
     });
   }
 

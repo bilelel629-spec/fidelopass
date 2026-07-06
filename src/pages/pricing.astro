@@ -36,7 +36,6 @@ const plans = [
     desc: 'Pour lancer votre première carte et commencer à fidéliser.',
     highlight: false,
     cta: "Démarrer l'essai gratuit",
-    setupCta: 'Starter + Setup (+90€ une fois)',
     features: [
       "Jusqu'à 500 cartes actives",
       '1 point de vente',
@@ -62,7 +61,6 @@ const plans = [
     highlight: true,
     badge: 'Le plus populaire',
     cta: "Démarrer l'essai gratuit",
-    setupCta: 'Pro + Setup (+90€ une fois)',
     features: [
       "Jusqu'à 2000 cartes actives",
       '3 points de vente',
@@ -84,10 +82,9 @@ const plans = [
     periodMonthly: '/mois',
     periodAnnual: '/an',
     saving: 'Économisez 16% avec l’abonnement annuel',
-    desc: 'Pour les commerces qui veulent un déploiement complet avec setup inclus.',
+    desc: 'Pour les commerces qui veulent un déploiement complet avec accompagnement inclus.',
     highlight: false,
     cta: "Démarrer l'essai gratuit",
-    setupIncluded: true,
     features: [
       'Cartes actives illimitées',
       'Points de vente avancés',
@@ -96,7 +93,7 @@ const plans = [
       'Push ciblées & campagnes',
       'Automatisations incluses',
       'Analytics avancés',
-      'Accompagnement setup compris',
+      'Accompagnement setup offert',
       'Support prioritaire',
     ],
   },
@@ -207,26 +204,14 @@ const plans = [
               >
                 {plan.cta}
               </a>
-              {plan.setupCta && (
-                <a
-                  href={`/register?next=%2Fabonnement%2Fchoix%3Fplan%3D${plan.id}%26setup%3D1`}
-                  data-plan-cta={plan.id}
-                  data-setup="1"
-                  class:list={[
-                    'inline-flex w-full items-center justify-center rounded-xl border px-4 py-3 text-sm font-semibold transition-all',
-                    plan.highlight
-                      ? 'border-white/30 bg-white/10 text-white hover:bg-white/20'
-                      : 'border-slate-200 text-slate-700 hover:bg-slate-50',
-                  ]}
-                >
-                  {plan.setupCta}
-                </a>
-              )}
-              {plan.setupIncluded && (
-                <p class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">
-                  Setup compris
-                </p>
-              )}
+              <p class:list={[
+                'rounded-xl border px-4 py-3 text-center text-xs font-bold uppercase tracking-[0.12em]',
+                plan.highlight
+                  ? 'border-emerald-200/40 bg-emerald-300/15 text-emerald-50'
+                  : 'border-emerald-200 bg-emerald-50 text-emerald-700',
+              ]}>
+                Accompagnement offert · <span class="line-through opacity-70" data-setup-value>90 €</span>
+              </p>
               <p class:list={['trial-note text-center text-xs', plan.highlight ? 'text-indigo-200' : 'text-slate-400']}>14 jours gratuits · Annuler à tout moment</p>
             </div>
 
@@ -284,14 +269,14 @@ const plans = [
           </div>
           <div class="flex items-end justify-between gap-3 mt-auto pt-2">
             <div>
-              <span id="pricing-setup-price" class="font-display text-2xl font-bold text-slate-900">90 €</span>
-              <span class="text-slate-400 text-sm ml-1">une fois</span>
+              <span id="pricing-setup-price" class="font-display text-2xl font-bold text-slate-400 line-through">90 €</span>
+              <span class="ml-2 rounded-full bg-emerald-100 px-3 py-1 text-sm font-extrabold text-emerald-700">Offert</span>
             </div>
             <span class="rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
-              Inclus avec Business
+              Inclus avec tous les plans
             </span>
           </div>
-          <p class="text-xs text-slate-500">Cette option peut être ajoutée au checkout Starter ou Pro. Elle est comprise dans le plan Business.</p>
+          <p class="text-xs text-slate-500">L’accompagnement est activé automatiquement avec votre abonnement, sans supplément.</p>
         </div>
       </div>
 
@@ -511,9 +496,8 @@ const plans = [
         ? 'Prix affichés en CHF pour les commerces suisses.'
         : 'Prix affichés en EUR pour les commerces français et européens.';
     }
-    document.querySelectorAll<HTMLAnchorElement>('[data-plan-cta][data-setup="1"]').forEach((link) => {
-      const plan = link.dataset.planCta === 'pro' ? 'Pro' : 'Starter';
-      link.textContent = `${plan} + Setup (+90 ${currency === 'chf' ? 'CHF' : '€'} une fois)`;
+    document.querySelectorAll<HTMLElement>('[data-setup-value]').forEach((el) => {
+      el.textContent = currency === 'chf' ? '90 CHF' : '90 €';
     });
     const setupPrice = document.getElementById('pricing-setup-price');
     if (setupPrice) setupPrice.textContent = currency === 'chf' ? '90 CHF' : '90 €';

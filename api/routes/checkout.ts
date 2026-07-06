@@ -246,45 +246,26 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
 
   if (isAccompagnementOnly) {
-    if (mode !== 'payment') {
-      return c.json({ error: "L'accompagnement Setup doit être payé en une fois." }, 400);
-    }
     if (commerce.onboarding_purchased) {
       return c.json({ error: 'Accompagnement Setup déjà activé pour ce commerce.' }, 409);
     }
 
-    const resolvedAccompagnementPriceId = await resolveUsablePriceId(stripe, 'accompagnement', requestedPriceId, priceIds);
-    const sessionParams: Stripe.Checkout.SessionCreateParams = {
-      mode: 'payment',
-      line_items: [{ price: resolvedAccompagnementPriceId, quantity: 1 }],
-      success_url: `${PUBLIC_SITE_URL}/dashboard/assistant-carte?checkout=success`,
-      cancel_url: `${PUBLIC_SITE_URL}/dashboard/assistant-carte?checkout=cancelled`,
-      locale: 'fr',
-      allow_promotion_codes: true,
-      automatic_tax: { enabled: false },
-      metadata: {
-        commerce_id: commerce.id,
-        user_id: userId,
-        base_price_id: resolvedAccompagnementPriceId,
-        requested_base_price_id: resolvedAccompagnementPriceId,
-        selected_price_slot: 'accompagnement',
-        selected_plan: '',
-        onboarding_addon: 'true',
-        billing_commitment: 'unknown',
+    const { error: activateError } = await db
+      .from('commerces')
+      .update({
+        onboarding_purchased: true,
         billing_currency: currency,
-        billing_country: country ?? '',
-      },
-      ...(commerce.stripe_customer_id ? { customer: commerce.stripe_customer_id } : email ? { customer_email: email } : {}),
-    };
+        billing_country: country ?? (currency === 'chf' ? 'CH' : 'FR'),
+        billing_currency_locked_at: commerce.billing_currency_locked_at ?? new Date().toISOString(),
+      })
+      .eq('id', commerce.id);
 
-    try {
-      const session = await stripe.checkout.sessions.create(sessionParams);
-      return c.json({ url: session.url });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Erreur Stripe lors de la création de session.';
-      console.error('[checkout] create-accompagnement-session error:', message);
-      return c.json({ error: message }, 400);
+    if (activateError) {
+      console.error('[checkout] free-accompagnement-activation error:', activateError.message);
+      return c.json({ error: "Impossible d'activer l'accompagnement." }, 500);
     }
+
+    return c.json({ url: `${PUBLIC_SITE_URL}/dashboard/assistant-carte?activated=1` });
   }
 
   if (
@@ -298,9 +279,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   }
 
   const resolvedBasePriceId = await resolveUsablePriceId(stripe, selectedSlot, requestedPriceId, priceIds);
-  const resolvedAccompagnementPriceId = includeAccompagnement
-    ? await resolveUsablePriceId(stripe, 'accompagnement', priceIds.accompagnement, priceIds)
-    : null;
+  const activatesAccompagnement = Boolean(isPlanCheckout);
 
   if (dryRun) {
     return c.json({
@@ -312,7 +291,8 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
         currency,
         country,
         resolvedBasePriceId,
-        resolvedAccompagnementPriceId,
+        resolvedAccompagnementPriceId: null,
+        activatesAccompagnement,
       },
     });
   }
@@ -325,9 +305,6 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
     : `${PUBLIC_SITE_URL}/dashboard/parametres?tab=abonnement&checkout=cancelled`;
 
   const lineItems = [{ price: resolvedBasePriceId, quantity: 1 }];
-  if (resolvedAccompagnementPriceId) {
-    lineItems.push({ price: resolvedAccompagnementPriceId, quantity: 1 });
-  }
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode,
@@ -335,7 +312,6 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
     success_url: successUrl,
     cancel_url: cancelUrl,
     locale: 'fr',
-    allow_promotion_codes: true,
     automatic_tax: { enabled: false },
     metadata: {
       commerce_id: commerce.id,
@@ -344,7 +320,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
       requested_base_price_id: resolvedBasePriceId,
       selected_price_slot: selectedSlot,
       selected_plan: selectedPlan ?? '',
-      onboarding_addon: includeAccompagnement ? 'true' : 'false',
+      onboarding_addon: activatesAccompagnement ? 'true' : 'false',
       billing_commitment: resolveCommitmentLabelFromSlot(selectedSlot),
       billing_currency: currency,
       billing_country: country ?? '',
@@ -365,7 +341,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
         requested_base_price_id: resolvedBasePriceId,
         selected_price_slot: selectedSlot,
         selected_plan: selectedPlan ?? '',
-        onboarding_addon: includeAccompagnement ? 'true' : 'false',
+        onboarding_addon: activatesAccompagnement ? 'true' : 'false',
         billing_commitment: resolveCommitmentLabelFromSlot(selectedSlot),
         billing_currency: currency,
         billing_country: country ?? '',

@@ -26,7 +26,7 @@ export const GET: APIRoute = async ({ url }) => {
       margin: 8,
       lineColor: '#0f172a',
       background: '#ffffff',
-      xmlDocument: document,
+      xmlDocument: document as unknown as XMLDocument,
     });
 
     const serializer = new XMLSerializer();

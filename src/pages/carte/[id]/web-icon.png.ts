@@ -95,7 +95,7 @@ export const GET: APIRoute = async ({ params, url }) => {
       .png()
       .toBuffer();
 
-    return new Response(icon, {
+    return new Response(new Uint8Array(icon).buffer, {
       headers: {
         'Content-Type': 'image/png',
         'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',

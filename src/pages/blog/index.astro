@@ -1,5 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PublicNav from '../../components/marketing/PublicNav.astro';
 import PublicFooter from '../../components/marketing/PublicFooter.astro';
@@ -7,11 +8,11 @@ import PublicFooter from '../../components/marketing/PublicFooter.astro';
 export const prerender = true;
 
 const posts = (await getCollection('blog')).sort(
-  (a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime(),
+  (a: CollectionEntry<'blog'>, b: CollectionEntry<'blog'>) => b.data.pubDate.getTime() - a.data.pubDate.getTime(),
 );
 
 const featured = posts[0];
-const rest = posts.slice(1);
+const rest: CollectionEntry<'blog'>[] = posts.slice(1);
 
 const dateFmt = (d: Date) => d.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' });
 const readingTime = (body: string | undefined) =>

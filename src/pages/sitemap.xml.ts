@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
 
 const SITE = 'https://www.fidelopass.com';
 
@@ -27,7 +28,7 @@ export const GET: APIRoute = async () => {
   let blogEntries: Array<{ path: string; priority: string; changefreq: string; lastmod: string }> = [];
   try {
     const posts = await getCollection('blog');
-    blogEntries = posts.map((post) => ({
+    blogEntries = posts.map((post: CollectionEntry<'blog'>) => ({
       path: `/blog/${post.id}`,
       priority: '0.7',
       changefreq: 'monthly',

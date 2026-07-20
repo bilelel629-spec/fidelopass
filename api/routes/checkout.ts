@@ -329,6 +329,7 @@ checkoutRoutes.post('/create-session', authMiddleware, async (c) => {
   };
 
   if (mode === 'subscription') {
+    sessionParams.allow_promotion_codes = true;
     // L'essai gratuit n'est accordé qu'une seule fois. Un commerce qui a déjà eu
     // un essai (trial_ends_at renseigné) ne le reçoit pas une seconde fois.
     const hasUsedTrial = Boolean((commerce as { trial_ends_at?: string | null }).trial_ends_at);

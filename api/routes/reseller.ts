@@ -582,7 +582,7 @@ resellerRoutes.post('/merchants/:id/checkout', async (c) => {
       success_url: `${siteUrl()}/reseller/merchants/${merchant.id}?checkout=success`,
       cancel_url: `${siteUrl()}/reseller/merchants/${merchant.id}?checkout=cancelled`,
       locale: 'fr',
-      allow_promotion_codes: false,
+      allow_promotion_codes: true,
       metadata,
       subscription_data: {
         trial_period_days: 14,

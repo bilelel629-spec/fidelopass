@@ -404,6 +404,7 @@ publicResellerRoutes.post('/:slug/checkout', async (c) => {
       success_url: `${siteUrl()}/r/success?session_id={CHECKOUT_SESSION_ID}&slug=${reseller.public_slug}`,
       cancel_url: `${siteUrl()}/r/${reseller.public_slug}?cancelled=1`,
       locale: 'fr',
+      allow_promotion_codes: true,
       metadata,
       subscription_data: {
         trial_period_days: 14,

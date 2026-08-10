@@ -1,4 +1,5 @@
 import { createServiceClient } from '../../src/lib/supabase';
+import { resolveCommerceAccess } from '../utils/commerce-access';
 
 export type BillingRecord = {
   id: string;
@@ -205,6 +206,12 @@ export async function getBillingStatusForUser(userId: string, userEmail?: string
   }
 
   const db = createServiceClient();
+  const access = await resolveCommerceAccess(db, userId);
+
+  if (!access) {
+    return buildBillingStatusPayload(null);
+  }
+
   const { data } = await db
     .from('commerces')
     .select(`
@@ -227,7 +234,7 @@ export async function getBillingStatusForUser(userId: string, userEmail?: string
       billing_access_ends_at,
       onboarding_completed
     `)
-    .eq('user_id', userId)
+    .eq('id', access.commerceId)
     .single();
 
   return buildBillingStatusPayload((data as BillingRecord | null) ?? null);

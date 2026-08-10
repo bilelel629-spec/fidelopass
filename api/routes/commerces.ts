@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import type { ApiEnv } from '../types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
@@ -9,12 +10,15 @@ import { syncWalletForPointVente } from '../services/wallet-sync';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
 import { getWelcomeEmailSender, sendWelcomeEmail } from '../services/welcome-email';
+import { findAuthUserByEmail, isMissingCommerceMembersTable, normalizeMemberEmail } from '../utils/commerce-access';
 
 export const commercesRoutes = new Hono<ApiEnv>();
 
 commercesRoutes.use('*', authMiddleware);
 commercesRoutes.use('/me', paidMiddleware);
 commercesRoutes.use('/me/*', paidMiddleware);
+commercesRoutes.use('/members', paidMiddleware);
+commercesRoutes.use('/members/*', paidMiddleware);
 commercesRoutes.use('/points-vente*', paidMiddleware);
 
 const updateSchema = z.object({
@@ -57,6 +61,16 @@ const pointVenteUpdateSchema = z.object({
   longitude: z.number().finite().nullable().optional(),
   rayon_geo: z.number().int().min(100).max(50000).optional(),
   principal: z.boolean().optional(),
+});
+
+const memberCreateSchema = z.object({
+  email: z.string().email(),
+  role: z.enum(['admin', 'staff']).default('staff'),
+});
+
+const memberUpdateSchema = z.object({
+  role: z.enum(['admin', 'staff']).optional(),
+  status: z.enum(['active', 'disabled']).optional(),
 });
 
 export const PLAN_LIMITS = {
@@ -152,6 +166,31 @@ function stripAddressDetails<T extends Record<string, unknown>>(payload: T): T {
   return cloned;
 }
 
+async function getOwnedCommerceForUser(db: SupabaseClient, userId: string) {
+  const { data, error } = await db
+    .from('commerces')
+    .select('id, nom')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as { id: string; nom: string | null } | null;
+}
+
+function serializeMember(member: Record<string, unknown>, currentUserId: string) {
+  return {
+    id: member.id,
+    commerce_id: member.commerce_id,
+    user_id: member.user_id,
+    email: member.email,
+    role: member.role,
+    status: member.status,
+    created_at: member.created_at,
+    updated_at: member.updated_at,
+    is_current_user: member.user_id === currentUserId,
+  };
+}
+
 /** POST /api/commerces/bootstrap — Initialise l'espace commerçant après inscription */
 commercesRoutes.post('/bootstrap', async (c) => {
   const userId = c.get('userId') as string;
@@ -234,7 +273,7 @@ commercesRoutes.get('/me', async (c) => {
   const requestedPointVenteId = readRequestedPointVenteId(c);
 
   try {
-    const { commerce, pointVente, pointsVente } = await resolveCommerceAndPointVente(
+    const { commerce, pointVente, pointsVente, access } = await resolveCommerceAndPointVente(
       db,
       userId,
       requestedPointVenteId,
@@ -257,6 +296,8 @@ commercesRoutes.get('/me', async (c) => {
       point_vente_nom: pointVente?.nom ?? commerce.nom ?? null,
       points_vente_count: pointsVente.length,
       points_vente: pointsVente,
+      access_role: access?.role ?? null,
+      is_owner: Boolean(access?.isOwner),
       geo: computeGeoReadiness({
         adresse: pointVente?.adresse ?? commerce.adresse ?? null,
         latitude: pointVente?.latitude ?? commerce.latitude ?? null,
@@ -297,6 +338,22 @@ commercesRoutes.post('/', async (c) => {
 
   if (existing) {
     return c.json({ error: 'Vous avez déjà un commerce enregistré' }, 409);
+  }
+
+  const { data: existingMember, error: existingMemberError } = await db
+    .from('commerce_members')
+    .select('commerce_id')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .limit(1)
+    .maybeSingle();
+
+  if (existingMemberError && !isMissingCommerceMembersTable(existingMemberError)) {
+    console.error('[commerces create member check]', existingMemberError);
+  }
+
+  if (existingMember?.commerce_id) {
+    return c.json({ error: 'Ce compte a déjà accès à un commerce.' }, 409);
   }
 
   const {
@@ -342,6 +399,231 @@ commercesRoutes.post('/', async (c) => {
   }
 
   return c.json({ data }, 201);
+});
+
+/** GET /api/commerces/members — Liste les accès au commerce */
+commercesRoutes.get('/members', async (c) => {
+  const userId = c.get('userId') as string;
+  const db = createServiceClient();
+
+  try {
+    const ownedCommerce = await getOwnedCommerceForUser(db, userId);
+    if (!ownedCommerce) {
+      return c.json({ error: 'Seul le propriétaire du commerce peut gérer les accès équipe.' }, 403);
+    }
+
+    const { data, error } = await db
+      .from('commerce_members')
+      .select('id, commerce_id, user_id, email, role, status, created_at, updated_at')
+      .eq('commerce_id', ownedCommerce.id)
+      .order('role', { ascending: true })
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      if (isMissingCommerceMembersTable(error)) {
+        return c.json({
+          error: 'La table des accès équipe n’est pas encore installée.',
+          code: 'MEMBERS_TABLE_MISSING',
+        }, 503);
+      }
+      throw error;
+    }
+
+    return c.json({
+      data: (data ?? []).map((member) => serializeMember(member as Record<string, unknown>, userId)),
+    });
+  } catch (error) {
+    console.error('[commerces members list]', error);
+    return c.json({ error: 'Impossible de charger les accès équipe.' }, 500);
+  }
+});
+
+/** POST /api/commerces/members — Ajoute un accès secondaire */
+commercesRoutes.post('/members', async (c) => {
+  const userId = c.get('userId') as string;
+  const body = await c.req.json().catch(() => null);
+  const parsed = memberCreateSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides' }, 400);
+  }
+
+  const db = createServiceClient();
+  const normalizedEmail = normalizeMemberEmail(parsed.data.email);
+
+  try {
+    const ownedCommerce = await getOwnedCommerceForUser(db, userId);
+    if (!ownedCommerce) {
+      return c.json({ error: 'Seul le propriétaire du commerce peut gérer les accès équipe.' }, 403);
+    }
+
+    const targetUser = await findAuthUserByEmail(db, normalizedEmail);
+    if (!targetUser?.id) {
+      return c.json({
+        error: "Ce compte n’existe pas encore. Créez d’abord son compte Fidelopass, puis ajoutez-le ici.",
+        code: 'AUTH_USER_NOT_FOUND',
+      }, 404);
+    }
+
+    if (targetUser.id === userId) {
+      return c.json({ error: 'Ce compte est déjà le propriétaire du commerce.' }, 409);
+    }
+
+    const { data: targetOwnCommerce, error: ownCommerceError } = await db
+      .from('commerces')
+      .select('id, nom')
+      .eq('user_id', targetUser.id)
+      .maybeSingle();
+
+    if (ownCommerceError) throw ownCommerceError;
+    if (targetOwnCommerce?.id) {
+      return c.json({
+        error: 'Ce compte possède déjà son propre commerce. Utilisez un compte secondaire sans commerce.',
+        code: 'USER_ALREADY_OWNS_COMMERCE',
+      }, 409);
+    }
+
+    const { data: activeMembership, error: membershipLookupError } = await db
+      .from('commerce_members')
+      .select('id, commerce_id, status')
+      .eq('user_id', targetUser.id)
+      .eq('status', 'active')
+      .limit(1)
+      .maybeSingle();
+
+    if (membershipLookupError && !isMissingCommerceMembersTable(membershipLookupError)) throw membershipLookupError;
+    if (activeMembership?.commerce_id && activeMembership.commerce_id !== ownedCommerce.id) {
+      return c.json({
+        error: 'Ce compte a déjà accès à un autre commerce.',
+        code: 'USER_ALREADY_MEMBER',
+      }, 409);
+    }
+
+    const { data, error } = await db
+      .from('commerce_members')
+      .upsert({
+        commerce_id: ownedCommerce.id,
+        user_id: targetUser.id,
+        email: normalizedEmail,
+        role: parsed.data.role,
+        status: 'active',
+        invited_by: userId,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'commerce_id,user_id' })
+      .select('id, commerce_id, user_id, email, role, status, created_at, updated_at')
+      .single();
+
+    if (error) {
+      if (isMissingCommerceMembersTable(error)) {
+        return c.json({
+          error: 'La table des accès équipe n’est pas encore installée.',
+          code: 'MEMBERS_TABLE_MISSING',
+        }, 503);
+      }
+      if (error.code === '23505') {
+        return c.json({ error: 'Cet email a déjà accès à ce commerce.' }, 409);
+      }
+      throw error;
+    }
+
+    return c.json({ data: serializeMember(data as Record<string, unknown>, userId) }, 201);
+  } catch (error) {
+    console.error('[commerces members create]', error);
+    return c.json({ error: 'Impossible d’ajouter cet accès équipe.' }, 500);
+  }
+});
+
+/** PATCH /api/commerces/members/:id — Modifie role/statut d’un accès */
+commercesRoutes.patch('/members/:id', async (c) => {
+  const userId = c.get('userId') as string;
+  const memberId = c.req.param('id');
+  const body = await c.req.json().catch(() => null);
+  const parsed = memberUpdateSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.errors[0]?.message ?? 'Données invalides' }, 400);
+  }
+
+  const db = createServiceClient();
+
+  try {
+    const ownedCommerce = await getOwnedCommerceForUser(db, userId);
+    if (!ownedCommerce) {
+      return c.json({ error: 'Seul le propriétaire du commerce peut gérer les accès équipe.' }, 403);
+    }
+
+    const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (parsed.data.role !== undefined) payload.role = parsed.data.role;
+    if (parsed.data.status !== undefined) payload.status = parsed.data.status;
+
+    if (Object.keys(payload).length <= 1) {
+      return c.json({ error: 'Aucune modification fournie.' }, 400);
+    }
+
+    const { data: member, error: memberError } = await db
+      .from('commerce_members')
+      .select('id, role, user_id')
+      .eq('id', memberId)
+      .eq('commerce_id', ownedCommerce.id)
+      .single();
+
+    if (memberError || !member) return c.json({ error: 'Accès introuvable.' }, 404);
+    if (member.role === 'owner' || member.user_id === userId) {
+      return c.json({ error: 'Le propriétaire ne peut pas être modifié ici.' }, 400);
+    }
+
+    const { data, error } = await db
+      .from('commerce_members')
+      .update(payload)
+      .eq('id', memberId)
+      .eq('commerce_id', ownedCommerce.id)
+      .neq('role', 'owner')
+      .select('id, commerce_id, user_id, email, role, status, created_at, updated_at')
+      .single();
+
+    if (error) throw error;
+    return c.json({ data: serializeMember(data as Record<string, unknown>, userId) });
+  } catch (error) {
+    console.error('[commerces members update]', error);
+    return c.json({ error: 'Impossible de modifier cet accès équipe.' }, 500);
+  }
+});
+
+/** DELETE /api/commerces/members/:id — Retire un accès secondaire */
+commercesRoutes.delete('/members/:id', async (c) => {
+  const userId = c.get('userId') as string;
+  const memberId = c.req.param('id');
+  const db = createServiceClient();
+
+  try {
+    const ownedCommerce = await getOwnedCommerceForUser(db, userId);
+    if (!ownedCommerce) {
+      return c.json({ error: 'Seul le propriétaire du commerce peut gérer les accès équipe.' }, 403);
+    }
+
+    const { data: member, error: memberError } = await db
+      .from('commerce_members')
+      .select('id, role, user_id')
+      .eq('id', memberId)
+      .eq('commerce_id', ownedCommerce.id)
+      .single();
+
+    if (memberError || !member) return c.json({ error: 'Accès introuvable.' }, 404);
+    if (member.role === 'owner' || member.user_id === userId) {
+      return c.json({ error: 'Le propriétaire ne peut pas être supprimé ici.' }, 400);
+    }
+
+    const { error } = await db
+      .from('commerce_members')
+      .delete()
+      .eq('id', memberId)
+      .eq('commerce_id', ownedCommerce.id)
+      .neq('role', 'owner');
+
+    if (error) throw error;
+    return c.json({ ok: true });
+  } catch (error) {
+    console.error('[commerces members delete]', error);
+    return c.json({ error: 'Impossible de retirer cet accès équipe.' }, 500);
+  }
 });
 
 /** PATCH /api/commerces/me — Met à jour le commerce + géocode l'adresse si modifiée */

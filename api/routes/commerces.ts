@@ -10,6 +10,7 @@ import { syncWalletForPointVente } from '../services/wallet-sync';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
 import { getWelcomeEmailSender, sendWelcomeEmail } from '../services/welcome-email';
+import { sendTeamAccessEmail } from '../services/team-access-email';
 import { findAuthUserByEmail, isMissingCommerceMembersTable, normalizeMemberEmail } from '../utils/commerce-access';
 
 export const commercesRoutes = new Hono<ApiEnv>();
@@ -525,7 +526,19 @@ commercesRoutes.post('/members', async (c) => {
       throw error;
     }
 
-    return c.json({ data: serializeMember(data as Record<string, unknown>, userId) }, 201);
+    const emailResult = await sendTeamAccessEmail({
+      toEmail: normalizedEmail,
+      commerceName: ownedCommerce.nom,
+      role: parsed.data.role,
+    }).catch((emailError) => {
+      console.error('[commerces members create email]', emailError);
+      return { ok: false, skipped: false, reason: 'exception' as const };
+    });
+
+    return c.json({
+      data: serializeMember(data as Record<string, unknown>, userId),
+      email: emailResult,
+    }, 201);
   } catch (error) {
     console.error('[commerces members create]', error);
     return c.json({ error: 'Impossible d’ajouter cet accès équipe.' }, 500);

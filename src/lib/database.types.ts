@@ -93,6 +93,7 @@ export interface Database {
           strip_plein_largeur: boolean | null;
           welcome_message: string | null;
           success_message: string | null;
+          rewards_multi_enabled: boolean | null;
           rewards_config: Json | null;
           vip_tiers: Json | null;
           strip_layout: string | null;

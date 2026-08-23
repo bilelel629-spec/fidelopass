@@ -15,7 +15,8 @@
     "billing:check-portal": "node scripts/check-stripe-portal.mjs",
     "reseller:check": "tsx scripts/reseller-validation-check.ts",
     "security:audit": "node scripts/security-audit.mjs",
-    "typecheck": "astro check && tsc --noEmit"
+    "typecheck": "astro check && tsc --noEmit",
+    "test:points": "tsx --test tests/point-rewards.test.ts"
   },
   "dependencies": {
     "@astrojs/node": "^9.5.5",

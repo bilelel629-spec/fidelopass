@@ -72,6 +72,7 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
           <div class="rounded-xl border border-white/10 bg-black/10 px-3 py-2.5">
             <p class="text-xs opacity-60 mb-0.5">Récompense</p>
             <p id="recompense-desc" class="text-sm font-medium"></p>
+            <div id="point-reward-catalog" class="hidden mt-3 space-y-2 border-t border-white/10 pt-3"></div>
           </div>
         </div>
       </div>
@@ -571,6 +572,62 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
     return map[family] || map.system;
   }
 
+  function localPointRewardState(points, carte) {
+    const current = Math.max(0, Number(points ?? 0));
+    const configured = carte?.rewards_multi_enabled === true && Array.isArray(carte?.rewards_config)
+      ? carte.rewards_config
+      : [];
+    const tiers = (configured.length ? configured : [{
+      seuil: Number(carte?.points_recompense ?? 100),
+      recompense: carte?.recompense_description || 'Récompense fidélité',
+    }])
+      .map((reward) => ({ seuil: Number(reward.seuil), recompense: String(reward.recompense ?? '') }))
+      .filter((reward) => reward.seuil > 0 && reward.recompense)
+      .sort((a, b) => a.seuil - b.seuil);
+    const rewardCatalog = tiers.map((reward) => ({
+      ...reward,
+      disponible: current >= reward.seuil,
+      points_manquants: Math.max(0, reward.seuil - current),
+    }));
+    return {
+      points_actuels: current,
+      reward_catalog: rewardCatalog,
+      available_rewards: rewardCatalog.filter((reward) => reward.disponible),
+      next_reward: rewardCatalog.find((reward) => !reward.disponible) ?? null,
+      can_use_reward: rewardCatalog.some((reward) => reward.disponible),
+    };
+  }
+
+  function renderPointRewardCatalog(state) {
+    const container = document.getElementById('point-reward-catalog');
+    if (!container) return;
+    container.innerHTML = '';
+    const rewards = Array.isArray(state?.reward_catalog) ? state.reward_catalog : [];
+    if (
+      !rewards.length
+      || carteData?.carte?.type !== 'points'
+      || carteData?.carte?.rewards_multi_enabled !== true
+    ) {
+      container.classList.add('hidden');
+      return;
+    }
+    rewards.forEach((reward) => {
+      const row = document.createElement('div');
+      row.className = 'flex items-center justify-between gap-3 text-xs';
+      const label = document.createElement('span');
+      label.className = 'font-medium';
+      label.textContent = `${reward.recompense} · ${reward.seuil} pts`;
+      const status = document.createElement('span');
+      status.className = reward.disponible
+        ? 'shrink-0 rounded-full bg-emerald-400/20 px-2 py-1 font-semibold text-emerald-100'
+        : 'shrink-0 opacity-70';
+      status.textContent = reward.disponible ? 'Disponible' : `Encore ${reward.points_manquants} pts`;
+      row.append(label, status);
+      container.appendChild(row);
+    });
+    container.classList.remove('hidden');
+  }
+
   async function loadCarte() {
     if (loadInFlight) return;
     loadInFlight = true;
@@ -593,8 +650,12 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
 
       // Textes
       document.getElementById('carte-nom').textContent = data.carte.nom;
-      const rewards = Array.isArray(data.carte.rewards_config) ? data.carte.rewards_config : [];
-      document.getElementById('recompense-desc').textContent = rewards.length
+      const rewards = data.carte.rewards_multi_enabled === true && Array.isArray(data.carte.rewards_config)
+        ? data.carte.rewards_config
+        : [];
+      document.getElementById('recompense-desc').textContent = data.carte.rewards_multi_enabled === true && rewards.length
+        ? 'Vos récompenses à atteindre'
+        : rewards.length
         ? rewards.map((item) => `${item.seuil} ${data.carte.type === 'points' ? 'pts' : 'tampon(s)'} : ${item.recompense}`).join(' • ')
         : data.carte.recompense_description ?? '—';
       document.getElementById('client-welcome-message').textContent =
@@ -637,12 +698,14 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
           Number(data.carte.tampon_icon_scale ?? 1),
         );
       } else {
-        const pts = data.carte.points_recompense ?? 100;
+        const rewardState = localPointRewardState(0, data.carte);
+        const pts = rewardState.next_reward?.seuil ?? data.carte.points_recompense ?? 100;
         document.getElementById('preview-type-lbl').textContent = 'Points';
         document.getElementById('preview-solde').textContent = '0';
         document.getElementById('preview-stamps-wrap').classList.add('hidden');
         document.getElementById('preview-points-wrap').classList.remove('hidden');
         document.getElementById('preview-pts-txt').textContent = `0 / ${pts} pts`;
+        renderPointRewardCatalog(rewardState);
       }
 
       clearLoadFallback();
@@ -685,13 +748,18 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
       return;
     }
 
-    const target = carteData.carte.points_recompense ?? 100;
     const current = client.points_actuels ?? 0;
+    const rewardState = client.reward_state ?? localPointRewardState(current, carteData.carte);
+    const target = rewardState.next_reward?.seuil
+      ?? rewardState.reward_catalog?.at(-1)?.seuil
+      ?? carteData.carte.points_recompense
+      ?? 100;
     document.getElementById('preview-type-lbl').textContent = 'Points';
     document.getElementById('preview-solde').textContent = String(current);
     document.getElementById('preview-stamps-wrap').classList.add('hidden');
     document.getElementById('preview-points-wrap').classList.remove('hidden');
     document.getElementById('preview-pts-txt').textContent = `${current} / ${target} pts`;
+    renderPointRewardCatalog(rewardState);
   }
 
   async function hydrateRememberedClientState() {
@@ -723,12 +791,20 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
 
       const seenKey = rewardSeenKey(data.id);
       const previousRewards = Number(localStorage.getItem(seenKey) ?? '0');
-      const currentRewards = Number(data.recompenses_obtenues ?? 0);
+      const isMultiplePoints = data.carte?.type === 'points' && data.carte?.rewards_multi_enabled === true;
+      const currentRewards = isMultiplePoints
+        ? Number(data.reward_state?.available_rewards?.length ?? 0)
+        : Number(data.recompenses_obtenues ?? 0);
       localStorage.setItem(seenKey, String(currentRewards));
 
       if (currentRewards > previousRewards) {
         await fireWelcomeConfetti();
-        showSuccess(`Bravo ! Vous avez débloqué ${currentRewards > 1 ? 'une nouvelle récompense' : 'votre récompense'}. Montrez votre carte à chaque passage.`);
+        const availableLabels = isMultiplePoints
+          ? (data.reward_state?.available_rewards ?? []).map((reward) => reward.recompense).join(', ')
+          : '';
+        showSuccess(availableLabels
+          ? `Bravo ! Récompense disponible : ${availableLabels}. Présentez votre carte au commerce pour l’utiliser.`
+          : `Bravo ! Vous avez débloqué ${currentRewards > 1 ? 'une nouvelle récompense' : 'votre récompense'}. Montrez votre carte à chaque passage.`);
       }
 
       if (

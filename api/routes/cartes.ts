@@ -37,6 +37,19 @@ const rewardSchema = z.object({
   recompense: z.string().min(1).max(120),
 });
 
+function validateMultipleRewards(
+  type: 'points' | 'tampons' | undefined,
+  enabled: boolean | undefined,
+  rewards: Array<{ seuil: number; recompense: string }> | undefined,
+): string | null {
+  if (type !== 'points' || enabled !== true || rewards === undefined) return null;
+  if (rewards.length < 2) return 'Configurez au moins deux récompenses pour activer les paliers multiples.';
+  if (new Set(rewards.map((reward) => reward.seuil)).size !== rewards.length) {
+    return 'Chaque récompense doit avoir un seuil de points différent.';
+  }
+  return null;
+}
+
 const vipTierSchema = z.object({
   nom: z.string().min(1).max(24),
   seuil: z.number().int().min(1).max(100000),
@@ -174,6 +187,12 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   if (!parsed.success) {
     return c.json({ error: formatZodError(parsed.error) }, 400);
   }
+  const rewardsValidationError = validateMultipleRewards(
+    parsed.data.type,
+    parsed.data.rewards_multi_enabled,
+    parsed.data.rewards_config,
+  );
+  if (rewardsValidationError) return c.json({ error: rewardsValidationError }, 400);
 
   const db = createServiceClient();
   const { commerce, pointVente } = await resolveCommerceAndPointVente(
@@ -341,6 +360,24 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   );
 
   if (!commerce || !pointVente) return c.json({ error: 'Point de vente introuvable' }, 404);
+  const { data: currentCarte } = await db
+    .from('cartes')
+    .select('type, rewards_multi_enabled, rewards_config')
+    .eq('id', carteId)
+    .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
+    .maybeSingle();
+  if (!currentCarte) return c.json({ error: 'Carte introuvable' }, 404);
+
+  const effectiveRewards = parsed.data.rewards_config
+    ?? (Array.isArray(currentCarte.rewards_config) ? currentCarte.rewards_config : []);
+  const rewardsValidationError = validateMultipleRewards(
+    parsed.data.type ?? currentCarte.type,
+    parsed.data.rewards_multi_enabled ?? currentCarte.rewards_multi_enabled ?? false,
+    effectiveRewards as Array<{ seuil: number; recompense: string }>,
+  );
+  if (rewardsValidationError) return c.json({ error: rewardsValidationError }, 400);
+
   const planLimits = getPlanLimits(getEffectivePlanRaw(commerce));
 
   const {
@@ -379,9 +416,8 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   if (welcome_message !== undefined) programFields.welcome_message = welcome_message;
   if (success_message !== undefined) programFields.success_message = success_message;
   if (rewards_multi_enabled !== undefined) programFields.rewards_multi_enabled = rewards_multi_enabled;
-  if (rewards_config !== undefined || rewards_multi_enabled === false) {
-    programFields.rewards_config = rewards_multi_enabled === false ? [] : rewards_config;
-  }
+  // Désactiver temporairement les paliers ne détruit pas leur configuration.
+  if (rewards_config !== undefined && rewards_multi_enabled !== false) programFields.rewards_config = rewards_config;
   if (vip_tiers !== undefined) programFields.vip_tiers = vip_tiers;
   if (strip_layout !== undefined) programFields.strip_layout = strip_layout;
   if (branding_powered_by_enabled !== undefined) {

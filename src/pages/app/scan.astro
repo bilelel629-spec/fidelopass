@@ -110,6 +110,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
         <button id="btn-reward" class="hidden btn-secondary mb-4 w-full border-emerald-200 py-3 text-emerald-700 hover:bg-emerald-50">
           Utiliser 1 récompense
         </button>
+        <div id="point-reward-actions" class="mb-4 hidden space-y-2"></div>
 
         <button id="btn-close" class="btn-secondary w-full py-3">Scanner un autre client</button>
       </div>
@@ -174,6 +175,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
   let currentClientId: string | null = null;
   let currentClientRecompenses = 0;
+  let currentAvailablePointRewards = 0;
+  let currentMultiplePointRewards = false;
   let currentProgramType: 'tampons' | 'points' = 'tampons';
   let scannerPaused = false;
   let audioContext: AudioContext | null = null;
@@ -727,7 +730,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
       const payload = await res.json();
       const scanPayload = payload?.data ?? payload;
       const data = scanPayload?.client ?? scanPayload;
-      const carte = scanPayload?.carte ?? data?.carte ?? null;
+      const rawCarte = scanPayload?.carte ?? data?.carte ?? data?.cartes ?? null;
+      const carte = Array.isArray(rawCarte) ? rawCarte[0] : rawCarte;
       if (!data?.id) throw new Error('Client introuvable');
 
       currentClientId = data.id;
@@ -736,17 +740,39 @@ import AppLayout from '../../layouts/AppLayout.astro';
       currentProgramType = rawCardType.includes('point') || (data.points_actuels !== undefined && data.tampons_actuels === undefined)
         ? 'points'
         : 'tampons';
+      const rewardState = scanPayload?.reward_state ?? data?.reward_state ?? null;
+      currentMultiplePointRewards = currentProgramType === 'points' && carte?.rewards_multi_enabled === true;
+      currentAvailablePointRewards = Number(rewardState?.available_rewards?.length ?? 0);
 
       document.getElementById('result-nom')!.textContent = data.nom ?? 'Client anonyme';
       document.getElementById('result-solde')!.textContent =
         currentProgramType === 'points'
           ? `${data.points_actuels ?? 0} point(s)`
           : `${data.tampons_actuels ?? 0} tampon(s) — ${data.recompenses_obtenues ?? 0} récompense(s)`;
-      document.getElementById('result-rewards')!.textContent = `Récompenses disponibles: ${data.recompenses_obtenues ?? 0}`;
+      document.getElementById('result-rewards')!.textContent = currentMultiplePointRewards
+        ? currentAvailablePointRewards > 0
+          ? `${currentAvailablePointRewards} récompense(s) disponible(s)`
+          : rewardState?.next_reward
+            ? `${rewardState.next_reward.recompense} : encore ${rewardState.next_reward.points_manquants} point(s)`
+            : 'Aucune récompense configurée'
+        : `Récompenses disponibles: ${data.recompenses_obtenues ?? 0}`;
       document.getElementById('btn-tampon')!.classList.toggle('hidden', currentProgramType !== 'tampons');
       document.getElementById('btn-points')!.classList.toggle('hidden', currentProgramType !== 'points');
       const rewardBtn = document.getElementById('btn-reward')!;
-      rewardBtn.classList.toggle('hidden', currentClientRecompenses <= 0);
+      rewardBtn.classList.toggle('hidden', currentMultiplePointRewards || currentClientRecompenses <= 0);
+      const pointRewardActions = document.getElementById('point-reward-actions')!;
+      pointRewardActions.innerHTML = '';
+      pointRewardActions.classList.toggle('hidden', !currentMultiplePointRewards);
+      if (currentMultiplePointRewards) {
+        (rewardState?.available_rewards ?? []).forEach((reward: { seuil: number; recompense: string }) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'btn-secondary w-full border-emerald-200 py-3 text-emerald-700 hover:bg-emerald-50';
+          button.textContent = `Utiliser « ${reward.recompense} » · ${reward.seuil} pts`;
+          button.addEventListener('click', () => addTransaction('recompense', 1, reward.seuil));
+          pointRewardActions.appendChild(button);
+        });
+      }
 
       document.getElementById('scan-result')!.classList.remove('hidden');
       focusScanResult();
@@ -795,11 +821,16 @@ import AppLayout from '../../layouts/AppLayout.astro';
     await addTransaction('ajout_points', valeur);
   });
 
-  async function addTransaction(type: string, valeur: number) {
+  async function addTransaction(type: string, valeur: number, rewardThreshold?: number) {
     try {
       const res = await authFetchWithTimeout('/api/transactions', {
         method: 'POST',
-        body: JSON.stringify({ client_id: currentClientId, type, valeur }),
+        body: JSON.stringify({
+          client_id: currentClientId,
+          type,
+          valeur,
+          ...(rewardThreshold ? { reward_threshold: rewardThreshold } : {}),
+        }),
       });
 
       if (!res.ok) throw new Error(await readApiError(res, "Erreur lors de l'ajout. Réessayez."));
@@ -820,7 +851,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
 
       // Confetti si récompense obtenue (dernier tampon ou points atteints)
       const newRecompenses: number = data.client?.recompenses_obtenues ?? currentClientRecompenses;
-      if (newRecompenses > currentClientRecompenses) {
+      const newAvailablePointRewards = Number(data.client?.reward_state?.available_rewards?.length ?? currentAvailablePointRewards);
+      if (newRecompenses > currentClientRecompenses || newAvailablePointRewards > currentAvailablePointRewards) {
         fireRewardConfetti();
       }
 
@@ -865,6 +897,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
     document.getElementById('points-modal')!.classList.add('hidden');
     currentClientId = null;
     currentClientRecompenses = 0;
+    currentAvailablePointRewards = 0;
+    currentMultiplePointRewards = false;
     currentProgramType = 'tampons';
     resumeScanner();
     startCameraBtn.focus({ preventScroll: true });

@@ -1,11 +1,13 @@
 import { Hono } from 'hono';
 import type { Context } from 'hono';
+import { z } from 'zod';
 import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { updateGooglePassObject } from '../services/google-wallet';
-import { applyProgressIncrement, applyRewardRedemption } from '../services/loyalty-progress';
+import { applyProgressIncrement, applyRewardRedemption, usesMultiplePointRewards } from '../services/loyalty-progress';
+import { getPointRewardState, resolvePointRewardRedemption } from '../services/point-rewards';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 
 export const merchantScanRoutes = new Hono();
@@ -30,6 +32,7 @@ const CLIENT_SELECT = `
     strip_url,
     barcode_type,
     label_client,
+    rewards_multi_enabled,
     rewards_config,
     vip_tiers,
     branding_powered_by_enabled,
@@ -62,6 +65,7 @@ type ScanClient = {
     strip_url?: string | null;
     barcode_type?: string | null;
     label_client?: string | null;
+    rewards_multi_enabled?: boolean | null;
     rewards_config?: Array<{ seuil: number; recompense: string }> | null;
     vip_tiers?: Array<{ nom: string; seuil: number; avantage?: string }> | null;
     branding_powered_by_enabled?: boolean | null;
@@ -116,9 +120,13 @@ function isUuid(value: string): boolean {
 function getProgress(client: ScanClient) {
   const carte = client.cartes;
   if (carte.type === 'points') {
+    const rewardState = getPointRewardState(client.points_actuels, carte);
     return {
       current: client.points_actuels ?? 0,
-      goal: carte.points_recompense ?? 10,
+      goal: rewardState.next_reward?.seuil
+        ?? rewardState.reward_catalog.at(-1)?.seuil
+        ?? carte.points_recompense
+        ?? 10,
       label: 'points',
       addType: 'ajout_points' as const,
     };
@@ -159,6 +167,9 @@ async function formatScanResponse(db: ReturnType<typeof createServiceClient>, cl
   const progress = getProgress(client);
   const history = await loadRecentHistory(db, client.id);
   const rewardsAvailable = client.recompenses_obtenues ?? 0;
+  const pointRewardState = client.cartes.type === 'points'
+    ? getPointRewardState(client.points_actuels, client.cartes)
+    : null;
 
   return {
     client: {
@@ -176,9 +187,13 @@ async function formatScanResponse(db: ReturnType<typeof createServiceClient>, cl
       nom: client.cartes.nom,
       type: client.cartes.type,
       reward_description: client.cartes.recompense_description ?? 'Récompense',
+      rewards_multi_enabled: client.cartes.rewards_multi_enabled === true,
     },
     progress,
-    can_use_reward: rewardsAvailable > 0,
+    reward_state: pointRewardState,
+    can_use_reward: usesMultiplePointRewards(client.cartes)
+      ? pointRewardState?.can_use_reward === true
+      : rewardsAvailable > 0,
     history,
   };
 }
@@ -392,14 +407,47 @@ async function handleUseReward(c: Context) {
   if (scopeError) return scopeError;
 
   const safeClient = client as ScanClient;
-  if ((safeClient.recompenses_obtenues ?? 0) <= 0) {
-    return c.json({
-      success: false,
-      error: 'Le client n’a pas encore assez de points pour utiliser une récompense.',
-    }, 409);
-  }
+  const body = await c.req.json().catch(() => ({}));
+  const bodyResult = z.object({
+    reward_threshold: z.number().int().min(1).max(100000).optional(),
+  }).safeParse(body);
+  if (!bodyResult.success) return c.json({ success: false, error: 'Récompense invalide.' }, 400);
 
-  const progressResult = applyRewardRedemption(safeClient.cartes, safeClient, 1);
+  let selectedPointReward: { seuil: number; recompense: string } | null = null;
+  let progressResult;
+  if (usesMultiplePointRewards(safeClient.cartes)) {
+    const redemption = resolvePointRewardRedemption(
+      safeClient.points_actuels,
+      safeClient.cartes,
+      bodyResult.data.reward_threshold,
+    );
+    if (!redemption.ok) {
+      const errors = {
+        NO_REWARD_AVAILABLE: 'Le client n’a pas encore assez de points pour utiliser une récompense.',
+        REWARD_SELECTION_REQUIRED: 'Choisissez la récompense à attribuer.',
+        REWARD_NOT_FOUND: 'Cette récompense n’existe plus dans le programme.',
+        INSUFFICIENT_POINTS: 'Le client n’a pas assez de points pour cette récompense.',
+      } as const;
+      return c.json({ success: false, error: errors[redemption.reason] }, 409);
+    }
+    selectedPointReward = redemption.reward;
+    progressResult = {
+      newPoints: redemption.points_after,
+      newTampons: safeClient.tampons_actuels,
+      recompensesObtenues: safeClient.recompenses_obtenues,
+      activeScoreBefore: redemption.points_before,
+      activeScoreAfter: redemption.points_after,
+      rewardsEarned: 0,
+    };
+  } else {
+    if ((safeClient.recompenses_obtenues ?? 0) <= 0) {
+      return c.json({
+        success: false,
+        error: 'Le client n’a pas encore assez de points pour utiliser une récompense.',
+      }, 409);
+    }
+    progressResult = applyRewardRedemption(safeClient.cartes, safeClient, 1);
+  }
   const nextRewards = progressResult.recompensesObtenues;
   const nextPoints = progressResult.newPoints;
   const nextTampons = progressResult.newTampons;
@@ -434,10 +482,12 @@ async function handleUseReward(c: Context) {
     commerce_id: commerce.id,
     point_vente_id: pointVente.id,
     type: 'recompense',
-    valeur: 1,
+    valeur: selectedPointReward?.seuil ?? 1,
     points_avant: progressResult.activeScoreBefore,
     points_apres: progressResult.activeScoreAfter,
-    note: 'Récompense utilisée via scan caisse scannette',
+    note: selectedPointReward
+      ? `Récompense utilisée via scan caisse : ${selectedPointReward.recompense}`
+      : 'Récompense utilisée via scan caisse scannette',
   });
 
   if (transactionResult.error) {
@@ -454,7 +504,9 @@ async function handleUseReward(c: Context) {
 
   return c.json({
     success: true,
-    message: 'Récompense utilisée avec succès.',
+    message: selectedPointReward
+      ? `${selectedPointReward.recompense} utilisée. Il reste ${nextPoints} point(s).`
+      : 'Récompense utilisée avec succès.',
     data: await formatScanResponse(db, updatedClient),
   });
 }

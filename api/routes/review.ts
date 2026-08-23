@@ -5,6 +5,7 @@ import { createServiceClient } from '../../src/lib/supabase';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { updateGooglePassObject } from '../services/google-wallet';
 import { applyProgressIncrement } from '../services/loyalty-progress';
+import { getPointRewardState } from '../services/point-rewards';
 import { getPlanLimits } from './commerces';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
 
@@ -85,7 +86,7 @@ reviewRoutes.post('/:carteId/claim', async (c) => {
   // Vérifie la carte
   const { data: carte } = await db
     .from('cartes')
-    .select('id, type, tampons_total, points_recompense, recompense_description, review_reward_enabled, review_reward_value, couleur_fond, logo_url, strip_url, barcode_type, label_client, commerces(nom, logo_url, plan, plan_override)')
+    .select('id, type, tampons_total, points_recompense, recompense_description, rewards_multi_enabled, rewards_config, review_reward_enabled, review_reward_value, couleur_fond, logo_url, strip_url, barcode_type, label_client, commerces(nom, logo_url, plan, plan_override)')
     .eq('id', carteId)
     .eq('actif', true)
     .single();
@@ -200,6 +201,7 @@ reviewRoutes.post('/:carteId/claim', async (c) => {
   return c.json({
     data: {
       client: { points_actuels: newPoints, tampons_actuels: newTampons, recompenses_obtenues: recompensesObtenues },
+      ...(carte.type === 'points' ? { reward_state: getPointRewardState(newPoints, carte) } : {}),
       transaction: transactionResult.data,
       reward_value: rewardValue,
       type: carte.type,

@@ -70,6 +70,7 @@ async function syncWalletForCarteId(carteId: string): Promise<WalletSyncResult> 
       banner_overlay_opacity,
       branding_powered_by_enabled,
       google_maps_url,
+      rewards_multi_enabled,
       rewards_config,
       vip_tiers
     `)

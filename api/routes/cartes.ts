@@ -11,6 +11,7 @@ import { sendCardCreatedEmail } from '../services/card-created-email';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
 import { withEffectiveCommerceLogo } from '../utils/commerce-logo';
+import { normalizeRewardTiers } from '../services/point-rewards';
 
 export const cartesRoutes = new Hono<ApiEnv>();
 
@@ -36,6 +37,37 @@ const rewardSchema = z.object({
   seuil: z.number().int().min(1).max(100000),
   recompense: z.string().min(1).max(120),
 });
+
+function validateMultipleRewards(
+  type: 'points' | 'tampons' | undefined,
+  enabled: boolean | undefined,
+  rewards: Array<{ seuil: number; recompense: string }> | undefined,
+): string | null {
+  if (type !== 'points' || enabled !== true || rewards === undefined) return null;
+  if (rewards.length < 2) return 'Configurez au moins deux récompenses pour activer les paliers multiples.';
+  if (new Set(rewards.map((reward) => reward.seuil)).size !== rewards.length) {
+    return 'Chaque récompense doit avoir un seuil de points différent.';
+  }
+  return null;
+}
+
+function validatePersistedRewardSettings(
+  saved: { rewards_multi_enabled?: unknown; rewards_config?: unknown } | null | undefined,
+  expectedEnabled: boolean | undefined,
+  expectedRewards: Array<{ seuil: number; recompense: string }> | undefined,
+): string | null {
+  if (expectedEnabled !== undefined && saved?.rewards_multi_enabled !== expectedEnabled) {
+    return 'Le mode récompenses multiples n’a pas été enregistré. Rechargez la page et réessayez.';
+  }
+  if (
+    expectedEnabled === true
+    && expectedRewards !== undefined
+    && JSON.stringify(normalizeRewardTiers(saved?.rewards_config)) !== JSON.stringify(normalizeRewardTiers(expectedRewards))
+  ) {
+    return 'Les paliers de récompenses n’ont pas été enregistrés. Rechargez la page et réessayez.';
+  }
+  return null;
+}
 
 const vipTierSchema = z.object({
   nom: z.string().min(1).max(24),
@@ -209,6 +241,12 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   if (!parsed.success) {
     return c.json({ error: formatZodError(parsed.error) }, 400);
   }
+  const rewardsValidationError = validateMultipleRewards(
+    parsed.data.type,
+    parsed.data.rewards_multi_enabled,
+    parsed.data.rewards_config,
+  );
+  if (rewardsValidationError) return c.json({ error: rewardsValidationError }, 400);
 
   const db = createServiceClient();
   const { commerce, pointVente } = await resolveCommerceAndPointVente(
@@ -303,7 +341,16 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
     .single();
 
   if (result.error?.message?.includes('column')) {
-    // Essai 2 : sans migration 006
+    // Essai 2 : sans typographie, mais en conservant les réglages du programme.
+    result = await db
+      .from('cartes')
+      .upsert({ ...baseFields, ...extFields, ...advFields, ...programFields }, { onConflict: 'point_vente_id' })
+      .select()
+      .single();
+  }
+
+  if (result.error?.message?.includes('column')) {
+    // Essai 3 : sans réglages du programme, mais en conservant la typographie.
     result = await db
       .from('cartes')
       .upsert({ ...baseFields, ...extFields, ...advFields, ...typoFields }, { onConflict: 'point_vente_id' })
@@ -312,7 +359,7 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   }
 
   if (result.error?.message?.includes('column')) {
-    // Essai 3 : base + ext + adv (migration 004 pas encore exécutée)
+    // Essai 4 : sans typographie ni réglages du programme.
     result = await db
       .from('cartes')
       .upsert({ ...baseFields, ...extFields, ...advFields }, { onConflict: 'point_vente_id' })
@@ -321,7 +368,7 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   }
 
   if (result.error?.message?.includes('column')) {
-    // Essai 4 : base + ext (migration 003 non plus)
+    // Essai 5 : base + champs étendus.
     result = await db
       .from('cartes')
       .upsert({ ...baseFields, ...extFields }, { onConflict: 'point_vente_id' })
@@ -330,7 +377,7 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   }
 
   if (result.error?.message?.includes('column')) {
-    // Essai 5 : base only
+    // Essai 6 : base uniquement.
     result = await db
       .from('cartes')
       .upsert(baseFields, { onConflict: 'point_vente_id' })
@@ -342,6 +389,13 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
     console.error('[cartes POST]', result.error);
     return c.json({ error: result.error.message }, 500);
   }
+
+  const rewardPersistenceError = validatePersistedRewardSettings(
+    result.data,
+    parsed.data.rewards_multi_enabled,
+    parsed.data.rewards_config,
+  );
+  if (rewardPersistenceError) return c.json({ error: rewardPersistenceError }, 500);
 
   await syncPointVenteNameFromCard(
     db,
@@ -384,6 +438,24 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   );
 
   if (!commerce || !pointVente) return c.json({ error: 'Point de vente introuvable' }, 404);
+  const { data: currentCarte } = await db
+    .from('cartes')
+    .select('type, rewards_multi_enabled, rewards_config')
+    .eq('id', carteId)
+    .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
+    .maybeSingle();
+  if (!currentCarte) return c.json({ error: 'Carte introuvable' }, 404);
+
+  const effectiveRewards = parsed.data.rewards_config
+    ?? (Array.isArray(currentCarte.rewards_config) ? currentCarte.rewards_config : []);
+  const rewardsValidationError = validateMultipleRewards(
+    parsed.data.type ?? currentCarte.type,
+    parsed.data.rewards_multi_enabled ?? currentCarte.rewards_multi_enabled ?? false,
+    effectiveRewards as Array<{ seuil: number; recompense: string }>,
+  );
+  if (rewardsValidationError) return c.json({ error: rewardsValidationError }, 400);
+
   const planLimits = getPlanLimits(getEffectivePlanRaw(commerce));
 
   const {
@@ -422,9 +494,8 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   if (welcome_message !== undefined) programFields.welcome_message = welcome_message;
   if (success_message !== undefined) programFields.success_message = success_message;
   if (rewards_multi_enabled !== undefined) programFields.rewards_multi_enabled = rewards_multi_enabled;
-  if (rewards_config !== undefined || rewards_multi_enabled === false) {
-    programFields.rewards_config = rewards_multi_enabled === false ? [] : rewards_config;
-  }
+  // Désactiver temporairement les paliers ne détruit pas leur configuration.
+  if (rewards_config !== undefined && rewards_multi_enabled !== false) programFields.rewards_config = rewards_config;
   if (vip_tiers !== undefined) programFields.vip_tiers = vip_tiers;
   if (strip_layout !== undefined) programFields.strip_layout = strip_layout;
   if (branding_powered_by_enabled !== undefined) {
@@ -462,7 +533,19 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
     .single();
 
   if (result.error?.message?.includes('column')) {
-    // Essai 2 : sans migration 006
+    // Essai 2 : sans typographie, mais en conservant les réglages du programme.
+    result = await db
+      .from('cartes')
+      .update({ ...baseData, ...extFields, ...advFields, ...programFields, ...ts })
+      .eq('id', carteId)
+      .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id)
+      .select()
+      .single();
+  }
+
+  if (result.error?.message?.includes('column')) {
+    // Essai 3 : sans réglages du programme, mais en conservant la typographie.
     result = await db
       .from('cartes')
       .update({ ...baseData, ...extFields, ...advFields, ...typoFields, ...ts })
@@ -474,7 +557,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   }
 
   if (result.error?.message?.includes('column')) {
-    // Essai 3 : sans typo (migration 004 manquante)
+    // Essai 4 : sans typographie ni réglages du programme.
     result = await db
       .from('cartes')
       .update({ ...baseData, ...extFields, ...advFields, ...ts })
@@ -486,7 +569,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   }
 
   if (result.error?.message?.includes('column')) {
-    // Essai 4 : base + ext
+    // Essai 5 : base + champs étendus.
     result = await db
       .from('cartes')
       .update({ ...baseData, ...extFields, ...ts })
@@ -498,7 +581,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   }
 
   if (result.error?.message?.includes('column')) {
-    // Essai 5 : base only
+    // Essai 6 : base uniquement.
     result = await db
       .from('cartes')
       .update({ ...baseData, ...ts })
@@ -513,6 +596,13 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
     console.error('[cartes PATCH]', result.error);
     return c.json({ error: result.error.message }, 500);
   }
+
+  const rewardPersistenceError = validatePersistedRewardSettings(
+    result.data,
+    parsed.data.rewards_multi_enabled,
+    parsed.data.rewards_config,
+  );
+  if (rewardPersistenceError) return c.json({ error: rewardPersistenceError }, 500);
 
   if (parsed.data.nom !== undefined) {
     await syncPointVenteNameFromCard(

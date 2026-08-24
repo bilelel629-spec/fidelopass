@@ -1671,7 +1671,9 @@ const apiBase = (
   }
 
   function rewardSummary(data) {
-    const tiers = Array.isArray(data.carte.rewards_config) ? data.carte.rewards_config : [];
+    const tiers = data.carte.rewards_multi_enabled === true && Array.isArray(data.carte.rewards_config)
+      ? data.carte.rewards_config
+      : [];
     if (tiers.length) {
       return tiers.map((item) => `${item.seuil} ${data.carte.type === 'points' ? 'pts' : 'tampons'} = ${item.recompense}`).join(' · ');
     }

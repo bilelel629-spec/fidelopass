@@ -89,6 +89,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <button type="button" id="modal-use-reward-btn" class="mt-3 w-full rounded-2xl border border-emerald-200 bg-emerald-50 py-2.5 text-sm font-bold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400">
         Utiliser une récompense
       </button>
+      <div id="modal-reward-actions" class="mt-3 hidden space-y-2"></div>
     </div>
   </div>
 </DashboardLayout>
@@ -107,6 +108,25 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     carte_id: string | null;
     derniere_visite: string | null;
     wallet_code: string | null;
+    cartes?: {
+      type?: 'tampons' | 'points';
+      rewards_multi_enabled?: boolean | null;
+    } | Array<{
+      type?: 'tampons' | 'points';
+      rewards_multi_enabled?: boolean | null;
+    }> | null;
+    reward_state?: {
+      reward_catalog: Array<{
+        seuil: number;
+        recompense: string;
+        disponible: boolean;
+        points_manquants: number;
+      }>;
+      available_rewards: Array<{
+        seuil: number;
+        recompense: string;
+      }>;
+    };
   }
 
   let currentClients: Client[] = [];
@@ -125,6 +145,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       '"': '&quot;',
       "'": '&#039;',
     }[char] ?? char));
+  }
+
+  function multipleRewardState(client: Client | null) {
+    if (!client) return null;
+    const carte = Array.isArray(client.cartes) ? client.cartes[0] : client.cartes;
+    return carte?.type === 'points' && carte.rewards_multi_enabled === true
+      ? client.reward_state ?? null
+      : null;
+  }
+
+  function availableRewardCount(client: Client) {
+    return multipleRewardState(client)?.available_rewards.length ?? client.recompenses_obtenues ?? 0;
   }
 
   async function loadClients(search = currentSearch, page = 0) {
@@ -205,7 +237,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                   <span class="font-mono text-sm text-sky-700">${c.points_actuels || c.tampons_actuels}</span>
                 </td>
                 <td class="px-6 py-4">
-                  <span class="font-mono text-sm ${c.recompenses_obtenues > 0 ? 'text-emerald-600' : 'text-slate-500'}">${c.recompenses_obtenues ?? 0}</span>
+                  <span class="font-mono text-sm ${availableRewardCount(c) > 0 ? 'text-emerald-600' : 'text-slate-500'}">${availableRewardCount(c)}</span>
                 </td>
                 <td class="px-6 py-4 text-slate-600 text-sm">
                   ${c.derniere_visite ? new Date(c.derniere_visite).toLocaleDateString('fr-FR') : '—'}
@@ -218,7 +250,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <div class="grid gap-3 p-3 md:hidden">
           ${data.map((c: Client) => {
             const score = c.points_actuels || c.tampons_actuels;
-            const rewardClass = c.recompenses_obtenues > 0 ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-slate-100 bg-slate-50 text-slate-500';
+            const rewardClass = availableRewardCount(c) > 0 ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-slate-100 bg-slate-50 text-slate-500';
             return `
               <button
                 type="button"
@@ -239,7 +271,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                   </span>
                   <span class="rounded-2xl border px-3 py-2 ${rewardClass}">
                     <small class="block text-[0.62rem] font-semibold uppercase tracking-[0.12em] opacity-75">Dispo</small>
-                    <strong class="mt-0.5 block font-mono text-lg">${escapeHtml(c.recompenses_obtenues ?? 0)}</strong>
+                    <strong class="mt-0.5 block font-mono text-lg">${escapeHtml(availableRewardCount(c))}</strong>
                   </span>
                   <span class="rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2">
                     <small class="block text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-slate-500">Visite</small>
@@ -284,6 +316,47 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   // ── Modal ──────────────────────────────────────────────────────────
+  function renderRewardControls(client: Client) {
+    const recRow = document.getElementById('modal-recompenses-row')!;
+    const useRewardBtn = document.getElementById('modal-use-reward-btn') as HTMLButtonElement;
+    const actions = document.getElementById('modal-reward-actions')!;
+    const rewardState = multipleRewardState(client);
+
+    actions.innerHTML = '';
+    if (rewardState) {
+      useRewardBtn.classList.add('hidden');
+      const catalog = rewardState.reward_catalog ?? [];
+      recRow.textContent = catalog.length
+        ? catalog.map((reward) => reward.disponible
+          ? `${reward.recompense} : disponible`
+          : `${reward.recompense} : encore ${reward.points_manquants} pt(s)`).join(' • ')
+        : 'Aucune récompense configurée.';
+      recRow.classList.remove('hidden');
+
+      for (const reward of rewardState.available_rewards ?? []) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'w-full rounded-2xl border border-emerald-200 bg-emerald-50 py-2.5 text-sm font-bold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100';
+        button.textContent = `Utiliser : ${reward.recompense} (${reward.seuil} pts)`;
+        button.addEventListener('click', () => useSelectedReward(reward.seuil, reward.recompense));
+        actions.appendChild(button);
+      }
+      actions.classList.toggle('hidden', actions.childElementCount === 0);
+      return;
+    }
+
+    actions.classList.add('hidden');
+    useRewardBtn.classList.remove('hidden');
+    if (client.recompenses_obtenues > 0) {
+      recRow.textContent = `${client.recompenses_obtenues} récompense(s) obtenue(s)`;
+      recRow.classList.remove('hidden');
+      useRewardBtn.disabled = false;
+    } else {
+      recRow.classList.add('hidden');
+      useRewardBtn.disabled = true;
+    }
+  }
+
   function openModal(client: Client) {
     selectedClient = client;
     const score = carteType === 'points' ? client.points_actuels : client.tampons_actuels;
@@ -297,16 +370,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     (document.getElementById('modal-valeur-unit') as HTMLElement).textContent = unitShort;
     (document.getElementById('modal-valeur') as HTMLInputElement).value = '1';
 
-    const recRow = document.getElementById('modal-recompenses-row')!;
-    const useRewardBtn = document.getElementById('modal-use-reward-btn') as HTMLButtonElement;
-    if (client.recompenses_obtenues > 0) {
-      recRow.textContent = `${client.recompenses_obtenues} récompense(s) obtenue(s)`;
-      recRow.classList.remove('hidden');
-      useRewardBtn.disabled = false;
-    } else {
-      recRow.classList.add('hidden');
-      useRewardBtn.disabled = true;
-    }
+    renderRewardControls(client);
 
     (document.getElementById('modal-error') as HTMLElement).classList.add('hidden');
     (document.getElementById('modal-success') as HTMLElement).classList.add('hidden');
@@ -373,6 +437,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         if (carteType === 'points') currentClients[idx].points_actuels = data.client.points_actuels;
         else currentClients[idx].tampons_actuels = data.client.tampons_actuels;
         currentClients[idx].recompenses_obtenues = data.client.recompenses_obtenues;
+        if (data.client.reward_state) currentClients[idx].reward_state = data.client.reward_state;
         selectedClient = currentClients[idx];
       }
 
@@ -381,15 +446,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       okEl.textContent = `${sign}${valeur} ${unit}. Score : ${newScore}`;
       okEl.classList.remove('hidden');
 
-      if (data.client.recompenses_obtenues > 0) {
-        const recRow = document.getElementById('modal-recompenses-row')!;
-        recRow.textContent = `${data.client.recompenses_obtenues} récompense(s) obtenue(s)`;
-        recRow.classList.remove('hidden');
-        (document.getElementById('modal-use-reward-btn') as HTMLButtonElement).disabled = false;
-      } else {
-        document.getElementById('modal-recompenses-row')!.classList.add('hidden');
-        (document.getElementById('modal-use-reward-btn') as HTMLButtonElement).disabled = true;
-      }
+      if (selectedClient) renderRewardControls(selectedClient);
     } catch (err: unknown) {
       errEl.textContent = err instanceof Error ? err.message : 'Erreur lors de la transaction.';
       errEl.classList.remove('hidden');
@@ -402,9 +459,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   document.getElementById('modal-add-btn')!.addEventListener('click', () => applyTransaction('add'));
   document.getElementById('modal-remove-btn')!.addEventListener('click', () => applyTransaction('remove'));
 
-  async function useSelectedReward() {
-    if (!selectedClient || selectedClient.recompenses_obtenues <= 0) return;
-    if (!window.confirm(`Confirmer l’utilisation d’une récompense pour ${selectedClient.nom ?? 'ce client'} ?`)) return;
+  async function useSelectedReward(rewardThreshold?: number, rewardLabel?: string) {
+    if (!selectedClient) return;
+    const rewardState = multipleRewardState(selectedClient);
+    if (rewardState && !rewardThreshold) return;
+    if (!rewardState && selectedClient.recompenses_obtenues <= 0) return;
+    const rewardName = rewardLabel ? ` « ${rewardLabel} »` : '';
+    if (!window.confirm(`Confirmer l’utilisation de la récompense${rewardName} pour ${selectedClient.nom ?? 'ce client'} ?`)) return;
 
     const errEl = document.getElementById('modal-error')!;
     const okEl = document.getElementById('modal-success')!;
@@ -424,6 +485,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           client_id: selectedClient.id,
           type: 'recompense',
           valeur: 1,
+          ...(rewardThreshold ? { reward_threshold: rewardThreshold } : {}),
           note: 'Récompense utilisée depuis l’onglet Clients',
         }),
       });
@@ -435,19 +497,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         currentClients[idx].points_actuels = data.client.points_actuels;
         currentClients[idx].tampons_actuels = data.client.tampons_actuels;
         currentClients[idx].recompenses_obtenues = data.client.recompenses_obtenues;
+        if (data.client.reward_state) currentClients[idx].reward_state = data.client.reward_state;
         selectedClient = currentClients[idx];
       }
 
       const score = carteType === 'points' ? data.client.points_actuels : data.client.tampons_actuels;
       (document.getElementById('modal-score') as HTMLElement).textContent = String(score);
-      const recRow = document.getElementById('modal-recompenses-row')!;
-      if (data.client.recompenses_obtenues > 0) {
-        recRow.textContent = `${data.client.recompenses_obtenues} récompense(s) obtenue(s)`;
-        recRow.classList.remove('hidden');
-        useBtn.disabled = false;
-      } else {
-        recRow.classList.add('hidden');
-      }
+      if (selectedClient) renderRewardControls(selectedClient);
       okEl.textContent = 'Récompense utilisée. La carte Wallet du client est mise à jour.';
       okEl.classList.remove('hidden');
       await loadClients((document.getElementById('search') as HTMLInputElement).value, currentPage);
@@ -461,7 +517,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   }
 
-  document.getElementById('modal-use-reward-btn')!.addEventListener('click', useSelectedReward);
+  document.getElementById('modal-use-reward-btn')!.addEventListener('click', () => useSelectedReward());
 
   // ── Rafraîchir ──────────────────────────────────────────────────────
   document.getElementById('refresh-clients-btn')!.addEventListener('click', async () => {

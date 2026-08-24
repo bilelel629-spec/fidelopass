@@ -4,6 +4,9 @@ export type LoyaltyCarteLike = {
   type?: string | null;
   points_recompense?: number | null;
   tampons_total?: number | null;
+  rewards_multi_enabled?: boolean | null;
+  rewards_config?: unknown;
+  recompense_description?: string | null;
 };
 
 export type LoyaltyClientLike = {
@@ -31,6 +34,10 @@ export function getProgramType(carte: LoyaltyCarteLike): LoyaltyProgramType {
   return carte.type === 'points' ? 'points' : 'tampons';
 }
 
+export function usesMultiplePointRewards(carte: LoyaltyCarteLike): boolean {
+  return getProgramType(carte) === 'points' && carte.rewards_multi_enabled === true;
+}
+
 export function getProgramThreshold(carte: LoyaltyCarteLike): number {
   const type = getProgramType(carte);
   const rawThreshold = type === 'points' ? carte.points_recompense : carte.tampons_total;
@@ -45,6 +52,7 @@ export function getActiveScore(carte: LoyaltyCarteLike, client: LoyaltyClientLik
 
 function normalizeLegacyScore(carte: LoyaltyCarteLike, client: LoyaltyClientLike): number {
   const score = getActiveScore(carte, client);
+  if (usesMultiplePointRewards(carte)) return score;
   const threshold = getProgramThreshold(carte);
   const rewards = asPositiveInteger(client.recompenses_obtenues);
 
@@ -60,6 +68,18 @@ export function applyProgressIncrement(
   amount: number,
 ): LoyaltyProgressResult {
   const type = getProgramType(carte);
+  if (usesMultiplePointRewards(carte)) {
+    const activeScoreBefore = getActiveScore(carte, client);
+    const activeScoreAfter = activeScoreBefore + asPositiveInteger(amount);
+    return {
+      newPoints: activeScoreAfter,
+      newTampons: asPositiveInteger(client.tampons_actuels),
+      recompensesObtenues: asPositiveInteger(client.recompenses_obtenues),
+      activeScoreBefore,
+      activeScoreAfter,
+      rewardsEarned: 0,
+    };
+  }
   const threshold = getProgramThreshold(carte);
   const activeScoreBefore = normalizeLegacyScore(carte, client);
   const totalScore = activeScoreBefore + asPositiveInteger(amount);

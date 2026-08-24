@@ -33,6 +33,7 @@ type CronCarteRow = {
   strip_url: string | null;
   barcode_type: string | null;
   label_client: string | null;
+  rewards_multi_enabled: boolean | null;
   rewards_config: Array<{ seuil: number; recompense: string }> | null;
   vip_tiers: Array<{ nom: string; seuil: number; avantage?: string }> | null;
   branding_powered_by_enabled: boolean | null;
@@ -391,7 +392,7 @@ export async function refreshRecentlyChangedWallets(db: ReturnType<typeof create
 }
 
 function computeBirthdayReward(
-  carte: Pick<CronCarteRow, 'type' | 'tampons_total' | 'points_recompense'>,
+  carte: Pick<CronCarteRow, 'type' | 'tampons_total' | 'points_recompense' | 'rewards_multi_enabled' | 'rewards_config' | 'recompense_description'>,
   client: Pick<CronClientRow, 'points_actuels' | 'tampons_actuels' | 'recompenses_obtenues'>,
   rewardValue: number,
 ) {
@@ -641,7 +642,7 @@ async function sendScheduledBirthdayPushes(db: ReturnType<typeof createServiceCl
         .select(`
           id, nom, type, tampons_total, points_recompense, recompense_description,
           couleur_fond, logo_url, strip_url, barcode_type, label_client,
-          rewards_config, vip_tiers, branding_powered_by_enabled,
+          rewards_multi_enabled, rewards_config, vip_tiers, branding_powered_by_enabled,
           birthday_reward_value, birthday_push_title, birthday_push_message, point_vente_id,
           commerces(nom, logo_url, plan),
           points_vente(latitude, longitude, rayon_geo)

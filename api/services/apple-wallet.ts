@@ -6,6 +6,7 @@ import { randomUUID } from 'crypto';
 import { connect } from 'http2';
 import sharp from 'sharp';
 import { generatePassBackgroundImage, generateStripImage } from './strip-generator';
+import { getPointRewardState } from './point-rewards';
 
 interface CarteData {
   id: string;
@@ -34,6 +35,7 @@ interface CarteData {
   banner_overlay_opacity?: number | null;
   branding_powered_by_enabled?: boolean | null;
   google_maps_url?: string | null;
+  rewards_multi_enabled?: boolean | null;
   rewards_config?: Array<{ seuil: number; recompense: string }> | null;
   vip_tiers?: Array<{ nom: string; seuil: number; avantage?: string }> | null;
   commerces: {
@@ -246,14 +248,40 @@ export async function generateApplePass(
   const soldeValue = carte.type === 'tampons'
     ? `${client.tampons_actuels}/${carte.tampons_total}`
     : String(client.points_actuels);
+  const pointRewardState = carte.type === 'points' && carte.rewards_multi_enabled === true
+    ? getPointRewardState(client.points_actuels, carte)
+    : null;
+  const rewardsText = pointRewardState
+    ? pointRewardState.reward_catalog
+      .map((reward) => reward.disponible
+        ? `✓ ${reward.seuil} points : ${reward.recompense} — disponible`
+        : `${reward.seuil} points : ${reward.recompense} — encore ${reward.points_manquants} points`)
+      .join('\n')
+    : (carte.rewards_multi_enabled === true ? carte.rewards_config ?? [] : [])
+      .filter((reward) => reward?.seuil && reward?.recompense)
+      .map((reward) => `${reward.seuil} ${carte.type === 'tampons' ? 'tampons' : 'points'} : ${reward.recompense}`)
+      .join('\n');
+  const rewardSummary = pointRewardState
+    ? pointRewardState.available_rewards.length
+      ? `Disponible : ${pointRewardState.available_rewards.map((reward) => reward.recompense).join(', ')}`
+      : pointRewardState.next_reward
+        ? `${pointRewardState.next_reward.recompense} — encore ${pointRewardState.next_reward.points_manquants} points`
+        : '—'
+    : carte.recompense_description ?? '—';
+  const availableRewardCount = pointRewardState?.available_rewards.length
+    ?? client.recompenses_obtenues
+    ?? 0;
 
   // Message de notification personnalisé selon la progression du client.
   // Affiché par iOS dès que le solde change (= à chaque tampon/point/récompense).
   const isTampons = carte.type === 'tampons';
   const currentScore = isTampons ? (client.tampons_actuels ?? 0) : (client.points_actuels ?? 0);
-  const rewardThreshold = isTampons ? (carte.tampons_total || 10) : (carte.points_recompense || 100);
-  const remainingToReward = Math.max(0, rewardThreshold - currentScore);
-  const rewardsAvailable = client.recompenses_obtenues ?? 0;
+  const rewardThreshold = isTampons
+    ? carte.tampons_total || 10
+    : pointRewardState?.next_reward?.seuil ?? carte.points_recompense ?? 100;
+  const remainingToReward = pointRewardState?.next_reward?.points_manquants
+    ?? Math.max(0, rewardThreshold - currentScore);
+  const rewardsAvailable = availableRewardCount;
   const soldeChangeMessage = rewardsAvailable > 0
     ? '🎁 Récompense débloquée ! Présentez votre carte pour en profiter.'
     : isTampons
@@ -263,10 +291,6 @@ export async function generateApplePass(
       : (remainingToReward > 0
           ? `🎉 Points ajoutés ! Plus que ${remainingToReward} avant votre récompense.`
           : '🎉 Points ajoutés ! Votre récompense est à portée.');
-  const rewardsText = (carte.rewards_config ?? [])
-    .filter((reward) => reward?.seuil && reward?.recompense)
-    .map((reward) => `${reward.seuil} ${carte.type === 'tampons' ? 'tampons' : 'points'} : ${reward.recompense}`)
-    .join('\n');
   const vipText = (carte.vip_tiers ?? [])
     .filter((tier) => tier?.nom && tier?.seuil)
     .map((tier) => `${tier.nom} : ${tier.seuil} points${tier.avantage ? ` — ${tier.avantage}` : ''}`)
@@ -311,12 +335,14 @@ export async function generateApplePass(
         {
           key: 'recompense',
           label: 'Récompense',
-          value: carte.recompense_description ?? '—',
+          value: rewardSummary,
+          changeMessage: 'Votre récompense Fidelopass a été mise à jour.',
         },
         {
           key: 'recompenses_disponibles',
           label: 'Récompenses dispo',
-          value: String(client.recompenses_obtenues ?? 0),
+          value: String(availableRewardCount),
+          changeMessage: 'Récompenses disponibles : %@.',
         },
       ],
       backFields: [

@@ -719,10 +719,24 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
         }
       }
 
-      function rewardDescription(card) {
-        const rewards = Array.isArray(card?.rewards_config) ? card.rewards_config : [];
-        if (rewards.length) {
-          return rewards
+      function rewardDescription(card, rewardState) {
+        const pointRewards = card?.type === 'points'
+          && card?.rewards_multi_enabled === true
+          && Array.isArray(rewardState?.reward_catalog)
+          ? rewardState.reward_catalog
+          : [];
+        if (pointRewards.length) {
+          return pointRewards
+            .map((item) => item.disponible
+              ? `✓ ${item.recompense} (${item.seuil} pts) — disponible`
+              : `${item.recompense} à ${item.seuil} pts — encore ${item.points_manquants} pts`)
+            .join(' • ');
+        }
+        const configuredRewards = card?.rewards_multi_enabled === true && Array.isArray(card?.rewards_config)
+          ? card.rewards_config
+          : [];
+        if (configuredRewards.length) {
+          return configuredRewards
             .map((item) => `${item.seuil} ${card.type === 'points' ? 'pts' : 'tampon(s)'} : ${item.recompense}`)
             .join(' • ');
         }
@@ -809,7 +823,7 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
         if (appleTitle instanceof HTMLMetaElement) appleTitle.content = appName;
         setText('page-title', appName);
         setText('card-name', card.nom || commerce?.nom || 'Fidelopass');
-        setText('reward-text', rewardDescription(card));
+        setText('reward-text', rewardDescription(card, clientData?.reward_state));
 
         const logoUrl = safeImageUrl(card.logo_url || commerce?.logo_url);
         if (logoUrl) {
@@ -844,11 +858,22 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
         const type = card.type || 'tampons';
 
         setText('client-name', client.nom || 'Votre carte');
-        setText('reward-count', client.recompenses_obtenues ?? 0);
+        const isMultiplePoints = type === 'points' && card.rewards_multi_enabled === true;
+        const rewardState = isMultiplePoints ? client.reward_state : null;
+        setText(
+          'reward-count',
+          rewardState?.available_rewards?.length ?? client.recompenses_obtenues ?? 0,
+        );
 
         if (type === 'points') {
-          const target = Number(card.points_recompense || 100);
           const current = Number(client.points_actuels || 0);
+          const configuredRewards = Array.isArray(rewardState?.reward_catalog) ? rewardState.reward_catalog : [];
+          const target = Number(
+            rewardState?.next_reward?.seuil
+            ?? configuredRewards[configuredRewards.length - 1]?.seuil
+            ?? card.points_recompense
+            ?? 100,
+          );
           const pct = Math.max(0, Math.min(100, target > 0 ? (current / target) * 100 : 0));
           setText('progress-label', 'Points');
           setText('progress-value', current);

@@ -16,7 +16,9 @@ import {
   applyRewardRedemption,
   applyScoreReset,
   getProgramType,
+  usesMultiplePointRewards,
 } from '../services/loyalty-progress';
+import { getPointRewardState, resolvePointRewardRedemption } from '../services/point-rewards';
 
 export const scannersRoutes = new Hono<ApiEnv>();
 
@@ -36,6 +38,7 @@ const scannerTransactionSchema = z.object({
   client_id: z.string().uuid(),
   type: z.enum(['ajout_points', 'ajout_tampon', 'recompense', 'reset']),
   valeur: z.number().int().min(1).max(10000),
+  reward_threshold: z.number().int().min(1).max(100000).optional(),
 });
 
 const CLIENT_SELECT = `
@@ -52,6 +55,7 @@ const CLIENT_SELECT = `
     strip_url,
     barcode_type,
     label_client,
+    rewards_multi_enabled,
     rewards_config,
     vip_tiers,
     branding_powered_by_enabled,
@@ -101,6 +105,7 @@ type ScanClient = {
     strip_url?: string | null;
     barcode_type?: string | null;
     label_client?: string | null;
+    rewards_multi_enabled?: boolean | null;
     rewards_config?: Array<{ seuil: number; recompense: string }> | null;
     vip_tiers?: Array<{ nom: string; seuil: number; avantage?: string }> | null;
     branding_powered_by_enabled?: boolean | null;
@@ -359,9 +364,13 @@ async function loadRecentHistory(db: ReturnType<typeof createServiceClient>, cli
 function getProgress(client: ScanClient) {
   const carte = client.cartes;
   if (carte.type === 'points') {
+    const rewardState = getPointRewardState(client.points_actuels, carte);
     return {
       current: client.points_actuels ?? 0,
-      goal: carte.points_recompense ?? 10,
+      goal: rewardState.next_reward?.seuil
+        ?? rewardState.reward_catalog.at(-1)?.seuil
+        ?? carte.points_recompense
+        ?? 10,
       label: 'points',
       addType: 'ajout_points' as const,
     };
@@ -379,6 +388,9 @@ async function formatScanResponse(db: ReturnType<typeof createServiceClient>, cl
   const progress = getProgress(client);
   const history = await loadRecentHistory(db, client.id);
   const rewardsAvailable = client.recompenses_obtenues ?? 0;
+  const pointRewardState = client.cartes.type === 'points'
+    ? getPointRewardState(client.points_actuels, client.cartes)
+    : null;
 
   return {
     client: {
@@ -396,9 +408,13 @@ async function formatScanResponse(db: ReturnType<typeof createServiceClient>, cl
       nom: client.cartes.nom,
       type: client.cartes.type,
       reward_description: client.cartes.recompense_description ?? 'Récompense',
+      rewards_multi_enabled: client.cartes.rewards_multi_enabled === true,
     },
     progress,
-    can_use_reward: rewardsAvailable > 0,
+    reward_state: pointRewardState,
+    can_use_reward: usesMultiplePointRewards(client.cartes)
+      ? pointRewardState?.can_use_reward === true
+      : rewardsAvailable > 0,
     history,
   };
 }
@@ -713,6 +729,8 @@ scannersRoutes.post('/transactions', async (c) => {
     activeScoreAfter: currentProgress.current,
     rewardsEarned: 0,
   };
+  let transactionValue = parsed.data.valeur;
+  let transactionNote = 'Scan caisse mobile';
 
   switch (parsed.data.type) {
     case 'ajout_points':
@@ -728,6 +746,33 @@ scannersRoutes.post('/transactions', async (c) => {
       progressResult = applyProgressIncrement(safeClient.cartes, safeClient, parsed.data.valeur);
       break;
     case 'recompense':
+      if (usesMultiplePointRewards(safeClient.cartes)) {
+        const redemption = resolvePointRewardRedemption(
+          safeClient.points_actuels,
+          safeClient.cartes,
+          parsed.data.reward_threshold,
+        );
+        if (!redemption.ok) {
+          const errors = {
+            NO_REWARD_AVAILABLE: 'Le client n’a pas encore assez de points pour utiliser une récompense.',
+            REWARD_SELECTION_REQUIRED: 'Choisissez la récompense à attribuer.',
+            REWARD_NOT_FOUND: 'Cette récompense n’existe plus dans le programme.',
+            INSUFFICIENT_POINTS: 'Le client n’a pas assez de points pour cette récompense.',
+          } as const;
+          return c.json({ success: false, code: redemption.reason, error: errors[redemption.reason] }, 409);
+        }
+        progressResult = {
+          newPoints: redemption.points_after,
+          newTampons: safeClient.tampons_actuels,
+          recompensesObtenues: safeClient.recompenses_obtenues,
+          activeScoreBefore: redemption.points_before,
+          activeScoreAfter: redemption.points_after,
+          rewardsEarned: 0,
+        };
+        transactionValue = redemption.reward.seuil;
+        transactionNote = `Récompense utilisée via scan caisse : ${redemption.reward.recompense}`;
+        break;
+      }
       if ((safeClient.recompenses_obtenues ?? 0) <= 0) {
         return c.json({ success: false, code: 'NO_REWARD_AVAILABLE', error: 'Le client n’a pas de récompense disponible.' }, 409);
       }
@@ -766,10 +811,10 @@ scannersRoutes.post('/transactions', async (c) => {
     commerce_id: scannerContext.scanner.commerce_id,
     point_vente_id: scannerContext.scanner.point_vente_id,
     type: parsed.data.type,
-    valeur: parsed.data.valeur,
+    valeur: transactionValue,
     points_avant: progressResult.activeScoreBefore,
     points_apres: progressResult.activeScoreAfter,
-    note: 'Scan caisse mobile',
+    note: transactionNote,
   }).select().single();
 
   if (transactionResult.error) {
@@ -815,6 +860,9 @@ scannersRoutes.post('/transactions', async (c) => {
       points_actuels: nextPoints,
       tampons_actuels: nextTampons,
       recompenses_obtenues: nextRewards,
+      ...(safeClient.cartes.type === 'points'
+        ? { reward_state: getPointRewardState(nextPoints, safeClient.cartes) }
+        : {}),
     },
     wallet_update_results,
   }, 201);

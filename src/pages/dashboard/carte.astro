@@ -2021,9 +2021,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const current=collectRewardTiers();
       current.splice(index,1);
       renderRewardTiers(current);
+      markDirty();
       updatePreview();
     }));
-    wrap.querySelectorAll('input').forEach(input=>input.addEventListener('input',updatePreview));
+    wrap.querySelectorAll('input').forEach(input=>input.addEventListener('input',()=>{
+      markDirty();
+      updatePreview();
+    }));
   }
 
   function collectRewardTiers(): RewardTier[] {
@@ -2063,6 +2067,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const current=collectRewardTiers();
     const next=(current.at(-1)?.seuil??0)+5;
     renderRewardTiers([...current,{seuil:next,recompense:''}]);
+    markDirty();
   });
 
   // Strip
@@ -2672,7 +2677,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       set('success-message', data.success_message ?? 'Votre carte est prête, montrez-la à chaque passage.');
       const existingRewards = parseJsonArray<RewardTier>(data.rewards_config);
       renderRewardTiers(existingRewards);
-      const multiRewardsFlag = Boolean(data.rewards_multi_enabled) || existingRewards.length > 0;
+      const multiRewardsFlag = data.rewards_multi_enabled === true;
       setMultiRewardsEnabled(multiRewardsFlag, { silent: true });
       renderVipTiers(parseJsonArray<VipTier>(data.vip_tiers));
       setBrandingEnabled(data.branding_powered_by_enabled !== false, { silent: true });
@@ -2757,14 +2762,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   function buildPayload() {
     const getChecked = (name: string) => (document.querySelector(`input[name="${name}"]:checked`) as HTMLInputElement)?.value ?? '';
     const getInput = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
+    const type = getChecked('type') || 'tampons';
+    const rewardTiers = multiRewardsEnabled ? collectRewardTiers() : [];
+    const firstPointReward = type === 'points' && multiRewardsEnabled ? rewardTiers[0] : undefined;
     return {
       nom:getInput('nom-carte'),
       description:getInput('description')||null,
-      type:getChecked('type')||'tampons',
+      type,
       tampons_total:parseInt(getInput('tampons-total')),
       points_par_euro:parseFloat(getInput('points-par-euro')),
-      points_recompense:parseInt(getInput('points-recompense')),
-      recompense_description:getInput('recompense')||null,
+      points_recompense:firstPointReward?.seuil ?? parseInt(getInput('points-recompense')),
+      recompense_description:firstPointReward?.recompense ?? (getInput('recompense')||null),
       message_geo:getInput('message-geo')||undefined,
       couleur_fond:getInput('couleur-fond'),
       couleur_texte:getInput('couleur-texte'),
@@ -2790,7 +2798,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       rewards_multi_enabled:multiRewardsEnabled,
       welcome_message:getInput('welcome-message')||null,
       success_message:getInput('success-message')||null,
-      rewards_config:multiRewardsEnabled ? collectRewardTiers() : [],
+      rewards_config:rewardTiers,
       vip_tiers:collectVipTiers(),
     };
   }
@@ -2826,8 +2834,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     const hadExistingCard = !!carteId;
     try{
-      await applyPendingMediaResizes();
       const payload = buildPayload();
+      if (payload.type === 'points' && payload.rewards_multi_enabled) {
+        if (payload.rewards_config.length < 2) {
+          throw new Error('Configurez au moins deux récompenses pour activer les paliers multiples.');
+        }
+        if (new Set(payload.rewards_config.map((reward) => reward.seuil)).size !== payload.rewards_config.length) {
+          throw new Error('Chaque récompense doit avoir un seuil de points différent.');
+        }
+      }
+      await applyPendingMediaResizes();
       const res=carteId
         ? await authFetch(`/api/cartes/${carteId}`,{method:'PATCH',body:JSON.stringify(payload)})
         : await authFetch('/api/cartes',{method:'POST',body:JSON.stringify(payload)});
@@ -2848,6 +2864,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       updateGeoWalletStatus(commerceGeoPayload?.data ?? null);
 
       const { data } = await res.json();
+      if (payload.type === 'points' && payload.rewards_multi_enabled) {
+        const savedRewards = Array.isArray(data?.rewards_config)
+          ? data.rewards_config
+              .map((reward: RewardTier) => ({ seuil: Number(reward.seuil), recompense: String(reward.recompense ?? '').trim() }))
+              .sort((a: RewardTier, b: RewardTier) => a.seuil - b.seuil)
+          : [];
+        if (data?.rewards_multi_enabled !== true || JSON.stringify(savedRewards) !== JSON.stringify(payload.rewards_config)) {
+          throw new Error('Les paliers n’ont pas été enregistrés correctement. Aucune fausse confirmation n’a été affichée.');
+        }
+      }
       if(!carteId){
         carteId=data.id;
         const pu=publicCardUrl(data.id);

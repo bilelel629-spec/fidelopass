@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { createSign } from 'crypto';
+import { getPointRewardState } from './point-rewards';
 
 interface CarteData {
   id: string;
@@ -14,6 +15,7 @@ interface CarteData {
   strip_url?: string | null;
   barcode_type?: string | null;
   label_client?: string | null;
+  rewards_multi_enabled?: boolean | null;
   rewards_config?: Array<{ seuil: number; recompense: string }> | null;
   vip_tiers?: Array<{ nom: string; seuil: number; avantage?: string }> | null;
   branding_powered_by_enabled?: boolean | null;
@@ -86,12 +88,39 @@ function getIssuerId(): string {
   return id;
 }
 
-function getRewardsText(carte: CarteData): string | null {
-  const rewards = (carte.rewards_config ?? [])
+function getRewardsText(carte: CarteData, client?: ClientData): string | null {
+  if (carte.type === 'points' && carte.rewards_multi_enabled === true && client) {
+    return getPointRewardState(client.points_actuels, carte).reward_catalog
+      .map((reward) => reward.disponible
+        ? `✓ ${reward.seuil} points : ${reward.recompense} — disponible`
+        : `${reward.seuil} points : ${reward.recompense} — encore ${reward.points_manquants} points`)
+      .join('\n');
+  }
+  const rewards = (carte.rewards_multi_enabled === true ? carte.rewards_config ?? [] : [])
     .filter((reward) => reward?.seuil && reward?.recompense)
     .map((reward) => `${reward.seuil} ${carte.type === 'tampons' ? 'tampons' : 'points'} : ${reward.recompense}`);
 
   return rewards.length ? rewards.join('\n') : null;
+}
+
+function getRewardSummary(carte: CarteData, client: ClientData): string {
+  if (carte.type !== 'points' || carte.rewards_multi_enabled !== true) {
+    return carte.recompense_description ?? '—';
+  }
+  const state = getPointRewardState(client.points_actuels, carte);
+  if (state.available_rewards.length) {
+    return `Disponible : ${state.available_rewards.map((reward) => reward.recompense).join(', ')}`;
+  }
+  return state.next_reward
+    ? `${state.next_reward.recompense} — encore ${state.next_reward.points_manquants} points`
+    : '—';
+}
+
+function getAvailableRewardCount(carte: CarteData, client: ClientData): number {
+  if (carte.type === 'points' && carte.rewards_multi_enabled === true) {
+    return getPointRewardState(client.points_actuels, carte).available_rewards.length;
+  }
+  return client.recompenses_obtenues ?? 0;
 }
 
 function getVipText(carte: CarteData): string | null {
@@ -279,12 +308,12 @@ export async function generateGooglePass(
     textModulesData: [
       {
         header: 'Récompense',
-        body: carte.recompense_description ?? '—',
+        body: getRewardSummary(carte, client),
         id: 'recompense',
       },
-      ...(getRewardsText(carte) ? [{
+      ...(getRewardsText(carte, client) ? [{
         header: 'Récompenses',
-        body: getRewardsText(carte),
+        body: getRewardsText(carte, client),
         id: 'recompenses_multiples',
       }] : []),
       ...(getVipText(carte) ? [{
@@ -294,7 +323,7 @@ export async function generateGooglePass(
       }] : []),
       {
         header: 'Récompenses dispo',
-        body: String(client.recompenses_obtenues ?? 0),
+        body: String(getAvailableRewardCount(carte, client)),
         id: 'recompenses_disponibles',
       },
       ...((isProPlan(carte.commerces.plan) && carte.branding_powered_by_enabled === false)
@@ -367,12 +396,12 @@ export async function updateGooglePassObject(
       textModulesData: [
         {
           header: 'Récompense',
-          body: carte.recompense_description ?? '—',
+          body: getRewardSummary(carte, client),
           id: 'recompense',
         },
-        ...(getRewardsText(carte) ? [{
+        ...(getRewardsText(carte, client) ? [{
           header: 'Récompenses',
-          body: getRewardsText(carte),
+          body: getRewardsText(carte, client),
           id: 'recompenses_multiples',
         }] : []),
         ...(getVipText(carte) ? [{
@@ -382,7 +411,7 @@ export async function updateGooglePassObject(
         }] : []),
         {
           header: 'Récompenses obtenues',
-          body: String(client.recompenses_obtenues ?? 0),
+          body: String(getAvailableRewardCount(carte, client)),
           id: 'recompenses_disponibles',
         },
         ...((isProPlan(carte.commerces.plan) && carte.branding_powered_by_enabled === false)

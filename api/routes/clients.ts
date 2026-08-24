@@ -8,7 +8,8 @@ import { paidMiddleware } from '../middleware/paid';
 import { getPlanLimits } from './commerces';
 import { pushApplePassUpdate } from '../services/apple-wallet';
 import { updateGooglePassObject } from '../services/google-wallet';
-import { applyProgressIncrement } from '../services/loyalty-progress';
+import { applyProgressIncrement, usesMultiplePointRewards } from '../services/loyalty-progress';
+import { getPointRewardState } from '../services/point-rewards';
 import { scheduleSMS, personnaliserMessage } from '../../src/lib/brevo-sms';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
@@ -52,7 +53,9 @@ clientsRoutes.get('/public/:id', async (c) => {
         type,
         tampons_total,
         points_recompense,
-        recompense_description
+        recompense_description,
+        rewards_multi_enabled,
+        rewards_config
       )
     `)
     .eq('id', clientId)
@@ -75,12 +78,17 @@ clientsRoutes.get('/public/:id', async (c) => {
       points_actuels: data.points_actuels,
       tampons_actuels: data.tampons_actuels,
       recompenses_obtenues: data.recompenses_obtenues,
+      ...(carte.type === 'points'
+        ? { reward_state: getPointRewardState(data.points_actuels, carte) }
+        : {}),
       carte: {
         id: carte.id,
         type: carte.type,
         tampons_total: carte.tampons_total,
         points_recompense: carte.points_recompense,
         recompense_description: carte.recompense_description,
+        rewards_multi_enabled: carte.rewards_multi_enabled === true,
+        rewards_config: carte.rewards_config ?? [],
       },
     },
   });
@@ -149,7 +157,7 @@ clientsRoutes.get('/:id', authMiddleware, paidMiddleware, async (c) => {
 
   const { data, error } = await db
     .from('clients')
-    .select('*, cartes(nom, type, tampons_total, points_recompense)')
+    .select('*, cartes(nom, type, tampons_total, points_recompense, recompense_description, rewards_multi_enabled, rewards_config)')
     .eq('id', clientId)
     .eq('commerce_id', commerce.id)
     .eq('point_vente_id', pointVente.id)
@@ -157,7 +165,15 @@ clientsRoutes.get('/:id', authMiddleware, paidMiddleware, async (c) => {
 
   if (error || !data) return c.json({ error: 'Client introuvable' }, 404);
 
-  return c.json({ data });
+  const carte = Array.isArray(data.cartes) ? data.cartes[0] : data.cartes;
+  return c.json({
+    data: {
+      ...data,
+      ...(carte?.type === 'points'
+        ? { reward_state: getPointRewardState(data.points_actuels, carte) }
+        : {}),
+    },
+  });
 });
 
 /** GET /api/clients — Liste les clients du commerce (paginé) */
@@ -174,7 +190,7 @@ clientsRoutes.get('/', authMiddleware, paidMiddleware, async (c) => {
 
   let query = db
     .from('clients')
-    .select('*', { count: 'exact' })
+    .select('*, cartes(type, points_recompense, recompense_description, rewards_multi_enabled, rewards_config)', { count: 'exact' })
     .eq('commerce_id', commerce.id)
     .eq('point_vente_id', pointVente.id)
     .order('derniere_visite', { ascending: false, nullsFirst: false });
@@ -186,7 +202,17 @@ clientsRoutes.get('/', authMiddleware, paidMiddleware, async (c) => {
   const { data, error, count } = await query.range(page * pageSize, (page + 1) * pageSize - 1);
   if (error) return c.json({ error: 'Erreur lors de la récupération' }, 500);
 
-  return c.json({ data, total: count ?? 0, page, pageSize });
+  const clients = (data ?? []).map((client) => {
+    const carte = Array.isArray(client.cartes) ? client.cartes[0] : client.cartes;
+    return {
+      ...client,
+      ...(usesMultiplePointRewards(carte ?? {})
+        ? { reward_state: getPointRewardState(client.points_actuels, carte ?? {}) }
+        : {}),
+    };
+  });
+
+  return c.json({ data: clients, total: count ?? 0, page, pageSize });
 });
 
 /** POST /api/clients — Crée un client (lors de l'ajout au Wallet) */
@@ -388,7 +414,7 @@ clientsRoutes.patch('/:id/adjust', authMiddleware, paidMiddleware, async (c) => 
 
   const { data: client } = await db
     .from('clients')
-    .select('*, cartes(type, tampons_total, points_recompense)')
+    .select('*, cartes(type, tampons_total, points_recompense, recompense_description, rewards_multi_enabled, rewards_config)')
     .eq('id', clientId)
     .eq('commerce_id', commerce.id)
     .eq('point_vente_id', pointVente.id)
@@ -404,18 +430,37 @@ clientsRoutes.patch('/:id/adjust', authMiddleware, paidMiddleware, async (c) => 
     ? (isPoints ? 'ajout_points' : 'ajout_tampon')
     : (isPoints ? 'retrait_points' : 'retrait_tampon');
 
-  // Mise à jour atomique via RPC pour éviter les race conditions sur les scans simultanés
-  const { data: rpcResult, error: rpcError } = await db.rpc('adjust_client_score_atomic', {
-    p_client_id: clientId,
-    p_commerce_id: commerce.id,
-    p_delta: parsed.data.delta,
-    p_score_type: scoreType,
-    p_seuil: seuil,
-  });
-
-  if (rpcError) return c.json({ error: 'Erreur lors de la mise à jour' }, 500);
-
-  const updated = rpcResult as { points_actuels: number; tampons_actuels: number; recompenses_obtenues: number };
+  let updated: { points_actuels: number; tampons_actuels: number; recompenses_obtenues: number };
+  if (usesMultiplePointRewards(carte ?? {})) {
+    const nextPoints = Math.max(0, (client.points_actuels ?? 0) + parsed.data.delta);
+    const { data: updateData, error: updateError } = await db
+      .from('clients')
+      .update({
+        points_actuels: nextPoints,
+        derniere_visite: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', clientId)
+      .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id)
+      .eq('points_actuels', client.points_actuels ?? 0)
+      .select('points_actuels, tampons_actuels, recompenses_obtenues')
+      .maybeSingle();
+    if (updateError) return c.json({ error: 'Erreur lors de la mise à jour' }, 500);
+    if (!updateData) return c.json({ error: 'La fiche client vient déjà d’être modifiée. Rechargez le client.' }, 409);
+    updated = updateData;
+  } else {
+    // Mise à jour atomique via RPC pour éviter les race conditions sur les scans simultanés
+    const { data: rpcResult, error: rpcError } = await db.rpc('adjust_client_score_atomic', {
+      p_client_id: clientId,
+      p_commerce_id: commerce.id,
+      p_delta: parsed.data.delta,
+      p_score_type: scoreType,
+      p_seuil: seuil,
+    });
+    if (rpcError) return c.json({ error: 'Erreur lors de la mise à jour' }, 500);
+    updated = rpcResult as { points_actuels: number; tampons_actuels: number; recompenses_obtenues: number };
+  }
   const finalScore = isPoints ? updated.points_actuels : updated.tampons_actuels;
 
   await db.from('transactions').insert({
@@ -497,6 +542,7 @@ clientsRoutes.patch('/:id/adjust', authMiddleware, paidMiddleware, async (c) => 
       points_actuels: updated.points_actuels,
       tampons_actuels: updated.tampons_actuels,
       recompenses_obtenues: updated.recompenses_obtenues,
+      ...(isPoints && carte ? { reward_state: getPointRewardState(updated.points_actuels, carte) } : {}),
     },
   });
 });
@@ -523,7 +569,7 @@ clientsRoutes.post('/:id/claim-review', async (c) => {
 
   const { data: carte } = await db
     .from('cartes')
-    .select('id, commerce_id, type, tampons_total, points_recompense, recompense_description, review_reward_enabled, review_reward_value, couleur_fond, logo_url, strip_url, barcode_type, label_client, commerces(nom, logo_url, plan, plan_override)')
+    .select('id, commerce_id, type, tampons_total, points_recompense, recompense_description, rewards_multi_enabled, rewards_config, review_reward_enabled, review_reward_value, couleur_fond, logo_url, strip_url, barcode_type, label_client, commerces(nom, logo_url, plan, plan_override)')
     .eq('id', parsed.data.carte_id)
     .eq('commerce_id', client.commerce_id)
     .eq('actif', true)
@@ -625,6 +671,9 @@ clientsRoutes.post('/:id/claim-review', async (c) => {
       points_actuels: progress.newPoints,
       tampons_actuels: progress.newTampons,
       recompenses_obtenues: progress.recompensesObtenues,
+      ...(carte.type === 'points'
+        ? { reward_state: getPointRewardState(progress.newPoints, carte) }
+        : {}),
     },
   });
 });

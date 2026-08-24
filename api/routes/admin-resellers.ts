@@ -74,6 +74,10 @@ const invoiceStatusSchema = z.object({
   status: z.enum(['draft', 'sent', 'paid', 'overdue', 'cancelled']),
 });
 
+const commissionPaidSchema = z.object({
+  commission_ids: z.array(z.string().uuid()).min(1).max(100),
+});
+
 const refundSchema = z.object({
   reason: z.string().trim().max(500).optional(),
 });
@@ -110,7 +114,7 @@ async function loadReseller(db: ReturnType<typeof createServiceClient>, reseller
   const [settingsRes, publicPricesRes, merchantsRes] = await Promise.all([
     db.from('reseller_plan_settings').select('*').eq('reseller_id', resellerId),
     db.from('reseller_public_plan_prices').select('*').eq('reseller_id', resellerId),
-    db.from('reseller_merchants').select('*, commerces(id, nom, email, actif, billing_status)').eq('reseller_id', resellerId),
+    db.from('reseller_merchants').select('*, commerces!merchant_id(id, nom, email, actif, billing_status)').eq('reseller_id', resellerId),
   ]);
 
   const settingsError = settingsRes.error as { code?: string; message?: string } | null;
@@ -391,17 +395,20 @@ adminResellerRoutes.get('/:id', async (c) => {
   }
   if (!reseller) return c.json({ error: 'Revendeur introuvable.' }, 404);
 
-  const [transactionsRes, invoicesRes] = await Promise.all([
+  const [transactionsRes, invoicesRes, commissionsRes] = await Promise.all([
     db.from('reseller_transactions').select('*').eq('reseller_id', resellerId).order('created_at', { ascending: false }).limit(80),
     db.from('reseller_invoices').select('*, reseller_invoice_lines(*)').eq('reseller_id', resellerId).order('period_start', { ascending: false }),
+    db.from('reseller_commissions').select('*').eq('reseller_id', resellerId).order('created_at', { ascending: false }).limit(120),
   ]);
   if (transactionsRes.error) console.warn('[admin-resellers] transactions load failed', resellerId, transactionsRes.error);
   if (invoicesRes.error) console.warn('[admin-resellers] invoices load failed', resellerId, invoicesRes.error);
+  if (commissionsRes.error) console.warn('[admin-resellers] commissions load failed', resellerId, commissionsRes.error);
 
   return c.json({
     data: summarizeReseller(reseller),
     transactions: transactionsRes.error ? [] : transactionsRes.data ?? [],
     invoices: invoicesRes.error ? [] : invoicesRes.data ?? [],
+    commissions: commissionsRes.error ? [] : commissionsRes.data ?? [],
     link_stats: await loadResellerLinkStats(db, resellerId, reseller.currency ?? 'eur'),
   });
 });
@@ -598,6 +605,29 @@ adminResellerRoutes.post('/:id/invoices/:invoiceId/status', async (c) => {
   return c.json({ data });
 });
 
+adminResellerRoutes.post('/:id/commissions/mark-paid', async (c) => {
+  const resellerId = requireUuid(c.req.param('id'));
+  if (!resellerId) return c.json({ error: 'Identifiant revendeur invalide.' }, 400);
+
+  const parsed = commissionPaidSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'Commissions invalides.' }, 400);
+
+  const db = createServiceClient();
+  const { data, error } = await db
+    .from('reseller_commissions')
+    .update({
+      status: 'paid',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('reseller_id', resellerId)
+    .eq('status', 'pending')
+    .in('id', parsed.data.commission_ids)
+    .select('*');
+
+  if (error) return c.json({ error: 'Impossible de marquer ces commissions comme payées.' }, 500);
+  return c.json({ data: data ?? [], updated_count: data?.length ?? 0 });
+});
+
 adminResellerPaymentsRoutes.post('/:id/refund', async (c) => {
   const transactionId = requireUuid(c.req.param('id'));
   if (!transactionId) return c.json({ error: 'Identifiant transaction invalide.' }, 400);
@@ -613,15 +643,21 @@ adminResellerPaymentsRoutes.post('/:id/refund', async (c) => {
   }
 
   const stripe = getStripe();
-  const refund = await stripe.refunds.create({
+  const txMetadata = tx.metadata && typeof tx.metadata === 'object'
+    ? tx.metadata as Record<string, unknown>
+    : {};
+  const refundParams: Record<string, unknown> = {
     ...(tx.stripe_payment_intent_id ? { payment_intent: tx.stripe_payment_intent_id } : { charge: tx.stripe_charge_id }),
-    reverse_transfer: true,
-    refund_application_fee: true,
     metadata: {
       reseller_transaction_id: tx.id,
       reason: parsed.data.reason ?? 'admin_refund',
     },
-  } as any);
+  };
+  if (String(txMetadata.payment_mode ?? '') === 'stripe_connect') {
+    refundParams.reverse_transfer = true;
+    refundParams.refund_application_fee = true;
+  }
+  const refund = await stripe.refunds.create(refundParams as any);
 
   await db.from('reseller_transactions').insert({
     reseller_id: tx.reseller_id,
@@ -637,5 +673,52 @@ adminResellerPaymentsRoutes.post('/:id/refund', async (c) => {
     metadata: { refund_id: refund.id, original_transaction_id: tx.id },
   });
 
+  try {
+    const filters = [];
+    if (tx.stripe_charge_id) filters.push(`stripe_charge_id.eq.${tx.stripe_charge_id}`);
+    if (tx.stripe_payment_intent_id) filters.push(`stripe_payment_intent_id.eq.${tx.stripe_payment_intent_id}`);
+    if (filters.length) {
+      const { error: commissionRefundError } = await db
+        .from('reseller_commissions')
+        .update({ status: 'refunded', updated_at: new Date().toISOString() })
+        .or(filters.join(','));
+      if (commissionRefundError) {
+        console.warn('[admin-resellers] commission refund sync failed:', commissionRefundError.message);
+      }
+    }
+  } catch (commissionError) {
+    console.warn('[admin-resellers] commission refund sync failed:', commissionError instanceof Error ? commissionError.message : commissionError);
+  }
+
   return c.json({ data: refund });
+});
+
+/** DELETE /api/admin/resellers/:id — Suppression définitive (tests uniquement) */
+adminResellerRoutes.delete('/:id', async (c) => {
+  const resellerId = requireUuid(c.req.param('id'));
+  if (!resellerId) return c.json({ error: 'Identifiant revendeur invalide.' }, 400);
+
+  const db = createServiceClient();
+
+  const { data: reseller, error: fetchError } = await db
+    .from('resellers')
+    .select('id, user_id, brand_name')
+    .eq('id', resellerId)
+    .single();
+
+  if (fetchError || !reseller) return c.json({ error: 'Revendeur introuvable.' }, 404);
+
+  // Supprimer le revendeur → cascade DB vers toutes les tables liées (merchants, invoices, etc.)
+  const { error: deleteError } = await db.from('resellers').delete().eq('id', resellerId);
+  if (deleteError) return c.json({ error: 'Suppression impossible : ' + deleteError.message }, 500);
+
+  // Supprimer l'auth user du revendeur (best-effort, les commerces liés ont leurs propres users)
+  if (reseller.user_id) {
+    const { error: authDeleteError } = await db.auth.admin.deleteUser(reseller.user_id);
+    if (authDeleteError) {
+      console.warn('[admin-resellers] auth user delete failed (reseller delete):', authDeleteError.message);
+    }
+  }
+
+  return c.json({ ok: true });
 });

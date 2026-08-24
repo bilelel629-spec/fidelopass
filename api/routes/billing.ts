@@ -11,9 +11,15 @@ import {
   getCommitmentEndIso,
   getStripe,
   isAnnualMonthlyCommitment,
+  loadPriceCatalog,
   loadPriceIds,
+  normalizeBillingCurrency,
+  type PriceSlot,
+  resolveBillingIntervalFromSlot,
+  resolveCommitmentLabelFromSlot,
   resolvePriceSlot,
   resolvePlanFromSlot,
+  resolveUsablePriceId,
 } from '../services/stripe-billing';
 
 export const billingRoutes = new Hono<ApiEnv>();
@@ -22,13 +28,18 @@ billingRoutes.use('*', authMiddleware);
 
 const portalSchema = z.object({
   flow: z.enum(['manage', 'cancel', 'payment_method', 'change_plan']).optional().default('manage'),
-  targetPriceId: z.string().min(1).optional(),
+});
+
+const changePlanSchema = z.object({
+  plan: z.enum(['starter', 'pro', 'business']),
+  interval: z.enum(['monthly', 'yearly']),
 });
 
 /** GET /api/billing/status — statut d'accès abonnement pour l'utilisateur connecté */
 billingRoutes.get('/status', async (c) => {
   const userId = c.get('userId') as string;
-  const data = await getBillingStatusForUser(userId);
+  const userEmail = (c.get('user') as { email?: string } | undefined)?.email;
+  const data = await getBillingStatusForUser(userId, userEmail);
   const response = c.json({ data });
   response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   response.headers.set('Pragma', 'no-cache');
@@ -36,16 +47,123 @@ billingRoutes.get('/status', async (c) => {
   return response;
 });
 
+/** POST /api/billing/change-plan — change le prix de l'abonnement sans dépendre du Billing Portal */
+billingRoutes.post('/change-plan', async (c) => {
+  const userId = c.get('userId') as string;
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = changePlanSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.errors[0]?.message ?? 'Plan cible invalide.' }, 400);
+  }
+
+  const db = createServiceClient();
+  const { data: commerce } = await db
+    .from('commerces')
+    .select('id, stripe_subscription_id')
+    .eq('user_id', userId)
+    .single();
+
+  if (!commerce?.stripe_subscription_id) {
+    return c.json({ error: 'Aucun abonnement Stripe actif à modifier.' }, 400);
+  }
+
+  try {
+    const stripe = getStripe();
+    const catalog = loadPriceCatalog();
+    const subscription = await stripe.subscriptions.retrieve(commerce.stripe_subscription_id);
+    const currentCurrency = normalizeBillingCurrency(subscription.items?.data?.[0]?.price?.currency);
+    const priceIds = loadPriceIds(currentCurrency);
+    const targetSlot = `${parsed.data.plan}_${parsed.data.interval === 'yearly' ? 'annuel_once' : 'mensuel'}` as PriceSlot;
+    const targetPlan = resolvePlanFromSlot(targetSlot);
+
+    if (!targetPlan) {
+      return c.json({ error: 'Le plan cible est invalide.' }, 400);
+    }
+
+    const subscriptionItemId = subscription.items?.data?.[0]?.id;
+    if (!subscriptionItemId) {
+      return c.json({ error: "Impossible d'identifier la ligne d'abonnement Stripe à modifier." }, 400);
+    }
+
+    if (subscription.cancel_at_period_end) {
+      return c.json({
+        error: "Réactivez d'abord l'abonnement avant de changer de plan.",
+        code: 'SUBSCRIPTION_CANCEL_SCHEDULED',
+      }, 409);
+    }
+
+    const currentPriceId = subscription.items?.data?.[0]?.price?.id ?? null;
+    const currentSlot = resolvePriceSlot(currentPriceId, catalog);
+    const commitment = String(subscription.metadata?.billing_commitment ?? '').toLowerCase();
+
+    if (isAnnualMonthlyCommitment(currentSlot, commitment)) {
+      const engagementUntil = getCommitmentEndIso(subscription.start_date);
+      const stillLocked = Date.now() < Date.parse(engagementUntil)
+        && ['active', 'trialing', 'past_due', 'incomplete'].includes(subscription.status);
+
+      if (stillLocked) {
+        return c.json({
+          error: "Cet abonnement est engagé sur 12 mois. Les changements seront possibles à la fin de l'engagement.",
+          code: 'COMMITMENT_LOCKED',
+          engagement_until: engagementUntil,
+        }, 409);
+      }
+    }
+
+    const requestedPriceId = priceIds[targetSlot];
+    if (!requestedPriceId) {
+      return c.json({ error: `Le tarif ${currentCurrency.toUpperCase()} demandé n'est pas configuré.` }, 503);
+    }
+    const usablePriceId = await resolveUsablePriceId(stripe, targetSlot, requestedPriceId, priceIds);
+    const updatedSubscription = await stripe.subscriptions.update(commerce.stripe_subscription_id, {
+      items: [{ id: subscriptionItemId, price: usablePriceId, quantity: 1 }],
+      metadata: {
+        ...subscription.metadata,
+        selected_plan: targetPlan,
+        billing_commitment: resolveCommitmentLabelFromSlot(targetSlot),
+        billing_interval: resolveBillingIntervalFromSlot(targetSlot) ?? '',
+        billing_currency: currentCurrency,
+      },
+      payment_behavior: 'pending_if_incomplete',
+      proration_behavior: 'create_prorations',
+    });
+
+    const { updates } = buildSubscriptionBillingUpdate(updatedSubscription, catalog);
+    await db.from('commerces').update(updates).eq('id', commerce.id);
+
+    return c.json({
+      data: {
+        plan: updates.plan ?? targetPlan,
+        stripe_price_id: updates.stripe_price_id ?? usablePriceId,
+        billing_status: updates.billing_status ?? updatedSubscription.status,
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Impossible de changer de plan.';
+    console.error('[billing] change-plan error:', message);
+    return c.json({ error: message }, 400);
+  }
+});
+
 /** GET /api/billing/prices — prix publics utiles pour les changements de plan */
 billingRoutes.get('/prices', async (c) => {
-  const priceIds = loadPriceIds();
+  const userId = c.get('userId') as string;
+  const db = createServiceClient();
+  const { data: commerce } = await db
+    .from('commerces')
+    .select('billing_currency')
+    .eq('user_id', userId)
+    .single();
+  const currency = normalizeBillingCurrency(commerce?.billing_currency);
+  const priceIds = loadPriceIds(currency);
   const data = PLAN_PRICE_SLOTS
     .map((slot) => ({
       slot,
-      price_id: priceIds[slot] ?? null,
+      available: Boolean(priceIds[slot]),
       plan: resolvePlanFromSlot(slot),
+      currency,
     }))
-    .filter((item) => item.price_id);
+    .filter((item) => item.available);
 
   return c.json({ data });
 });
@@ -69,7 +187,7 @@ billingRoutes.post('/portal', async (c) => {
   if (!commerce) return c.json({ error: 'Commerce introuvable.' }, 404);
 
   const stripe = getStripe();
-  const priceIds = loadPriceIds();
+  const priceIds = loadPriceCatalog();
   let customerId = commerce.stripe_customer_id as string | null;
   const subscriptionId = commerce.stripe_subscription_id as string | null;
 
@@ -101,9 +219,16 @@ billingRoutes.post('/portal', async (c) => {
 
   const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
   const returnUrl = `${PUBLIC_SITE_URL}/dashboard/parametres?tab=abonnement`;
-  const { flow, targetPriceId } = parsed.data;
+  const { flow } = parsed.data;
 
   try {
+    if (flow === 'change_plan') {
+      return c.json({
+        error: "Le changement de plan se fait désormais depuis l'application Fidelopass. Rechargez la page puis réessayez.",
+        code: 'CHANGE_PLAN_ROUTE_REQUIRED',
+      }, 409);
+    }
+
     let flowData: Stripe.BillingPortal.SessionCreateParams['flow_data'] | undefined;
 
     if (flow !== 'manage') {
@@ -148,28 +273,6 @@ billingRoutes.post('/portal', async (c) => {
               redirect: { return_url: `${returnUrl}&billing=cancel-scheduled` },
             },
           };
-        } else if (flow === 'change_plan') {
-          const subscriptionItemId = subscription.items?.data?.[0]?.id;
-          const targetSlot = resolvePriceSlot(targetPriceId, priceIds);
-
-          if (!targetPriceId || !targetSlot || !resolvePlanFromSlot(targetSlot)) {
-            return c.json({ error: 'Le plan cible est invalide.' }, 400);
-          }
-          if (!subscriptionItemId) {
-            return c.json({ error: "Impossible d'identifier la ligne d'abonnement Stripe à modifier." }, 400);
-          }
-
-          flowData = {
-            type: 'subscription_update_confirm',
-            subscription_update_confirm: {
-              subscription: subscriptionId,
-              items: [{ id: subscriptionItemId, price: targetPriceId, quantity: 1 }],
-            },
-            after_completion: {
-              type: 'redirect',
-              redirect: { return_url: `${returnUrl}&billing=plan-updated` },
-            },
-          };
         }
       }
     }
@@ -204,7 +307,7 @@ billingRoutes.post('/cancel', async (c) => {
 
   try {
     const stripe = getStripe();
-    const priceIds = loadPriceIds();
+    const priceIds = loadPriceCatalog();
     const subscription = await stripe.subscriptions.retrieve(commerce.stripe_subscription_id);
     const currentPriceId = subscription.items?.data?.[0]?.price?.id ?? null;
     const currentSlot = resolvePriceSlot(currentPriceId, priceIds);
@@ -259,7 +362,7 @@ billingRoutes.post('/reactivate', async (c) => {
 
   try {
     const stripe = getStripe();
-    const priceIds = loadPriceIds();
+    const priceIds = loadPriceCatalog();
     const updatedSubscription = await stripe.subscriptions.update(commerce.stripe_subscription_id, {
       cancel_at_period_end: false,
     });

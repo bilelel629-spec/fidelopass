@@ -126,6 +126,26 @@ assistantCardRoutes.get('/brief', async (c) => {
   }
 });
 
+/** POST /api/assistant-card/activate — Activation gratuite de l'accompagnement setup */
+assistantCardRoutes.post('/activate', async (c) => {
+  try {
+    const { db, commerce } = await resolveAssistantContext(c);
+    if (!commerce) return c.json({ error: 'Commerce introuvable.' }, 404);
+    if (commerce.onboarding_purchased) return c.json({ data: { activated: true, already_active: true } });
+
+    const { error } = await db
+      .from('commerces')
+      .update({ onboarding_purchased: true })
+      .eq('id', commerce.id);
+
+    if (error) return c.json({ error: error.message }, 500);
+    return c.json({ data: { activated: true, already_active: false } });
+  } catch (error) {
+    console.error('[assistant-card] free activation failed:', error);
+    return c.json({ error: "Impossible d'activer l'accompagnement." }, 500);
+  }
+});
+
 /** POST /api/assistant-card/brief — Soumission du brief design */
 assistantCardRoutes.post('/brief', async (c) => {
   const body = await c.req.json().catch(() => null);

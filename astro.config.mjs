@@ -4,6 +4,7 @@ import react from '@astrojs/react';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
+  site: 'https://www.fidelopass.com',
   integrations: [react()],
   adapter: node({
     mode: 'standalone',

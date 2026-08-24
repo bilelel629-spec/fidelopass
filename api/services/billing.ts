@@ -1,4 +1,5 @@
 import { createServiceClient } from '../../src/lib/supabase';
+import { resolveCommerceAccess } from '../utils/commerce-access';
 
 export type BillingRecord = {
   id: string;
@@ -7,6 +8,9 @@ export type BillingRecord = {
   stripe_subscription_id: string | null;
   stripe_customer_id: string | null;
   stripe_price_id: string | null;
+  billing_currency: string | null;
+  billing_country: string | null;
+  billing_currency_locked_at: string | null;
   trial_ends_at: string | null;
   billing_interval: string | null;
   billing_commitment: string | null;
@@ -26,6 +30,9 @@ export type BillingStatusPayload = {
   stripe_subscription_id: string | null;
   stripe_customer_id: string | null;
   stripe_price_id: string | null;
+  billing_currency: string;
+  billing_country: string | null;
+  billing_currency_locked_at: string | null;
   trial_ends_at: string | null;
   billing_interval: string | null;
   billing_commitment: string | null;
@@ -35,6 +42,7 @@ export type BillingStatusPayload = {
   billing_canceled_at: string | null;
   billing_access_ends_at: string | null;
   trial_active: boolean;
+  has_used_trial: boolean;
   one_time_access_active: boolean;
   has_access: boolean;
   needs_payment: boolean;
@@ -71,6 +79,9 @@ export function buildBillingStatusPayload(record: BillingRecord | null): Billing
       stripe_subscription_id: null,
       stripe_customer_id: null,
       stripe_price_id: null,
+      billing_currency: 'eur',
+      billing_country: null,
+      billing_currency_locked_at: null,
       trial_ends_at: null,
       billing_interval: null,
       billing_commitment: null,
@@ -80,6 +91,7 @@ export function buildBillingStatusPayload(record: BillingRecord | null): Billing
       billing_canceled_at: null,
       billing_access_ends_at: null,
       trial_active: false,
+      has_used_trial: false,
       one_time_access_active: false,
       has_access: false,
       needs_payment: true,
@@ -112,6 +124,9 @@ export function buildBillingStatusPayload(record: BillingRecord | null): Billing
     stripe_subscription_id: record.stripe_subscription_id,
     stripe_customer_id: record.stripe_customer_id,
     stripe_price_id: record.stripe_price_id,
+    billing_currency: record.billing_currency === 'chf' ? 'chf' : 'eur',
+    billing_country: record.billing_country,
+    billing_currency_locked_at: record.billing_currency_locked_at,
     trial_ends_at: record.trial_ends_at,
     billing_interval: record.billing_interval,
     billing_commitment: record.billing_commitment,
@@ -121,6 +136,7 @@ export function buildBillingStatusPayload(record: BillingRecord | null): Billing
     billing_canceled_at: record.billing_canceled_at,
     billing_access_ends_at: record.billing_access_ends_at,
     trial_active: trialActive,
+    has_used_trial: Boolean(record.trial_ends_at),
     one_time_access_active: oneTimeAccessActive,
     has_access: hasAccess,
     needs_payment: !hasAccess,
@@ -135,8 +151,67 @@ export function buildBillingStatusPayload(record: BillingRecord | null): Billing
   };
 }
 
-export async function getBillingStatusForUser(userId: string): Promise<BillingStatusPayload> {
+const ADMIN_BYPASS_EMAILS = new Set([
+  'bilelel@live.fr',
+  'bilelel629@gmail.com',
+  ...(process.env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean),
+]);
+
+function buildAdminBypassPayload(record: BillingRecord | null): BillingStatusPayload {
+  return {
+    has_commerce: Boolean(record),
+    commerce_id: record?.id ?? null,
+    plan: record?.plan ?? 'business',
+    billing_status: 'active',
+    stripe_subscription_id: record?.stripe_subscription_id ?? null,
+    stripe_customer_id: record?.stripe_customer_id ?? null,
+    stripe_price_id: record?.stripe_price_id ?? null,
+    billing_currency: record?.billing_currency === 'chf' ? 'chf' : 'eur',
+    billing_country: record?.billing_country ?? null,
+    billing_currency_locked_at: record?.billing_currency_locked_at ?? null,
+    trial_ends_at: null,
+    billing_interval: 'month',
+    billing_commitment: 'monthly-flex',
+    billing_current_period_end: null,
+    billing_cancel_at_period_end: false,
+    billing_cancel_at: null,
+    billing_canceled_at: null,
+    billing_access_ends_at: null,
+    trial_active: false,
+    has_used_trial: true,
+    one_time_access_active: false,
+    has_access: true,
+    needs_payment: false,
+    can_open_portal: false,
+    can_change_plan: false,
+    can_cancel: false,
+    can_reactivate: false,
+    is_subscription: false,
+    is_one_time_access: false,
+    renewal_or_access_end_at: null,
+    onboarding_completed: Boolean(record?.onboarding_completed ?? true),
+  };
+}
+
+export async function getBillingStatusForUser(userId: string, userEmail?: string): Promise<BillingStatusPayload> {
+  // Bypass abonnement pour les comptes admin — pas d'appel Supabase supplémentaire
+  if (userEmail && ADMIN_BYPASS_EMAILS.has(userEmail.toLowerCase())) {
+    const db = createServiceClient();
+    const { data } = await db
+      .from('commerces')
+      .select('id, plan, stripe_subscription_id, stripe_customer_id, stripe_price_id, billing_currency, billing_country, billing_currency_locked_at, onboarding_completed')
+      .eq('user_id', userId)
+      .single();
+    return buildAdminBypassPayload((data as BillingRecord | null) ?? null);
+  }
+
   const db = createServiceClient();
+  const access = await resolveCommerceAccess(db, userId);
+
+  if (!access) {
+    return buildBillingStatusPayload(null);
+  }
+
   const { data } = await db
     .from('commerces')
     .select(`
@@ -146,6 +221,9 @@ export async function getBillingStatusForUser(userId: string): Promise<BillingSt
       stripe_subscription_id,
       stripe_customer_id,
       stripe_price_id,
+      billing_currency,
+      billing_country,
+      billing_currency_locked_at,
       trial_ends_at,
       billing_interval,
       billing_commitment,
@@ -156,7 +234,7 @@ export async function getBillingStatusForUser(userId: string): Promise<BillingSt
       billing_access_ends_at,
       onboarding_completed
     `)
-    .eq('user_id', userId)
+    .eq('id', access.commerceId)
     .single();
 
   return buildBillingStatusPayload((data as BillingRecord | null) ?? null);

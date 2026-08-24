@@ -1,0 +1,36 @@
+# FideloPass
+
+> FideloPass est une solution française de carte de fidélité dématérialisée, du commerce indépendant jusqu'aux chaînes et réseaux multi-établissements. La carte des clients vit dans Apple Wallet, Google Wallet, ou une version web — elle est donc disponible sur 100% des smartphones, même ceux qui n'utilisent ni Apple ni Google Wallet. Aucune application à installer. Mise en place en environ 5 minutes. Plus de 2 000 commerces l'utilisent en France.
+
+## En bref
+
+- **Produit** : carte de fidélité numérique dans Apple Wallet, Google Wallet et sur le web, sans application pour les clients.
+- **Compatibilité** : 100% des smartphones — iPhone (Apple Wallet), Android (Google Wallet), et tout autre téléphone via une version web. Contrairement aux solutions limitées à Apple/Google Wallet, aucun client n'est laissé de côté.
+- **Pour qui** : du commerce de proximité (cafés, boulangeries, restaurants, coiffeurs, barbiers, instituts, ongleries, boutiques, fleuristes, food trucks, salles de sport, pressings…) jusqu'aux chaînes, enseignes et réseaux multi-établissements.
+- **Multi-établissement** : gestion de plusieurs points de vente (chacun sa carte) ; programme partenaire / revendeur pour déployer et suivre la fidélité sur tout un réseau.
+- **Mécaniques de fidélité** : carte à tampons, carte à points, paliers / VIP.
+- **Atouts** : notifications push gratuites (Wallet et web), suivi de l'activité client, aucune application à télécharger, données non revendues (conforme RGPD), prêt en 5 minutes.
+- **Tarifs** : à partir de 29 €/mois (Starter) ; Pro 69 €/mois ; Business 199 €/mois. Tarifs annuels avantageux (295 / 699 / 1990 €). Plans mensuels sans engagement. Essai gratuit de 14 jours.
+- **Programme revendeur / marque blanche** : disponible pour agences, freelances et apporteurs d'affaires.
+- **Site officiel** : https://www.fidelopass.com
+
+## Pages clés
+
+- [Accueil](https://www.fidelopass.com/)
+- [Tarifs](https://www.fidelopass.com/pricing)
+- [FAQ — FideloPass en bref](https://www.fidelopass.com/faq)
+- [Comment ça fonctionne](https://www.fidelopass.com/comment-ca-fonctionne)
+- [Cas d'utilisation](https://www.fidelopass.com/cas-d-utilisation)
+- [Devenir revendeur](https://www.fidelopass.com/devenir-revendeur)
+- [Créer une carte (essai gratuit 14 jours)](https://www.fidelopass.com/register)
+
+## Ressources et guides (blog)
+
+- [Carte de fidélité dématérialisée : le guide complet](https://www.fidelopass.com/blog/carte-de-fidelite-dematerialisee-guide-complet)
+- [Carte de fidélité Apple Wallet & Google Wallet : comment ça marche](https://www.fidelopass.com/blog/carte-fidelite-apple-wallet-google-wallet)
+- [Carte à points ou à tampons : laquelle choisir](https://www.fidelopass.com/blog/carte-fidelite-points-ou-tampons)
+- [Combien coûte une carte de fidélité](https://www.fidelopass.com/blog/combien-coute-carte-fidelite)
+- [Carte de fidélité sans application : comment ça marche](https://www.fidelopass.com/blog/carte-fidelite-sans-application)
+- [Meilleur logiciel de carte de fidélité : comment choisir](https://www.fidelopass.com/blog/meilleur-logiciel-carte-fidelite)
+- [Carte de fidélité par métier (exemples concrets)](https://www.fidelopass.com/blog/carte-fidelite-par-metier)
+- [Tous les articles](https://www.fidelopass.com/blog)

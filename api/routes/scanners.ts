@@ -7,7 +7,7 @@ import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
 import { pushApplePassUpdate } from '../services/apple-wallet';
-import { updateGooglePassObject } from '../services/google-wallet';
+import { sendGoogleWalletMessage, updateGooglePassObject } from '../services/google-wallet';
 import { buildBillingStatusPayload, type BillingRecord } from '../services/billing';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
@@ -444,6 +444,7 @@ async function updateWalletsAfterScannerTransaction(
   db: ReturnType<typeof createServiceClient>,
   client: ScanClient,
   updatedClient: ScanClient,
+  walletMessage?: { titre: string; body: string },
 ) {
   const walletUpdates: Array<Promise<{ provider: string; ok: boolean; count?: number; error?: string }>> = [];
 
@@ -460,6 +461,18 @@ async function updateWalletsAfterScannerTransaction(
           return { provider: 'google', ok: false, error: error instanceof Error ? error.message : 'Google update failed' };
         }),
     );
+
+    // Notification visible Google Wallet (addMessage TEXT_AND_NOTIFY)
+    if (walletMessage) {
+      walletUpdates.push(
+        sendGoogleWalletMessage(client.google_pass_id, walletMessage.titre, walletMessage.body)
+          .then(() => ({ provider: 'google_message', ok: true }))
+          .catch((error) => {
+            console.error('[scanner google message]', error);
+            return { provider: 'google_message', ok: false, error: error instanceof Error ? error.message : 'Google message failed' };
+          }),
+      );
+    }
   }
 
   if (client.apple_pass_serial) {
@@ -814,7 +827,31 @@ scannersRoutes.post('/transactions', async (c) => {
     tampons_actuels: nextTampons,
     recompenses_obtenues: nextRewards,
   };
-  const wallet_update_results = await updateWalletsAfterScannerTransaction(scannerContext.db, safeClient, updatedClient);
+
+  // Message de notification wallet personnalisé selon l'opération
+  const carteFull = safeClient.cartes as { type?: string; tampons_total?: number; points_recompense?: number };
+  const isPoints = carteFull.type === 'points';
+  const newScore = isPoints ? nextPoints : nextTampons;
+  const rewardThreshold = isPoints ? (carteFull.points_recompense || 100) : (carteFull.tampons_total || 10);
+  const remainingToReward = Math.max(0, rewardThreshold - newScore);
+  const rewardJustEarned = nextRewards > (safeClient.recompenses_obtenues ?? 0);
+  let walletMessage: { titre: string; body: string } | undefined;
+  if (parsed.data.type === 'recompense') {
+    walletMessage = { titre: '✅ Récompense utilisée', body: 'Merci de votre fidélité !' };
+  } else if (parsed.data.type === 'reset') {
+    walletMessage = undefined;
+  } else if (rewardJustEarned) {
+    walletMessage = { titre: '🎁 Récompense débloquée !', body: 'Présentez votre carte pour en profiter.' };
+  } else {
+    walletMessage = {
+      titre: isPoints ? '🎉 Points ajoutés !' : '🎉 Nouveau tampon !',
+      body: remainingToReward > 0
+        ? `Plus que ${remainingToReward} avant votre récompense.`
+        : 'Votre récompense est à portée !',
+    };
+  }
+
+  const wallet_update_results = await updateWalletsAfterScannerTransaction(scannerContext.db, safeClient, updatedClient, walletMessage);
 
   return c.json({
     success: true,

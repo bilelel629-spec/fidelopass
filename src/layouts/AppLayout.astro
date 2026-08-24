@@ -1,5 +1,7 @@
 ---
 import '../styles/global.css';
+import GoogleTag from '../components/GoogleTag.astro';
+import ConversionAchat from '../components/ConversionAchat.astro';
 
 interface Props {
   title?: string;
@@ -13,6 +15,7 @@ const { title = 'Fidelopass Scanner', deferSessionCheck = false } = Astro.props;
 <html lang="fr" class="dashboard">
   <head>
     <meta charset="UTF-8" />
+    <meta name="robots" content="noindex, nofollow" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -21,6 +24,8 @@ const { title = 'Fidelopass Scanner', deferSessionCheck = false } = Astro.props;
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <title>{title}</title>
+    <GoogleTag />
+    <ConversionAchat />
   </head>
   <body class="min-h-[100dvh] bg-[#f5f9ff] text-slate-900 antialiased overflow-x-hidden" data-defer-session-check={deferSessionCheck ? 'true' : 'false'}>
     <div class="pointer-events-none fixed inset-0 overflow-hidden">

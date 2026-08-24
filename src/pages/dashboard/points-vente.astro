@@ -148,6 +148,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const editPointNom = document.getElementById('edit-point-nom') as HTMLInputElement;
   const editPointAdresse = document.getElementById('edit-point-adresse') as HTMLInputElement;
   const editPointRayon = document.getElementById('edit-point-rayon') as HTMLInputElement;
+  const newPointNom = document.getElementById('new-point-nom') as HTMLInputElement;
   const newPointAdresse = document.getElementById('new-point-adresse') as HTMLInputElement;
   const archiveModal = document.getElementById('archive-point-modal') as HTMLDivElement;
   const archiveBackdrop = document.getElementById('archive-point-backdrop') as HTMLButtonElement;
@@ -160,9 +161,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   let pointsVente: PointVente[] = [];
   let usage: { current: number; max: number; remaining: number } | null = null;
   let archivePointId: string | null = null;
+  let suggestedPointName: string | null = null;
+  let newPointNameTouched = false;
 
   initAddressAutocomplete({ input: newPointAdresse });
   initAddressAutocomplete({ input: editPointAdresse });
+  newPointNom.addEventListener('input', () => {
+    newPointNameTouched = true;
+  });
 
   function escapeHtml(value: unknown) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -337,6 +343,23 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       : 'rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700';
   }
 
+  function applyPointNameSuggestion() {
+    if (!suggestedPointName || newPointNameTouched || newPointNom.value.trim()) return;
+    newPointNom.value = suggestedPointName;
+  }
+
+  async function loadCurrentCardNameSuggestion() {
+    const res = await authFetch('/api/cartes').catch(() => null);
+    if (!res?.ok) return;
+    const payload = await res.json().catch(() => null);
+    const cardName = String(payload?.data?.nom ?? '').trim();
+    if (cardName.length < 2) return;
+    suggestedPointName = cardName;
+    newPointNom.placeholder = cardName;
+    editPointNom.placeholder = cardName;
+    applyPointNameSuggestion();
+  }
+
   async function loadPointsVente() {
     let response = await authFetch('/api/commerces/points-vente');
     if (response.status === 403) {
@@ -384,6 +407,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       addSuccess.textContent = 'Point de vente ajouté avec succès.';
       addSuccess.classList.remove('hidden');
       addForm.reset();
+      newPointNameTouched = false;
+      applyPointNameSuggestion();
       clearAddressPayload(newPointAdresse);
       (document.getElementById('new-point-rayon') as HTMLInputElement).value = '1000';
       await loadPointsVente();
@@ -442,5 +467,5 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   });
   archiveConfirmBtn.addEventListener('click', confirmArchivePoint);
 
-  await loadPointsVente();
+  await Promise.all([loadPointsVente(), loadCurrentCardNameSuggestion()]);
 </script>

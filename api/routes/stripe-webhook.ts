@@ -6,7 +6,9 @@ import {
   buildOneTimeAnnualBillingUpdate,
   buildSubscriptionBillingUpdate,
   getStripe,
-  loadPriceIds,
+  loadPriceCatalog,
+  normalizeBillingCountry,
+  normalizeBillingCurrency,
   priceMatchesSlot,
   resolvePlanFromPriceId,
   resolvePriceSlot,
@@ -120,7 +122,7 @@ async function updateResellerSubscriptionFromMetadata(
       billing_status: status === 'cancelled' ? 'canceled' : status,
       reseller_id: metadata.reseller_id,
       reseller_merchant_id: resellerMerchantId,
-      reseller_payment_mode: 'stripe_connect',
+      reseller_payment_mode: String(metadata.payment_mode ?? 'stripe_direct'),
       reseller_price_cents: centsFromMetadata(metadata.reseller_price_cents),
       reseller_platform_fee_cents: centsFromMetadata(metadata.platform_fee_cents),
       actif: !['cancelled', 'past_due', 'unpaid'].includes(status),
@@ -215,6 +217,17 @@ async function handleResellerInvoiceSucceeded(
   await handleResellerSubscriptionEvent(db, subscription);
   const amountPaid = centsFromMetadata(invoice.amount_paid);
   const platformFee = centsFromMetadata(metadata.platform_fee_cents);
+  const resellerCommission = Math.max(0, amountPaid - platformFee);
+  const invoiceAny = invoice as Stripe.Invoice & {
+    charge?: string | Stripe.Charge | null;
+    payment_intent?: string | Stripe.PaymentIntent | null;
+  };
+  const paymentIntentId = typeof invoiceAny.payment_intent === 'string'
+    ? invoiceAny.payment_intent
+    : invoiceAny.payment_intent?.id ?? null;
+  const chargeId = typeof invoiceAny.charge === 'string'
+    ? invoiceAny.charge
+    : invoiceAny.charge?.id ?? null;
   await db.from('reseller_transactions').upsert({
     reseller_id: metadata.reseller_id,
     merchant_id: metadata.merchant_id || null,
@@ -222,17 +235,53 @@ async function handleResellerInvoiceSucceeded(
     type: 'subscription_paid',
     amount_cents: amountPaid,
     platform_fee_cents: platformFee,
-    reseller_amount_cents: Math.max(0, amountPaid - platformFee),
+    reseller_amount_cents: resellerCommission,
     currency: String(invoice.currency ?? metadata.currency ?? 'eur').toLowerCase(),
     stripe_event_id: event.id,
-    stripe_payment_intent_id: typeof (invoice as any).payment_intent === 'string' ? (invoice as any).payment_intent : null,
-    stripe_charge_id: typeof (invoice as any).charge === 'string' ? (invoice as any).charge : null,
+    stripe_payment_intent_id: paymentIntentId,
+    stripe_charge_id: chargeId,
     stripe_invoice_id: invoice.id,
     metadata: {
       subscription_id: subscription.id,
       billing_reason: invoice.billing_reason,
+      payment_mode: metadata.payment_mode ?? 'stripe_direct',
     },
   }, { onConflict: 'stripe_event_id', ignoreDuplicates: true });
+  try {
+    const linePeriod = invoice.lines?.data?.[0]?.period;
+    const customerId = typeof invoice.customer === 'string'
+      ? invoice.customer
+      : (invoice.customer as Stripe.Customer | null)?.id ?? null;
+    const { error: commissionError } = await db.from('reseller_commissions').upsert({
+      reseller_id: metadata.reseller_id,
+      reseller_merchant_id: metadata.reseller_merchant_id,
+      merchant_id: metadata.merchant_id || null,
+      stripe_customer_id: customerId,
+      stripe_subscription_id: subscription.id,
+      stripe_invoice_id: invoice.id,
+      stripe_charge_id: chargeId,
+      stripe_payment_intent_id: paymentIntentId,
+      stripe_event_id: event.id,
+      period_start: linePeriod?.start ? new Date(linePeriod.start * 1000).toISOString() : null,
+      period_end: linePeriod?.end ? new Date(linePeriod.end * 1000).toISOString() : null,
+      plan: metadata.plan ?? null,
+      amount_paid_cents: amountPaid,
+      platform_fee_cents: platformFee,
+      reseller_commission_cents: resellerCommission,
+      currency: String(invoice.currency ?? metadata.currency ?? 'eur').toLowerCase(),
+      status: 'pending',
+      metadata: {
+        subscription_id: subscription.id,
+        billing_reason: invoice.billing_reason ?? null,
+        payment_mode: metadata.payment_mode ?? 'stripe_direct',
+      },
+    }, { onConflict: 'stripe_invoice_id' });
+    if (commissionError) {
+      console.warn('[stripe-webhook] reseller commission upsert failed:', commissionError.message);
+    }
+  } catch (error) {
+    console.warn('[stripe-webhook] reseller commission upsert failed:', error instanceof Error ? error.message : error);
+  }
   return true;
 }
 
@@ -278,6 +327,9 @@ stripeWebhookRoutes.post('/', async (c) => {
     console.error('[stripe-webhook] STRIPE_WEBHOOK_SECRET manquant');
     return c.json({ error: 'Configuration webhook manquante' }, 500);
   }
+  if (!webhookSecret.startsWith('whsec_')) {
+    console.warn('[stripe-webhook] STRIPE_WEBHOOK_SECRET ne commence pas par whsec_. Vérifiez le secret du endpoint Stripe exact.');
+  }
 
   const sig = c.req.header('stripe-signature');
   if (!sig) return c.json({ error: 'Signature manquante' }, 400);
@@ -293,8 +345,13 @@ stripeWebhookRoutes.post('/', async (c) => {
   }
 
   const db = createServiceClient();
-  const priceIds = loadPriceIds();
-  console.log('[stripe-webhook] Event :', event.type);
+  const priceIds = loadPriceCatalog();
+  console.log('[stripe-webhook] event received', {
+    id: event.id,
+    type: event.type,
+    livemode: event.livemode,
+    created: event.created,
+  });
 
   // Idempotency : ignore les événements déjà traités (retry Stripe)
   const { data: alreadyProcessed } = await db
@@ -332,7 +389,12 @@ stripeWebhookRoutes.post('/', async (c) => {
         }
 
         if (session.metadata?.onboarding_addon === 'true') {
-          await db.from('commerces').update({ onboarding_purchased: true }).eq('id', commerceId);
+          await db.from('commerces').update({
+            onboarding_purchased: true,
+            billing_currency: normalizeBillingCurrency(session.currency ?? session.metadata?.billing_currency),
+            billing_country: normalizeBillingCountry(session.metadata?.billing_country),
+            billing_currency_locked_at: new Date().toISOString(),
+          }).eq('id', commerceId);
           console.log('[stripe-webhook] → onboarding_purchased = true (addon inclus au checkout abonnement)');
         }
 
@@ -360,13 +422,22 @@ stripeWebhookRoutes.post('/', async (c) => {
             plan: matchedPlan,
             billing_status: session.mode === 'subscription' ? 'trialing' : 'active',
             stripe_price_id: planPriceId,
+            billing_currency: normalizeBillingCurrency(session.currency ?? session.metadata?.billing_currency),
+            billing_country: normalizeBillingCountry(session.metadata?.billing_country),
+            billing_currency_locked_at: new Date().toISOString(),
           };
           if (matchedPlan === 'business') {
             planUpdate.onboarding_purchased = true;
           }
 
           if (session.mode === 'payment' && planSlot) {
-            Object.assign(planUpdate, buildOneTimeAnnualBillingUpdate(planSlot, planPriceId, session.created));
+            Object.assign(planUpdate, buildOneTimeAnnualBillingUpdate(
+              planSlot,
+              planPriceId,
+              session.created,
+              normalizeBillingCurrency(session.currency ?? session.metadata?.billing_currency),
+              normalizeBillingCountry(session.metadata?.billing_country),
+            ));
           }
 
           if (session.subscription && typeof session.subscription === 'string') {
@@ -508,7 +579,11 @@ stripeWebhookRoutes.post('/', async (c) => {
         if (commerceId) {
           const { data: comm } = await db.from('commerces').select('billing_status').eq('id', commerceId).maybeSingle();
           if (comm?.billing_status === 'past_due') {
-            await db.from('commerces').update({ billing_status: 'active' }).eq('id', commerceId);
+            await db.from('commerces').update({
+              billing_status: 'active',
+              billing_currency: normalizeBillingCurrency(invoice.currency),
+              billing_currency_locked_at: new Date().toISOString(),
+            }).eq('id', commerceId);
             console.log('[stripe-webhook] invoice.payment_succeeded → billing_status = active (était past_due) | commerce:', commerceId);
           } else {
             console.log('[stripe-webhook] invoice.payment_succeeded | commerce:', commerceId, '| statut:', comm?.billing_status);
@@ -557,7 +632,11 @@ stripeWebhookRoutes.post('/', async (c) => {
         }
         if (!commerceId) break;
 
-        await db.from('commerces').update({ billing_status: 'past_due' }).eq('id', commerceId);
+        await db.from('commerces').update({
+          billing_status: 'past_due',
+          billing_currency: normalizeBillingCurrency(invoice.currency),
+          billing_currency_locked_at: new Date().toISOString(),
+        }).eq('id', commerceId);
         const contact = await getCommerceBillingContact(db, commerceId, invoice.customer_email ?? null);
         if (contact.toEmail) {
           await sendBillingLifecycleEmail({
@@ -616,6 +695,19 @@ stripeWebhookRoutes.post('/', async (c) => {
             stripe_charge_id: charge.id,
             metadata: { original_transaction_id: tx.id, refund_count: charge.refunds?.data?.length ?? null },
           }, { onConflict: 'stripe_event_id', ignoreDuplicates: true });
+          try {
+            const filters = [`stripe_charge_id.eq.${charge.id}`];
+            if (paymentIntentId) filters.push(`stripe_payment_intent_id.eq.${paymentIntentId}`);
+            const { error: commissionRefundError } = await db
+              .from('reseller_commissions')
+              .update({ status: 'refunded', updated_at: new Date().toISOString() })
+              .or(filters.join(','));
+            if (commissionRefundError) {
+              console.warn('[stripe-webhook] reseller commission refund sync failed:', commissionRefundError.message);
+            }
+          } catch (error) {
+            console.warn('[stripe-webhook] reseller commission refund sync failed:', error instanceof Error ? error.message : error);
+          }
         }
         break;
       }

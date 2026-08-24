@@ -2,12 +2,54 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PublicFooter from '../components/marketing/PublicFooter.astro';
 import PublicNav from '../components/marketing/PublicNav.astro';
+
+const homeJsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Fidelopass',
+    url: 'https://www.fidelopass.com',
+    logo: 'https://www.fidelopass.com/logo-premium.png',
+    description: 'La solution française de fidélité nouvelle génération, dans Apple Wallet et Google Wallet.',
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'Fidelopass',
+    applicationCategory: 'BusinessApplication',
+    applicationSubCategory: 'Logiciel de programme de fidélité',
+    operatingSystem: 'iOS, Android, Web',
+    url: 'https://www.fidelopass.com',
+    description: 'Cartes de fidélité dématérialisées pour commerces, du commerce indépendant aux chaînes et réseaux. Carte dans Apple Wallet, Google Wallet et sur le web — disponible sur 100% des smartphones, sans application pour les clients. Tampons, points et paliers, notifications incluses.',
+    featureList: [
+      'Carte de fidélité dans Apple Wallet, Google Wallet et sur le web',
+      'Compatible 100% des smartphones (même sans Apple ni Google Wallet)',
+      'Aucune application à installer pour les clients',
+      'Gestion multi-points de vente, chaînes et réseaux',
+      'Mécaniques tampons, points et paliers / VIP',
+      'Notifications push gratuites (Wallet et web)',
+      'Suivi de l’activité client',
+      'Données non revendues (conforme RGPD)',
+      'Mise en place en 5 minutes',
+      'Programme revendeur / marque blanche',
+    ],
+    offers: {
+      '@type': 'AggregateOffer',
+      priceCurrency: 'EUR',
+      lowPrice: '29',
+      highPrice: '199',
+      offerCount: 3,
+      description: 'À partir de 29€/mois, sans engagement — essai gratuit 14 jours.',
+    },
+  },
+];
 ---
 
 <BaseLayout
   theme="light"
-  title="Fidelopass — Cartes de fidélité Apple Wallet & Google Wallet pour commerces"
-  description="Créez une carte de fidélité dans Apple Wallet et Google Wallet en 5 minutes. Sans application pour vos clients. Essai gratuit 14 jours."
+  title="Fidelopass — La solution française de fidélité nouvelle génération"
+  description="La solution française de fidélité nouvelle génération, déjà plus de 2 000 commerces. Créez votre carte dans Apple Wallet et Google Wallet en 5 minutes, sans application pour vos clients. Essai gratuit 14 jours."
+  jsonLd={homeJsonLd}
 >
   <PublicNav currentPath="/" />
 
@@ -20,7 +62,10 @@ import PublicNav from '../components/marketing/PublicNav.astro';
     </div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-[1.02fr_0.98fr] gap-7 lg:gap-12 items-center">
       <div class="relative">
-        <span class="mb-4 inline-flex items-center rounded-full border border-sky-200 bg-white px-3.5 py-1.5 text-[0.67rem] font-semibold uppercase tracking-[0.22em] text-sky-700 shadow-sm sm:px-4 sm:py-2 sm:text-xs sm:tracking-[0.24em] dark:border-slate-700 dark:bg-slate-900 dark:text-sky-300">Fidélité Wallet-first · Sans application</span>
+        <span class="mb-5 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-indigo-600 to-violet-500 px-4 py-2 text-sm font-extrabold text-white shadow-[0_14px_30px_-12px_rgba(79,70,229,0.7)] ring-1 ring-white/20 sm:px-5 sm:py-2.5 sm:text-base">
+          <span class="text-lg sm:text-xl" aria-hidden="true">🇫🇷</span>
+          <span>La solution française de fidélité nouvelle génération</span>
+        </span>
         <h1 class="font-display text-[2.35rem] sm:text-[4.15rem] font-bold text-slate-900 leading-[0.98] tracking-[-0.04em] dark:text-slate-100">
           Transformez vos
           <br />
@@ -31,6 +76,12 @@ import PublicNav from '../components/marketing/PublicNav.astro';
         <p class="mt-4 max-w-lg text-base leading-relaxed text-slate-500 sm:mt-6 sm:text-lg dark:text-slate-300">
           Créez une carte de fidélité directement dans Apple Wallet et Google Wallet.
           Vos clients l'ajoutent en 20 secondes — sans compte, sans téléchargement.
+        </p>
+        <p class="mt-3 hidden items-center gap-2 text-sm font-semibold text-slate-700 sm:flex dark:text-slate-200">
+          <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
+            <svg viewBox="0 0 20 20" class="h-3.5 w-3.5" fill="none" aria-hidden="true"><path d="M5 10.2 8.1 13.3 15 6.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </span>
+          Déjà plus de <span class="text-indigo-600 dark:text-indigo-300">2 000 commerces</span> nous font confiance.
         </p>
 
         <!-- Visuel mobile (placé avant le CTA principal) -->
@@ -56,6 +107,12 @@ import PublicNav from '../components/marketing/PublicNav.astro';
             <div class="hero-float hero-float--three"><strong>0 app</strong><span>à télécharger</span></div>
           </div>
         </div>
+        <p class="mx-auto mt-1 flex max-w-sm items-center justify-center gap-2 text-center text-sm font-semibold leading-6 text-slate-700 sm:hidden dark:text-slate-200">
+          <span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
+            <svg viewBox="0 0 20 20" class="h-4 w-4" fill="none" aria-hidden="true"><path d="M5 10.2 8.1 13.3 15 6.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </span>
+          <span>Déjà plus de <strong class="text-indigo-600 dark:text-indigo-300">2 000 commerces</strong> nous font confiance.</span>
+        </p>
 
         <div class="mt-5 flex flex-col gap-3 sm:mt-8 sm:flex-row">
           <a href="/register" class="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-7 py-3.5 text-base font-semibold text-white shadow-[0_18px_40px_rgba(15,23,42,0.18)] transition-all hover:-translate-y-0.5 hover:bg-slate-900">
@@ -236,6 +293,28 @@ import PublicNav from '../components/marketing/PublicNav.astro';
     </div>
   </section>
 
+  <!-- SHOWCASE CARTES WALLET -->
+  <section class="bg-[linear-gradient(180deg,#f6f9ff_0%,#ffffff_100%)] py-12 sm:py-20 dark:bg-[linear-gradient(180deg,#020617_0%,#0b1120_100%)]">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+      <div class="text-center max-w-2xl mx-auto">
+        <span class="inline-flex items-center rounded-full border border-sky-200 bg-white px-3.5 py-1.5 text-[0.67rem] font-semibold uppercase tracking-[0.22em] text-sky-700 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-sky-300">Des cartes à votre image</span>
+        <h2 class="font-display text-4xl sm:text-5xl font-bold text-slate-900 mt-3 dark:text-slate-100">Une carte unique pour chaque commerce</h2>
+        <p class="text-slate-500 text-base sm:text-lg mt-4 leading-relaxed dark:text-slate-300">
+          Couleurs, logo, visuel, récompenses : chaque carte reflète votre identité.
+          Restaurant, boucherie, coiffeur, fleuriste, pizzeria, café, sport… elle s'adapte à tous les métiers, dans Apple Wallet et Google Wallet.
+        </p>
+      </div>
+      <div class="mt-8 sm:mt-12 overflow-hidden rounded-[1.75rem] border border-slate-200/70 bg-white shadow-[0_30px_80px_-40px_rgba(15,23,42,0.4)] dark:border-slate-800 dark:bg-slate-900">
+        <img
+          src="/images/showcase-cartes-wallet.jpeg"
+          alt="Exemples de cartes de fidélité Fidelopass personnalisées dans Apple Wallet et Google Wallet : restaurant, boucherie, coiffeur, fleuriste, nail salon, pizzeria, sport, café"
+          loading="lazy"
+          class="w-full h-auto"
+        />
+      </div>
+    </div>
+  </section>
+
   <!-- EXPÉRIENCE CLIENT -->
   <section class="bg-white py-12 sm:py-20 dark:bg-slate-950">
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
@@ -328,7 +407,7 @@ import PublicNav from '../components/marketing/PublicNav.astro';
                   data-home-roi-cost={plan.price}
                 >
                   <span class="block text-sm font-bold">{plan.name}</span>
-                  <span class="mt-1 block text-xs text-slate-500">{plan.price}€ / mois</span>
+                  <span class="home-roi-plan-price mt-1 block text-xs text-slate-500">{plan.price}€ / mois</span>
                 </button>
               ))}
             </div>
@@ -373,7 +452,7 @@ import PublicNav from '../components/marketing/PublicNav.astro';
               <p id="home-roi-roi" class="text-lg font-extrabold text-blue-700">ROI : x49</p>
               <p id="home-roi-roi-text" class="mt-1 text-xs leading-5 text-slate-600">Pour 1€ investi dans Fidelopass, vous pourriez générer environ 49€ de chiffre d’affaires supplémentaire.</p>
             </div>
-            <p class="mt-4 text-xs leading-5 text-blue-100/80">Estimation indicative basée sur une visite supplémentaire par client revenu. Les résultats peuvent varier selon votre activité, votre fréquence de passage et vos campagnes.</p>
+            <p class="mt-4 text-xs leading-5 text-blue-100/80">Simulation à titre indicatif — résultats non garantis. Le taux de retour (27% par défaut) est une hypothèse que vous pouvez ajuster ; les résultats réels dépendent de votre activité, de votre fréquence de passage et de vos campagnes.</p>
           </div>
         </div>
       </div>
@@ -765,6 +844,11 @@ import PublicNav from '../components/marketing/PublicNav.astro';
         <p class="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-slate-500 dark:text-slate-300">
           Commencez avec l’essai gratuit, choisissez ensuite le plan adapté à votre volume de cartes et à vos besoins de relance.
         </p>
+        <div class="mt-6 inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900" aria-label="Pays et devise">
+          <button id="home-currency-eur" type="button" class="rounded-lg px-3 py-2 text-sm font-semibold">France · EUR</button>
+          <button id="home-currency-chf" type="button" class="rounded-lg px-3 py-2 text-sm font-semibold">Suisse · CHF</button>
+        </div>
+        <p id="home-currency-caption" class="mt-2 text-sm font-medium text-slate-500">Prix affichés en EUR.</p>
       </div>
 
       <div class="grid gap-5 lg:grid-cols-4">
@@ -772,6 +856,7 @@ import PublicNav from '../components/marketing/PublicNav.astro';
           {
             name: 'Starter',
             price: '29€',
+            annualValue: '295',
             note: 'par mois',
             monthly: '295€/an · économisez 15%',
             desc: 'Pour lancer une carte de fidélité Wallet rapidement.',
@@ -781,6 +866,7 @@ import PublicNav from '../components/marketing/PublicNav.astro';
           {
             name: 'Pro',
             price: '69€',
+            annualValue: '699',
             note: 'par mois',
             monthly: '699€/an · économisez 15%',
             desc: 'Pour piloter plus finement vos relances et votre croissance.',
@@ -790,15 +876,17 @@ import PublicNav from '../components/marketing/PublicNav.astro';
           {
             name: 'Business',
             price: '199€',
+            annualValue: '1990',
             note: 'par mois',
             monthly: '1990€/an · économisez 16%',
-            desc: 'Pour les équipes qui veulent cartes illimitées et setup inclus.',
+            desc: 'Pour les équipes qui veulent cartes illimitées et accompagnement inclus.',
             highlight: false,
-            features: ['Cartes actives illimitées', 'Scanners illimités', 'Setup compris', 'Automatisations incluses', 'Analytics avancés', 'Support prioritaire'],
+            features: ['Cartes actives illimitées', 'Scanners illimités', 'Accompagnement setup offert', 'Automatisations incluses', 'Analytics avancés', 'Support prioritaire'],
           },
           {
             name: 'Sur mesure',
             price: 'Sur devis',
+            annualValue: '',
             note: 'réseau ou franchise',
             monthly: 'Accompagnement dédié',
             desc: 'Pour les enseignes avec plusieurs établissements ou besoins spécifiques.',
@@ -814,11 +902,18 @@ import PublicNav from '../components/marketing/PublicNav.astro';
             <p class="mt-3 min-h-[3rem] text-sm leading-6 text-slate-500 dark:text-slate-300">{plan.desc}</p>
             <div class="mt-6">
               <div class="flex items-end gap-2">
-                <span class="font-display text-5xl font-bold tracking-[-0.06em] text-slate-950 dark:text-white">{plan.price}</span>
+                <span
+                  class="font-display text-5xl font-bold tracking-[-0.06em] text-slate-950 dark:text-white"
+                  data-home-plan-price={plan.price !== 'Sur devis' ? plan.price.replace(/[^\d]/g, '') : undefined}
+                >{plan.price}</span>
                 {plan.price !== 'Sur devis' && <span class="pb-2 text-sm font-semibold text-slate-500">HT</span>}
               </div>
               <p class="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">{plan.note}</p>
-              <p class="mt-1 text-sm text-slate-400">{plan.monthly}</p>
+              <p
+                class="mt-1 text-sm text-slate-400"
+                data-home-plan-annual={plan.price !== 'Sur devis' ? plan.annualValue : undefined}
+                data-home-plan-saving={plan.name === 'Business' ? '16%' : '15%'}
+              >{plan.monthly}</p>
             </div>
             <ul class="mt-6 space-y-3">
               {plan.features.map((feature) => (
@@ -828,7 +923,12 @@ import PublicNav from '../components/marketing/PublicNav.astro';
                 </li>
               ))}
             </ul>
-            <a href={plan.name === 'Sur mesure' ? '/contact' : '/register'} class={`mt-7 inline-flex w-full items-center justify-center rounded-2xl px-5 py-3.5 text-sm font-bold transition-all ${plan.highlight ? 'bg-blue-600 text-white shadow-[0_18px_38px_rgba(37,99,235,0.25)] hover:bg-blue-700' : 'border border-slate-200 bg-white text-slate-800 hover:border-blue-200 hover:text-blue-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100'}`}>
+            {plan.name !== 'Sur mesure' && (
+              <p class="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-xs font-extrabold uppercase tracking-[0.12em] text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300">
+                Accompagnement offert · <span class="line-through opacity-70" data-home-setup-value>90 €</span>
+              </p>
+            )}
+            <a data-home-pricing-cta={plan.name === 'Sur mesure' ? undefined : 'true'} href={plan.name === 'Sur mesure' ? '/contact' : '/register'} class={`mt-7 inline-flex w-full items-center justify-center rounded-2xl px-5 py-3.5 text-sm font-bold transition-all ${plan.highlight ? 'bg-blue-600 text-white shadow-[0_18px_38px_rgba(37,99,235,0.25)] hover:bg-blue-700' : 'border border-slate-200 bg-white text-slate-800 hover:border-blue-200 hover:text-blue-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100'}`}>
               {plan.name === 'Sur mesure' ? 'Demander une démo' : 'Démarrer l’essai gratuit'}
             </a>
           </article>
@@ -846,9 +946,9 @@ import PublicNav from '../components/marketing/PublicNav.astro';
       </div>
       <div class="space-y-3" id="faq-list">
         {[
-          { q: 'Mes clients doivent-ils télécharger une application ?', a: 'Non. Vos clients reçoivent la carte directement dans Apple Wallet (iPhone) ou Google Wallet (Android), déjà installés sur tous les smartphones. Aucun téléchargement supplémentaire.' },
+          { q: 'Mes clients doivent-ils télécharger une application ?', a: 'Non, jamais. Sur iPhone la carte s’ajoute à Apple Wallet, sur Android à Google Wallet, et sur tout autre téléphone elle reste accessible via une version web. Résultat : elle fonctionne sur 100% des smartphones, sans aucune application à installer.' },
           { q: 'Comment fonctionne l\'essai gratuit de 14 jours ?', a: 'Vous choisissez un forfait et ajoutez votre carte bancaire pour activer l’essai. Vous pouvez résilier à tout moment pendant les 14 jours. Sans résiliation, l’abonnement démarre automatiquement sur le forfait choisi.' },
-          { q: 'La carte fonctionne-t-elle sur iPhone et Android ?', a: 'Oui. Fidelopass génère automatiquement une carte Apple Wallet (iPhone) et Google Wallet (Android). Vos clients reçoivent le bon format selon leur téléphone.' },
+          { q: 'La carte fonctionne-t-elle sur iPhone et Android ?', a: 'Oui, sur les deux — et au-delà. Fidelopass génère automatiquement une carte Apple Wallet (iPhone) et Google Wallet (Android), et propose une version web pour tout autre téléphone. Aucun client n’est exclu, quel que soit son appareil.' },
           { q: 'Combien de temps pour créer sa première carte ?', a: 'Moins de 5 minutes. Choisissez le type (tampons, points ou paliers), personnalisez couleurs et logo — votre carte est prête.' },
           { q: 'Puis-je changer de plan à tout moment ?', a: 'Oui. Passez à un plan supérieur ou résiliez à tout moment. Pas d\'engagement minimum sur les plans mensuels.' },
         ].map((item, i) => (
@@ -1344,6 +1444,58 @@ import PublicNav from '../components/marketing/PublicNav.astro';
 </style>
 
 <script>
+  const billingCurrencyKey = 'fidelopass.billing.currency';
+  const homeCurrencyEur = document.getElementById('home-currency-eur') as HTMLButtonElement | null;
+  const homeCurrencyChf = document.getElementById('home-currency-chf') as HTMLButtonElement | null;
+  const homeCurrencyCaption = document.getElementById('home-currency-caption');
+  const storedHomeCurrency = localStorage.getItem(billingCurrencyKey);
+  let homeBillingCurrency: 'eur' | 'chf' = storedHomeCurrency === 'chf'
+    ? 'chf'
+    : storedHomeCurrency === 'eur'
+      ? 'eur'
+      : (/[-_](CH)$/i.test(navigator.language) || Intl.DateTimeFormat().resolvedOptions().timeZone === 'Europe/Zurich' ? 'chf' : 'eur');
+
+  function updateHomeCurrency() {
+    const active = 'bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950';
+    const inactive = 'text-slate-500 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800';
+    if (homeCurrencyEur) homeCurrencyEur.className = `rounded-lg px-3 py-2 text-sm font-semibold ${homeBillingCurrency === 'eur' ? active : inactive}`;
+    if (homeCurrencyChf) homeCurrencyChf.className = `rounded-lg px-3 py-2 text-sm font-semibold ${homeBillingCurrency === 'chf' ? active : inactive}`;
+    if (homeCurrencyCaption) {
+      homeCurrencyCaption.textContent = homeBillingCurrency === 'chf'
+        ? 'Prix affichés en CHF pour les commerces suisses.'
+        : 'Prix affichés en EUR pour les commerces français et européens.';
+    }
+    document.querySelectorAll<HTMLElement>('[data-home-plan-price]').forEach((element) => {
+      const value = element.dataset.homePlanPrice ?? '0';
+      element.textContent = homeBillingCurrency === 'chf' ? `${value} CHF` : `${value} €`;
+    });
+    document.querySelectorAll<HTMLElement>('[data-home-plan-annual]').forEach((element) => {
+      const value = element.dataset.homePlanAnnual ?? '0';
+      const saving = element.dataset.homePlanSaving ?? '15%';
+      element.textContent = `${homeBillingCurrency === 'chf' ? `${value} CHF` : `${value} €`}/an · économisez ${saving}`;
+    });
+    document.querySelectorAll<HTMLElement>('[data-home-setup-value]').forEach((element) => {
+      element.textContent = homeBillingCurrency === 'chf' ? '90 CHF' : '90 €';
+    });
+  }
+
+  homeCurrencyEur?.addEventListener('click', () => {
+    homeBillingCurrency = 'eur';
+    localStorage.setItem(billingCurrencyKey, homeBillingCurrency);
+    updateHomeCurrency();
+    updateHomeRoi();
+  });
+  homeCurrencyChf?.addEventListener('click', () => {
+    homeBillingCurrency = 'chf';
+    localStorage.setItem(billingCurrencyKey, homeBillingCurrency);
+    updateHomeCurrency();
+    updateHomeRoi();
+  });
+  document.querySelectorAll<HTMLElement>('[data-home-pricing-cta]').forEach((link) => {
+    link.addEventListener('click', () => localStorage.setItem(billingCurrencyKey, homeBillingCurrency));
+  });
+  updateHomeCurrency();
+
   document.querySelectorAll('#faq-list [data-faq]').forEach((item) => {
     const btn = item.querySelector('button');
     const answer = item.querySelector('.faq-answer');
@@ -1377,7 +1529,8 @@ import PublicNav from '../components/marketing/PublicNav.astro';
   let selectedHomeRoiPlan = 'pro';
 
   function homeEuro(value: number) {
-    return `${Math.round(value).toLocaleString('fr-FR')}€`;
+    const amount = Math.round(value).toLocaleString('fr-FR');
+    return homeBillingCurrency === 'chf' ? `${amount} CHF` : `${amount} €`;
   }
 
   function updateHomeRoi() {
@@ -1398,21 +1551,30 @@ import PublicNav from '../components/marketing/PublicNav.astro';
       button.classList.toggle('border-indigo-500', active);
       button.classList.toggle('bg-indigo-50', active);
       button.classList.toggle('shadow-[0_16px_36px_-28px_rgba(79,70,229,0.65)]', active);
+      const price = button.querySelector<HTMLElement>('.home-roi-plan-price');
+      if (price) {
+        const amount = button.dataset.homeRoiCost ?? '0';
+        price.textContent = `${homeBillingCurrency === 'chf' ? `${amount} CHF` : `${amount} €`} / mois`;
+      }
     });
 
     if (homeRoiCardsLabel) homeRoiCardsLabel.textContent = `${cards.toLocaleString('fr-FR')} clients`;
-    if (homeRoiBasketLabel) homeRoiBasketLabel.textContent = `${basket.toLocaleString('fr-FR')}€`;
+    if (homeRoiBasketLabel) homeRoiBasketLabel.textContent = homeEuro(basket);
     if (homeRoiReturnLabel) homeRoiReturnLabel.textContent = `${returnRate}%`;
     if (homeRoiProfit) homeRoiProfit.textContent = `${homeEuro(profit)} / mois`;
     if (homeRoiYearly) homeRoiYearly.textContent = `≈ ${homeEuro(profit * 12)} / an`;
     if (homeRoiDetailClients) homeRoiDetailClients.textContent = `${cards.toLocaleString('fr-FR')} clients fidélisés`;
     if (homeRoiDetailReturn) homeRoiDetailReturn.textContent = `${returnRate}% reviennent 1 fois dans le mois`;
     if (homeRoiDetailVisits) homeRoiDetailVisits.textContent = `${returnClients.toLocaleString('fr-FR')} visites supplémentaires`;
-    if (homeRoiDetailBasket) homeRoiDetailBasket.textContent = `Panier moyen : ${basket.toLocaleString('fr-FR')}€`;
+    if (homeRoiDetailBasket) homeRoiDetailBasket.textContent = `Panier moyen : ${homeEuro(basket)}`;
     if (homeRoiDetailRevenue) homeRoiDetailRevenue.textContent = `CA généré : +${homeEuro(revenue)}`;
-    if (homeRoiPlanCost) homeRoiPlanCost.textContent = `Abonnement ${planName} : -${cost}€`;
+    if (homeRoiPlanCost) homeRoiPlanCost.textContent = `Abonnement ${planName} : -${homeEuro(cost)}`;
     if (homeRoiRoi) homeRoiRoi.textContent = `ROI : x${roi}`;
-    if (homeRoiRoiText) homeRoiRoiText.textContent = `Pour 1€ investi dans Fidelopass, vous pourriez générer environ ${roi}€ de chiffre d’affaires supplémentaire.`;
+    if (homeRoiRoiText) {
+      const unit = homeBillingCurrency === 'chf' ? '1 CHF' : '1 €';
+      const generated = homeBillingCurrency === 'chf' ? `${roi} CHF` : `${roi} €`;
+      homeRoiRoiText.textContent = `Pour ${unit} investi dans Fidelopass, vous pourriez générer environ ${generated} de chiffre d’affaires supplémentaire.`;
+    }
   }
 
   homeRoiButtons.forEach((button) => {

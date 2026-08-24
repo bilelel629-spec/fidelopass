@@ -6,6 +6,8 @@ import { adminMiddleware } from '../middleware/admin';
 import { z } from 'zod';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
 import { appendAdminAuditLog, listAdminAuditLogs } from '../services/admin-audit';
+import { getStripe } from '../services/stripe-billing';
+import { getPublicSiteUrl } from '../utils/public-site-url';
 import { adminResellerPaymentsRoutes, adminResellerRoutes } from './admin-resellers';
 
 export const adminRoutes = new Hono<ApiEnv>();
@@ -1048,4 +1050,99 @@ adminRoutes.patch('/commerces/:id/card-assistance', async (c) => {
   });
 
   return c.json({ data: result.data });
+});
+
+/** DELETE /api/admin/commerces/:id — Suppression définitive (tests uniquement) */
+adminRoutes.delete('/commerces/:id', async (c) => {
+  const commerceId = c.req.param('id');
+  if (!commerceId) return c.json({ error: 'Identifiant requis.' }, 400);
+
+  const adminUser = c.get('user');
+  const adminUserId = c.get('userId') as string;
+  const db = createServiceClient();
+
+  const { data: commerce, error: fetchError } = await db
+    .from('commerces')
+    .select('id, nom, user_id, stripe_subscription_id')
+    .eq('id', commerceId)
+    .single();
+
+  if (fetchError || !commerce) return c.json({ error: 'Commerce introuvable.' }, 404);
+
+  // Annuler le sub Stripe (best-effort)
+  if (commerce.stripe_subscription_id) {
+    try {
+      const stripe = getStripe();
+      await stripe.subscriptions.cancel(commerce.stripe_subscription_id, { prorate: false });
+    } catch (e) {
+      console.warn('[admin] stripe subscription cancel failed (commerce delete):', e instanceof Error ? e.message : e);
+    }
+  }
+
+  // Supprimer l'auth user → cascade DB vers commerces et tout le reste
+  if (commerce.user_id) {
+    const { error: authDeleteError } = await db.auth.admin.deleteUser(commerce.user_id);
+    if (authDeleteError) {
+      console.warn('[admin] auth user delete failed, deleting commerce row directly:', authDeleteError.message);
+      await db.from('commerces').delete().eq('id', commerceId);
+    }
+  } else {
+    await db.from('commerces').delete().eq('id', commerceId);
+  }
+
+  await appendAdminAuditLog({
+    adminUserId,
+    adminEmail: adminUser?.email ?? null,
+    action: 'commerce.hard_delete',
+    targetType: 'commerce',
+    targetId: commerceId,
+    payload: { nom: commerce.nom, user_id: commerce.user_id },
+  });
+
+  return c.json({ ok: true });
+});
+
+/** POST /api/admin/commerces/:id/impersonate — Génère un lien de connexion en tant que ce commerçant (admin) */
+adminRoutes.post('/commerces/:id/impersonate', async (c) => {
+  const commerceId = c.req.param('id');
+  if (!commerceId) return c.json({ error: 'Identifiant requis.' }, 400);
+
+  const adminUser = c.get('user');
+  const adminUserId = c.get('userId') as string;
+  const db = createServiceClient();
+
+  const { data: commerce, error: fetchError } = await db
+    .from('commerces')
+    .select('id, nom, user_id')
+    .eq('id', commerceId)
+    .single();
+  if (fetchError || !commerce) return c.json({ error: 'Commerce introuvable.' }, 404);
+  if (!commerce.user_id) return c.json({ error: 'Ce commerce n’a pas de compte utilisateur lié.' }, 409);
+
+  // Récupère l'email du compte pour générer le magic link Supabase
+  const { data: authResult, error: authError } = await db.auth.admin.getUserById(commerce.user_id);
+  const email = authResult?.user?.email;
+  if (authError || !email) return c.json({ error: 'Impossible de récupérer le compte du commerçant.' }, 500);
+
+  const redirectTo = `${getPublicSiteUrl()}/auth/confirm?redirect=${encodeURIComponent('/dashboard/carte')}`;
+  const { data: linkData, error: linkError } = await db.auth.admin.generateLink({
+    type: 'magiclink',
+    email,
+    options: { redirectTo },
+  });
+  if (linkError || !linkData?.properties?.action_link) {
+    console.error('[admin impersonate] generateLink failed:', linkError?.message);
+    return c.json({ error: 'Impossible de générer le lien de connexion.' }, 500);
+  }
+
+  await appendAdminAuditLog({
+    adminUserId,
+    adminEmail: adminUser?.email ?? null,
+    action: 'commerce.impersonate',
+    targetType: 'commerce',
+    targetId: commerceId,
+    payload: { nom: commerce.nom, user_id: commerce.user_id, merchant_email: email },
+  });
+
+  return c.json({ data: { action_link: linkData.properties.action_link } });
 });

@@ -1,6 +1,8 @@
 ---
 import '../styles/global.css';
 import DashboardNav from '../components/dashboard/DashboardNav.astro';
+import GoogleTag from '../components/GoogleTag.astro';
+import ConversionAchat from '../components/ConversionAchat.astro';
 
 interface Props {
   title?: string;
@@ -14,12 +16,15 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
 <html lang="fr" class="dashboard">
   <head>
     <meta charset="UTF-8" />
+    <meta name="robots" content="noindex, nofollow" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f5f9ff" />
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <title>{title}</title>
+    <GoogleTag />
+    <ConversionAchat />
   </head>
   <body class="min-h-screen bg-[#f7fbff] text-slate-900 antialiased">
     <div class="pointer-events-none fixed inset-0 overflow-hidden">
@@ -501,6 +506,16 @@ const { title = 'Dashboard — Fidelopass', activeNav = '' } = Astro.props;
     }
 
     if (!billing.payload?.data?.has_access) {
+      const reseller = await fetch(`${API}/api/reseller/me`, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      }).then(async (r) => (r.ok ? await r.json().catch(() => null) : null)).catch(() => null);
+      if (reseller?.data) {
+        window.location.replace('/reseller');
+        return;
+      }
       window.location.replace('/abonnement/choix');
       return;
     }

@@ -1,0 +1,214 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PublicNav from '../components/marketing/PublicNav.astro';
+import PublicFooter from '../components/marketing/PublicFooter.astro';
+
+// Faits clés (vrais, alignés sur la page Tarifs).
+const facts = [
+  { label: 'Produit', value: 'Carte de fidélité dématérialisée dans Apple Wallet, Google Wallet et sur le web' },
+  { label: 'Compatibilité', value: '100% des smartphones — iPhone, Android, et tout autre via une version web' },
+  { label: 'Pour qui', value: 'Du commerce indépendant aux chaînes, réseaux et enseignes multi-établissements' },
+  { label: 'Application', value: 'Aucune — Apple Wallet, Google Wallet ou simple lien web' },
+  { label: 'Mécaniques', value: 'Tampons, points, paliers / VIP' },
+  { label: 'Tarifs', value: 'À partir de 29 €/mois — sans engagement' },
+  { label: 'Essai', value: '14 jours gratuits' },
+  { label: 'Mise en place', value: '≈ 5 minutes, sans compétence technique' },
+];
+
+// FAQ formulée pour répondre directement aux questions des commerçants (et des IA).
+const faq = [
+  {
+    q: "Qu'est-ce que FideloPass ?",
+    a: "FideloPass est une solution française de carte de fidélité dématérialisée pour les commerces de proximité. La carte de fidélité de vos clients vit directement dans Apple Wallet ou Google Wallet, sans aucune application à installer.",
+  },
+  {
+    q: "Pour quels types de commerces FideloPass est-il fait ?",
+    a: "Du commerce indépendant jusqu'aux chaînes et réseaux : cafés, boulangeries, restaurants, coiffeurs, barbiers, instituts de beauté, ongleries, boutiques, fleuristes, food trucks, salles de sport, pressings, mais aussi enseignes multi-établissements. FideloPass s'adapte aussi bien à une boutique unique qu'à un réseau de points de vente.",
+  },
+  {
+    q: "FideloPass convient-il à plusieurs établissements, une chaîne ou un réseau ?",
+    a: "Oui. FideloPass gère plusieurs points de vente, chacun avec sa propre carte, son nom et son adresse. Pour les enseignes et réseaux, un programme partenaire / revendeur permet de déployer et de suivre la fidélité sur l'ensemble des établissements. La solution passe ainsi du commerce indépendant à la chaîne sans changer d'outil.",
+  },
+  {
+    q: "Mes clients doivent-ils télécharger une application ?",
+    a: "Non, jamais. Sur iPhone la carte s'ajoute à Apple Wallet, sur Android à Google Wallet, et sur tout autre téléphone elle reste accessible via une simple version web — sans aucune application à installer.",
+  },
+  {
+    q: "FideloPass fonctionne-t-il sur tous les téléphones, même sans Apple ou Google Wallet ?",
+    a: "Oui, et c'est un avantage clé : la carte FideloPass est disponible sur 100% des smartphones. Sur iPhone via Apple Wallet, sur Android via Google Wallet, et pour tous les autres cas (téléphone sans Wallet) le client accède à sa carte via une version web, sans rien installer. Là où beaucoup de solutions se limitent à Apple et Google Wallet, FideloPass ne laisse aucun client de côté.",
+  },
+  {
+    q: "Quelles mécaniques de fidélité sont disponibles ?",
+    a: "Trois mécaniques : la carte à tampons (ex. 10 achetés = 1 offert), la carte à points (proportionnelle à la dépense) et les paliers / statut VIP. Vous choisissez et ajustez à tout moment.",
+  },
+  {
+    q: "Combien coûte FideloPass ?",
+    a: "Les forfaits démarrent à 29 €/mois (Starter). Le forfait Pro est à 69 €/mois et le Business à 199 €/mois. Des tarifs annuels avantageux sont proposés (295 €, 699 € et 1990 €). Les plans mensuels sont sans engagement.",
+  },
+  {
+    q: "Y a-t-il un engagement ?",
+    a: "Les plans mensuels sont sans engagement et résiliables à tout moment. L'option annuelle est un abonnement renouvelé automatiquement chaque année.",
+  },
+  {
+    q: "Comment fonctionne l'essai gratuit ?",
+    a: "L'essai dure 14 jours. Une carte bancaire est nécessaire pour activer le plan choisi ; vous pouvez résilier à tout moment pendant l'essai. Sans résiliation, l'abonnement démarre automatiquement sur le forfait sélectionné.",
+  },
+  {
+    q: "Combien de temps faut-il pour mettre en place sa carte ?",
+    a: "Environ 5 minutes, sans aucune compétence technique : vous personnalisez la carte (logo, couleurs, récompense), récupérez votre QR code et commencez à scanner vos clients.",
+  },
+  {
+    q: "Peut-on envoyer des notifications à ses clients ?",
+    a: "Oui. Vous pouvez envoyer une notification gratuite sur l'écran de verrouillage du téléphone de vos clients : rappel d'une récompense proche, offre spéciale, réactivation d'un client absent.",
+  },
+  {
+    q: "FideloPass fonctionne-t-il sur iPhone et Android ?",
+    a: "Oui, sur les deux — et au-delà. Apple Wallet sur iPhone, Google Wallet sur Android, et une version web pour tout autre cas. Aucun client n'est exclu, quel que soit son téléphone.",
+  },
+  {
+    q: "Le succès d'une carte de fidélité dépend-il de mon équipe ?",
+    a: "Comme tout programme de fidélité, l'adoption se joue en partie en caisse : proposer la carte et la scanner à chaque passage. FideloPass est justement conçu pour réduire cette friction au maximum : carte par défaut en QR code prête à scanner, ajout client en quelques secondes, lien web partageable pour que le client s'inscrive seul, et notifications de rappel automatiques. Plus c'est simple, plus l'équipe le fait naturellement.",
+  },
+  {
+    q: "Les données de mes clients sont-elles revendues ?",
+    a: "Non. Les données sont sécurisées et ne sont jamais revendues. FideloPass est pensé pour respecter la confidentialité des clients et la conformité RGPD.",
+  },
+  {
+    q: "Existe-t-il un programme revendeur ou en marque blanche ?",
+    a: "Oui. Un programme revendeur / marque blanche permet aux agences, freelances et apporteurs d'affaires de proposer FideloPass aux commerçants et de générer un revenu récurrent.",
+  },
+  {
+    q: "Quelle différence avec une carte de fidélité papier ?",
+    a: "La carte papier s'oublie, se perd, ne fournit aucune donnée et ne permet aucune relance. La carte FideloPass est toujours dans le téléphone, se met à jour automatiquement et permet d'envoyer des notifications pour faire revenir vos clients.",
+  },
+  {
+    q: "Comment essayer FideloPass ?",
+    a: "Créez votre carte sur fidelopass.com avec un essai gratuit de 14 jours. La mise en place prend environ 5 minutes.",
+  },
+];
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Fidelopass',
+    url: 'https://www.fidelopass.com',
+    logo: 'https://www.fidelopass.com/logo-premium.png',
+    description: "Solution française de carte de fidélité dématérialisée dans Apple Wallet et Google Wallet pour les commerces de proximité.",
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'Fidelopass',
+    applicationCategory: 'BusinessApplication',
+    applicationSubCategory: 'Logiciel de programme de fidélité',
+    operatingSystem: 'iOS, Android, Web',
+    url: 'https://www.fidelopass.com',
+    description: "Cartes de fidélité dématérialisées pour commerces de proximité dans Apple Wallet et Google Wallet, sans application pour les clients. Tampons, points et paliers, notifications incluses.",
+    featureList: [
+      'Carte de fidélité dans Apple Wallet, Google Wallet et sur le web',
+      'Compatible 100% des smartphones (même sans Apple ni Google Wallet)',
+      'Aucune application à installer pour les clients',
+      'Gestion multi-points de vente, chaînes et réseaux',
+      'Mécaniques tampons, points et paliers / VIP',
+      'Notifications push gratuites (Wallet et web)',
+      'Suivi de l’activité client',
+      'Données non revendues (conforme RGPD)',
+      'Mise en place en 5 minutes',
+      'Programme revendeur / marque blanche',
+    ],
+    offers: {
+      '@type': 'AggregateOffer',
+      priceCurrency: 'EUR',
+      lowPrice: '29',
+      highPrice: '199',
+      offerCount: 3,
+      description: 'À partir de 29 €/mois, sans engagement. Essai gratuit 14 jours.',
+    },
+    publisher: { '@type': 'Organization', name: 'Fidelopass', url: 'https://www.fidelopass.com' },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faq.map(({ q, a }) => ({
+      '@type': 'Question',
+      name: q,
+      acceptedAnswer: { '@type': 'Answer', text: a },
+    })),
+  },
+];
+---
+
+<BaseLayout
+  theme="light"
+  title="FAQ — FideloPass en bref : carte de fidélité dématérialisée"
+  description="Tout savoir sur FideloPass : carte de fidélité dématérialisée Apple Wallet & Google Wallet pour commerces de proximité. Fonctionnement, tarifs, sans application, programme revendeur. Réponses claires."
+  jsonLd={jsonLd}
+>
+  <PublicNav currentPath="/faq" />
+
+  <!-- Hero -->
+  <section class="relative overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f3f7ff_60%,#ffffff_100%)] pt-12 pb-8 sm:pt-20 sm:pb-12">
+    <div class="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 h-72 w-[42rem] rounded-full bg-[radial-gradient(closest-side,rgba(79,70,229,0.10),transparent)]"></div>
+    <div class="relative max-w-4xl mx-auto px-4 sm:px-6 text-center">
+      <span class="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-200/80 bg-white px-4 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-indigo-700 shadow-sm">
+        <span class="h-1.5 w-1.5 rounded-full bg-indigo-500"></span> FideloPass en bref
+      </span>
+      <h1 class="font-display text-3xl sm:text-5xl font-bold text-slate-900 leading-[1.06] tracking-[-0.02em]">
+        Questions fréquentes
+      </h1>
+      <p class="text-slate-500 text-base sm:text-lg mt-5 max-w-2xl mx-auto leading-relaxed">
+        Tout ce qu'un commerçant doit savoir sur la carte de fidélité dématérialisée FideloPass —
+        clairement, sans jargon.
+      </p>
+    </div>
+  </section>
+
+  <!-- En bref : faits clés -->
+  <section class="bg-white pb-4">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6">
+      <div class="grid gap-3 sm:grid-cols-2">
+        {facts.map((f) => (
+          <div class="flex flex-col rounded-2xl border border-slate-200 bg-slate-50/70 px-5 py-4">
+            <span class="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-indigo-600">{f.label}</span>
+            <span class="mt-1 text-sm font-medium text-slate-700">{f.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="bg-white py-10 sm:py-14">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 space-y-4">
+      {faq.map(({ q, a }) => (
+        <details class="group rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_14px_40px_-34px_rgba(15,23,42,0.4)] open:border-indigo-200">
+          <summary class="flex cursor-pointer items-center justify-between gap-4 font-display text-lg font-bold text-slate-900 marker:content-none">
+            {q}
+            <span class="shrink-0 text-indigo-500 transition-transform group-open:rotate-45" aria-hidden="true">+</span>
+          </summary>
+          <p class="mt-3 text-[0.97rem] leading-7 text-slate-600">{a}</p>
+        </details>
+      ))}
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="bg-slate-50/70 py-12">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6">
+      <div class="overflow-hidden rounded-[1.9rem] bg-[linear-gradient(135deg,#0f172a_0%,#312e81_55%,#0284c7_100%)] p-8 sm:p-10 text-center text-white shadow-[0_30px_70px_-40px_rgba(49,46,129,0.8)]">
+        <h2 class="font-display text-2xl sm:text-3xl font-bold leading-tight">Prêt à fidéliser vos clients ?</h2>
+        <p class="mt-3 text-indigo-100 max-w-xl mx-auto leading-relaxed">
+          Créez votre carte dans Apple Wallet &amp; Google Wallet en 5 minutes, sans application pour vos clients.
+        </p>
+        <div class="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
+          <a href="/register" class="inline-flex items-center justify-center rounded-xl bg-white px-7 py-3.5 text-sm font-bold text-indigo-700 shadow-lg hover:bg-indigo-50 hover:-translate-y-0.5 transition">Démarrer l'essai gratuit</a>
+          <a href="/pricing" class="inline-flex items-center justify-center rounded-xl border border-white/25 bg-white/10 px-7 py-3.5 text-sm font-semibold text-white hover:bg-white/20 transition">Voir les tarifs</a>
+        </div>
+        <p class="mt-5 text-xs text-indigo-200/80">14 jours d'essai gratuit · Sans engagement · Résiliable à tout moment</p>
+      </div>
+    </div>
+  </section>
+
+  <PublicFooter />
+</BaseLayout>

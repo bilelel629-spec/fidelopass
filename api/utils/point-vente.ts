@@ -1,5 +1,7 @@
 import type { Context } from 'hono';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { CommerceAccess } from './commerce-access';
+import { resolveCommerceAccess } from './commerce-access';
 
 type CommerceRow = {
   [key: string]: unknown;
@@ -18,6 +20,7 @@ type CommerceRow = {
   sms_review_enabled?: boolean | null;
   sms_relance_enabled?: boolean | null;
   sms_relance_jours?: number | null;
+  onboarding_completed?: boolean | null;
 };
 
 export type PointVenteRow = {
@@ -49,7 +52,7 @@ export async function resolveCommerceAndPointVente<T extends CommerceRow = Comme
   userId: string,
   requestedPointVenteId: string | null,
   commerceSelect = 'id, plan',
-): Promise<{ commerce: T | null; pointVente: PointVenteRow | null; pointsVente: PointVenteRow[] }> {
+): Promise<{ commerce: T | null; pointVente: PointVenteRow | null; pointsVente: PointVenteRow[]; access: CommerceAccess | null }> {
   const requestedSelect = commerceSelect.trim();
   const normalizedSelect = (() => {
     const select = commerceSelect.trim();
@@ -57,13 +60,18 @@ export async function resolveCommerceAndPointVente<T extends CommerceRow = Comme
     return `${select}, plan_override`;
   })();
 
+  const access = await resolveCommerceAccess(db, userId);
+  if (!access) {
+    return { commerce: null, pointVente: null, pointsVente: [], access: null };
+  }
+
   let commerce: T | null = null;
   let commerceErrorMessage = '';
 
   const { data: commerceWithOverride, error: commerceWithOverrideError } = await db
     .from('commerces')
     .select(normalizedSelect)
-    .eq('user_id', userId)
+    .eq('id', access.commerceId)
     .single();
 
   if (!commerceWithOverrideError) {
@@ -89,7 +97,7 @@ export async function resolveCommerceAndPointVente<T extends CommerceRow = Comme
     const { data: fallbackCommerce, error: fallbackError } = await db
       .from('commerces')
       .select(fallbackSelect)
-      .eq('user_id', userId)
+      .eq('id', access.commerceId)
       .single();
 
     if (fallbackError) throw fallbackError;
@@ -97,7 +105,7 @@ export async function resolveCommerceAndPointVente<T extends CommerceRow = Comme
   }
 
   if (!commerce) {
-    return { commerce: null, pointVente: null, pointsVente: [] };
+    return { commerce: null, pointVente: null, pointsVente: [], access };
   }
 
   const pointVenteSelect = 'id, commerce_id, nom, adresse, rue, ville, code_postal, pays, latitude, longitude, rayon_geo, principal, actif, created_at';
@@ -171,20 +179,22 @@ export async function resolveCommerceAndPointVente<T extends CommerceRow = Comme
   }
 
   const commerceDisplayName = (commerce.nom ?? '').trim();
-  if (commerceDisplayName) {
-    points = points.map((point) => (
-      point.principal ? { ...point, nom: commerceDisplayName } : point
-    ));
-  }
+  points = points.map((point) => {
+    const pointName = (point.nom ?? '').trim();
+    return pointName ? point : { ...point, nom: commerceDisplayName || 'Point de vente' };
+  });
 
   const fallbackPoint = points.find((point) => point.principal) ?? points[0] ?? null;
+  // Si le point demandé n'existe pas (stale localStorage, point supprimé, autre compte),
+  // on tombe sur le point principal plutôt que de retourner null.
   const selectedPoint = requestedPointVenteId
-    ? points.find((point) => point.id === requestedPointVenteId) ?? null
+    ? (points.find((point) => point.id === requestedPointVenteId) ?? fallbackPoint)
     : fallbackPoint;
 
   return {
     commerce: commerce as T,
     pointVente: selectedPoint,
     pointsVente: points,
+    access,
   };
 }

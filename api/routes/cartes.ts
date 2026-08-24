@@ -11,6 +11,7 @@ import { sendCardCreatedEmail } from '../services/card-created-email';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
 import { withEffectiveCommerceLogo } from '../utils/commerce-logo';
+import { normalizeRewardTiers } from '../services/point-rewards';
 
 export const cartesRoutes = new Hono<ApiEnv>();
 
@@ -50,6 +51,24 @@ function validateMultipleRewards(
   return null;
 }
 
+function validatePersistedRewardSettings(
+  saved: { rewards_multi_enabled?: unknown; rewards_config?: unknown } | null | undefined,
+  expectedEnabled: boolean | undefined,
+  expectedRewards: Array<{ seuil: number; recompense: string }> | undefined,
+): string | null {
+  if (expectedEnabled !== undefined && saved?.rewards_multi_enabled !== expectedEnabled) {
+    return 'Le mode récompenses multiples n’a pas été enregistré. Rechargez la page et réessayez.';
+  }
+  if (
+    expectedEnabled === true
+    && expectedRewards !== undefined
+    && JSON.stringify(normalizeRewardTiers(saved?.rewards_config)) !== JSON.stringify(normalizeRewardTiers(expectedRewards))
+  ) {
+    return 'Les paliers de récompenses n’ont pas été enregistrés. Rechargez la page et réessayez.';
+  }
+  return null;
+}
+
 const vipTierSchema = z.object({
   nom: z.string().min(1).max(24),
   seuil: z.number().int().min(1).max(100000),
@@ -67,7 +86,7 @@ const stripPositionSchema = z.string().default('50:50').refine((value) => {
 }, { message: 'Position de bannière invalide' });
 
 const carteSchema = z.object({
-  nom: z.string().min(2).max(255),
+  nom: z.string().trim().min(2).max(255),
   description: z.string().max(500).nullable().optional(),
   type: z.enum(['points', 'tampons']),
   tampons_total: z.number().int().min(1).max(50).default(10),
@@ -83,7 +102,7 @@ const carteSchema = z.object({
   strip_url: z.string().url().nullable().optional(),
   strip_position: stripPositionSchema,
   tampon_icon_url: z.string().url().nullable().optional(),
-  barcode_type: z.enum(['QR', 'PDF417', 'AZTEC', 'CODE128', 'NONE']).default('CODE128'),
+  barcode_type: z.enum(['QR', 'PDF417', 'AZTEC', 'CODE128', 'NONE']).default('QR'),
   label_client: z.string().max(50).default('Client'),
   push_icon_bg_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable().optional(),
   // Champs avancés (migration 003)
@@ -116,6 +135,41 @@ const carteSchema = z.object({
   birthday_push_title: z.string().max(80).nullable().optional(),
   birthday_push_message: z.string().max(180).nullable().optional(),
 });
+
+function normalizeDisplayName(value: string | null | undefined) {
+  return String(value ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+async function syncPointVenteNameFromCard(
+  db: ReturnType<typeof createServiceClient>,
+  pointVente: { id: string; nom?: string | null },
+  nextCardName: string | null | undefined,
+  previousCardName: string | null | undefined,
+  commerceName: string | null | undefined,
+) {
+  const nextName = String(nextCardName ?? '').trim();
+  if (nextName.length < 2) return;
+
+  const currentName = normalizeDisplayName(pointVente.nom);
+  const defaultNames = new Set([
+    '',
+    'point de vente',
+    'mon commerce',
+    normalizeDisplayName(commerceName),
+    normalizeDisplayName(previousCardName),
+  ]);
+
+  if (!defaultNames.has(currentName)) return;
+
+  const { error } = await db
+    .from('points_vente')
+    .update({ nom: nextName, updated_at: new Date().toISOString() })
+    .eq('id', pointVente.id);
+
+  if (error) {
+    console.error('[cartes sync point vente name]', error);
+  }
+}
 
 /** GET /api/cartes — Récupère la carte du commerce connecté */
 cartesRoutes.get('/', authMiddleware, paidMiddleware, async (c) => {
@@ -206,7 +260,7 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   const planLimits = getPlanLimits(getEffectivePlanRaw(commerce));
   const { data: existingCarte } = await db
     .from('cartes')
-    .select('id')
+    .select('id, nom')
     .eq('point_vente_id', pointVente.id)
     .maybeSingle();
 
@@ -287,7 +341,16 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
     .single();
 
   if (result.error?.message?.includes('column')) {
-    // Essai 2 : sans migration 006
+    // Essai 2 : sans typographie, mais en conservant les réglages du programme.
+    result = await db
+      .from('cartes')
+      .upsert({ ...baseFields, ...extFields, ...advFields, ...programFields }, { onConflict: 'point_vente_id' })
+      .select()
+      .single();
+  }
+
+  if (result.error?.message?.includes('column')) {
+    // Essai 3 : sans réglages du programme, mais en conservant la typographie.
     result = await db
       .from('cartes')
       .upsert({ ...baseFields, ...extFields, ...advFields, ...typoFields }, { onConflict: 'point_vente_id' })
@@ -296,7 +359,7 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   }
 
   if (result.error?.message?.includes('column')) {
-    // Essai 3 : base + ext + adv (migration 004 pas encore exécutée)
+    // Essai 4 : sans typographie ni réglages du programme.
     result = await db
       .from('cartes')
       .upsert({ ...baseFields, ...extFields, ...advFields }, { onConflict: 'point_vente_id' })
@@ -305,7 +368,7 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   }
 
   if (result.error?.message?.includes('column')) {
-    // Essai 4 : base + ext (migration 003 non plus)
+    // Essai 5 : base + champs étendus.
     result = await db
       .from('cartes')
       .upsert({ ...baseFields, ...extFields }, { onConflict: 'point_vente_id' })
@@ -314,7 +377,7 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
   }
 
   if (result.error?.message?.includes('column')) {
-    // Essai 5 : base only
+    // Essai 6 : base uniquement.
     result = await db
       .from('cartes')
       .upsert(baseFields, { onConflict: 'point_vente_id' })
@@ -326,6 +389,21 @@ cartesRoutes.post('/', authMiddleware, paidMiddleware, async (c) => {
     console.error('[cartes POST]', result.error);
     return c.json({ error: result.error.message }, 500);
   }
+
+  const rewardPersistenceError = validatePersistedRewardSettings(
+    result.data,
+    parsed.data.rewards_multi_enabled,
+    parsed.data.rewards_config,
+  );
+  if (rewardPersistenceError) return c.json({ error: rewardPersistenceError }, 500);
+
+  await syncPointVenteNameFromCard(
+    db,
+    pointVente,
+    result.data?.nom ?? parsed.data.nom,
+    existingCarte?.nom ?? null,
+    commerce.nom,
+  );
 
   const commerceEmail = typeof commerce.email === 'string' ? commerce.email : null;
   if (!existingCarte && commerceEmail) {
@@ -356,7 +434,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
     db,
     userId,
     requestedPointVenteId,
-    'id, plan, plan_override',
+    'id, nom, plan, plan_override',
   );
 
   if (!commerce || !pointVente) return c.json({ error: 'Point de vente introuvable' }, 404);
@@ -436,6 +514,13 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   if (birthday_push_message !== undefined) programFields.birthday_push_message = birthday_push_message;
 
   const ts = { updated_at: new Date().toISOString() };
+  const { data: previousCarte } = await db
+    .from('cartes')
+    .select('nom')
+    .eq('id', carteId)
+    .eq('commerce_id', commerce.id)
+    .eq('point_vente_id', pointVente.id)
+    .maybeSingle();
 
   // Essai 1 : tout
   let result = await db
@@ -448,7 +533,19 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
     .single();
 
   if (result.error?.message?.includes('column')) {
-    // Essai 2 : sans migration 006
+    // Essai 2 : sans typographie, mais en conservant les réglages du programme.
+    result = await db
+      .from('cartes')
+      .update({ ...baseData, ...extFields, ...advFields, ...programFields, ...ts })
+      .eq('id', carteId)
+      .eq('commerce_id', commerce.id)
+      .eq('point_vente_id', pointVente.id)
+      .select()
+      .single();
+  }
+
+  if (result.error?.message?.includes('column')) {
+    // Essai 3 : sans réglages du programme, mais en conservant la typographie.
     result = await db
       .from('cartes')
       .update({ ...baseData, ...extFields, ...advFields, ...typoFields, ...ts })
@@ -460,7 +557,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   }
 
   if (result.error?.message?.includes('column')) {
-    // Essai 3 : sans typo (migration 004 manquante)
+    // Essai 4 : sans typographie ni réglages du programme.
     result = await db
       .from('cartes')
       .update({ ...baseData, ...extFields, ...advFields, ...ts })
@@ -472,7 +569,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   }
 
   if (result.error?.message?.includes('column')) {
-    // Essai 4 : base + ext
+    // Essai 5 : base + champs étendus.
     result = await db
       .from('cartes')
       .update({ ...baseData, ...extFields, ...ts })
@@ -484,7 +581,7 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
   }
 
   if (result.error?.message?.includes('column')) {
-    // Essai 5 : base only
+    // Essai 6 : base uniquement.
     result = await db
       .from('cartes')
       .update({ ...baseData, ...ts })
@@ -500,99 +597,114 @@ cartesRoutes.patch('/:id', authMiddleware, paidMiddleware, async (c) => {
     return c.json({ error: result.error.message }, 500);
   }
 
-  // Synchronisation Wallet des clients déjà inscrits
-  try {
-    const updatedCarte = result.data;
-    if (!updatedCarte) return c.json({ data: result.data });
+  const rewardPersistenceError = validatePersistedRewardSettings(
+    result.data,
+    parsed.data.rewards_multi_enabled,
+    parsed.data.rewards_config,
+  );
+  if (rewardPersistenceError) return c.json({ error: rewardPersistenceError }, 500);
 
-    const { data: commerceData, error: commerceError } = await db
-      .from('commerces')
-      .select('nom, logo_url, plan')
-      .eq('id', commerce.id)
-      .single();
+  if (parsed.data.nom !== undefined) {
+    await syncPointVenteNameFromCard(
+      db,
+      pointVente,
+      result.data?.nom ?? parsed.data.nom,
+      previousCarte?.nom ?? null,
+      commerce.nom,
+    );
+  }
 
-    if (commerceError || !commerceData) {
-      console.error('[cartes PATCH wallet commerce]', commerceError);
-      return c.json({ data: result.data });
-    }
+  // Synchronisation Wallet des clients déjà inscrits — en arrière-plan pour que
+  // l'enregistrement de la carte soit instantané côté commerçant. Apple est poussé
+  // en premier (priorité), Google ensuite, sans bloquer la réponse HTTP.
+  const updatedCarteForSync = result.data;
+  if (updatedCarteForSync) {
+    void (async () => {
+      try {
+        const { data: commerceData, error: commerceError } = await db
+          .from('commerces')
+          .select('nom, logo_url, plan')
+          .eq('id', commerce.id)
+          .single();
+        if (commerceError || !commerceData) {
+          console.error('[cartes PATCH wallet commerce]', commerceError);
+          return;
+        }
 
-    const { data: pointVenteData } = await db
-      .from('points_vente')
-      .select('latitude, longitude, rayon_geo')
-      .eq('id', (updatedCarte as { point_vente_id?: string | null }).point_vente_id ?? '')
-      .maybeSingle();
+        const { data: pointVenteData } = await db
+          .from('points_vente')
+          .select('latitude, longitude, rayon_geo')
+          .eq('id', (updatedCarteForSync as { point_vente_id?: string | null }).point_vente_id ?? '')
+          .maybeSingle();
 
-    const carteForWallet = {
-      ...(updatedCarte as Record<string, unknown>),
-      commerces: {
-        nom: commerceData.nom ?? '',
-        logo_url: commerceData.logo_url ?? null,
-        latitude: pointVenteData?.latitude ?? null,
-        longitude: pointVenteData?.longitude ?? null,
-        rayon_geo: pointVenteData?.rayon_geo ?? null,
-        plan: commerceData.plan ?? 'starter',
-      },
-    } as Parameters<typeof updateGooglePassObject>[1];
+        const carteForWallet = {
+          ...(updatedCarteForSync as Record<string, unknown>),
+          commerces: {
+            nom: commerceData.nom ?? '',
+            logo_url: commerceData.logo_url ?? null,
+            latitude: pointVenteData?.latitude ?? null,
+            longitude: pointVenteData?.longitude ?? null,
+            rayon_geo: pointVenteData?.rayon_geo ?? null,
+            plan: commerceData.plan ?? 'starter',
+          },
+        } as Parameters<typeof updateGooglePassObject>[1];
 
-    const { data: clients, error: clientsError } = await db
-      .from('clients')
-      .select('id, nom, points_actuels, tampons_actuels, recompenses_obtenues, google_pass_id, apple_pass_serial')
-      .eq('carte_id', carteId)
-      .or('google_pass_id.not.is.null,apple_pass_serial.not.is.null')
-      .range(0, 999);
+        const { data: clients, error: clientsError } = await db
+          .from('clients')
+          .select('id, nom, points_actuels, tampons_actuels, recompenses_obtenues, google_pass_id, apple_pass_serial')
+          .eq('carte_id', carteId)
+          .or('google_pass_id.not.is.null,apple_pass_serial.not.is.null')
+          .range(0, 999);
+        if (clientsError) {
+          console.error('[cartes PATCH wallet clients]', clientsError);
+          return;
+        }
 
-    if (clientsError) {
-      console.error('[cartes PATCH wallet clients]', clientsError);
-      return c.json({ data: result.data });
-    }
+        const walletClients = clients ?? [];
+        if (walletClients.length === 0) return;
 
-    const walletClients = clients ?? [];
-    if (walletClients.length === 0) return c.json({ data: result.data });
+        const googleClients = walletClients.filter((client) => !!client.google_pass_id);
+        const appleClients = walletClients.filter((client) => !!client.apple_pass_serial);
 
-    const googleClients = walletClients.filter((client) => !!client.google_pass_id);
-    const appleClients = walletClients.filter((client) => !!client.apple_pass_serial);
+        // 1) Apple en premier — push silencieux, iOS refetch le .pkpass régénéré (couleurs/code-barres)
+        if (appleClients.length > 0) {
+          const { data: registrations } = await db
+            .from('apple_pass_registrations')
+            .select('client_id, push_token, pass_type_identifier')
+            .in('client_id', appleClients.map((client) => client.id));
 
-    if (googleClients.length > 0) {
-      await upsertLoyaltyClass(carteForWallet).catch((err) => {
-        console.error('[cartes PATCH wallet google class]', err);
-      });
+          const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
+          const uniqueRegistrations = Array.from(
+            new Map((registrations ?? []).map((registration) => [registration.push_token, registration])).values(),
+          );
+          void Promise.allSettled(
+            uniqueRegistrations.map((registration) =>
+              pushApplePassUpdate(registration.push_token, passTypeId || registration.pass_type_identifier),
+            ),
+          );
+        }
 
-      await Promise.allSettled(
-        googleClients.map((client) =>
-          updateGooglePassObject(client.google_pass_id as string, carteForWallet, {
-            id: client.id,
-            nom: client.nom ?? null,
-            points_actuels: client.points_actuels,
-            tampons_actuels: client.tampons_actuels,
-            recompenses_obtenues: client.recompenses_obtenues ?? 0,
-          }),
-        ),
-      );
-    }
-
-    if (appleClients.length > 0) {
-      const { data: registrations, error: registrationsError } = await db
-        .from('apple_pass_registrations')
-        .select('client_id, push_token, pass_type_identifier')
-        .in('client_id', appleClients.map((client) => client.id));
-
-      if (registrationsError) {
-        console.error('[cartes PATCH wallet apple registrations]', registrationsError);
-        return c.json({ data: result.data });
+        // 2) Google ensuite — la classe (couleurs/logo) puis les objets
+        if (googleClients.length > 0) {
+          await upsertLoyaltyClass(carteForWallet).catch((err) => {
+            console.error('[cartes PATCH wallet google class]', err);
+          });
+          void Promise.allSettled(
+            googleClients.map((client) =>
+              updateGooglePassObject(client.google_pass_id as string, carteForWallet, {
+                id: client.id,
+                nom: client.nom ?? null,
+                points_actuels: client.points_actuels,
+                tampons_actuels: client.tampons_actuels,
+                recompenses_obtenues: client.recompenses_obtenues ?? 0,
+              }),
+            ),
+          );
+        }
+      } catch (err) {
+        console.error('[cartes PATCH wallet-sync]', err);
       }
-
-      const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
-      const uniqueRegistrations = Array.from(
-        new Map((registrations ?? []).map((registration) => [registration.push_token, registration])).values(),
-      );
-      await Promise.allSettled(
-        uniqueRegistrations.map((registration) =>
-          pushApplePassUpdate(registration.push_token, passTypeId || registration.pass_type_identifier),
-        ),
-      );
-    }
-  } catch (err) {
-    console.error('[cartes PATCH wallet-sync]', err);
+    })();
   }
 
   return c.json({ data: result.data });

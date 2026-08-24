@@ -1,7 +1,6 @@
-import { google } from 'googleapis';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import jwt from 'jsonwebtoken';
+import { createSign } from 'crypto';
 import { getPointRewardState } from './point-rewards';
 
 interface CarteData {
@@ -143,17 +142,64 @@ function getMerchantLocations(carte: CarteData): Array<{ latitude: number; longi
   return [{ latitude, longitude }];
 }
 
+function base64UrlEncode(input: string | Buffer): string {
+  return Buffer.from(input)
+    .toString('base64')
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+}
+
+function signGoogleWalletJwt(
+  claims: Record<string, unknown>,
+  privateKey: string,
+): string {
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const encodedHeader = base64UrlEncode(JSON.stringify(header));
+  const encodedPayload = base64UrlEncode(JSON.stringify(claims));
+  const signingInput = `${encodedHeader}.${encodedPayload}`;
+  const signature = createSign('RSA-SHA256').update(signingInput).sign(privateKey);
+  return `${signingInput}.${base64UrlEncode(signature)}`;
+}
+
+type HttpRequester = {
+  request: (opts: { url: string; method: string; data?: unknown }) => Promise<unknown>;
+};
+
+type GoogleAuthConstructor = new (opts: {
+  credentials: { client_email: string; private_key: string };
+  scopes: string[];
+}) => {
+  getClient: () => Promise<HttpRequester>;
+};
+
+let googleAuthConstructorPromise: Promise<GoogleAuthConstructor> | null = null;
+
+async function getGoogleAuthConstructor(): Promise<GoogleAuthConstructor> {
+  if (!googleAuthConstructorPromise) {
+    // googleapis embarque un très gros graphe de types. Le charger à la demande
+    // évite que les builds/typechecks serveur restent bloqués à analyser tout le SDK.
+    const dynamicImport = new Function('specifier', 'return import(specifier)') as (
+      specifier: string,
+    ) => Promise<{ google: { auth: { GoogleAuth: GoogleAuthConstructor } } }>;
+    googleAuthConstructorPromise = dynamicImport('googleapis').then(
+      (module) => module.google.auth.GoogleAuth,
+    );
+  }
+  return googleAuthConstructorPromise;
+}
+
 // Cache de l'authClient pour éviter un échange OAuth2 à chaque appel
-type GAuthClient = Awaited<ReturnType<InstanceType<typeof google.auth.GoogleAuth>['getClient']>>;
-let cachedAuthClient: GAuthClient | null = null;
+let cachedAuthClient: HttpRequester | null = null;
 let cachedAuthClientExpiry = 0;
 const AUTH_CLIENT_TTL_MS = 55 * 60 * 1000;
 
-async function getAuthClient(): Promise<GAuthClient> {
+async function getAuthClient(): Promise<HttpRequester> {
   const now = Date.now();
   if (cachedAuthClient && now < cachedAuthClientExpiry) return cachedAuthClient;
   const credentials = getCredentials();
-  const auth = new google.auth.GoogleAuth({
+  const GoogleAuth = await getGoogleAuthConstructor();
+  const auth = new GoogleAuth({
     credentials,
     scopes: ['https://www.googleapis.com/auth/wallet_object.issuer'],
   });
@@ -161,10 +207,6 @@ async function getAuthClient(): Promise<GAuthClient> {
   cachedAuthClientExpiry = now + AUTH_CLIENT_TTL_MS;
   return cachedAuthClient;
 }
-
-type HttpRequester = {
-  request: (opts: { url: string; method: string; data?: unknown }) => Promise<unknown>;
-};
 
 export async function upsertLoyaltyClass(carte: CarteData): Promise<string> {
   const issuerId = getIssuerId();
@@ -174,14 +216,18 @@ export async function upsertLoyaltyClass(carte: CarteData): Promise<string> {
   const logoUri = carte.logo_url ?? carte.commerces.logo_url
     ?? `${process.env.SUPABASE_URL}/storage/v1/object/public/assets/logo-default.png`;
 
+  // Nom affiché = nom de la CARTE choisie (pas le commerce), pour distinguer
+  // les différentes cartes d'un même commerce (plan Pro = jusqu'à 3 cartes).
+  const displayName = String(carte.nom ?? '').trim() || String(carte.commerces.nom ?? '').trim() || 'Fidelopass';
+
   const classData: Record<string, unknown> = {
     id: classId,
-    issuerName: carte.commerces.nom,
-    programName: carte.nom,
+    issuerName: displayName,
+    programName: displayName,
     programLogo: {
       sourceUri: { uri: logoUri },
       contentDescription: {
-        defaultValue: { language: 'fr-FR', value: carte.commerces.nom },
+        defaultValue: { language: 'fr-FR', value: displayName },
       },
     },
     hexBackgroundColor: carte.couleur_fond,
@@ -315,7 +361,7 @@ export async function generateGooglePass(
     payload: { loyaltyObjects: [loyaltyObject] },
   };
 
-  const token = jwt.sign(claims, credentials.private_key, { algorithm: 'RS256' });
+  const token = signGoogleWalletJwt(claims, credentials.private_key);
   return {
     objectId,
     saveUrl: `https://pay.google.com/gp/v/save/${token}`,
@@ -327,8 +373,8 @@ export async function updateGooglePassObject(
   carte: CarteData,
   client: ClientData,
 ): Promise<void> {
-  // Propage les changements de logo/couleur/nom dans la classe aussi
-  await upsertLoyaltyClass(carte).catch((err) =>
+  // Propage logo/couleur/nom dans la classe en arrière-plan — ne bloque pas le PATCH score.
+  upsertLoyaltyClass(carte).catch((err) =>
     console.error('[Google Wallet] upsertLoyaltyClass échec lors de la mise à jour:', err),
   );
 
@@ -390,16 +436,26 @@ export async function sendGoogleWalletMessage(
   const authClient = await getAuthClient();
   const requester = authClient as unknown as HttpRequester;
 
-  await withTimeout(requester.request({
-    url: `${GOOGLE_WALLET_API}/loyaltyObject/${objectId}/addMessage`,
-    method: 'POST',
-    data: {
-      message: {
-        id: notificationId ? `notif_${notificationId}` : `notif_${Date.now()}`,
-        header: titre,
-        body: message,
-        messageType: 'TEXT_AND_NOTIFY',
+  try {
+    const response = await withTimeout(requester.request({
+      url: `${GOOGLE_WALLET_API}/loyaltyObject/${objectId}/addMessage`,
+      method: 'POST',
+      data: {
+        message: {
+          id: notificationId ? `notif_${notificationId}` : `notif_${Date.now()}`,
+          header: titre,
+          body: message,
+          messageType: 'TEXT_AND_NOTIFY',
+        },
       },
-    },
-  }), GOOGLE_WALLET_FAST_TIMEOUT_MS);
+    }), GOOGLE_WALLET_FAST_TIMEOUT_MS);
+    const status = (response as { status?: number } | undefined)?.status;
+    console.info(`[google-wallet addMessage] OK objet=${objectId} status=${status ?? '?'}`);
+  } catch (err) {
+    const e = err as { code?: number; status?: number; response?: { status?: number; data?: unknown }; message?: string };
+    const status = e?.code ?? e?.status ?? e?.response?.status;
+    const body = e?.response?.data ? JSON.stringify(e.response.data).slice(0, 500) : e?.message;
+    console.error(`[google-wallet addMessage] ÉCHEC objet=${objectId} status=${status ?? '?'} détail=${body}`);
+    throw err;
+  }
 }

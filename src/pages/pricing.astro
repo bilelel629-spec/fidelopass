@@ -13,6 +13,16 @@ const faq = [
   { q: "Mes clients doivent-ils télécharger une app ?", a: "Non. Vos clients utilisent Apple Wallet ou Google Wallet, déjà installés sur leur téléphone. Aucun téléchargement supplémentaire." },
 ];
 
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faq.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+};
+
 const plans = [
   {
     id: 'starter',
@@ -26,7 +36,6 @@ const plans = [
     desc: 'Pour lancer votre première carte et commencer à fidéliser.',
     highlight: false,
     cta: "Démarrer l'essai gratuit",
-    setupCta: 'Starter + Setup (+90€ une fois)',
     features: [
       "Jusqu'à 500 cartes actives",
       '1 point de vente',
@@ -52,7 +61,6 @@ const plans = [
     highlight: true,
     badge: 'Le plus populaire',
     cta: "Démarrer l'essai gratuit",
-    setupCta: 'Pro + Setup (+90€ une fois)',
     features: [
       "Jusqu'à 2000 cartes actives",
       '3 points de vente',
@@ -74,10 +82,9 @@ const plans = [
     periodMonthly: '/mois',
     periodAnnual: '/an',
     saving: 'Économisez 16% avec l’abonnement annuel',
-    desc: 'Pour les commerces qui veulent un déploiement complet avec setup inclus.',
+    desc: 'Pour les commerces qui veulent un déploiement complet avec accompagnement inclus.',
     highlight: false,
     cta: "Démarrer l'essai gratuit",
-    setupIncluded: true,
     features: [
       'Cartes actives illimitées',
       'Points de vente avancés',
@@ -86,7 +93,7 @@ const plans = [
       'Push ciblées & campagnes',
       'Automatisations incluses',
       'Analytics avancés',
-      'Accompagnement setup compris',
+      'Accompagnement setup offert',
       'Support prioritaire',
     ],
   },
@@ -97,6 +104,7 @@ const plans = [
   theme="light"
   title="Tarifs Fidelopass — Essai gratuit 14 jours"
   description="Plans Starter, Pro et Business pour commerces. Essai gratuit 14 jours, résiliable à tout moment pendant l’essai."
+  jsonLd={faqJsonLd}
 >
   <PublicNav currentPath="/pricing" />
 
@@ -126,7 +134,7 @@ const plans = [
 
   <section class="bg-slate-50/70 py-5 pb-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
-      <div class="mb-5 flex justify-center">
+      <div class="mb-5 flex flex-col items-center justify-center gap-3 sm:flex-row">
         <div class="billing-toggle inline-flex items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm" aria-label="Choisir la facturation">
           <button type="button" data-billing-mode="monthly" aria-pressed="true">Mensuel</button>
           <button type="button" data-billing-mode="annual" aria-pressed="false">
@@ -134,7 +142,12 @@ const plans = [
             <span class="ml-1.5 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">-15%</span>
           </button>
         </div>
+        <div class="inline-flex items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm" aria-label="Choisir le pays et la devise">
+          <button id="pricing-currency-eur" type="button">France · EUR</button>
+          <button id="pricing-currency-chf" type="button">Suisse · CHF</button>
+        </div>
       </div>
+      <p id="pricing-currency-caption" class="mb-5 text-center text-sm font-medium text-slate-500">Prix affichés en EUR.</p>
 
       <div class="grid gap-6 items-start lg:grid-cols-4">
         {plans.map((plan) => (
@@ -191,26 +204,14 @@ const plans = [
               >
                 {plan.cta}
               </a>
-              {plan.setupCta && (
-                <a
-                  href={`/register?next=%2Fabonnement%2Fchoix%3Fplan%3D${plan.id}%26setup%3D1`}
-                  data-plan-cta={plan.id}
-                  data-setup="1"
-                  class:list={[
-                    'inline-flex w-full items-center justify-center rounded-xl border px-4 py-3 text-sm font-semibold transition-all',
-                    plan.highlight
-                      ? 'border-white/30 bg-white/10 text-white hover:bg-white/20'
-                      : 'border-slate-200 text-slate-700 hover:bg-slate-50',
-                  ]}
-                >
-                  {plan.setupCta}
-                </a>
-              )}
-              {plan.setupIncluded && (
-                <p class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">
-                  Setup compris
-                </p>
-              )}
+              <p class:list={[
+                'rounded-xl border px-4 py-3 text-center text-xs font-bold uppercase tracking-[0.12em]',
+                plan.highlight
+                  ? 'border-emerald-200/40 bg-emerald-300/15 text-emerald-50'
+                  : 'border-emerald-200 bg-emerald-50 text-emerald-700',
+              ]}>
+                Accompagnement offert · <span class="line-through opacity-70" data-setup-value>90 €</span>
+              </p>
               <p class:list={['trial-note text-center text-xs', plan.highlight ? 'text-indigo-200' : 'text-slate-400']}>14 jours gratuits · Annuler à tout moment</p>
             </div>
 
@@ -268,14 +269,14 @@ const plans = [
           </div>
           <div class="flex items-end justify-between gap-3 mt-auto pt-2">
             <div>
-              <span class="font-display text-2xl font-bold text-slate-900">90€</span>
-              <span class="text-slate-400 text-sm ml-1">une fois</span>
+              <span id="pricing-setup-price" class="font-display text-2xl font-bold text-slate-400 line-through">90 €</span>
+              <span class="ml-2 rounded-full bg-emerald-100 px-3 py-1 text-sm font-extrabold text-emerald-700">Offert</span>
             </div>
             <span class="rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
-              Inclus avec Business
+              Inclus avec tous les plans
             </span>
           </div>
-          <p class="text-xs text-slate-500">Cette option peut être ajoutée au checkout Starter ou Pro. Elle est comprise dans le plan Business.</p>
+          <p class="text-xs text-slate-500">L’accompagnement est activé automatiquement avec votre abonnement, sans supplément.</p>
         </div>
       </div>
 
@@ -300,7 +301,7 @@ const plans = [
                   data-roi-cost={parseInt(plan.monthly, 10)}
                 >
                   <span class="block text-sm font-bold">{plan.name}</span>
-                  <span class="mt-1 block text-xs text-slate-500">{plan.monthly} / mois</span>
+                  <span class="roi-plan-price mt-1 block text-xs text-slate-500">{plan.monthly} / mois</span>
                 </button>
               ))}
             </div>
@@ -345,7 +346,7 @@ const plans = [
               <p id="roi-roi" class="text-lg font-extrabold text-blue-700">ROI : x49</p>
               <p id="roi-roi-text" class="mt-1 text-xs leading-5 text-slate-600">Pour 1€ investi dans Fidelopass, vous pourriez générer environ 49€ de chiffre d’affaires supplémentaire.</p>
             </div>
-            <p class="mt-4 text-xs leading-5 text-blue-100/80">Estimation indicative basée sur une visite supplémentaire par client revenu. Les résultats peuvent varier selon votre activité, votre fréquence de passage et vos campagnes.</p>
+            <p class="mt-4 text-xs leading-5 text-blue-100/80">Simulation à titre indicatif — résultats non garantis. Le taux de retour (27% par défaut) est une hypothèse que vous pouvez ajuster ; les résultats réels dépendent de votre activité, de votre fréquence de passage et de vos campagnes.</p>
           </div>
         </div>
       </div>
@@ -425,7 +426,18 @@ const plans = [
 </style>
 
 <script>
+  const currencyStorageKey = 'fidelopass.billing.currency';
   const billingButtons = Array.from(document.querySelectorAll<HTMLElement>('[data-billing-mode]'));
+  const pricingCurrencyEur = document.getElementById('pricing-currency-eur') as HTMLButtonElement;
+  const pricingCurrencyChf = document.getElementById('pricing-currency-chf') as HTMLButtonElement;
+  const pricingCurrencyCaption = document.getElementById('pricing-currency-caption');
+  const savedPricingCurrency = localStorage.getItem(currencyStorageKey);
+  let pricingCurrency: 'eur' | 'chf' = savedPricingCurrency === 'chf'
+    ? 'chf'
+    : savedPricingCurrency === 'eur'
+      ? 'eur'
+      : (/[-_](CH)$/i.test(navigator.language) || Intl.DateTimeFormat().resolvedOptions().timeZone === 'Europe/Zurich' ? 'chf' : 'eur');
+  let currentBillingMode = 'monthly';
 
   function buttonClass(mode: string | undefined, activeMode: string) {
     const base = 'rounded-xl px-5 py-2 text-sm font-semibold transition-all';
@@ -435,6 +447,7 @@ const plans = [
   }
 
   function setMode(mode: string) {
+    currentBillingMode = mode;
     const isAnnual = mode === 'annual';
 
     billingButtons.forEach((button) => {
@@ -444,7 +457,9 @@ const plans = [
     });
 
     document.querySelectorAll<HTMLElement>('.price-display').forEach((el) => {
-      el.textContent = isAnnual ? (el.dataset.annual ?? '') : (el.dataset.monthly ?? '');
+      const raw = isAnnual ? (el.dataset.annual ?? '') : (el.dataset.monthly ?? '');
+      const amount = raw.replace(/[^\d]/g, '');
+      el.textContent = pricingCurrency === 'chf' ? `${amount} CHF` : `${amount} €`;
     });
 
     document.querySelectorAll<HTMLElement>('.price-period').forEach((el) => {
@@ -471,12 +486,41 @@ const plans = [
     });
   }
 
+  function updatePricingCurrency(currency: 'eur' | 'chf', persist = false) {
+    pricingCurrency = currency;
+    if (persist) localStorage.setItem(currencyStorageKey, currency);
+    pricingCurrencyEur.className = buttonClass('eur', currency);
+    pricingCurrencyChf.className = buttonClass('chf', currency);
+    if (pricingCurrencyCaption) {
+      pricingCurrencyCaption.textContent = currency === 'chf'
+        ? 'Prix affichés en CHF pour les commerces suisses.'
+        : 'Prix affichés en EUR pour les commerces français et européens.';
+    }
+    document.querySelectorAll<HTMLElement>('[data-setup-value]').forEach((el) => {
+      el.textContent = currency === 'chf' ? '90 CHF' : '90 €';
+    });
+    const setupPrice = document.getElementById('pricing-setup-price');
+    if (setupPrice) setupPrice.textContent = currency === 'chf' ? '90 CHF' : '90 €';
+    setMode(currentBillingMode);
+  }
+
   billingButtons.forEach((button) => {
     button.addEventListener('click', () => {
       setMode(button.dataset.billingMode === 'monthly' ? 'monthly' : 'annual');
     });
   });
-  setMode('monthly');
+  pricingCurrencyEur.addEventListener('click', () => {
+    updatePricingCurrency('eur', true);
+    updateRoi();
+  });
+  pricingCurrencyChf.addEventListener('click', () => {
+    updatePricingCurrency('chf', true);
+    updateRoi();
+  });
+  document.querySelectorAll<HTMLAnchorElement>('[data-plan-cta]').forEach((link) => {
+    link.addEventListener('click', () => localStorage.setItem(currencyStorageKey, pricingCurrency));
+  });
+  updatePricingCurrency(pricingCurrency);
 
   const roiButtons = Array.from(document.querySelectorAll<HTMLElement>('[data-roi-plan]'));
   const roiCards = document.getElementById('roi-cards') as HTMLInputElement | null;
@@ -498,7 +542,8 @@ const plans = [
   let selectedRoiPlan = 'pro';
 
   function euro(value: number) {
-    return `${Math.round(value).toLocaleString('fr-FR')}€`;
+    const amount = Math.round(value).toLocaleString('fr-FR');
+    return pricingCurrency === 'chf' ? `${amount} CHF` : `${amount} €`;
   }
 
   function updateRoi() {
@@ -518,21 +563,27 @@ const plans = [
       button.classList.toggle('border-indigo-500', active);
       button.classList.toggle('bg-indigo-50', active);
       button.classList.toggle('shadow-[0_16px_36px_-28px_rgba(79,70,229,0.65)]', active);
+      const price = button.querySelector<HTMLElement>('.roi-plan-price');
+      if (price) price.textContent = `${pricingCurrency === 'chf' ? `${button.dataset.roiCost} CHF` : `${button.dataset.roiCost} €`} / mois`;
     });
 
     if (roiCardsLabel) roiCardsLabel.textContent = `${cards.toLocaleString('fr-FR')} clients`;
-    if (roiBasketLabel) roiBasketLabel.textContent = `${basket.toLocaleString('fr-FR')}€`;
+    if (roiBasketLabel) roiBasketLabel.textContent = euro(basket);
     if (roiReturnLabel) roiReturnLabel.textContent = `${returnRate}%`;
     if (roiProfit) roiProfit.textContent = `${euro(profit)} / mois`;
     if (roiYearly) roiYearly.textContent = `≈ ${euro(profit * 12)} / an`;
     if (roiDetailClients) roiDetailClients.textContent = `${cards.toLocaleString('fr-FR')} clients fidélisés`;
     if (roiDetailReturn) roiDetailReturn.textContent = `${returnRate}% reviennent 1 fois dans le mois`;
     if (roiDetailVisits) roiDetailVisits.textContent = `${returnClients.toLocaleString('fr-FR')} visites supplémentaires`;
-    if (roiDetailBasket) roiDetailBasket.textContent = `Panier moyen : ${basket.toLocaleString('fr-FR')}€`;
+    if (roiDetailBasket) roiDetailBasket.textContent = `Panier moyen : ${euro(basket)}`;
     if (roiDetailRevenue) roiDetailRevenue.textContent = `CA généré : +${euro(revenue)}`;
-    if (roiPlanCost) roiPlanCost.textContent = `Abonnement ${planName} : -${cost}€`;
+    if (roiPlanCost) roiPlanCost.textContent = `Abonnement ${planName} : -${euro(cost)}`;
     if (roiRoi) roiRoi.textContent = `ROI : x${roi}`;
-    if (roiRoiText) roiRoiText.textContent = `Pour 1€ investi dans Fidelopass, vous pourriez générer environ ${roi}€ de chiffre d’affaires supplémentaire.`;
+    if (roiRoiText) {
+      const unit = pricingCurrency === 'chf' ? '1 CHF' : '1 €';
+      const generated = pricingCurrency === 'chf' ? `${roi} CHF` : `${roi} €`;
+      roiRoiText.textContent = `Pour ${unit} investi dans Fidelopass, vous pourriez générer environ ${generated} de chiffre d’affaires supplémentaire.`;
+    }
   }
 
   roiButtons.forEach((button) => {

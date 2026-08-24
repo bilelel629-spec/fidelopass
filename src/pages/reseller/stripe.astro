@@ -2,13 +2,13 @@
 import ResellerLayout from '../../layouts/ResellerLayout.astro';
 ---
 
-<ResellerLayout title="Facturation revendeur — Fidelopass" activeNav="stripe">
+<ResellerLayout title="Reversements revendeur — Fidelopass" activeNav="stripe">
   <section class="space-y-8">
     <div>
-      <p id="billing-eyebrow" class="text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-sky-700/75">Facturation revendeur</p>
-      <h1 id="billing-title" class="mt-2 font-display text-4xl font-bold tracking-tight text-slate-950">Facturation</h1>
+      <p id="billing-eyebrow" class="text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-sky-700/75">Reversements</p>
+      <h1 id="billing-title" class="mt-2 font-display text-4xl font-bold tracking-tight text-slate-950">Reversements revendeur</h1>
       <p id="billing-description" class="mt-3 max-w-2xl text-base leading-7 text-slate-600">
-        Gérez le mode de paiement utilisé pour vos commerçants affiliés.
+        Fidelopass encaisse les abonnements Stripe et suit votre marge. Les reversements sont validés manuellement en V1.
       </p>
     </div>
 
@@ -19,25 +19,25 @@ import ResellerLayout from '../../layouts/ResellerLayout.astro';
         <p id="connect-description" class="mt-3 text-sm leading-6 text-slate-600"></p>
         <div id="connect-badges" class="mt-5 flex flex-wrap gap-2"></div>
         <button id="connect-button" class="mt-6 w-full rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-500 px-5 py-4 text-sm font-bold text-white shadow-[0_20px_36px_-24px_rgba(37,99,235,0.8)] transition hover:-translate-y-0.5">
-          Connecter Stripe
+          Configurer mon lien revendeur
         </button>
       </article>
 
       <article class="rounded-[1.7rem] border border-indigo-100 bg-gradient-to-br from-slate-950 via-indigo-950 to-blue-900 p-7 text-white shadow-[0_24px_60px_-38px_rgba(15,23,42,0.75)]">
-        <p class="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-white/60">Fonctionnement</p>
-        <h2 id="billing-mode-title" class="mt-3 font-display text-3xl font-bold">Mode de facturation</h2>
+        <p class="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-white/60">Fonctionnement V1</p>
+        <h2 id="billing-mode-title" class="mt-3 font-display text-3xl font-bold">Commission interne</h2>
         <div id="billing-steps" class="mt-6 grid gap-3 text-sm">
           <div class="rounded-2xl bg-white/10 p-4">
-            <p class="font-semibold">1. Le revendeur configure ses prix</p>
-            <p class="mt-1 text-white/65">Les prix publics respectent les minimums définis par Fidelopass.</p>
+            <p class="font-semibold">1. Le commerçant paie Fidelopass</p>
+            <p class="mt-1 text-white/65">Le paiement Stripe se fait sur le compte Fidelopass.</p>
           </div>
           <div class="rounded-2xl bg-white/10 p-4">
-            <p class="font-semibold">2. Le commerçant utilise son lien</p>
-            <p class="mt-1 text-white/65">Il ne voit que l’offre finale et s’inscrit depuis la page du revendeur.</p>
+            <p class="font-semibold">2. Votre marge est enregistrée</p>
+            <p class="mt-1 text-white/65">Chaque facture payée crée une commission à reverser.</p>
           </div>
           <div class="rounded-2xl bg-white/10 p-4">
-            <p class="font-semibold">3. Les revenus sont suivis</p>
-            <p class="mt-1 text-white/65">Fidelopass calcule la part plateforme et la marge revendeur.</p>
+            <p class="font-semibold">3. Fidelopass vous règle</p>
+            <p class="mt-1 text-white/65">Le règlement se fait manuellement selon votre accord commercial.</p>
           </div>
         </div>
       </article>
@@ -48,8 +48,14 @@ import ResellerLayout from '../../layouts/ResellerLayout.astro';
 <script>
   import { authFetch } from '../../lib/api';
 
+  const formatMoney = (cents: unknown, currency = 'eur') => new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: String(currency || 'eur').toUpperCase(),
+    maximumFractionDigits: 0,
+  }).format(Number(cents ?? 0) / 100);
+
   function badge(label: string, ok: boolean) {
-    return `<span class="rounded-full border ${ok ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'} px-3 py-1 text-xs font-semibold">${label}</span>`;
+    return `<span class="rounded-full border ${ok ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-sky-200 bg-sky-50 text-sky-700'} px-3 py-1 text-xs font-semibold">${label}</span>`;
   }
 
   async function loadStripeStatus() {
@@ -66,88 +72,23 @@ import ResellerLayout from '../../layouts/ResellerLayout.astro';
       return;
     }
     const data = payload.data ?? {};
-    const reseller = data.reseller ?? {};
-    if (data.enabled === false) {
-      document.title = 'Facturation manuelle — Fidelopass';
-      document.getElementById('billing-eyebrow')!.textContent = 'Facturation manuelle';
-      document.getElementById('billing-title')!.textContent = 'Mode facturé';
-      document.getElementById('billing-description')!.textContent =
-        'Vous encaissez vos commerçants en direct. Fidelopass calcule ensuite la part plateforme à facturer.';
-      document.getElementById('billing-mode-title')!.textContent = 'Facturation manuelle';
-      document.getElementById('billing-steps')!.innerHTML = `
-        <div class="rounded-2xl bg-white/10 p-4">
-          <p class="font-semibold">1. Vous configurez votre lien revendeur</p>
-          <p class="mt-1 text-white/65">Choisissez vos prix publics et partagez votre page.</p>
-        </div>
-        <div class="rounded-2xl bg-white/10 p-4">
-          <p class="font-semibold">2. Vous encaissez vos commerçants</p>
-          <p class="mt-1 text-white/65">Espèces, virement ou paiement manuel selon votre marché.</p>
-        </div>
-        <div class="rounded-2xl bg-white/10 p-4">
-          <p class="font-semibold">3. Fidelopass facture sa part</p>
-          <p class="mt-1 text-white/65">La part Fidelopass reste calculée côté serveur et visible dans vos tableaux.</p>
-        </div>
-      `;
-      title.textContent = 'Facturation manuelle active';
-      description.textContent = data.message ?? 'Ce compte revendeur n’utilise pas Stripe Connect.';
-      button.disabled = false;
-      button.textContent = 'Configurer mon lien revendeur';
-      button.dataset.action = 'link';
-      badges.innerHTML = badge('Facturation manuelle', true);
-      return;
-    }
-    button.dataset.action = 'stripe';
-    document.title = 'Stripe Connect — Fidelopass';
-    document.getElementById('billing-eyebrow')!.textContent = 'Paiement en ligne';
-    document.getElementById('billing-title')!.textContent = 'Stripe Connect';
-    document.getElementById('billing-description')!.textContent =
-      'Connectez votre compte Stripe pour recevoir automatiquement votre marge sur les abonnements commerçants.';
-    document.getElementById('billing-mode-title')!.textContent = 'Split automatique';
-    document.getElementById('billing-steps')!.innerHTML = `
-      <div class="rounded-2xl bg-white/10 p-4">
-        <p class="font-semibold">1. Le commerçant paie son abonnement</p>
-        <p class="mt-1 text-white/65">Il ne voit que son prix final.</p>
-      </div>
-      <div class="rounded-2xl bg-white/10 p-4">
-        <p class="font-semibold">2. Fidelopass prélève sa part</p>
-        <p class="mt-1 text-white/65">La part plateforme est calculée côté serveur.</p>
-      </div>
-      <div class="rounded-2xl bg-white/10 p-4">
-        <p class="font-semibold">3. Le reste va au revendeur</p>
-        <p class="mt-1 text-white/65">Stripe verse votre marge sur votre compte connecté.</p>
-      </div>
-    `;
-    const connected = Boolean(reseller.stripe_connect_account_id);
-    const charges = Boolean(reseller.stripe_charges_enabled);
-    const payouts = Boolean(reseller.stripe_payouts_enabled);
-    title.textContent = charges && payouts ? 'Stripe Connect prêt' : connected ? 'Onboarding à finaliser' : 'Compte non connecté';
-    description.textContent = charges && payouts
-      ? 'Vous pouvez créer des paiements en ligne avec split automatique.'
-      : 'Finalisez l’onboarding Stripe pour activer les paiements et versements.';
+    const pending = formatMoney(data.pending_commission_cents, data.currency);
+    const paid = formatMoney(data.paid_commission_cents, data.currency);
+    button.dataset.action = 'link';
+    document.title = 'Reversements revendeur — Fidelopass';
+    title.textContent = 'Commissions suivies';
+    description.textContent = `${data.message ?? 'V1 active.'} À reverser: ${pending}. Déjà réglé: ${paid}.`;
     badges.innerHTML = [
-      badge('Compte connecté', connected),
-      badge('Paiements actifs', charges),
-      badge('Versements actifs', payouts),
+      badge('Paiement Stripe Fidelopass', true),
+      badge('Commission interne', true),
+      badge('V1 active', true),
     ].join('');
-    button.textContent = connected ? 'Finaliser onboarding Stripe' : 'Connecter Stripe';
+    button.disabled = false;
+    button.textContent = 'Configurer mon lien revendeur';
   }
 
   document.getElementById('connect-button')?.addEventListener('click', async () => {
-    const button = document.getElementById('connect-button') as HTMLButtonElement;
-    if (button.dataset.action === 'link') {
-      window.location.href = '/reseller/link';
-      return;
-    }
-    button.disabled = true;
-    button.textContent = 'Redirection...';
-    const res = await authFetch('/api/reseller/stripe/connect', { method: 'POST', body: JSON.stringify({}) });
-    const payload = await res.json().catch(() => null);
-    if (res.ok && payload?.url) window.location.href = payload.url;
-    else {
-      button.disabled = false;
-      button.textContent = 'Réessayer';
-      alert(payload?.error ?? 'Impossible de créer le lien Stripe Connect.');
-    }
+    window.location.href = '/reseller/link';
   });
 
   await loadStripeStatus();

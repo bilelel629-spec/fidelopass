@@ -18,6 +18,7 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
     <meta name="theme-color" content="#2563eb" />
     <meta name="api-config" content={apiBase} />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -285,6 +286,7 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
       const API = document.querySelector('meta[name="api-config"]')?.content || 'https://api.fidelopass.com';
       const apiUrl = (path) => `${API}${path}`;
       const clientStorageKey = `fidelopass_client_${cardId}`;
+      const pushPromptStoragePrefix = `fidelopass_web_push_prompted_${cardId}`;
       let cardData = null;
       let clientData = null;
       let refreshTimer = null;
@@ -377,6 +379,26 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
           }));
         } catch {
           // Local storage only improves convenience.
+        }
+      }
+
+      function pushPromptStorageKey() {
+        return `${pushPromptStoragePrefix}_${clientData?.id || 'anonymous'}`;
+      }
+
+      function hasAlreadyPromptedForPush() {
+        try {
+          return localStorage.getItem(pushPromptStorageKey()) === '1';
+        } catch {
+          return true;
+        }
+      }
+
+      function markPushPrompted() {
+        try {
+          localStorage.setItem(pushPromptStorageKey(), '1');
+        } catch {
+          // La permission navigateur reste la source de vérité.
         }
       }
 
@@ -605,6 +627,56 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
         return { status: silent ? 'refreshed' : 'success' };
       }
 
+      async function maybeRequestPushOnInstalledLaunch() {
+        if (
+          !clientData?.id
+          || !isStandalone()
+          || pushActivationRunning
+          || !isPushConfigured
+          || !supportsPushApi
+          || Notification.permission !== 'default'
+          || hasAlreadyPromptedForPush()
+        ) {
+          return;
+        }
+
+        markPushPrompted();
+        pushActivationRunning = true;
+        refreshPushUi();
+
+        try {
+          const result = await registerWebPushToken({ silent: true });
+          if (result.status === 'success' || result.status === 'refreshed') {
+            setPushUi({
+              status: 'Notifications activées. Vous recevrez les offres et rappels de ce commerce.',
+              buttonLabel: 'Notifications activées',
+              disabled: true,
+            });
+          } else if (result.status === 'denied') {
+            setPushUi({
+              status: 'Les notifications sont bloquées dans les réglages du navigateur.',
+              buttonLabel: 'Autorisation bloquée',
+              disabled: true,
+              note: 'Autorisez les notifications pour fidelopass.com puis revenez sur cette carte.',
+            });
+          } else {
+            setPushUi({
+              status: 'Vous pouvez activer les notifications quand vous voulez depuis ce bouton.',
+              buttonLabel: 'Activer les notifications',
+            });
+          }
+        } catch (error) {
+          console.warn('[web-card push auto prompt]', error);
+          setPushUi({
+            status: friendlyPushError(error),
+            buttonLabel: 'Activer les notifications',
+            note: 'La carte reste utilisable même sans notifications web.',
+          });
+        } finally {
+          pushActivationRunning = false;
+        }
+      }
+
       function renderStamps(current, total, accent, textColor, iconUrl, emoji, iconScale = 1) {
         const container = $('stamps');
         if (!container) return;
@@ -671,15 +743,33 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
         return card?.recompense_description || 'Votre recompense Fidelopass';
       }
 
-      function renderQr(value) {
+      function renderBarcode(value) {
         setText('wallet-code', value);
         const img = $('qr-img');
         if (!img) return;
-        img.src = `/code/qr.svg?data=${encodeURIComponent(value)}&size=480`;
+        const barcodeType = (cardData?.carte?.barcode_type ?? 'QR').toUpperCase();
+        if (barcodeType === 'NONE') {
+          img.removeAttribute('src');
+          img.alt = '';
+          img.closest?.('.web-card-code')?.classList?.add('hidden');
+          return;
+        }
+        img.closest?.('.web-card-code')?.classList?.remove('hidden');
+        if (barcodeType === 'QR') {
+          img.src = `/code/qr.svg?data=${encodeURIComponent(value)}&size=480`;
+          img.style.maxWidth = '180px';
+          img.style.height = 'auto';
+        } else {
+          // CODE128, PDF417, AZTEC → génération CODE128 côté serveur (format le plus lisible)
+          const fmt = ['CODE128', 'PDF417', 'AZTEC'].includes(barcodeType) ? 'CODE128' : 'CODE128';
+          img.src = `/code/barcode.svg?data=${encodeURIComponent(value)}&format=${fmt}`;
+          img.style.maxWidth = '100%';
+          img.style.height = '64px';
+        }
         img.onerror = () => {
           img.removeAttribute('src');
           img.alt = `Code client Fidelopass ${value}`;
-        }
+        };
       }
 
       function trackWebCardOpened() {
@@ -723,7 +813,11 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
         }
         document.documentElement.style.setProperty('--web-card-accent', accent);
 
-        const appName = commerce?.nom || card.nom || 'Fidelopass';
+        // Synchronise theme-color avec le fond de la carte (barre navigateur / splash screen PWA)
+        const metaTheme = document.querySelector('meta[name="theme-color"]');
+        if (metaTheme) metaTheme.setAttribute('content', bg);
+
+        const appName = card.nom || commerce?.nom || 'Fidelopass';
         document.title = appName;
         const appleTitle = document.getElementById('apple-web-app-title');
         if (appleTitle instanceof HTMLMetaElement) appleTitle.content = appName;
@@ -831,7 +925,7 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
 
         applyCardDesign();
         renderProgress();
-        renderQr(clientData.wallet_code || clientData.id);
+        renderBarcode(clientData.wallet_code || clientData.id);
         setText('last-update', `Mis a jour a ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`);
         showContent();
         trackWebCardOpened();
@@ -841,10 +935,15 @@ const pushVapidKey = import.meta.env.PUBLIC_WEB_PUSH_VAPID_KEY ?? '';
           && Notification.permission === 'granted'
           && (!isIos || isStandalone())
         ) {
-          registerWebPushToken({ silent: true }).catch((error) => {
+          registerWebPushToken({ silent: true }).then(() => {
+            refreshPushUi();
+          }).catch((error) => {
             console.warn('[web-card push refresh]', error);
           });
         }
+        window.setTimeout(() => {
+          void maybeRequestPushOnInstalledLaunch();
+        }, 800);
       }
 
       async function refresh() {

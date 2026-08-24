@@ -5,10 +5,12 @@ import { createServiceClient } from '../../src/lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { paidMiddleware } from '../middleware/paid';
 import { pushApplePassUpdate } from '../services/apple-wallet';
-import { updateGooglePassObject } from '../services/google-wallet';
+import { sendGoogleWalletMessage, updateGooglePassObject } from '../services/google-wallet';
 import { applyProgressIncrement, applyRewardRedemption, usesMultiplePointRewards } from '../services/loyalty-progress';
 import { getPointRewardState, resolvePointRewardRedemption } from '../services/point-rewards';
+import { sendPersonalizedPushNotifications } from '../services/push';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
+import { getPublicSiteUrl } from '../utils/public-site-url';
 
 export const merchantScanRoutes = new Hono();
 
@@ -198,49 +200,96 @@ async function formatScanResponse(db: ReturnType<typeof createServiceClient>, cl
   };
 }
 
+// Push Apple Wallet — priorité absolue, déclenché en premier et isolé de Google
+// pour que l'APNs ne soit jamais retardé par la charge Google Wallet.
+async function pushAppleAfterScan(
+  db: ReturnType<typeof createServiceClient>,
+  client: ScanClient,
+) {
+  if (!client.apple_pass_serial) return;
+  try {
+    const { data, error } = await db
+      .from('apple_pass_registrations')
+      .select('push_token, pass_type_identifier')
+      .eq('client_id', client.id);
+
+    if (error) {
+      console.error('[merchant-scan apple registrations]', error);
+      return;
+    }
+
+    const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
+    const uniqueRegistrations = Array.from(
+      new Map((data ?? []).map((registration) => [registration.push_token, registration])).values(),
+    );
+
+    await Promise.allSettled(
+      uniqueRegistrations.map((registration) =>
+        pushApplePassUpdate(registration.push_token, passTypeId || registration.pass_type_identifier),
+      ),
+    );
+  } catch (e) {
+    console.error('[merchant-scan apple push]', e instanceof Error ? e.message : e);
+  }
+}
+
 async function updateWalletsAfterScan(
   db: ReturnType<typeof createServiceClient>,
   client: ScanClient,
   updatedClient: ScanClient,
+  walletMessage?: { titre: string; body: string },
 ) {
-  const walletUpdates: Array<Promise<unknown>> = [];
+  // 1) Apple d'abord, seul, sans rien d'autre en concurrence (push quasi instantané)
+  void pushAppleAfterScan(db, client);
 
+  // 2) Google ensuite, en arrière-plan (non bloquant, non prioritaire)
   if (client.google_pass_id) {
-    walletUpdates.push(
-      updateGooglePassObject(
-        client.google_pass_id,
-        client.cartes as Parameters<typeof updateGooglePassObject>[1],
-        updatedClient,
-      ).catch((error) => console.error('[merchant-scan google update]', error)),
+    void updateGooglePassObject(
+      client.google_pass_id,
+      client.cartes as Parameters<typeof updateGooglePassObject>[1],
+      updatedClient,
+    ).catch((error) => console.error('[merchant-scan google update]', error));
+
+    if (walletMessage) {
+      void sendGoogleWalletMessage(client.google_pass_id, walletMessage.titre, walletMessage.body)
+        .catch((error) => console.error('[merchant-scan google message]', error));
+    }
+  }
+}
+
+async function sendWebPushAfterScan(
+  db: ReturnType<typeof createServiceClient>,
+  clientId: string,
+  carteLogoUrl: string | null | undefined,
+  title: string,
+  body: string,
+) {
+  try {
+    const { data: subscriptions } = await db
+      .from('web_push_subscriptions')
+      .select('endpoint, p256dh, auth, carte_id, client_id')
+      .eq('client_id', clientId)
+      .eq('enabled', true);
+
+    if (!subscriptions?.length) return;
+
+    const siteUrl = getPublicSiteUrl();
+    const recipients = subscriptions.map((sub) => ({
+      endpoint: sub.endpoint,
+      p256dh: sub.p256dh,
+      auth: sub.auth,
+      clickUrl: `${siteUrl}/carte/${sub.carte_id}/web?client=${sub.client_id}`,
+    }));
+
+    await sendPersonalizedPushNotifications(
+      recipients,
+      title,
+      body,
+      carteLogoUrl ?? undefined,
     );
+  } catch (error) {
+    console.warn('[merchant-scan web-push]', error instanceof Error ? error.message : error);
   }
-
-  if (client.apple_pass_serial) {
-    walletUpdates.push((async () => {
-      const { data, error } = await db
-        .from('apple_pass_registrations')
-        .select('push_token, pass_type_identifier')
-        .eq('client_id', client.id);
-
-      if (error) {
-        console.error('[merchant-scan apple registrations]', error);
-        return;
-      }
-
-      const passTypeId = process.env.APPLE_PASS_TYPE_ID ?? '';
-      const uniqueRegistrations = Array.from(
-        new Map((data ?? []).map((registration) => [registration.push_token, registration])).values(),
-      );
-
-      await Promise.allSettled(
-        uniqueRegistrations.map((registration) =>
-          pushApplePassUpdate(registration.push_token, passTypeId || registration.pass_type_identifier),
-        ),
-      );
-    })());
-  }
-
-  await Promise.allSettled(walletUpdates);
 }
 
 function applyClientStateGuard<T extends { eq: (column: string, value: unknown) => T }>(
@@ -382,7 +431,26 @@ async function handleAddPoint(c: Context) {
     tampons_actuels: nextTampons,
     recompenses_obtenues: nextRewards,
   };
-  await updateWalletsAfterScan(db, safeClient, updatedClient);
+  const carteData = safeClient.cartes as { id: string; type?: string; nom?: string; logo_url?: string | null; tampons_total?: number; points_recompense?: number };
+  const isPoints = carteData.type === 'points';
+  const scoreValue = isPoints ? updatedClient.points_actuels : updatedClient.tampons_actuels;
+  const threshold = isPoints ? (carteData.points_recompense || 100) : (carteData.tampons_total || 10);
+  const remaining = Math.max(0, threshold - scoreValue);
+  const rewardsAvail = updatedClient.recompenses_obtenues ?? 0;
+  const scanMessage = rewardsAvail > 0
+    ? {
+        titre: '🎁 Récompense débloquée !',
+        body: 'Présentez votre carte pour en profiter.',
+      }
+    : {
+        titre: isPoints ? '🎉 Points ajoutés !' : '🎉 Nouveau tampon !',
+        body: remaining > 0
+          ? `Plus que ${remaining} avant votre récompense.`
+          : 'Votre récompense est à portée !',
+      };
+
+  void updateWalletsAfterScan(db, safeClient, updatedClient, scanMessage);
+  void sendWebPushAfterScan(db, safeClient.id, carteData.logo_url, scanMessage.titre, scanMessage.body);
 
   return c.json({
     success: true,
@@ -500,7 +568,14 @@ async function handleUseReward(c: Context) {
     tampons_actuels: nextTampons,
     recompenses_obtenues: nextRewards,
   };
-  await updateWalletsAfterScan(db, safeClient, updatedClient);
+  const carteDataReward = safeClient.cartes as { id: string; type?: string; nom?: string; logo_url?: string | null };
+  const rewardMessage = {
+    titre: '✅ Récompense utilisée',
+    body: 'Merci de votre fidélité !',
+  };
+
+  void updateWalletsAfterScan(db, safeClient, updatedClient, rewardMessage);
+  void sendWebPushAfterScan(db, safeClient.id, carteDataReward.logo_url, rewardMessage.titre, rewardMessage.body);
 
   return c.json({
     success: true,

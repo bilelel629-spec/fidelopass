@@ -545,8 +545,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             <h3 class="font-semibold text-slate-900 mb-3">Code-barres</h3>
             <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
               {[{value:'CODE128',label:'Code 128',tag:'128',desc:'Linéaire'},{value:'QR',label:'QR Code',tag:'QR',desc:'Mobile'},{value:'PDF417',label:'PDF417',tag:'PDF',desc:'Empilé'},{value:'AZTEC',label:'Aztec',tag:'AZ',desc:'Compact'},{value:'NONE',label:'Aucun',tag:'--',desc:'Sans code'}].map(({value,label,tag,desc})=>(
-                <label id={`barcode-${value.toLowerCase()}-label`} class="cursor-pointer rounded-2xl border-2 p-3 text-center transition-all" style={value==='CODE128'?'border-color:#60a5fa;background:rgb(239 246 255)':'border-color:#dbeafe;background:#ffffff'}>
-                  <input type="radio" name="barcode_type" value={value} class="hidden" checked={value==='CODE128'} />
+                <label id={`barcode-${value.toLowerCase()}-label`} class="cursor-pointer rounded-2xl border-2 p-3 text-center transition-all" style={value==='QR'?'border-color:#60a5fa;background:rgb(239 246 255)':'border-color:#dbeafe;background:#ffffff'}>
+                  <input type="radio" name="barcode_type" value={value} class="hidden" checked={value==='QR'} />
                   <div class="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-100 text-xs font-bold tracking-[0.18em] text-sky-700">{tag}</div>
                   <div class="font-medium text-slate-900 text-xs">{label}</div><div class="text-slate-500 text-xs">{desc}</div>
                 </label>
@@ -740,8 +740,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <div id="error-msg" class="hidden text-red-700 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3"></div>
       <div id="success-msg" class="hidden text-emerald-700 text-sm bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3"></div>
       <div class="hidden rounded-[1.6rem] border border-sky-100 bg-white/90 px-4 py-4 shadow-[0_18px_48px_-36px_rgba(59,130,246,0.35)] lg:flex lg:flex-col lg:gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <button type="button" id="prev-step-btn" class="btn-secondary py-3 px-5">Étape précédente</button>
-        <button type="button" id="save-continue-btn" class="btn-primary py-3 px-5">Enregistrer et continuer</button>
+        <button type="button" id="prev-step-btn" class="btn-secondary py-3 px-5">← Précédente</button>
+        <div class="flex items-center gap-3">
+          <button type="button" id="save-continue-btn" class="btn-primary py-3 px-5">Enregistrer</button>
+          <button type="button" id="next-step-btn" class="btn-secondary py-3 px-5">Suivante →</button>
+        </div>
       </div>
     </div>
 
@@ -2303,7 +2306,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     setInput('tampons-total', el.dataset.total ?? '10');
     setInput('points-par-euro', '1');
     setInput('points-recompense', el.dataset.type === 'points' ? '100' : '100');
-    setRadio('barcode_type', 'CODE128');
+    setRadio('barcode_type', 'QR');
     selectEmojiStamp(el.dataset.stamp ?? '✓');
     if (el.dataset.banner) {
       applyBannerTemplate(el.dataset.banner);
@@ -2595,7 +2598,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   window.addEventListener('beforeunload', (event) => {
     if (!isDirty) return;
     event.preventDefault();
-    event.returnValue = '';
+    return true;
   });
 
   document.querySelectorAll('#nom-carte,#recompense,#label-client,#tampons-total,#points-recompense,#couleur-fond,#couleur-texte,#couleur-accent,#couleur-fond-2').forEach(el=>el.addEventListener('input',updatePreview));
@@ -2623,10 +2626,27 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   });
 
+  // Pré-remplit le nom de la carte avec le nom du commerce (choisi à l'inscription)
+  // tant qu'aucun nom n'a été saisi — uniquement pour une nouvelle carte.
+  async function prefillCardNameFromCommerce(){
+    try{
+      const nomInput = document.getElementById('nom-carte') as HTMLInputElement | null;
+      if(!nomInput || nomInput.value.trim()) return;
+      const res = await authFetch('/api/commerces/me');
+      if(!res.ok) return;
+      const {data} = await res.json();
+      const commerceNom = (data?.nom ?? '').toString().trim();
+      if(commerceNom && !nomInput.value.trim()){
+        nomInput.value = commerceNom;
+        updatePreview();
+      }
+    }catch{ /* non bloquant */ }
+  }
+
   async function loadExistingCarte(){
     try{
-      const res=await authFetch('/api/cartes'); if(!res.ok)return;
-      const {data}=await res.json(); if(!data)return;
+      const res=await authFetch('/api/cartes'); if(!res.ok){ await prefillCardNameFromCommerce(); return; }
+      const {data}=await res.json(); if(!data){ await prefillCardNameFromCommerce(); return; }
       carteId=data.id;
       setMaxUnlockedStep(TOTAL_STEPS);
       (Array.from({ length: TOTAL_STEPS }, (_, index) => index + 1) as WizardStep[]).forEach((step) => completedSteps.add(step));
@@ -2761,7 +2781,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       strip_url:toSafeUrl(stripUrl),
       strip_position:stripPositionInput.value || getSerializedStripPosition(),
       tampon_icon_url:toSafeUrl(tamponIconUrl),
-      barcode_type:getChecked('barcode_type')||'CODE128',
+      barcode_type:getChecked('barcode_type')||'QR',
       label_client:getInput('label-client')||'Client',
       couleur_fond_2:isGradient?getInput('couleur-fond-2'):null,
       gradient_angle:isGradient?parseInt(getInput('gradient-angle')):135,
@@ -2932,26 +2952,28 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     await persistCard(true);
   }
-  document.getElementById('save-continue-btn')!.addEventListener('click', handleSaveContinue);
-  document.getElementById('mobile-save-btn')?.addEventListener('click', async () => {
+  // "Enregistrer" (desktop + mobile) — sauvegarde sans avancer
+  async function handleSaveOnly() {
     const validation = stepValidators[currentStep]();
-    if (validation) {
-      showStepError(currentStep, validation);
-      return;
-    }
+    if (validation) { showStepError(currentStep, validation); return; }
     clearStepError(currentStep);
     if (!carteId && currentStep < TOTAL_STEPS) {
       const suc = document.getElementById('success-msg') as HTMLDivElement;
       document.getElementById('error-msg')?.classList.add('hidden');
       markStepCompleted(currentStep);
       setDraftState(true, true);
-      suc.textContent = 'Brouillon conservé. La carte sera enregistrée définitivement à la dernière étape.';
+      suc.textContent = 'Brouillon conservé. La carte sera créée à la dernière étape.';
       suc.classList.remove('hidden');
       updateWizardActions();
       return;
     }
     await persistCard(false);
-  });
+  }
+  document.getElementById('save-continue-btn')!.addEventListener('click', handleSaveOnly);
+  document.getElementById('mobile-save-btn')?.addEventListener('click', handleSaveOnly);
+
+  // "→ Suivante" (desktop) — navigue sans sauvegarder
+  document.getElementById('next-step-btn')?.addEventListener('click', goToNextStep);
 
   document.getElementById('download-qr-btn')!.addEventListener('click', async () => {
     if (!carteId) return;

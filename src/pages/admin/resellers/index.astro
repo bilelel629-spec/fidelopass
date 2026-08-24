@@ -9,7 +9,7 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
         <p class="text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-red-600/75">Administration</p>
         <h1 class="mt-2 font-display text-4xl font-bold tracking-tight text-slate-950">Revendeurs</h1>
         <p class="mt-3 max-w-2xl text-base leading-7 text-slate-600">
-          Approbation manuelle, suivi financier, type de revendeur et configuration des parts Fidelopass.
+          Approbation manuelle, lien revendeur, prix publics et commissions à reverser.
         </p>
       </div>
       <button id="create-open-button" class="inline-flex w-fit items-center rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_36px_-24px_rgba(37,99,235,0.8)] transition hover:-translate-y-0.5">
@@ -29,13 +29,16 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
           </div>
           <span id="user-search-feedback" class="block text-xs font-medium text-slate-500">Recherchez le compte avant de créer le revendeur. S’il n’existe pas, une invitation sera envoyée.</span>
         </label>
-        <label class="space-y-2">
-          <span class="text-sm font-semibold text-slate-700">Type</span>
-          <select name="type" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <option value="stripe_connect">Stripe Connect</option>
-            <option value="invoiced">Facturé</option>
-          </select>
-        </label>
+        <div class="space-y-2">
+          <span class="text-sm font-semibold text-slate-700">Mode V1</span>
+          <input type="hidden" name="type" value="invoiced" />
+          <div class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+            <p class="text-sm font-bold text-emerald-800">Stripe Fidelopass + commissions</p>
+            <p class="mt-1 text-xs leading-5 text-emerald-700">
+              Fidelopass encaisse le commerçant, puis la marge revendeur est suivie pour reversement manuel.
+            </p>
+          </div>
+        </div>
         <label class="space-y-2">
           <span class="text-sm font-semibold text-slate-700">Pays</span>
           <input name="country" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" placeholder="FR, DZ..." />
@@ -47,6 +50,11 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
         <label class="space-y-2 md:col-span-2">
           <span class="text-sm font-semibold text-slate-700">Nom commercial</span>
           <input name="brand_name" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" placeholder="Revendeur Fidelopass" />
+        </label>
+        <label class="space-y-2 md:col-span-3">
+          <span class="text-sm font-semibold text-slate-700">Slug public <span class="font-normal text-slate-400">(optionnel)</span></span>
+          <input name="public_slug" pattern="[a-z0-9\-]{3,60}" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" placeholder="nom-revendeur" />
+          <span class="block text-xs text-slate-400">Lien d'inscription commerçants : fidelopass.com/r/[slug] — uniquement minuscules, chiffres et tirets.</span>
         </label>
       </div>
       <div class="mt-6 rounded-[1.35rem] border border-indigo-100 bg-indigo-50/40 p-4">
@@ -67,11 +75,11 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
               <p class="text-sm font-bold text-slate-950">{label}</p>
               <div class="mt-3 grid grid-cols-2 gap-2">
                 <label class="space-y-1">
-                  <span class="text-xs font-semibold text-slate-500">Prix min. €</span>
+                  <span class="text-xs font-semibold text-slate-500">Prix minimum</span>
                   <input data-setting-plan={plan} data-setting-field="min_price" type="number" min="0" value={minPrice} class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold" />
                 </label>
                 <label class="space-y-1">
-                  <span class="text-xs font-semibold text-slate-500">Part F. €</span>
+                  <span class="text-xs font-semibold text-slate-500">Part Fidelopass</span>
                   <input data-setting-plan={plan} data-setting-field="platform_fee" type="number" min="0" value={fee} class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold" />
                 </label>
               </div>
@@ -134,6 +142,12 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
     return `<span class="rounded-full border ${color} px-3 py-1 text-xs font-semibold">${escapeHtml(normalized)}</span>`;
   }
 
+  function typeLabel(type: unknown) {
+    return String(type ?? '') === 'stripe_connect'
+      ? 'Ancien Connect'
+      : 'V1 commissions';
+  }
+
   async function action(id: string, endpoint: string, body: any = {}) {
     const res = await authFetch(`/api/admin/resellers/${id}/${endpoint}`, { method: 'POST', body: JSON.stringify(body) });
     if (!res.ok) alert((await res.json().catch(() => null))?.error ?? 'Action impossible.');
@@ -156,7 +170,7 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
           <p class="text-xs text-slate-500">${escapeHtml(reseller.support_email ?? '')}</p>
         </td>
         <td class="px-4 py-4">${escapeHtml(reseller.country ?? '-')}</td>
-        <td class="px-4 py-4">${escapeHtml(reseller.type)}</td>
+        <td class="px-4 py-4">${escapeHtml(typeLabel(reseller.type))}</td>
         <td class="px-4 py-4">${statusBadge(reseller.status)}</td>
         <td class="px-4 py-4">${reseller.metrics?.active_merchants_count ?? 0}/${reseller.metrics?.merchants_count ?? 0}</td>
         <td class="px-4 py-4">${formatMoney(reseller.metrics?.total_revenue_cents, reseller.currency)}</td>
@@ -250,8 +264,30 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
       if (res.ok) {
         const message = result?.message
           ?? (result?.already_exists ? 'Ce revendeur existe déjà. Il a été chargé dans la liste.' : 'Revendeur créé.');
-        feedback.className = 'mt-3 text-sm font-semibold text-emerald-700';
-        feedback.textContent = message;
+        const dashboardUrl = 'https://www.fidelopass.com/reseller';
+        const publicUrl = result?.data?.public_url ?? null;
+        const makeLink = (label: string, url: string) => `
+          <div class="flex flex-wrap items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+            <span class="text-xs font-semibold text-slate-600">${escapeHtml(label)}</span>
+            <a href="${escapeHtml(url)}" target="_blank" class="min-w-0 flex-1 truncate text-xs text-blue-700 underline">${escapeHtml(url)}</a>
+            <button type="button" data-copy="${escapeHtml(url)}" class="shrink-0 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:border-slate-300">Copier</button>
+          </div>`;
+        feedback.className = 'mt-3 text-sm';
+        feedback.innerHTML = `
+          <p class="font-semibold text-emerald-700">${escapeHtml(message)}</p>
+          <div class="mt-3 space-y-2">
+            ${makeLink('Dashboard revendeur :', dashboardUrl)}
+            ${publicUrl ? makeLink('Lien d\'inscription commerçants :', publicUrl) : ''}
+          </div>`;
+        feedback.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            navigator.clipboard.writeText(btn.dataset.copy ?? '').then(() => {
+              const prev = btn.textContent;
+              btn.textContent = 'Copié !';
+              setTimeout(() => { btn.textContent = prev; }, 1500);
+            });
+          });
+        });
         await loadResellers();
       } else {
         feedback.className = 'mt-3 text-sm font-semibold text-red-700';

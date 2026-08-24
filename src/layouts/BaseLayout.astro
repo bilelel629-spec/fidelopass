@@ -1,16 +1,27 @@
 ---
 import '../styles/global.css';
+import Seo from '../components/Seo.astro';
+import GoogleTag from '../components/GoogleTag.astro';
+import ConversionAchat from '../components/ConversionAchat.astro';
 
 interface Props {
   title?: string;
   description?: string;
   theme?: 'light' | 'dashboard';
+  image?: string;
+  noindex?: boolean;
+  ogType?: 'website' | 'article';
+  jsonLd?: Record<string, unknown> | Array<Record<string, unknown>>;
 }
 
 const {
   title = 'Fidelopass — Cartes de fidélité dématérialisées',
   description = 'Créez et gérez vos cartes de fidélité Apple Wallet & Google Wallet en quelques minutes.',
   theme = 'light',
+  image,
+  noindex = false,
+  ogType = 'website',
+  jsonLd,
 } = Astro.props;
 ---
 
@@ -19,12 +30,13 @@ const {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content={description} />
     <meta name="theme-color" content="#f8fafc" />
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <title>{title}</title>
+    <Seo title={title} description={description} image={image} ogType={ogType} noindex={noindex} jsonLd={jsonLd} />
+    <GoogleTag />
+    <ConversionAchat />
   </head>
   <body class:list={[
     "min-h-screen antialiased overflow-x-hidden bg-transparent text-slate-900",

@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<BaseLayout title="Connexion — Fidelopass" description="Connectez-vous à votre espace commerçant Fidelopass.">
+<BaseLayout title="Connexion — Fidelopass" description="Connectez-vous à votre espace commerçant Fidelopass." noindex={true}>
   <div class="min-h-screen bg-[#f8fbff] px-4 py-10 sm:py-14 relative overflow-hidden">
     <div class="pointer-events-none absolute -top-28 right-[-8rem] h-[26rem] w-[26rem] rounded-full bg-cyan-200/35 blur-3xl"></div>
     <div class="pointer-events-none absolute bottom-[-7rem] left-[-6rem] h-[22rem] w-[22rem] rounded-full bg-blue-100/80 blur-3xl"></div>
@@ -145,6 +145,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       return;
     }
 
+    const resellerResponse = await fetch(apiUrl('/api/reseller/me'), {
+      headers: { Authorization: `Bearer ${activeSession.access_token}`, 'Content-Type': 'application/json' },
+    }).catch(() => null);
+    const resellerPayload = resellerResponse?.ok ? await resellerResponse.json().catch(() => ({})) : {};
+    const reseller = resellerPayload?.data ?? null;
+
     const billingResponse = await fetch(apiUrl('/api/billing/status'), {
       headers: { Authorization: `Bearer ${activeSession.access_token}`, 'Content-Type': 'application/json' },
     }).catch(() => null);
@@ -168,9 +174,18 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     }
 
     if (!billing?.data?.has_access) {
+      if (reseller) {
+        window.location.href = redirectTarget.startsWith('/reseller') ? redirectTarget : '/reseller';
+        return;
+      }
       if (redirectToPricingWhenNoAccess) {
         window.location.href = '/abonnement/choix';
       }
+      return;
+    }
+
+    if (reseller && (redirectTarget === '/dashboard' || redirectTarget.startsWith('/reseller'))) {
+      window.location.href = redirectTarget.startsWith('/reseller') ? redirectTarget : '/reseller';
       return;
     }
 

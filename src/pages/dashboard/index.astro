@@ -529,7 +529,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const baseline = height - paddingBottom;
       const maxRaw = Math.max(...rows.map((d: { visits: number }) => d.visits), 0);
       const zeroLift = maxRaw > 0 ? Math.max(maxRaw * 0.14, 0.22) : 0;
-      const visualValues = rows.map((d: { visits: number }, index: number) => {
+      const visualValues = rows.map((d: { visits: number }) => {
         if (total === 0) return 0.16;
         return d.visits > 0 ? d.visits : zeroLift;
       });

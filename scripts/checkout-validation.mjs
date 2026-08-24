@@ -22,12 +22,12 @@ async function apiFetch(path, init = {}) {
   return { response, payload };
 }
 
-function toEntry(label, entry) {
+function toEntry(label, plan, interval, entry) {
   return {
     label,
-    slot: entry?.slot,
-    mode: entry?.mode,
-    priceId: entry?.priceId,
+    plan,
+    interval,
+    currency: entry?.currency,
     available: Boolean(entry?.available),
   };
 }
@@ -46,18 +46,18 @@ async function run() {
   }
 
   const entries = [
-    toEntry('starter.monthly', data?.starter?.monthly),
-    toEntry('starter.annual', data?.starter?.annual ?? data?.starter?.annual_once),
-    toEntry('pro.monthly', data?.pro?.monthly),
-    toEntry('pro.annual', data?.pro?.annual ?? data?.pro?.annual_once),
-    toEntry('business.monthly', data?.business?.monthly),
-    toEntry('business.annual', data?.business?.annual ?? data?.business?.annual_once),
+    toEntry('starter.monthly', 'starter', 'monthly', data?.starter?.monthly),
+    toEntry('starter.annual', 'starter', 'yearly', data?.starter?.annual ?? data?.starter?.annual_once),
+    toEntry('pro.monthly', 'pro', 'monthly', data?.pro?.monthly),
+    toEntry('pro.annual', 'pro', 'yearly', data?.pro?.annual ?? data?.pro?.annual_once),
+    toEntry('business.monthly', 'business', 'monthly', data?.business?.monthly),
+    toEntry('business.annual', 'business', 'yearly', data?.business?.annual ?? data?.business?.annual_once),
   ];
 
   const requiredPlans = ['starter', 'pro', 'business'];
   const unusablePlans = requiredPlans.filter((plan) => !entries
     .filter((entry) => entry.label.startsWith(`${plan}.`))
-    .some((entry) => entry.available && Boolean(entry.priceId)));
+    .some((entry) => entry.available));
 
   if (unusablePlans.length > 0) {
     console.error(`❌ Plans non exploitables dans pricing-config: ${unusablePlans.join(', ')}`);
@@ -66,7 +66,7 @@ async function run() {
 
   const validationResults = [];
   for (const entry of entries) {
-    if (!entry.available || !entry.priceId || !entry.slot || !entry.mode) {
+    if (!entry.available || !entry.plan || !entry.interval) {
       validationResults.push({
         label: entry.label,
         status: 'SKIP',
@@ -78,10 +78,12 @@ async function run() {
     const baseDryRun = await apiFetch('/api/checkout/create-session', {
       method: 'POST',
       body: JSON.stringify({
-        priceId: entry.priceId,
-        priceSlot: entry.slot,
-        mode: entry.mode,
-        includeAccompagnement: false,
+        purchase: 'subscription',
+        plan: entry.plan,
+        interval: entry.interval,
+        currency: entry.currency ?? pricing.payload?.currency ?? 'eur',
+        country: (entry.currency ?? pricing.payload?.currency) === 'chf' ? 'CH' : 'FR',
+        includeAccompagnement: true,
         dryRun: true,
       }),
     });
@@ -97,27 +99,10 @@ async function run() {
 
     validationResults.push({
       label: entry.label,
-      status: 'OK',
-      detail: 'base',
-    });
-
-    const addonDryRun = await apiFetch('/api/checkout/create-session', {
-      method: 'POST',
-      body: JSON.stringify({
-        priceId: entry.priceId,
-        priceSlot: entry.slot,
-        mode: entry.mode,
-        includeAccompagnement: true,
-        dryRun: true,
-      }),
-    });
-
-    validationResults.push({
-      label: `${entry.label}+setup`,
-      status: addonDryRun.response.ok ? 'OK' : 'FAIL',
-      detail: addonDryRun.response.ok
-        ? 'addon'
-        : (addonDryRun.payload?.error || `HTTP ${addonDryRun.response.status}`),
+      status: baseDryRun.payload?.data?.activatesAccompagnement === true ? 'OK' : 'FAIL',
+      detail: baseDryRun.payload?.data?.activatesAccompagnement === true
+        ? 'setup offert activé'
+        : 'setup offert non confirmé',
     });
   }
 

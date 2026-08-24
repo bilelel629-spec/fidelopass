@@ -9,7 +9,7 @@ import ResellerLayout from '../../layouts/ResellerLayout.astro';
         <p class="text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-sky-700/75">Programme revendeur</p>
         <h1 id="reseller-title" class="mt-2 font-display text-4xl font-bold tracking-tight text-slate-950">Dashboard revendeur</h1>
         <p id="reseller-subtitle" class="mt-3 max-w-2xl text-base leading-7 text-slate-600">
-          Suivez vos commerçants, vos marges, la part Fidelopass et les paiements.
+          Suivez vos commerçants, vos commissions à reverser, la part Fidelopass et les paiements.
         </p>
       </div>
       <div class="flex flex-wrap gap-3">
@@ -63,7 +63,7 @@ import ResellerLayout from '../../layouts/ResellerLayout.astro';
         <p class="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-white/70">Paiements</p>
         <h2 class="mt-3 font-display text-2xl font-bold">Historique financier</h2>
         <p class="mt-3 text-sm leading-6 text-white/78">
-          Les paiements Stripe, remboursements et factures manuelles apparaissent ici.
+          Les paiements Stripe, remboursements et commissions à reverser apparaissent ici.
         </p>
         <div id="reseller-transactions" class="mt-5 space-y-2 text-sm"></div>
       </section>
@@ -99,7 +99,7 @@ import ResellerLayout from '../../layouts/ResellerLayout.astro';
         </div>
         <div class="rounded-2xl bg-slate-50 p-4">
           <p class="text-xs uppercase tracking-[0.18em] text-slate-500">Revenu lien</p>
-          <p id="dashboard-link-revenue" class="mt-2 text-xl font-bold text-emerald-600">0€</p>
+          <p id="dashboard-link-revenue" class="mt-2 text-xl font-bold text-emerald-600">0</p>
         </div>
       </div>
     </section>
@@ -206,9 +206,8 @@ import ResellerLayout from '../../layouts/ResellerLayout.astro';
     const metrics = payload.metrics ?? {};
     renderAlert(reseller);
     document.getElementById('reseller-title')!.textContent = reseller.brand_name ?? 'Dashboard revendeur';
-    document.getElementById('reseller-subtitle')!.textContent = reseller.type === 'stripe_connect'
-      ? 'Mode Stripe Connect: encaissement en ligne et split automatique.'
-      : 'Mode facturé: vous encaissez vos clients et Fidelopass vous facture sa part.';
+    document.getElementById('reseller-subtitle')!.textContent =
+      'V1: Fidelopass encaisse les abonnements, votre marge est suivie puis reversée manuellement.';
     document.getElementById('metric-active')!.textContent = String(metrics.active_clients ?? 0);
     document.getElementById('metric-suspended')!.textContent = String(metrics.suspended_clients ?? 0);
     document.getElementById('metric-margin')!.textContent = formatMoney(metrics.monthly_reseller_revenue_cents, metrics.currency);

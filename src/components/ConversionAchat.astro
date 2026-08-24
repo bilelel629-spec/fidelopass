@@ -1,0 +1,39 @@
+---
+// Événement de conversion Google Ads « Achat » (AW-18226371029/WwjpCO_dwrwcENWzgfND).
+// Se déclenche UNIQUEMENT au retour d'un paiement Stripe réussi, jamais sur une
+// navigation normale. Signaux fiables retenus :
+//   - `checkout=success` dans l'URL (posé par les success_url Stripe : changement de
+//     plan, accompagnement, parcours revendeur) ;
+//   - `/dashboard?tour=1` AVEC un referrer Stripe (retour du paiement d'un nouvel
+//     abonnement — distingue un vrai paiement d'une simple connexion non-onboardée) ;
+//   - page `/r/success` avec un `session_id` Stripe (inscription via revendeur).
+// Déduplique via sessionStorage pour ne pas compter deux fois au rechargement.
+// `is:inline` : Astro ne doit pas transformer ce script (il dépend du gtag global).
+---
+<script is:inline>
+  (function () {
+    try {
+      var loc = window.location;
+      var p = new URLSearchParams(loc.search);
+      var sessionId = p.get('session_id') || '';
+      var fromStripe = (document.referrer || '').indexOf('stripe.com') !== -1;
+
+      var paid =
+        p.get('checkout') === 'success' ||
+        (p.get('tour') === '1' && fromStripe) ||
+        (loc.pathname.indexOf('/r/success') === 0 && sessionId);
+
+      if (!paid) return;
+
+      var dedupKey = 'fp_conv_achat:' + loc.pathname + ':' + (sessionId || p.get('checkout') || 'sub');
+      if (sessionStorage.getItem(dedupKey)) return;
+      sessionStorage.setItem(dedupKey, '1');
+
+      if (typeof window.gtag !== 'function') return;
+      window.gtag('event', 'conversion', {
+        send_to: 'AW-18226371029/WwjpCO_dwrwcENWzgfND',
+        transaction_id: sessionId,
+      });
+    } catch (e) {}
+  })();
+</script>

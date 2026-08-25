@@ -23,6 +23,11 @@ export type PointRewardState = {
   can_use_reward: boolean;
 };
 
+export type PointRewardWalletSummary = {
+  label: string;
+  value: string;
+};
+
 export type PointRewardRedemptionResult =
   | {
       ok: true;
@@ -39,6 +44,12 @@ function toSafeInteger(value: unknown): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return 0;
   return Math.max(0, Math.trunc(parsed));
+}
+
+function shortenWalletRewardLabel(value: string, maxLength = 28): string {
+  const characters = Array.from(value.trim());
+  if (characters.length <= maxLength) return characters.join('');
+  return `${characters.slice(0, maxLength - 1).join('').trimEnd()}…`;
 }
 
 export function normalizeRewardTiers(raw: unknown): RewardTier[] {
@@ -87,6 +98,36 @@ export function getPointRewardState(
     next_reward: nextReward,
     can_use_reward: availableRewards.length > 0,
   };
+}
+
+export function getPointRewardWalletSummary(
+  points: number | null | undefined,
+  program: PointRewardProgram,
+): PointRewardWalletSummary {
+  const state = getPointRewardState(points, program);
+
+  if (state.available_rewards.length > 1) {
+    return {
+      label: 'Cadeaux',
+      value: `🎁 ${state.available_rewards.length} disponibles`,
+    };
+  }
+
+  if (state.available_rewards.length === 1) {
+    return {
+      label: 'Récompense',
+      value: shortenWalletRewardLabel(state.available_rewards[0].recompense),
+    };
+  }
+
+  if (state.next_reward) {
+    return {
+      label: 'Prochain palier',
+      value: `Encore ${state.next_reward.points_manquants} pts`,
+    };
+  }
+
+  return { label: 'Récompense', value: '—' };
 }
 
 export function getNewlyAvailablePointRewards(

@@ -6,7 +6,7 @@ import { randomUUID } from 'crypto';
 import { connect } from 'http2';
 import sharp from 'sharp';
 import { generatePassBackgroundImage, generateStripImage } from './strip-generator';
-import { getPointRewardState } from './point-rewards';
+import { getPointRewardState, getPointRewardWalletSummary } from './point-rewards';
 
 interface CarteData {
   id: string;
@@ -251,6 +251,9 @@ export async function generateApplePass(
   const pointRewardState = carte.type === 'points' && carte.rewards_multi_enabled === true
     ? getPointRewardState(client.points_actuels, carte)
     : null;
+  const pointRewardWalletSummary = pointRewardState
+    ? getPointRewardWalletSummary(client.points_actuels, carte)
+    : null;
   const rewardsText = pointRewardState
     ? pointRewardState.reward_catalog
       .map((reward) => reward.disponible
@@ -261,13 +264,8 @@ export async function generateApplePass(
       .filter((reward) => reward?.seuil && reward?.recompense)
       .map((reward) => `${reward.seuil} ${carte.type === 'tampons' ? 'tampons' : 'points'} : ${reward.recompense}`)
       .join('\n');
-  const rewardSummary = pointRewardState
-    ? pointRewardState.available_rewards.length
-      ? `Disponible : ${pointRewardState.available_rewards.map((reward) => reward.recompense).join(', ')}`
-      : pointRewardState.next_reward
-        ? `${pointRewardState.next_reward.recompense} — encore ${pointRewardState.next_reward.points_manquants} points`
-        : '—'
-    : carte.recompense_description ?? '—';
+  const rewardSummary = pointRewardWalletSummary?.value ?? carte.recompense_description ?? '—';
+  const rewardLabel = pointRewardWalletSummary?.label ?? 'Récompense';
   const availableRewardCount = pointRewardState?.available_rewards.length
     ?? client.recompenses_obtenues
     ?? 0;
@@ -334,16 +332,16 @@ export async function generateApplePass(
       auxiliaryFields: [
         {
           key: 'recompense',
-          label: 'Récompense',
+          label: rewardLabel,
           value: rewardSummary,
           changeMessage: 'Votre récompense Fidelopass a été mise à jour.',
         },
-        {
+        ...(!pointRewardState ? [{
           key: 'recompenses_disponibles',
           label: 'Récompenses dispo',
           value: String(availableRewardCount),
           changeMessage: 'Récompenses disponibles : %@.',
-        },
+        }] : []),
       ],
       backFields: [
         {

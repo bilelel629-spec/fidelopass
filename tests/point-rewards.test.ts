@@ -4,6 +4,7 @@ import {
   getNewlyAvailablePointRewards,
   getPointRewardState,
   getPointRewardTiers,
+  getPointRewardWalletSummary,
   normalizeRewardTiers,
   resolvePointRewardRedemption,
 } from '../api/services/point-rewards';
@@ -93,6 +94,39 @@ test('exige un choix quand plusieurs récompenses sont disponibles', () => {
     ok: false,
     reason: 'REWARD_SELECTION_REQUIRED',
   });
+});
+
+test('affiche les points manquants sur le recto avant le premier palier', () => {
+  assert.deepEqual(getPointRewardWalletSummary(10, multiProgram), {
+    label: 'Prochain palier',
+    value: 'Encore 5 pts',
+  });
+});
+
+test('affiche le nom court lorsqu’une seule récompense est disponible', () => {
+  assert.deepEqual(getPointRewardWalletSummary(20, multiProgram), {
+    label: 'Récompense',
+    value: 'Café offert',
+  });
+});
+
+test('affiche uniquement le nombre lorsque plusieurs récompenses sont disponibles', () => {
+  assert.deepEqual(getPointRewardWalletSummary(45, multiProgram), {
+    label: 'Cadeaux',
+    value: '🎁 2 disponibles',
+  });
+});
+
+test('raccourcit un intitulé trop long sur le recto du Wallet', () => {
+  const summary = getPointRewardWalletSummary(15, {
+    rewards_multi_enabled: true,
+    rewards_config: [{
+      seuil: 15,
+      recompense: 'Une très longue récompense impossible à lire sur le recto',
+    }],
+  });
+  assert.equal(summary.value, 'Une très longue récompense…');
+  assert.ok(Array.from(summary.value).length <= 28);
 });
 
 test('détecte les paliers nouvellement franchis', () => {

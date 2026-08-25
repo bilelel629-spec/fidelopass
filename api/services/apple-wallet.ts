@@ -7,9 +7,11 @@ import { connect } from 'http2';
 import sharp from 'sharp';
 import { generatePassBackgroundImage, generateStripImage } from './strip-generator';
 import { getPointRewardState, getPointRewardWalletSummary } from './point-rewards';
+import { getWidgetPortalUrl } from './widget-portal';
 
 interface CarteData {
   id: string;
+  commerce_id?: string | null;
   nom: string;
   type: 'points' | 'tampons';
   tampons_total: number;
@@ -269,6 +271,10 @@ export async function generateApplePass(
   const availableRewardCount = pointRewardState?.available_rewards.length
     ?? client.recompenses_obtenues
     ?? 0;
+  const customerPortalUrl = await getWidgetPortalUrl(carte.commerce_id);
+  const customerPortalHtmlUrl = customerPortalUrl
+    ?.replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;');
 
   // Message de notification personnalisé selon la progression du client.
   // Affiché par iOS dès que le solde change (= à chaque tampon/point/récompense).
@@ -369,6 +375,12 @@ export async function generateApplePass(
           label: 'Laisser un avis Google',
           value: carte.google_maps_url,
           attributedValue: `<a href='${carte.google_maps_url}'>Laisser un avis Google ⭐</a>`,
+        }] : []),
+        ...(customerPortalUrl ? [{
+          key: 'espace_fidelite',
+          label: 'Mon espace fidélité',
+          value: customerPortalUrl,
+          attributedValue: `<a href="${customerPortalHtmlUrl}">Voir mes points et récompenses</a>`,
         }] : []),
         ...(walletMessage?.message ? [{
           key: 'message_wallet',

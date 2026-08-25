@@ -2,9 +2,11 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { createSign } from 'crypto';
 import { getPointRewardState, getPointRewardWalletSummary } from './point-rewards';
+import { getWidgetPortalUrl } from './widget-portal';
 
 interface CarteData {
   id: string;
+  commerce_id?: string | null;
   nom: string;
   type: 'points' | 'tampons';
   tampons_total: number;
@@ -292,6 +294,7 @@ export async function generateGooglePass(
   const barcodeType = carte.barcode_type ?? 'CODE128';
   const rewardSummary = getRewardSummary(carte, client);
   const usesMultiplePointRewards = carte.type === 'points' && carte.rewards_multi_enabled === true;
+  const customerPortalUrl = await getWidgetPortalUrl(carte.commerce_id);
 
   const loyaltyObject: Record<string, unknown> = {
     id: objectId,
@@ -335,6 +338,15 @@ export async function generateGooglePass(
         id: 'message_wallet',
       }] : []),
     ],
+    ...(customerPortalUrl ? {
+      linksModuleData: {
+        uris: [{
+          uri: customerPortalUrl,
+          description: 'Voir mes points et récompenses',
+          id: 'espace_fidelite',
+        }],
+      },
+    } : {}),
   };
 
   const merchantLocations = getMerchantLocations(carte);
@@ -382,6 +394,7 @@ export async function updateGooglePassObject(
   const requester = authClient as unknown as HttpRequester;
   const rewardSummary = getRewardSummary(carte, client);
   const usesMultiplePointRewards = carte.type === 'points' && carte.rewards_multi_enabled === true;
+  const customerPortalUrl = await getWidgetPortalUrl(carte.commerce_id);
 
   await withTimeout(requester.request({
     url: `${GOOGLE_WALLET_API}/loyaltyObject/${objectId}`,
@@ -420,6 +433,15 @@ export async function updateGooglePassObject(
             id: 'branding_fidelopass',
           }]),
       ],
+      ...(customerPortalUrl ? {
+        linksModuleData: {
+          uris: [{
+            uri: customerPortalUrl,
+            description: 'Voir mes points et récompenses',
+            id: 'espace_fidelite',
+          }],
+        },
+      } : {}),
       ...(getMerchantLocations(carte) ? { merchantLocations: getMerchantLocations(carte) } : {}),
     },
   }), GOOGLE_WALLET_FAST_TIMEOUT_MS);

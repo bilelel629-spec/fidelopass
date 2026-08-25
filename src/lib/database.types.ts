@@ -133,6 +133,7 @@ export interface Database {
           commerce_id: string;
           nom: string | null;
           telephone: string | null;
+          telephone_e164: string | null;
           email: string | null;
           date_naissance: string | null;
           points_actuels: number;
@@ -146,14 +147,97 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['clients']['Row'], 'id' | 'created_at' | 'updated_at'> & {
+        Insert: Omit<Database['public']['Tables']['clients']['Row'], 'id' | 'created_at' | 'updated_at' | 'telephone_e164'> & {
           id?: string;
+          telephone_e164?: string | null;
           points_actuels?: number;
           tampons_actuels?: number;
           recompenses_obtenues?: number;
           push_enabled?: boolean;
         };
         Update: Partial<Database['public']['Tables']['clients']['Insert']>;
+        Relationships: [];
+      };
+      widget_configs: {
+        Row: {
+          id: string;
+          commerce_id: string;
+          public_key: string;
+          enabled: boolean;
+          allowed_origins: string[];
+          portal_url: string | null;
+          theme: Json;
+          display_options: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          commerce_id: string;
+          id?: string;
+          public_key?: string;
+          enabled?: boolean;
+          allowed_origins?: string[];
+          portal_url?: string | null;
+          theme?: Json;
+          display_options?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['widget_configs']['Insert']>;
+        Relationships: [];
+      };
+      widget_auth_challenges: {
+        Row: {
+          id: string;
+          widget_config_id: string;
+          phone_e164: string;
+          phone_hash: string;
+          ip_hash: string;
+          otp_hash: string | null;
+          delivery_status: 'pending' | 'sent' | 'ignored' | 'failed';
+          attempts: number;
+          expires_at: string;
+          consumed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          widget_config_id: string;
+          phone_e164: string;
+          phone_hash: string;
+          ip_hash: string;
+          expires_at: string;
+          created_at?: string;
+          delivery_status?: Database['public']['Tables']['widget_auth_challenges']['Row']['delivery_status'];
+          attempts?: number;
+          otp_hash?: string | null;
+          consumed_at?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['widget_auth_challenges']['Insert']>;
+        Relationships: [];
+      };
+      widget_sessions: {
+        Row: {
+          id: string;
+          widget_config_id: string;
+          phone_e164: string;
+          token_hash: string;
+          expires_at: string;
+          revoked_at: string | null;
+          last_seen_at: string;
+          created_at: string;
+        };
+        Insert: {
+          widget_config_id: string;
+          phone_e164: string;
+          token_hash: string;
+          expires_at: string;
+          id?: string;
+          revoked_at?: string | null;
+          created_at?: string;
+          last_seen_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['widget_sessions']['Insert']>;
         Relationships: [];
       };
       web_push_subscriptions: {

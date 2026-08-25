@@ -13,6 +13,7 @@ import { getPointRewardState } from '../services/point-rewards';
 import { scheduleSMS, personnaliserMessage } from '../../src/lib/brevo-sms';
 import { readRequestedPointVenteId, resolveCommerceAndPointVente } from '../utils/point-vente';
 import { getEffectivePlanRaw } from '../utils/effective-plan';
+import { normalizePhoneE164 } from '../utils/phone';
 
 const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://www.fidelopass.com').replace(/\/$/, '');
 
@@ -247,6 +248,7 @@ clientsRoutes.post('/', async (c) => {
 
   const db = createServiceClient();
   const normalizedPhone = normalizePhone(parsed.data.telephone);
+  const normalizedPhoneE164 = normalizePhoneE164(parsed.data.telephone);
 
   const { data: carte } = await db
     .from('cartes')
@@ -269,7 +271,7 @@ clientsRoutes.post('/', async (c) => {
     .eq('carte_id', parsed.data.carte_id)
     .eq('commerce_id', carte.commerce_id)
     .eq('point_vente_id', carte.point_vente_id)
-    .eq('telephone', normalizedPhone)
+    .eq(normalizedPhoneE164 ? 'telephone_e164' : 'telephone', normalizedPhoneE164 ?? normalizedPhone)
     .maybeSingle();
 
   if (existingClientError) {
@@ -285,6 +287,7 @@ clientsRoutes.post('/', async (c) => {
       .update({
         nom: parsed.data.nom,
         telephone: normalizedPhone,
+        telephone_e164: normalizedPhoneE164,
         email: parsed.data.email ?? existingClient.email,
         date_naissance: parsed.data.date_naissance ?? existingClient.date_naissance ?? null,
         fcm_token: nextFcmToken,
@@ -301,6 +304,7 @@ clientsRoutes.post('/', async (c) => {
         .update({
           nom: parsed.data.nom,
           telephone: normalizedPhone,
+          telephone_e164: normalizedPhoneE164,
           email: parsed.data.email ?? existingClient.email,
           fcm_token: nextFcmToken,
           push_enabled: pushEnabled,
@@ -348,6 +352,7 @@ clientsRoutes.post('/', async (c) => {
       wallet_code: generateWalletCode(),
       nom: parsed.data.nom,
       telephone: normalizedPhone,
+      telephone_e164: normalizedPhoneE164,
       email: parsed.data.email ?? null,
       date_naissance: parsed.data.date_naissance ?? null,
       fcm_token: parsed.data.fcm_token ?? null,
@@ -366,6 +371,7 @@ clientsRoutes.post('/', async (c) => {
         wallet_code: generateWalletCode(),
         nom: parsed.data.nom,
         telephone: normalizedPhone,
+        telephone_e164: normalizedPhoneE164,
         email: parsed.data.email ?? null,
         fcm_token: parsed.data.fcm_token ?? null,
         push_enabled: parsed.data.push_consent && Boolean(parsed.data.fcm_token),

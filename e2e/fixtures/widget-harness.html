@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Widget Fidelopass — vérification locale</title>
+    <style>
+      body { margin: 0; min-height: 100vh; background: #f1f5f9; font-family: system-ui, sans-serif; }
+      .site { max-width: 960px; margin: 0 auto; padding: 40px 20px; }
+      .hero { min-height: 520px; border-radius: 32px; background: linear-gradient(135deg,#052e2b,#0f766e); padding: 48px; color: white; }
+      h1 { max-width: 600px; font-size: clamp(36px,7vw,72px); line-height: .98; margin: 0; }
+      p { max-width: 540px; line-height: 1.7; opacity: .8; }
+    </style>
+    <script>
+      const program = 'wgt_1234567890123456';
+      const sessionKey = `fidelopass:widget:${program}:session`;
+      if (new URLSearchParams(location.search).has('loggedout')) localStorage.removeItem(sessionKey);
+      else localStorage.setItem(sessionKey, 'test-session-token');
+
+      const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
+      window.fetch = async (input, init = {}) => {
+        const url = String(input);
+        if (url.endsWith('/config')) return json({ data: {
+          public_key: program,
+          merchant: { name: 'Koyao', logo_url: null },
+          theme: { title: 'Mon espace fidélité', primary_color: '#0f766e' },
+          display_options: { show_history: true, show_wallet_links: true },
+        }});
+        if (url.endsWith('/auth/request-code')) return json({ data: { challenge_id: '4c6cffd5-e37f-4aae-9c74-ef7c576da61b' } });
+        if (url.endsWith('/auth/verify-code')) return json({ data: { access_token: 'test-session-token' } });
+        if (url.endsWith('/me')) return json({ data: {
+          customer: { first_name: 'Léa' },
+          portal_url: 'https://www.koyao.fr/fidelite',
+          programs: [{
+            membership_id: '54d4d550-d9ee-4464-b3a0-0413463cbe41',
+            card_name: 'Carte Koyao',
+            location_name: 'Koyao Annemasse',
+            type: 'points', points: 20, stamps: 0, stamps_total: 10, rewards_earned: 1,
+            reward_state: {
+              available_rewards: [{ seuil: 15, recompense: 'Un café offert', disponible: true, points_manquants: 0 }],
+              next_reward: { seuil: 45, recompense: 'Un plat offert', disponible: false, points_manquants: 25 },
+              reward_catalog: [
+                { seuil: 15, recompense: 'Un café offert', disponible: true, points_manquants: 0 },
+                { seuil: 45, recompense: 'Un plat offert', disponible: false, points_manquants: 25 },
+                { seuil: 80, recompense: 'Un menu complet offert', disponible: false, points_manquants: 60 },
+              ],
+            },
+            history: [
+              { id: '1', type: 'ajout_points', value: 20, note: 'Achat en boutique', date: '2026-08-25T10:00:00Z' },
+              { id: '2', type: 'recompense', value: 15, note: 'Café offert', date: '2026-08-20T10:00:00Z' },
+            ],
+            wallet: { apple_url: '/apple', google_url: '/google' },
+          }],
+        }});
+        if (url.endsWith('/logout')) return json({ ok: true });
+        return json({ error: 'Mock non prévu' }, 404);
+      };
+    </script>
+    <script src="/dist/client/widget/v1/client.js" defer></script>
+  </head>
+  <body>
+    <main class="site">
+      <section class="hero"><h1>Votre quotidien, simplement.</h1><p>Page commerçant de démonstration pour vérifier l’intégration du widget Fidelopass sur ordinateur et mobile.</p></section>
+    </main>
+    <fidelopass-loyalty program="wgt_1234567890123456" api-url="http://127.0.0.1:4174"></fidelopass-loyalty>
+  </body>
+</html>

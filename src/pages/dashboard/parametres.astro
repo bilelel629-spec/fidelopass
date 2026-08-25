@@ -24,10 +24,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   </div>
 
   <div class="rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-[0_18px_45px_-34px_rgba(15,23,42,0.35)]" data-tour="account-tabs">
-    <div class="grid gap-2 sm:grid-cols-3">
+    <div class="grid gap-2 sm:grid-cols-4">
       <button type="button" data-tab="profil" class="account-tab rounded-[1.1rem] px-4 py-4 text-sm font-extrabold transition">Profil</button>
       <button type="button" data-tab="abonnement" class="account-tab rounded-[1.1rem] px-4 py-4 text-sm font-extrabold transition">Abonnement</button>
       <button type="button" data-tab="organisation" class="account-tab rounded-[1.1rem] px-4 py-4 text-sm font-extrabold transition">Organisation</button>
+      <button type="button" data-tab="widget" class="account-tab rounded-[1.1rem] px-4 py-4 text-sm font-extrabold transition">Espace fidélité</button>
     </div>
   </div>
 
@@ -160,6 +161,76 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </div>
   </section>
 
+  <section id="tab-widget" class="account-panel hidden">
+    <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.72fr)]">
+      <div class="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.5)] sm:p-7">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p class="text-xs font-extrabold uppercase tracking-[0.26em] text-blue-600/75">Widget pour votre site</p>
+            <h2 class="mt-3 font-display text-3xl font-extrabold tracking-[-0.04em] text-slate-950">Espace fidélité client</h2>
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Vos clients se connectent par code SMS et consultent leurs points, tampons, récompenses et Wallet directement sur votre site.</p>
+          </div>
+          <label class="inline-flex w-fit cursor-pointer items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-extrabold text-slate-700">
+            <input id="widget-enabled" type="checkbox" class="h-4 w-4 accent-blue-600" />
+            Activer
+          </label>
+        </div>
+
+        <form id="widget-form" class="mt-7 space-y-5">
+          <div>
+            <label class="label" for="widget-origins">Domaines autorisés</label>
+            <textarea id="widget-origins" class="input min-h-28 resize-y" placeholder="https://www.votre-site.fr&#10;https://votre-site.fr"></textarea>
+            <p class="mt-2 text-xs leading-5 text-slate-500">Un domaine HTTPS par ligne. Seuls ces sites pourront charger les données du widget.</p>
+          </div>
+          <div>
+            <label class="label" for="widget-portal-url">Page de l’espace fidélité</label>
+            <input id="widget-portal-url" type="url" class="input" placeholder="https://www.votre-site.fr/fidelite" />
+            <p class="mt-2 text-xs leading-5 text-slate-500">Cette adresse sera également ajoutée aux prochaines mises à jour des cartes Apple et Google Wallet.</p>
+          </div>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="label" for="widget-title">Titre du bouton</label>
+              <input id="widget-title" type="text" maxlength="80" class="input" placeholder="Mon espace fidélité" />
+            </div>
+            <div>
+              <label class="label" for="widget-color">Couleur principale</label>
+              <div class="flex gap-3">
+                <input id="widget-color-picker" type="color" value="#2563eb" class="h-12 w-14 cursor-pointer rounded-xl border border-slate-200 bg-white p-1" aria-label="Choisir la couleur" />
+                <input id="widget-color" type="text" value="#2563eb" maxlength="7" class="input" pattern="#[0-9A-Fa-f]{6}" />
+              </div>
+            </div>
+          </div>
+          <div>
+            <label class="label" for="widget-logo-url">Logo personnalisé (facultatif)</label>
+            <input id="widget-logo-url" type="url" class="input" placeholder="https://www.votre-site.fr/logo.png" />
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <label class="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700"><input id="widget-show-history" type="checkbox" checked class="h-4 w-4 accent-blue-600" />Afficher l’historique</label>
+            <label class="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700"><input id="widget-show-wallet" type="checkbox" checked class="h-4 w-4 accent-blue-600" />Afficher les boutons Wallet</label>
+          </div>
+          <p id="widget-feedback" class="hidden rounded-xl px-4 py-3 text-sm"></p>
+          <button id="widget-save" type="submit" class="rounded-[1rem] bg-slate-950 px-6 py-3 text-sm font-extrabold text-white shadow-[0_18px_36px_-24px_rgba(15,23,42,0.8)] transition hover:-translate-y-0.5 hover:bg-slate-800">Enregistrer le widget</button>
+        </form>
+
+        <div class="mt-8 border-t border-slate-200 pt-7">
+          <div class="flex items-center justify-between gap-3">
+            <div><h3 class="font-display text-xl font-extrabold text-slate-950">Code d’intégration</h3><p class="mt-1 text-xs text-slate-500">À coller avant la balise de fermeture &lt;/body&gt; de votre site.</p></div>
+            <button id="widget-copy" type="button" class="btn-secondary px-4 py-2.5 text-sm">Copier</button>
+          </div>
+          <textarea id="widget-snippet" readonly class="mt-4 min-h-32 w-full resize-none rounded-2xl border border-slate-800 bg-slate-950 p-4 font-mono text-xs leading-6 text-slate-100"></textarea>
+        </div>
+      </div>
+
+      <div class="rounded-[1.75rem] border border-slate-200 bg-slate-950 p-5 shadow-[0_24px_70px_-44px_rgba(15,23,42,0.8)] sm:p-7">
+        <p class="text-xs font-extrabold uppercase tracking-[0.24em] text-blue-300">Aperçu mobile</p>
+        <div id="widget-preview" class="mt-5 overflow-hidden rounded-[1.5rem] border border-white/10 bg-white shadow-2xl"></div>
+        <div class="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4 text-xs leading-5 text-slate-300">
+          Les récompenses restent présentées sous forme de cartes lisibles, même quand plusieurs paliers sont configurés. Le code SMS remplace le mot de passe.
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="rounded-[1.5rem] border border-red-100 bg-red-50/50 p-6">
     <h2 class="mb-1 font-display text-xl font-extrabold text-slate-950">Déconnexion</h2>
     <p class="mb-4 text-sm text-slate-600">Vous serez redirigé vers la page de connexion.</p>
@@ -278,7 +349,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   const requestedTab = new URLSearchParams(window.location.search).get('tab');
   const normalizedTab = requestedTab === 'plans' ? 'abonnement' : requestedTab;
-  if (normalizedTab && ['profil', 'abonnement', 'organisation'].includes(normalizedTab)) {
+  if (normalizedTab && ['profil', 'abonnement', 'organisation', 'widget'].includes(normalizedTab)) {
     setAccountTab(normalizedTab);
   } else {
     setAccountTab('profil');
@@ -305,6 +376,36 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const teamMembersList = document.getElementById('team-members-list') as HTMLDivElement | null;
   let billingPrices: Array<{ slot: string; available: boolean; plan: string; currency: string }> = [];
   let billingStatus: Record<string, any> | null = null;
+
+  const widgetForm = document.getElementById('widget-form') as HTMLFormElement | null;
+  const widgetEnabled = document.getElementById('widget-enabled') as HTMLInputElement | null;
+  const widgetOrigins = document.getElementById('widget-origins') as HTMLTextAreaElement | null;
+  const widgetPortalUrl = document.getElementById('widget-portal-url') as HTMLInputElement | null;
+  const widgetTitle = document.getElementById('widget-title') as HTMLInputElement | null;
+  const widgetColor = document.getElementById('widget-color') as HTMLInputElement | null;
+  const widgetColorPicker = document.getElementById('widget-color-picker') as HTMLInputElement | null;
+  const widgetLogoUrl = document.getElementById('widget-logo-url') as HTMLInputElement | null;
+  const widgetShowHistory = document.getElementById('widget-show-history') as HTMLInputElement | null;
+  const widgetShowWallet = document.getElementById('widget-show-wallet') as HTMLInputElement | null;
+  const widgetSnippet = document.getElementById('widget-snippet') as HTMLTextAreaElement | null;
+  const widgetFeedback = document.getElementById('widget-feedback') as HTMLParagraphElement | null;
+  const widgetPreview = document.getElementById('widget-preview') as HTMLDivElement | null;
+
+  function setWidgetFeedback(message = '', type: 'info' | 'success' | 'error' = 'info') {
+    if (!widgetFeedback) return;
+    if (!message) {
+      widgetFeedback.classList.add('hidden');
+      widgetFeedback.textContent = '';
+      return;
+    }
+    widgetFeedback.textContent = message;
+    widgetFeedback.className = [
+      'rounded-xl px-4 py-3 text-sm',
+      type === 'success' ? 'border border-emerald-200 bg-emerald-50 text-emerald-700' : '',
+      type === 'error' ? 'border border-red-200 bg-red-50 text-red-700' : '',
+      type === 'info' ? 'border border-sky-200 bg-sky-50 text-sky-700' : '',
+    ].filter(Boolean).join(' ');
+  }
 
   function setPlansFeedback(message = '') {
     if (!message) {
@@ -365,6 +466,113 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       "'": '&#039;',
     }[char] ?? char));
   }
+
+  function renderWidgetPreview() {
+    if (!widgetPreview) return;
+    const color = /^#[0-9a-f]{6}$/i.test(widgetColor?.value ?? '') ? widgetColor!.value : '#2563eb';
+    const title = widgetTitle?.value.trim() || 'Mon espace fidélité';
+    widgetPreview.innerHTML = `
+      <div class="border-b border-slate-200 px-5 py-4" style="background:linear-gradient(135deg,${escapeHtml(color)}18,#fff)">
+        <p class="text-sm font-extrabold text-slate-950">Votre commerce</p>
+        <p class="mt-1 text-xs text-slate-500">${escapeHtml(title)}</p>
+      </div>
+      <div class="p-5">
+        <p class="font-display text-2xl font-extrabold tracking-[-0.04em] text-slate-950">Bonjour Léa</p>
+        <div class="mt-4 overflow-hidden rounded-2xl border border-slate-200">
+          <div class="bg-slate-50 p-4">
+            <p class="text-sm font-extrabold text-slate-900">Ma carte fidélité</p>
+            <div class="mt-3 flex items-end justify-between"><strong class="text-4xl tracking-tight text-slate-950">20</strong><span class="text-xs font-semibold text-slate-500">points</span></div>
+            <div class="mt-3 h-2 overflow-hidden rounded-full bg-slate-200"><span class="block h-full w-1/2 rounded-full" style="background:${escapeHtml(color)}"></span></div>
+          </div>
+          <div class="space-y-2 border-t border-slate-200 p-4">
+            <p class="mb-2 text-xs font-extrabold text-slate-900">Récompenses</p>
+            <div class="flex items-center gap-3 rounded-xl border p-3" style="border-color:${escapeHtml(color)}55;background:${escapeHtml(color)}0d"><span class="grid h-11 w-11 place-items-center rounded-xl text-[10px] font-black text-white" style="background:${escapeHtml(color)}">15 pts</span><div><strong class="block text-xs text-slate-900">Un café offert</strong><small class="mt-1 block text-[10px] text-slate-500">Disponible maintenant</small></div></div>
+            <div class="flex items-center gap-3 rounded-xl border border-slate-200 p-3"><span class="grid h-11 w-11 place-items-center rounded-xl bg-slate-100 text-[10px] font-black text-slate-600">45 pts</span><div><strong class="block text-xs text-slate-900">Un plat offert</strong><small class="mt-1 block text-[10px] text-slate-500">Encore 25 points</small></div></div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  async function loadWidgetConfig() {
+    if (!widgetForm) return;
+    try {
+      const res = await authFetch('/api/widget/admin/config');
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error ?? 'Impossible de charger le widget.');
+      const data = payload?.data ?? {};
+      if (widgetEnabled) widgetEnabled.checked = data.enabled === true;
+      if (widgetOrigins) widgetOrigins.value = Array.isArray(data.allowed_origins) ? data.allowed_origins.join('\n') : '';
+      if (widgetPortalUrl) widgetPortalUrl.value = data.portal_url ?? '';
+      if (widgetTitle) widgetTitle.value = data.theme?.title ?? 'Mon espace fidélité';
+      if (widgetColor) widgetColor.value = data.theme?.primary_color ?? '#2563eb';
+      if (widgetColorPicker) widgetColorPicker.value = data.theme?.primary_color ?? '#2563eb';
+      if (widgetLogoUrl) widgetLogoUrl.value = data.theme?.logo_url ?? '';
+      if (widgetShowHistory) widgetShowHistory.checked = data.display_options?.show_history !== false;
+      if (widgetShowWallet) widgetShowWallet.checked = data.display_options?.show_wallet_links !== false;
+      if (widgetSnippet) widgetSnippet.value = data.snippet ?? '';
+      if (!data.runtime_enabled) setWidgetFeedback('Le widget peut être configuré, mais son activation globale est encore en attente du déploiement.', 'info');
+      else setWidgetFeedback('Configuration chargée.', 'success');
+      renderWidgetPreview();
+    } catch (error: unknown) {
+      setWidgetFeedback(error instanceof Error ? error.message : 'Impossible de charger le widget.', 'error');
+    }
+  }
+
+  widgetColorPicker?.addEventListener('input', () => {
+    if (widgetColor) widgetColor.value = widgetColorPicker.value;
+    renderWidgetPreview();
+  });
+  widgetColor?.addEventListener('input', () => {
+    if (widgetColorPicker && /^#[0-9a-f]{6}$/i.test(widgetColor.value)) widgetColorPicker.value = widgetColor.value;
+    renderWidgetPreview();
+  });
+  widgetTitle?.addEventListener('input', renderWidgetPreview);
+
+  widgetForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = document.getElementById('widget-save') as HTMLButtonElement | null;
+    if (button) { button.disabled = true; button.textContent = 'Enregistrement…'; }
+    setWidgetFeedback('');
+    try {
+      const res = await authFetch('/api/widget/admin/config', {
+        method: 'PUT',
+        body: JSON.stringify({
+          enabled: widgetEnabled?.checked === true,
+          allowed_origins: (widgetOrigins?.value ?? '').split(/\r?\n/).map((value) => value.trim()).filter(Boolean),
+          portal_url: widgetPortalUrl?.value.trim() || null,
+          theme: {
+            title: widgetTitle?.value.trim() || 'Mon espace fidélité',
+            primary_color: widgetColor?.value.trim() || '#2563eb',
+            logo_url: widgetLogoUrl?.value.trim() || null,
+          },
+          display_options: {
+            show_history: widgetShowHistory?.checked !== false,
+            show_wallet_links: widgetShowWallet?.checked !== false,
+          },
+        }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error ?? 'Impossible d’enregistrer le widget.');
+      if (widgetSnippet) widgetSnippet.value = payload?.data?.snippet ?? '';
+      setWidgetFeedback('Widget enregistré. Le code d’intégration est prêt à être copié.', 'success');
+      renderWidgetPreview();
+    } catch (error: unknown) {
+      setWidgetFeedback(error instanceof Error ? error.message : 'Impossible d’enregistrer le widget.', 'error');
+    } finally {
+      if (button) { button.disabled = false; button.textContent = 'Enregistrer le widget'; }
+    }
+  });
+
+  document.getElementById('widget-copy')?.addEventListener('click', async () => {
+    if (!widgetSnippet?.value) return;
+    try {
+      await navigator.clipboard.writeText(widgetSnippet.value);
+      setWidgetFeedback('Code d’intégration copié.', 'success');
+    } catch {
+      widgetSnippet.select();
+      setWidgetFeedback('Sélectionnez puis copiez le code affiché.', 'info');
+    }
+  });
 
   function renderTeamMembers(members: Array<Record<string, any>>) {
     if (!teamMembersList) return;
@@ -735,4 +943,5 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   loadSettings();
   loadPlansControls();
   loadTeamMembers();
+  loadWidgetConfig();
 </script>

@@ -27,10 +27,12 @@ import { geocodingRoutes } from './routes/geocoding';
 import { assistantCardRoutes } from './routes/assistant-card';
 import { resellerRoutes } from './routes/reseller';
 import { publicResellerRoutes } from './routes/public-reseller';
+import { widgetRoutes } from './routes/widget';
 import { createServiceClient } from '../src/lib/supabase';
 import { withCronLock } from './services/cron-lock';
 import { authMiddleware } from './middleware/auth';
 import { adminMiddleware } from './middleware/admin';
+import { normalizeOrigin } from './utils/phone';
 
 const app = new Hono<ApiEnv>();
 
@@ -44,7 +46,11 @@ const ALLOWED_ORIGINS = Array.from(new Set([
 
 app.use('*', logger());
 app.use('*', cors({
-  origin: (origin) => (ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]),
+  origin: (origin, c) => (
+    c.req.path.startsWith('/api/widget/') && normalizeOrigin(origin)
+      ? origin
+      : (ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0])
+  ),
   allowHeaders: ['Content-Type', 'Authorization', 'X-Point-Vente-Id', 'X-Scanner-Token'],
   allowMethods: ['GET', 'HEAD', 'PUT', 'POST', 'DELETE', 'PATCH', 'OPTIONS'],
   credentials: true,
@@ -72,6 +78,7 @@ app.route('/api/geocoding', geocodingRoutes);
 app.route('/api/assistant-card', assistantCardRoutes);
 app.route('/api/reseller', resellerRoutes);
 app.route('/api/public/reseller', publicResellerRoutes);
+app.route('/api/widget', widgetRoutes);
 
 app.get('/api/health', (c) => c.json({ ok: true, ts: new Date().toISOString() }));
 

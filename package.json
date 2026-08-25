@@ -17,7 +17,8 @@
     "reseller:check": "tsx scripts/reseller-validation-check.ts",
     "security:audit": "node scripts/security-audit.mjs",
     "typecheck": "astro check && tsc --noEmit",
-    "test:points": "tsx --test tests/point-rewards.test.ts"
+    "test:points": "tsx --test tests/point-rewards.test.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@astrojs/node": "^9.5.5",
@@ -51,6 +52,7 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.62.1",
     "@astrojs/check": "^0.9.9",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22.0.0",

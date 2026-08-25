@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { createSign } from 'crypto';
-import { getPointRewardState } from './point-rewards';
+import { getPointRewardState, getPointRewardWalletSummary } from './point-rewards';
 
 interface CarteData {
   id: string;
@@ -103,17 +103,11 @@ function getRewardsText(carte: CarteData, client?: ClientData): string | null {
   return rewards.length ? rewards.join('\n') : null;
 }
 
-function getRewardSummary(carte: CarteData, client: ClientData): string {
+function getRewardSummary(carte: CarteData, client: ClientData): { label: string; value: string } {
   if (carte.type !== 'points' || carte.rewards_multi_enabled !== true) {
-    return carte.recompense_description ?? '—';
+    return { label: 'Récompense', value: carte.recompense_description ?? '—' };
   }
-  const state = getPointRewardState(client.points_actuels, carte);
-  if (state.available_rewards.length) {
-    return `Disponible : ${state.available_rewards.map((reward) => reward.recompense).join(', ')}`;
-  }
-  return state.next_reward
-    ? `${state.next_reward.recompense} — encore ${state.next_reward.points_manquants} points`
-    : '—';
+  return getPointRewardWalletSummary(client.points_actuels, carte);
 }
 
 function getAvailableRewardCount(carte: CarteData, client: ClientData): number {
@@ -296,6 +290,8 @@ export async function generateGooglePass(
     QR: 'QR_CODE', PDF417: 'PDF_417', AZTEC: 'AZTEC', CODE128: 'CODE_128',
   };
   const barcodeType = carte.barcode_type ?? 'CODE128';
+  const rewardSummary = getRewardSummary(carte, client);
+  const usesMultiplePointRewards = carte.type === 'points' && carte.rewards_multi_enabled === true;
 
   const loyaltyObject: Record<string, unknown> = {
     id: objectId,
@@ -307,8 +303,8 @@ export async function generateGooglePass(
     },
     textModulesData: [
       {
-        header: 'Récompense',
-        body: getRewardSummary(carte, client),
+        header: rewardSummary.label,
+        body: rewardSummary.value,
         id: 'recompense',
       },
       ...(getRewardsText(carte, client) ? [{
@@ -321,11 +317,11 @@ export async function generateGooglePass(
         body: getVipText(carte),
         id: 'paliers_vip',
       }] : []),
-      {
+      ...(!usesMultiplePointRewards ? [{
         header: 'Récompenses dispo',
         body: String(getAvailableRewardCount(carte, client)),
         id: 'recompenses_disponibles',
-      },
+      }] : []),
       ...((isProPlan(carte.commerces.plan) && carte.branding_powered_by_enabled === false)
         ? []
         : [{
@@ -384,6 +380,8 @@ export async function updateGooglePassObject(
     : String(client.points_actuels);
 
   const requester = authClient as unknown as HttpRequester;
+  const rewardSummary = getRewardSummary(carte, client);
+  const usesMultiplePointRewards = carte.type === 'points' && carte.rewards_multi_enabled === true;
 
   await withTimeout(requester.request({
     url: `${GOOGLE_WALLET_API}/loyaltyObject/${objectId}`,
@@ -395,8 +393,8 @@ export async function updateGooglePassObject(
       },
       textModulesData: [
         {
-          header: 'Récompense',
-          body: getRewardSummary(carte, client),
+          header: rewardSummary.label,
+          body: rewardSummary.value,
           id: 'recompense',
         },
         ...(getRewardsText(carte, client) ? [{
@@ -409,11 +407,11 @@ export async function updateGooglePassObject(
           body: getVipText(carte),
           id: 'paliers_vip',
         }] : []),
-        {
+        ...(!usesMultiplePointRewards ? [{
           header: 'Récompenses obtenues',
           body: String(getAvailableRewardCount(carte, client)),
           id: 'recompenses_disponibles',
-        },
+        }] : []),
         ...((isProPlan(carte.commerces.plan) && carte.branding_powered_by_enabled === false)
           ? []
           : [{
